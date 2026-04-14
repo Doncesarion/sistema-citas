@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barbería Don Carlos - Reserva tu cita</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a1a;
+      border-bottom: 2px solid #c9a84c;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 { font-size: 24px; color: #c9a84c; }
+    header p  { font-size: 13px; color: #888; }
+
+    .scissors { font-size: 32px; }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    .card h2 {
+      font-size: 16px;
+      color: #c9a84c;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+      margin-top: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input, select {
+      width: 100%;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus { border-color: #c9a84c; }
+
+    select option { background: #1a1a1a; }
+
+    .servicios {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .servicio {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .servicio:hover  { border-color: #c9a84c; }
+    .servicio.activo { border-color: #c9a84c; background: #1f1a0e; }
+
+    .servicio .precio {
+      font-size: 13px;
+      color: #c9a84c;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .servicio .nombre { font-size: 13px; }
+
+    .horarios {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .horario {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .horario:hover       { border-color: #c9a84c; }
+    .horario.activo      { border-color: #c9a84c; background: #1f1a0e; color: #c9a84c; font-weight: 600; }
+    .horario.ocupado     { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+
+    .btn {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      background: #c9a84c;
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #e0be6a; }
+
+    /* Panel derecho — resumen + IA */
+    .resumen {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #aaa;
+      min-height: 100px;
+    }
+
+    .resumen span { color: #fff; font-weight: 500; }
+
+    .chat {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 180px;
+      max-height: 260px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #ccc;
+    }
+
+    .msg-ia {
+      background: #1f1a0e;
+      border-left: 3px solid #c9a84c;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .msg-ia strong { color: #c9a84c; display: block; margin-bottom: 4px; font-size: 11px; }
+
+    .estado {
+      font-size: 12px;
+      color: #c9a84c;
+      margin-bottom: 10px;
+      min-height: 18px;
+    }
+
+    @media (max-width: 640px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .btn-whatsapp {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  background: #25D366;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-whatsapp:hover { background: #1ebe5d; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="scissors">✂️</div>
+  <div>
+    <h1>Barbería Don Carlos</h1>
+    <p>Reserva tu cita en línea — rápido y fácil</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Columna izquierda: formulario -->
+  <div class="card">
+    <h2>✦ Reserva tu cita</h2>
+
+    <label>Tu nombre</label>
+    <input type="text" id="nombre" placeholder="Ej: Carlos Ramírez">
+
+    <label>Tu teléfono</label>
+    <input type="tel" id="telefono" placeholder="Ej: +56 9 1234 5678">
+
+    <label>Elige el servicio</label>
+    <div class="servicios">
+      <div class="servicio" onclick="seleccionarServicio(this, 'Corte clásico', 8000)">
+        <div class="nombre">Corte clásico</div>
+        <div class="precio">$8.000</div>
+      </div>
+      <div class="servicio" onclick="seleccionarServicio(this, 'Corte + barba', 12000)">
+        <div class="nombre">Corte + barba</div>
+        <div class="precio">$12.000</div>
+      </div>
+      <div class="servicio" onclick="seleccionarServicio(this, 'Barba y perfilado', 7000)">
+        <div class="nombre">Barba y perfilado</div>
+        <div class="precio">$7.000</div>
+      </div>
+      <div class="servicio" onclick="seleccionarServicio(this, 'Corte infantil', 6000)">
+        <div class="nombre">Corte infantil</div>
+        <div class="precio">$6.000</div>
+      </div>
+    </div>
+
+   <label>Fecha</label>
+    <div id="calendario" style="background:#111;border:1px solid #333;border-radius:12px;padding:16px;"></div>
+    <input type="hidden" id="fecha">
+
+    <label>Hora disponible</label>
+    <div class="horarios" id="horarios">
+      <div class="horario" onclick="seleccionarHora(this)">09:00</div>
+      <div class="horario" onclick="seleccionarHora(this)">09:30</div>
+      <div class="horario ocupado">10:00</div>
+      <div class="horario" onclick="seleccionarHora(this)">10:30</div>
+      <div class="horario" onclick="seleccionarHora(this)">11:00</div>
+      <div class="horario ocupado">11:30</div>
+      <div class="horario" onclick="seleccionarHora(this)">12:00</div>
+      <div class="horario" onclick="seleccionarHora(this)">14:00</div>
+      <div class="horario" onclick="seleccionarHora(this)">14:30</div>
+      <div class="horario ocupado">15:00</div>
+      <div class="horario" onclick="seleccionarHora(this)">15:30</div>
+      <div class="horario" onclick="seleccionarHora(this)">16:00</div>
+    </div>
+
+    <button class="btn" onclick="confirmarCita()">Confirmar cita con IA ✦</button>
+    <button class="btn-whatsapp" onclick="enviarWhatsApp()">Confirmar por WhatsApp 📱</button>
+  </div>
+
+  <!-- Columna derecha: resumen + respuesta IA -->
+  <div>
+    <div class="card" style="margin-bottom: 0;">
+      <h2>✦ Tu reserva</h2>
+
+      <div class="resumen" id="resumen">
+        Completa el formulario para ver el resumen de tu cita...
+      </div>
+
+      <h2 style="margin-top: 20px;">✦ Asistente IA</h2>
+      <div class="estado" id="estado"></div>
+      <div class="chat" id="chat">
+        <div class="msg-ia">
+          <strong>Don Carlos IA</strong>
+          ¡Bienvenido! Selecciona tu servicio, fecha y hora, y yo me encargo de confirmar tu cita y recordarte el día anterior. 💈
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Estado de la app
+  let servicioSeleccionado = null;
+  let precioSeleccionado = 0;
+  let horaSeleccionada = null;
+
+// Calendario
+const hoy = new Date();
+let mesActual = hoy.getMonth();
+let anioActual = hoy.getFullYear();
+
+function renderCalendario() {
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dias = ['Lu','Ma','Mi','Ju','Vi','Sá','Do'];
+  const primerDia = new Date(anioActual, mesActual, 1).getDay();
+  const ajuste = primerDia === 0 ? 6 : primerDia - 1;
+  const totalDias = new Date(anioActual, mesActual + 1, 0).getDate();
+  const fechaSeleccionada = document.getElementById('fecha').value;
+
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <button onclick="cambiarMes(-1)" style="background:none;border:none;color:#c9a84c;font-size:18px;cursor:pointer;">‹</button>
+      <span style="color:#fff;font-weight:500;font-size:14px;">${meses[mesActual]} ${anioActual}</span>
+      <button onclick="cambiarMes(1)" style="background:none;border:none;color:#c9a84c;font-size:18px;cursor:pointer;">›</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;">
+      ${dias.map(d => `<div style="text-align:center;font-size:11px;color:#666;padding:4px 0;">${d}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+      ${Array(ajuste).fill('<div></div>').join('')}
+      ${Array.from({length: totalDias}, (_, i) => {
+        const dia = i + 1;
+        const fecha = `${anioActual}-${String(mesActual+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+        const esHoy = dia === hoy.getDate() && mesActual === hoy.getMonth() && anioActual === hoy.getFullYear();
+        const fechaObj = new Date(anioActual, mesActual, dia);
+const esDomingo = fechaObj.getDay() === 0;
+const esPasado = fechaObj < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()) || esDomingo;
+        const seleccionado = fecha === fechaSeleccionada;
+
+        let estilo = `text-align:center;padding:7px 2px;border-radius:6px;font-size:13px;cursor:pointer;`;
+        if (esPasado && esDomingo) estilo += `color:#2a1a1a;cursor:not-allowed;`;
+        else if (esPasado)         estilo += `color:#333;cursor:not-allowed;`;
+        else if (seleccionado) estilo += `background:#c9a84c;color:#000;font-weight:700;`;
+        else if (esHoy)  estilo += `border:1px solid #c9a84c;color:#c9a84c;`;
+        else             estilo += `color:#ccc;`;
+
+        const click = esPasado ? '' : `onclick="seleccionarFecha('${fecha}')"`;
+        return `<div style="${estilo}" ${click}>${dia}</div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('calendario').innerHTML = html;
+}
+
+function cambiarMes(dir) {
+  mesActual += dir;
+  if (mesActual > 11) { mesActual = 0; anioActual++; }
+  if (mesActual < 0)  { mesActual = 11; anioActual--; }
+  renderCalendario();
+}
+
+function seleccionarFecha(fecha) {
+  document.getElementById('fecha').value = fecha;
+  renderCalendario();
+  actualizarResumen();
+}
+
+renderCalendario();
+
+  // Actualizar resumen cada vez que cambia algo
+  function actualizarResumen() {
+    const nombre   = document.getElementById('nombre').value;
+    const telefono = document.getElementById('telefono').value;
+    const fecha    = document.getElementById('fecha').value;
+
+    let html = '';
+    if (nombre)               html += `👤 Cliente: <span>${nombre}</span><br>`;
+    if (telefono)             html += `📱 Teléfono: <span>${telefono}</span><br>`;
+    if (servicioSeleccionado) html += `✂️ Servicio: <span>${servicioSeleccionado}</span><br>`;
+    if (precioSeleccionado)   html += `💰 Precio: <span>$${precioSeleccionado.toLocaleString('es-CL')}</span><br>`;
+    if (fecha)                html += `📅 Fecha: <span>${fecha}</span><br>`;
+    if (horaSeleccionada)     html += `⏰ Hora: <span>${horaSeleccionada}</span><br>`;
+
+    document.getElementById('resumen').innerHTML = html || 'Completa el formulario para ver el resumen...';
+  }
+
+  document.getElementById('nombre').addEventListener('input', actualizarResumen);
+  document.getElementById('telefono').addEventListener('input', actualizarResumen);
+  document.getElementById('fecha').addEventListener('change', actualizarResumen);
+
+  function seleccionarServicio(el, nombre, precio) {
+    document.querySelectorAll('.servicio').forEach(s => s.classList.remove('activo'));
+    el.classList.add('activo');
+    servicioSeleccionado = nombre;
+    precioSeleccionado   = precio;
+    actualizarResumen();
+  }
+
+  function seleccionarHora(el) {
+    if (el.classList.contains('ocupado')) return;
+    document.querySelectorAll('.horario').forEach(h => h.classList.remove('activo'));
+    el.classList.add('activo');
+    horaSeleccionada = el.textContent;
+    actualizarResumen();
+  }
+
+  async function confirmarCita() {
+    const nombre   = document.getElementById('nombre').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    const fecha    = document.getElementById('fecha').value;
+
+    if (!nombre || !telefono || !servicioSeleccionado || !fecha || !horaSeleccionada) {
+      alert('Por favor completa todos los campos antes de confirmar.');
+      return;
+    }
+
+    const estado = document.getElementById('estado');
+    const chat   = document.getElementById('chat');
+
+    estado.textContent = '⏳ Confirmando tu cita con IA...';
+
+    const prompt = `Eres el asistente virtual de Barbería Don Carlos, una barbería clásica y de confianza.
+Un cliente acaba de reservar una cita con estos datos:
+- Nombre: ${nombre}
+- Teléfono: ${telefono}
+- Servicio: ${servicioSeleccionado}
+- Precio: $${precioSeleccionado.toLocaleString('es-CL')} CLP
+- Fecha: ${fecha}
+- Hora: ${horaSeleccionada}
+
+Escribe un mensaje de confirmación amigable, breve (3-4 oraciones máximo), en español chileno informal. 
+Incluye: confirmación de la cita, un recordatorio de llegar 5 minutos antes, y que se enviará un recordatorio el día anterior. 
+Firma como "Don Carlos IA 💈".`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+  'Content-Type': 'application/json',
+  'x-api-key': window.ANTHROPIC_KEY || '',
+  'anthropic-version': '2023-06-01',
+  'anthropic-dangerous-direct-browser-access': 'true'
+},
+body: JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 300,
+    messages: [{ role: 'user', content: prompt }]
+  })
+      });
+
+      const data = await response.json();
+      const texto = data.content[0].text;
+
+      estado.textContent = '✅ ¡Cita confirmada!';
+
+      const msg = document.createElement('div');
+      msg.className = 'msg-ia';
+      msg.innerHTML = `<strong>Don Carlos IA</strong>${texto}`;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+
+    } catch (error) {
+      estado.textContent = '⚠️ Error al conectar con la IA';
+      const msg = document.createElement('div');
+      msg.className = 'msg-ia';
+      msg.innerHTML = `<strong>Don Carlos IA</strong>¡Cita confirmada para ${nombre} el ${fecha} a las ${horaSeleccionada}! Te esperamos 💈`;
+      chat.appendChild(msg);
+    }
+  }
+
+  function enviarWhatsApp() {
+  const nombre   = document.getElementById('nombre').value.trim();
+  const telefono = document.getElementById('telefono').value.trim();
+  const fecha    = document.getElementById('fecha').value;
+
+  if (!nombre || !servicioSeleccionado || !fecha || !horaSeleccionada) {
+    alert('Completa todos los campos primero.');
+    return;
+  }
+
+  const mensaje = `Hola Barbería Don Carlos! 💈 Quiero reservar una cita:
+👤 Nombre: ${nombre}
+✂️ Servicio: ${servicioSeleccionado}
+📅 Fecha: ${fecha}
+⏰ Hora: ${horaSeleccionada}
+💰 Precio: $${precioSeleccionado.toLocaleString('es-CL')}`;
+
+  const numeroWhatsApp = '56912345678'; // 👈 Aquí va el número real de la barbería
+  const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, '_blank');
+}
+</script>
+
+<script src="config.js"></script>
+</body>
+</html>

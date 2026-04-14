@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel del Barbero - Don Carlos</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #fff; min-height: 100vh; }
+
+    header {
+      background: #1a1a1a;
+      border-bottom: 2px solid #c9a84c;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 22px; color: #c9a84c; }
+    header p  { font-size: 13px; color: #888; margin-top: 2px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 1000px;
+      margin: 30px auto 0;
+      padding: 0 20px;
+    }
+
+    .stat {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat .numero { font-size: 32px; font-weight: 700; color: #c9a84c; }
+    .stat .label  { font-size: 12px; color: #666; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .container {
+      max-width: 1000px;
+      margin: 24px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      color: #c9a84c;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .cita {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-left: 3px solid #c9a84c;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cita.completada { border-left-color: #25D366; opacity: 0.6; }
+    .cita.cancelada  { border-left-color: #e74c3c; opacity: 0.5; }
+
+    .cita-info .hora   { font-size: 18px; font-weight: 700; color: #c9a84c; }
+    .cita-info .nombre { font-size: 14px; font-weight: 500; margin-top: 2px; }
+    .cita-info .servicio { font-size: 12px; color: #888; margin-top: 2px; }
+
+    .cita-acciones { display: flex; gap: 8px; }
+
+    .btn-mini {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-ok     { background: #25D366; color: #fff; }
+    .btn-cancel { background: #2a2a2a; color: #888; }
+    .btn-ok:hover     { background: #1ebe5d; }
+    .btn-cancel:hover { background: #e74c3c; color: #fff; }
+
+    .agregar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    input, select {
+      width: 100%;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #c9a84c; }
+    select option { background: #1a1a1a; }
+
+    .btn-agregar {
+      grid-column: span 2;
+      padding: 12px;
+      background: #c9a84c;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .btn-agregar:hover { background: #e0be6a; }
+
+    .resumen-dia {
+      font-size: 13px;
+      line-height: 2;
+      color: #888;
+    }
+    .resumen-dia span { color: #fff; font-weight: 500; }
+
+    .volver {
+      display: inline-block;
+      margin: 20px 20px 0;
+      font-size: 13px;
+      color: #c9a84c;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .volver:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>✂️ Panel del Barbero</h1>
+    <p id="fecha-hoy"></p>
+  </div>
+  <a href="index.html" style="color:#c9a84c;font-size:13px;text-decoration:none;">← Volver al sistema de citas</a>
+</header>
+
+<div class="stats">
+  <div class="stat">
+    <div class="numero" id="stat-total">0</div>
+    <div class="label">Citas hoy</div>
+  </div>
+  <div class="stat">
+    <div class="numero" id="stat-completadas">0</div>
+    <div class="label">Completadas</div>
+  </div>
+  <div class="stat">
+    <div class="numero" id="stat-pendientes">0</div>
+    <div class="label">Pendientes</div>
+  </div>
+  <div class="stat">
+    <div class="numero" id="stat-ingresos">$0</div>
+    <div class="label">Ingresos hoy</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Citas del día -->
+  <div class="card">
+    <h2>📅 Citas de hoy</h2>
+    <div id="lista-citas"></div>
+  </div>
+
+  <!-- Panel derecho -->
+  <div>
+    <!-- Agregar cita manual -->
+    <div class="card" style="margin-bottom: 20px;">
+      <h2>➕ Agregar cita manual</h2>
+      <div class="agregar">
+        <div>
+          <label>Nombre</label>
+          <input type="text" id="nuevo-nombre" placeholder="Cliente">
+        </div>
+        <div>
+          <label>Hora</label>
+          <select id="nuevo-hora">
+            <option>09:00</option><option>09:30</option>
+            <option>10:30</option><option>11:00</option>
+            <option>12:00</option><option>14:00</option>
+            <option>14:30</option><option>15:30</option>
+            <option>16:00</option>
+          </select>
+        </div>
+        <div>
+          <label>Servicio</label>
+          <select id="nuevo-servicio">
+            <option value="8000">Corte clásico</option>
+            <option value="12000">Corte + barba</option>
+            <option value="7000">Barba y perfilado</option>
+            <option value="6000">Corte infantil</option>
+          </select>
+        </div>
+        <div>
+          <label>Teléfono</label>
+          <input type="tel" id="nuevo-telefono" placeholder="+56 9...">
+        </div>
+        <button class="btn-agregar" onclick="agregarCita()">Agregar cita ✦</button>
+      </div>
+    </div>
+
+    <!-- Resumen del día -->
+    <div class="card">
+      <h2>📊 Resumen del día</h2>
+      <div class="resumen-dia" id="resumen-dia">
+        Cargando resumen...
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Fecha de hoy
+  const hoy = new Date();
+  document.getElementById('fecha-hoy').textContent = hoy.toLocaleDateString('es-CL', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  // Citas de ejemplo (en un sistema real vendrían de una base de datos)
+  let citas = [
+    { id: 1, hora: '09:00', nombre: 'Rodrigo Fuentes',   servicio: 'Corte clásico',   precio: 8000,  telefono: '+56912345678', estado: 'pendiente' },
+    { id: 2, hora: '09:30', nombre: 'Matías González',   servicio: 'Corte + barba',   precio: 12000, telefono: '+56987654321', estado: 'completada' },
+    { id: 3, hora: '10:30', nombre: 'Felipe Morales',    servicio: 'Barba y perfilado', precio: 7000, telefono: '+56911111111', estado: 'pendiente' },
+    { id: 4, hora: '11:00', nombre: 'Diego Castillo',    servicio: 'Corte clásico',   precio: 8000,  telefono: '+56922222222', estado: 'pendiente' },
+    { id: 5, hora: '14:00', nombre: 'Sebastián Rojas',   servicio: 'Corte infantil',  precio: 6000,  telefono: '+56933333333', estado: 'pendiente' },
+  ];
+
+  function renderCitas() {
+    const lista = document.getElementById('lista-citas');
+    lista.innerHTML = '';
+
+    const ordenadas = [...citas].sort((a,b) => a.hora.localeCompare(b.hora));
+
+    ordenadas.forEach(c => {
+      const div = document.createElement('div');
+      div.className = `cita ${c.estado}`;
+      div.innerHTML = `
+        <div class="cita-info">
+          <div class="hora">${c.hora}</div>
+          <div class="nombre">${c.nombre}</div>
+          <div class="servicio">${c.servicio} — $${c.precio.toLocaleString('es-CL')}</div>
+        </div>
+        <div class="cita-acciones">
+          ${c.estado === 'pendiente' ? `
+            <button class="btn-mini btn-ok" onclick="cambiarEstado(${c.id}, 'completada')">✓ Listo</button>
+            <button class="btn-mini btn-cancel" onclick="cambiarEstado(${c.id}, 'cancelada')">✕</button>
+          ` : `<span style="font-size:12px;color:#888">${c.estado}</span>`}
+        </div>`;
+      lista.appendChild(div);
+    });
+
+    actualizarStats();
+    actualizarResumen();
+  }
+
+  function cambiarEstado(id, estado) {
+    citas = citas.map(c => c.id === id ? {...c, estado} : c);
+    renderCitas();
+  }
+
+  function agregarCita() {
+    const nombre   = document.getElementById('nuevo-nombre').value.trim();
+    const hora     = document.getElementById('nuevo-hora').value;
+    const select   = document.getElementById('nuevo-servicio');
+    const servicio = select.options[select.selectedIndex].text;
+    const precio   = parseInt(select.value);
+    const telefono = document.getElementById('nuevo-telefono').value.trim();
+
+    if (!nombre) { alert('Ingresa el nombre del cliente'); return; }
+
+    citas.push({
+      id: Date.now(),
+      hora, nombre, servicio, precio,
+      telefono: telefono || 'Sin teléfono',
+      estado: 'pendiente'
+    });
+
+    document.getElementById('nuevo-nombre').value = '';
+    document.getElementById('nuevo-telefono').value = '';
+    renderCitas();
+  }
+
+  function actualizarStats() {
+    const total       = citas.length;
+    const completadas = citas.filter(c => c.estado === 'completada').length;
+    const pendientes  = citas.filter(c => c.estado === 'pendiente').length;
+    const ingresos    = citas.filter(c => c.estado === 'completada').reduce((s,c) => s + c.precio, 0);
+
+    document.getElementById('stat-total').textContent       = total;
+    document.getElementById('stat-completadas').textContent = completadas;
+    document.getElementById('stat-pendientes').textContent  = pendientes;
+    document.getElementById('stat-ingresos').textContent    = '$' + ingresos.toLocaleString('es-CL');
+  }
+
+  function actualizarResumen() {
+    const pendientes  = citas.filter(c => c.estado === 'pendiente');
+    const completadas = citas.filter(c => c.estado === 'completada').length;
+    const ingresos    = citas.filter(c => c.estado === 'completada').reduce((s,c) => s + c.precio, 0);
+    const proyectado  = citas.filter(c => c.estado !== 'cancelada').reduce((s,c) => s + c.precio, 0);
+    const proxima     = pendientes.sort((a,b) => a.hora.localeCompare(b.hora))[0];
+
+    document.getElementById('resumen-dia').innerHTML = `
+      Citas completadas: <span>${completadas}</span><br>
+      Citas pendientes: <span>${pendientes.length}</span><br>
+      Ingresos cobrados: <span>$${ingresos.toLocaleString('es-CL')}</span><br>
+      Ingresos proyectados: <span>$${proyectado.toLocaleString('es-CL')}</span><br>
+      Próxima cita: <span>${proxima ? proxima.hora + ' — ' + proxima.nombre : 'Sin pendientes'}</span>
+    `;
+  }
+
+  renderCitas();
+</script>
+
+</body>
+</html>
