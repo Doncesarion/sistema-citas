@@ -9,25 +9,25 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --accent-light: #eff6ff;
+      --accent:        #2563eb;
+      --accent-hover:  #1d4ed8;
+      --accent-light:  #eff6ff;
       --accent-border: #bfdbfe;
-      --black: #0f172a;
-      --gray-50: #f8fafc;
-      --gray-100: #f1f5f9;
-      --gray-200: #e2e8f0;
-      --gray-300: #cbd5e1;
-      --gray-400: #94a3b8;
-      --gray-500: #64748b;
-      --gray-600: #475569;
-      --white: #ffffff;
-      --success: #16a34a;
+      --black:         #0f172a;
+      --gray-50:       #f8fafc;
+      --gray-100:      #f1f5f9;
+      --gray-200:      #e2e8f0;
+      --gray-300:      #cbd5e1;
+      --gray-400:      #94a3b8;
+      --gray-500:      #64748b;
+      --gray-600:      #475569;
+      --white:         #ffffff;
+      --success:       #16a34a;
       --success-light: #f0fdf4;
-      --success-border: #bbf7d0;
-      --radius: 16px;
-      --radius-sm: 10px;
-      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+      --success-border:#bbf7d0;
+      --radius:        16px;
+      --radius-sm:     10px;
+      --shadow:        0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
     }
 
     body {
@@ -37,7 +37,6 @@
       min-height: 100vh;
     }
 
-    /* HEADER */
     header {
       background: var(--white);
       border-bottom: 1px solid var(--gray-100);
@@ -51,173 +50,70 @@
       z-index: 100;
     }
 
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo-icon {
-      width: 34px; height: 34px;
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-      background: var(--accent-light);
-    }
-
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: var(--accent-light); }
     .logo-text { font-size: 15px; font-weight: 600; color: var(--black); }
     .logo-sub  { font-size: 12px; color: var(--gray-400); font-weight: 400; }
 
     .online-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--success);
-      font-weight: 500;
-      background: var(--success-light);
-      border: 1px solid var(--success-border);
-      border-radius: 100px;
-      padding: 5px 12px;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--success); font-weight: 500;
+      background: var(--success-light); border: 1px solid var(--success-border);
+      border-radius: 100px; padding: 5px 12px;
     }
 
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: blink 2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    /* PROGRESS BAR */
-    .progress-wrap {
-      background: var(--white);
-      border-bottom: 1px solid var(--gray-100);
-      padding: 0 32px;
-    }
-
+    .progress-wrap { background: var(--white); border-bottom: 1px solid var(--gray-100); padding: 0 32px; }
     .progress-steps {
-      max-width: 640px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      padding: 16px 0;
-      gap: 0;
+      max-width: 640px; margin: 0 auto;
+      display: flex; align-items: center;
+      padding: 16px 0; gap: 0;
     }
 
-    .step-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-      cursor: pointer;
-    }
-
+    .step-item { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; }
     .step-circle {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
-      border: 1.5px solid var(--gray-200);
-      color: var(--gray-400);
-      background: var(--white);
-      transition: all 0.2s;
-      flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+      border: 1.5px solid var(--gray-200); color: var(--gray-400);
+      background: var(--white); transition: all 0.2s; flex-shrink: 0;
     }
+    .step-item.active .step-circle { background: var(--accent); border-color: var(--accent); color: var(--white); }
+    .step-item.done   .step-circle { background: var(--success-light); border-color: var(--success-border); color: var(--success); }
 
-    .step-item.active .step-circle {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: var(--white);
-    }
-
-    .step-item.done .step-circle {
-      background: var(--success-light);
-      border-color: var(--success-border);
-      color: var(--success);
-    }
-
-    .step-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--gray-400);
-      white-space: nowrap;
-      display: none;
-    }
-
+    .step-label { font-size: 12px; font-weight: 500; color: var(--gray-400); white-space: nowrap; display: none; }
     @media (min-width: 480px) { .step-label { display: block; } }
-
     .step-item.active .step-label { color: var(--accent); }
-    .step-item.done  .step-label  { color: var(--success); }
+    .step-item.done   .step-label { color: var(--success); }
 
-    .step-line {
-      flex: 1;
-      height: 1.5px;
-      background: var(--gray-200);
-      margin: 0 8px;
-      transition: background 0.3s;
-    }
-
+    .step-line { flex: 1; height: 1.5px; background: var(--gray-200); margin: 0 8px; transition: background 0.3s; }
     .step-line.done { background: var(--success-border); }
 
-    /* MAIN */
-    .main {
-      max-width: 640px;
-      margin: 32px auto;
-      padding: 0 16px 80px;
-    }
+    .main { max-width: 640px; margin: 32px auto; padding: 0 16px 80px; }
 
-    /* STEP PANEL */
     .step-panel { display: none; animation: fadeIn 0.25s ease; }
     .step-panel.visible { display: block; }
-
     @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
     .step-header { margin-bottom: 24px; }
     .step-title  { font-size: 22px; font-weight: 700; color: var(--black); letter-spacing: -0.5px; }
-    .step-sub    { font-size: 14px; color: var(--gray-500); margin-top: 4px; font-weight: 400; }
+    .step-sub    { font-size: 14px; color: var(--gray-500); margin-top: 4px; }
 
-    /* CARDS */
-    .card {
-      background: var(--white);
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius);
-      padding: 24px;
-      box-shadow: var(--shadow);
-      margin-bottom: 16px;
-    }
+    .card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 16px; }
 
-    /* SERVICIOS GRID */
-    .services-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+    .services-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
     .service-card {
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.15s;
-      position: relative;
-      overflow: hidden;
+      border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+      padding: 16px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden;
     }
-
-    .service-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--accent-light);
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-
+    .service-card::before { content:''; position:absolute; inset:0; background:var(--accent-light); opacity:0; transition:opacity 0.15s; }
     .service-card:hover { border-color: var(--accent); }
     .service-card:hover::before { opacity: 0.4; }
     .service-card.selected { border-color: var(--accent); }
     .service-card.selected::before { opacity: 1; }
-
     .service-card > * { position: relative; z-index: 1; }
 
     .service-icon  { font-size: 28px; margin-bottom: 8px; }
@@ -226,331 +122,155 @@
     .service-dur   { font-size: 12px; color: var(--gray-400); }
 
     .service-check {
-      position: absolute;
-      top: 10px; right: 10px;
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: var(--white);
-      z-index: 2;
+      position: absolute; top: 10px; right: 10px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--accent); display: none;
+      align-items: center; justify-content: center;
+      font-size: 11px; color: var(--white); z-index: 2;
     }
-
     .service-card.selected .service-check { display: flex; }
 
-    /* CALENDAR */
-    .cal-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
     .cal-btn {
-      width: 36px; height: 36px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--gray-200);
-      background: var(--white);
-      cursor: pointer;
-      font-size: 16px;
-      color: var(--gray-600);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
+      width: 36px; height: 36px; border-radius: var(--radius-sm);
+      border: 1px solid var(--gray-200); background: var(--white);
+      cursor: pointer; font-size: 16px; color: var(--gray-600);
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
     }
-
     .cal-btn:hover { background: var(--gray-100); border-color: var(--gray-300); }
-
     .cal-month { font-size: 16px; font-weight: 600; color: var(--black); }
 
-    .cal-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-    }
-
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .cal-day-name {
-      text-align: center;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--gray-400);
-      padding: 8px 0;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      text-align: center; font-size: 11px; font-weight: 600;
+      color: var(--gray-400); padding: 8px 0;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
-
     .cal-day {
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.15s;
-      color: var(--black);
-      font-weight: 400;
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; font-size: 14px; cursor: pointer;
+      transition: all 0.15s; color: var(--black);
     }
-
     .cal-day:hover:not(.disabled):not(.empty):not(.sunday) { background: var(--gray-100); }
     .cal-day.today    { font-weight: 700; color: var(--accent); background: var(--accent-light); }
     .cal-day.selected { background: var(--accent); color: var(--white); font-weight: 700; }
     .cal-day.disabled { color: var(--gray-200); cursor: not-allowed; }
     .cal-day.sunday   { color: var(--gray-200); cursor: not-allowed; }
 
-    /* HORARIOS */
     .hours-section { margin-top: 24px; }
     .hours-title { font-size: 13px; font-weight: 600; color: var(--gray-500); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    .hours-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-    }
+    .hours-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
     .hour-btn {
-      padding: 11px 6px;
-      text-align: center;
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s;
-      color: var(--gray-600);
-      background: var(--white);
+      padding: 11px 6px; text-align: center;
+      border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: all 0.15s; color: var(--gray-600); background: var(--white);
     }
-
     .hour-btn:hover:not(.taken) { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
     .hour-btn.selected { background: var(--accent); border-color: var(--accent); color: var(--white); font-weight: 600; }
-    .hour-btn.taken    { color: var(--gray-300); border-color: var(--gray-100); cursor: not-allowed; background: var(--gray-50); font-size: 12px; text-decoration: line-through; }
+    .hour-btn.taken    { color: var(--gray-300); border-color: var(--gray-100); cursor: not-allowed; background: var(--gray-50); text-decoration: line-through; }
 
-    /* FORM */
     .form-group { margin-bottom: 16px; }
-    .form-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--gray-600);
-      margin-bottom: 7px;
-    }
-
+    .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-600); margin-bottom: 7px; }
     .form-input {
-      width: 100%;
-      background: var(--gray-50);
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      color: var(--black);
-      outline: none;
-      transition: all 0.15s;
+      width: 100%; background: var(--gray-50); border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      font-size: 14px; font-family: 'Inter', sans-serif;
+      color: var(--black); outline: none; transition: all 0.15s;
     }
-
-    .form-input:focus {
-      border-color: var(--accent);
-      background: var(--white);
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
-    }
-
+    .form-input:focus { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
     .form-input::placeholder { color: var(--gray-300); }
 
-    /* RESUMEN FINAL */
     .summary-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--gray-100);
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 0; border-bottom: 1px solid var(--gray-100);
     }
-
     .summary-item:last-child { border-bottom: none; }
     .summary-label { font-size: 13px; color: var(--gray-500); }
     .summary-value { font-size: 14px; font-weight: 500; color: var(--black); text-align: right; }
 
     .summary-total {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 20px;
-      background: var(--accent-light);
-      border-radius: var(--radius-sm);
-      margin-top: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; background: var(--accent-light);
+      border-radius: var(--radius-sm); margin-top: 8px;
     }
-
     .summary-total span:first-child { font-size: 14px; font-weight: 600; color: var(--accent); }
     .summary-total span:last-child  { font-size: 20px; font-weight: 700; color: var(--accent); }
 
-    /* BOTONES NAVEGACIÓN */
-    .nav-btns {
-      display: flex;
-      gap: 10px;
-      margin-top: 8px;
-    }
+    .nav-btns { display: flex; gap: 10px; margin-top: 8px; }
 
     .btn-back {
-      padding: 14px 20px;
-      border: 1.5px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--gray-600);
-      background: var(--white);
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: 'Inter', sans-serif;
+      padding: 14px 20px; border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm); font-size: 14px; font-weight: 500;
+      color: var(--gray-600); background: var(--white); cursor: pointer;
+      transition: all 0.15s; font-family: 'Inter', sans-serif;
     }
-
     .btn-back:hover { background: var(--gray-100); }
 
     .btn-next {
-      flex: 1;
-      padding: 14px;
-      background: var(--accent);
-      color: var(--white);
-      border: none;
-      border-radius: var(--radius-sm);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: 'Inter', sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      flex: 1; padding: 14px; background: var(--accent); color: var(--white);
+      border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-
     .btn-next:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
     .btn-whatsapp {
-      width: 100%;
-      padding: 13px;
-      background: var(--white);
-      color: var(--success);
-      border: 1.5px solid var(--success-border);
-      border-radius: var(--radius-sm);
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
+      width: 100%; padding: 13px; background: var(--white); color: var(--success);
+      border: 1.5px solid var(--success-border); border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
       font-family: 'Inter', sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
       margin-top: 10px;
     }
-
     .btn-whatsapp:hover { background: var(--success-light); }
 
-    /* IA CHAT */
-    .ia-box {
-      background: var(--gray-50);
-      border: 1px solid var(--gray-100);
+    /* CONFIRMACIÓN */
+    .confirm-box {
+      background: var(--success-light);
+      border: 1.5px solid var(--success-border);
       border-radius: var(--radius-sm);
-      padding: 16px;
+      padding: 20px;
       margin-top: 16px;
     }
 
-    .ia-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 12px;
+    .confirm-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
     }
 
-    .ia-msg {
-      background: var(--white);
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      padding: 14px;
-      font-size: 13px;
-      line-height: 1.65;
-      color: var(--gray-600);
-      margin-bottom: 8px;
+    .confirm-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--success); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 16px; color: var(--white); flex-shrink: 0;
     }
 
-    .ia-sender {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 5px;
+    .confirm-title { font-size: 14px; font-weight: 700; color: var(--success); }
+    .confirm-sub   { font-size: 12px; color: #15803d; margin-top: 2px; }
+
+    .confirm-msg {
+      font-size: 14px; color: #15803d;
+      line-height: 1.7; background: var(--white);
+      border-radius: var(--radius-sm); padding: 14px;
+      border: 1px solid var(--success-border);
     }
 
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      padding: 5px 12px;
-      border-radius: 100px;
-      margin-bottom: 10px;
-    }
-
-    .pill-loading { background: #fefce8; color: #854d0e; }
-    .pill-ok      { background: var(--success-light); color: var(--success); }
-    .pill-err     { background: #fef2f2; color: #dc2626; }
-
-    /* SUCCESS SCREEN */
-    .success-screen {
-      text-align: center;
-      padding: 40px 20px;
-    }
-
-    .success-icon {
-      width: 72px; height: 72px;
-      background: var(--success-light);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      margin: 0 auto 20px;
-    }
-
-    .success-title { font-size: 24px; font-weight: 700; color: var(--black); margin-bottom: 8px; letter-spacing: -0.5px; }
-    .success-sub   { font-size: 15px; color: var(--gray-500); line-height: 1.6; font-weight: 400; }
-
-    /* SELECTED TAG */
     .selected-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--accent-light);
-      border: 1px solid var(--accent-border);
-      border-radius: 100px;
-      padding: 5px 12px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--accent);
-      margin-bottom: 16px;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-light); border: 1px solid var(--accent-border);
+      border-radius: 100px; padding: 5px 12px;
+      font-size: 12px; font-weight: 500; color: var(--accent); margin-bottom: 16px;
     }
 
-    /* INFO NEGOCIO */
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    .info-item {
-      background: var(--gray-50);
-      border-radius: var(--radius-sm);
-      padding: 14px;
-    }
-
+    .info-item { background: var(--gray-50); border-radius: var(--radius-sm); padding: 14px; }
     .info-item-label { font-size: 11px; color: var(--gray-400); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .info-item-value { font-size: 13px; font-weight: 500; color: var(--black); }
   </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="logo">
     <div class="logo-icon" id="logo-icon">📋</div>
@@ -559,38 +279,21 @@
       <div class="logo-sub">Reserva tu cita en línea</div>
     </div>
   </div>
-  <div class="online-badge">
-    <span class="dot"></span>
-    Disponible ahora
-  </div>
+  <div class="online-badge"><span class="dot"></span>Disponible ahora</div>
 </header>
 
-<!-- PROGRESS -->
 <div class="progress-wrap">
   <div class="progress-steps">
-    <div class="step-item active" id="si-0">
-      <div class="step-circle">1</div>
-      <span class="step-label">Servicio</span>
-    </div>
+    <div class="step-item active" id="si-0"><div class="step-circle">1</div><span class="step-label">Servicio</span></div>
     <div class="step-line" id="sl-0"></div>
-    <div class="step-item" id="si-1">
-      <div class="step-circle">2</div>
-      <span class="step-label">Fecha y hora</span>
-    </div>
+    <div class="step-item" id="si-1"><div class="step-circle">2</div><span class="step-label">Fecha y hora</span></div>
     <div class="step-line" id="sl-1"></div>
-    <div class="step-item" id="si-2">
-      <div class="step-circle">3</div>
-      <span class="step-label">Tus datos</span>
-    </div>
+    <div class="step-item" id="si-2"><div class="step-circle">3</div><span class="step-label">Tus datos</span></div>
     <div class="step-line" id="sl-2"></div>
-    <div class="step-item" id="si-3">
-      <div class="step-circle">4</div>
-      <span class="step-label">Confirmar</span>
-    </div>
+    <div class="step-item" id="si-3"><div class="step-circle">4</div><span class="step-label">Confirmar</span></div>
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main">
 
   <!-- PASO 1: SERVICIO -->
@@ -604,9 +307,7 @@
       <div class="info-grid" id="info-grid"></div>
     </div>
     <div class="nav-btns" style="margin-top:16px">
-      <button class="btn-next" onclick="irPaso(1)">
-        Continuar <span>→</span>
-      </button>
+      <button class="btn-next" onclick="irPaso(1)">Continuar →</button>
     </div>
   </div>
 
@@ -640,16 +341,16 @@
   <div class="step-panel" id="panel-2">
     <div class="step-header">
       <div class="step-title">Tus datos de contacto</div>
-      <div class="step-sub">Para confirmar y recordarte tu cita</div>
+      <div class="step-sub">Para enviarte la confirmación de tu cita</div>
     </div>
     <div class="card">
       <div class="form-group">
         <label class="form-label">Nombre completo *</label>
-        <input class="form-input" type="text" id="nombre" placeholder="Ej: María González" oninput="actualizarResumen()">
+        <input class="form-input" type="text" id="nombre" placeholder="Ej: María González">
       </div>
       <div class="form-group">
         <label class="form-label">Teléfono *</label>
-        <input class="form-input" type="tel" id="telefono" placeholder="+56 9 1234 5678" oninput="actualizarResumen()">
+        <input class="form-input" type="tel" id="telefono" placeholder="+56 9 1234 5678">
       </div>
       <div class="form-group" style="margin-bottom:0">
         <label class="form-label">Email (opcional)</label>
@@ -672,27 +373,21 @@
       <div id="resumen-items"></div>
       <div class="summary-total" id="summary-total"></div>
     </div>
-    <div class="card">
-      <div id="status-area"></div>
-      <div class="ia-box">
-        <div class="ia-title">✦ Asistente IA</div>
-        <div id="chat-box">
-          <div class="ia-msg">
-            <div class="ia-sender">Asistente</div>
-            ¡Hola! Revisa los detalles de tu cita y confirma cuando estés listo. Te enviaré una confirmación automática. 👋
-          </div>
-        </div>
-      </div>
-      <button class="btn-next" style="margin-top:16px;width:100%" onclick="confirmarCita()">
-        Confirmar cita con IA ✦
+
+    <div class="card" id="card-confirmar">
+      <button class="btn-next" style="width:100%" onclick="confirmarCita()">
+        ✓ Confirmar mi cita
       </button>
       <button class="btn-whatsapp" onclick="enviarWhatsApp()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         Confirmar por WhatsApp
       </button>
     </div>
+
+    <div id="confirmacion-box" style="display:none"></div>
+
     <div class="nav-btns" style="margin-top:0">
-      <button class="btn-back" onclick="irPaso(2)">← Editar datos</button>
+      <button class="btn-back" onclick="irPaso(2)" id="btn-volver">← Editar datos</button>
     </div>
   </div>
 
@@ -700,30 +395,28 @@
 
 <script>
 // ═══════════════════════════════════════
-// CONFIGURACIÓN — edita esto por cliente
+// CONFIGURACIÓN
 // ═══════════════════════════════════════
 const CONFIG = {
-  nombre:     "Mi Negocio",
-  emoji:      "📋",
-  whatsapp:   "56912345678",
-  direccion:  "Av. Principal 123, Santiago",
-  telefono:   "+56 9 1234 5678",
-  horario:    "Lun–Sáb · 09:00–19:00",
-  apiKey:     window.ANTHROPIC_KEY || '',
-  asistente:  "Asistente IA",
+  nombre:    "Mi Negocio",
+  emoji:     "📋",
+  whatsapp:  "56912345678",
+  direccion: "Av. Principal 123, Santiago",
+  telefono:  "+56 9 1234 5678",
+  horario:   "Lun–Sáb · 09:00–19:00",
   horasTomadas: ["10:00", "11:30", "15:00"],
   servicios: [
-    { nombre: "Consulta general",  emoji: "🩺", precio: 25000, duracion: "45 min" },
-    { nombre: "Revisión rápida",   emoji: "⚡", precio: 15000, duracion: "20 min" },
-    { nombre: "Sesión completa",   emoji: "⭐", precio: 40000, duracion: "60 min" },
-    { nombre: "Seguimiento",       emoji: "📋", precio: 18000, duracion: "30 min" },
+    { nombre:"Consulta general", emoji:"🩺", precio:25000, duracion:"45 min" },
+    { nombre:"Revisión rápida",  emoji:"⚡", precio:15000, duracion:"20 min" },
+    { nombre:"Sesión completa",  emoji:"⭐", precio:40000, duracion:"60 min" },
+    { nombre:"Seguimiento",      emoji:"📋", precio:18000, duracion:"30 min" },
   ],
 };
 
 // ═══════════════════════════════════════
 // ESTADO
 // ═══════════════════════════════════════
-let estado = { paso: 0, servicio: null, fecha: null, hora: null };
+let estado = { servicio: null, fecha: null, hora: null };
 const hoy = new Date();
 let mesActual = hoy.getMonth();
 let anioActual = hoy.getFullYear();
@@ -738,14 +431,12 @@ function init() {
   renderServicios();
   renderInfoNegocio();
   renderCalendario();
-  renderHorarios();
 }
 
 // ═══════════════════════════════════════
-// NAVEGACIÓN POR PASOS
+// NAVEGACIÓN
 // ═══════════════════════════════════════
 function irPaso(paso) {
-  // Validaciones
   if (paso === 1 && !estado.servicio) { alert('Selecciona un servicio primero.'); return; }
   if (paso === 2 && (!estado.fecha || !estado.hora)) { alert('Selecciona fecha y hora.'); return; }
   if (paso === 3) {
@@ -755,30 +446,25 @@ function irPaso(paso) {
     renderResumenFinal();
   }
 
-  // Ocultar paneles
   document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('visible'));
   document.getElementById(`panel-${paso}`).classList.add('visible');
 
-  // Actualizar progress
   for (let i = 0; i < 4; i++) {
     const si = document.getElementById(`si-${i}`);
     si.classList.remove('active','done');
     if (i < paso)  si.classList.add('done');
     if (i === paso) si.classList.add('active');
-    // check mark para completados
     si.querySelector('.step-circle').textContent = i < paso ? '✓' : i + 1;
   }
   for (let i = 0; i < 3; i++) {
     document.getElementById(`sl-${i}`).classList.toggle('done', i < paso);
   }
 
-  // Tag de servicio seleccionado en paso 2
   if (paso === 1 && estado.servicio) {
     document.getElementById('servicio-tag').innerHTML = `
       <div class="selected-tag">${estado.servicio.emoji} ${estado.servicio.nombre} — $${estado.servicio.precio.toLocaleString('es-CL')}</div>`;
   }
 
-  estado.paso = paso;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -803,22 +489,10 @@ function seleccionarServicio(i) {
 
 function renderInfoNegocio() {
   document.getElementById('info-grid').innerHTML = `
-    <div class="info-item">
-      <div class="info-item-label">Dirección</div>
-      <div class="info-item-value">📍 ${CONFIG.direccion}</div>
-    </div>
-    <div class="info-item">
-      <div class="info-item-label">Teléfono</div>
-      <div class="info-item-value">📞 ${CONFIG.telefono}</div>
-    </div>
-    <div class="info-item">
-      <div class="info-item-label">Horario</div>
-      <div class="info-item-value">🕐 ${CONFIG.horario}</div>
-    </div>
-    <div class="info-item">
-      <div class="info-item-label">Domingo</div>
-      <div class="info-item-value">❌ Cerrado</div>
-    </div>`;
+    <div class="info-item"><div class="info-item-label">Dirección</div><div class="info-item-value">📍 ${CONFIG.direccion}</div></div>
+    <div class="info-item"><div class="info-item-label">Teléfono</div><div class="info-item-value">📞 ${CONFIG.telefono}</div></div>
+    <div class="info-item"><div class="info-item-label">Horario</div><div class="info-item-value">🕐 ${CONFIG.horario}</div></div>
+    <div class="info-item"><div class="info-item-label">Domingo</div><div class="info-item-value">❌ Cerrado</div></div>`;
 }
 
 // ═══════════════════════════════════════
@@ -845,10 +519,10 @@ function renderCalendario() {
     const esSel    = fecha === estado.fecha;
 
     let cls = 'cal-day';
-    if (esDom)                  cls += ' sunday';
+    if (esDom)                   cls += ' sunday';
     else if (esPasado && !esHoy) cls += ' disabled';
-    else if (esSel)             cls += ' selected';
-    else if (esHoy)             cls += ' today';
+    else if (esSel)              cls += ' selected';
+    else if (esHoy)              cls += ' today';
 
     const clickable = !esDom && (!esPasado || esHoy);
     html += `<div class="${cls}" ${clickable ? `onclick="seleccionarFecha('${fecha}')"` : ''}>${dia}</div>`;
@@ -877,10 +551,7 @@ function seleccionarFecha(fecha) {
 // HORARIOS
 // ═══════════════════════════════════════
 function renderHorarios() {
-  if (!estado.fecha) {
-    document.getElementById('hours-grid').innerHTML = '';
-    return;
-  }
+  if (!estado.fecha) { document.getElementById('hours-grid').innerHTML = ''; return; }
   document.getElementById('hours-grid').innerHTML = HORARIOS.map(h => {
     const tomado   = CONFIG.horasTomadas.includes(h);
     const selected = h === estado.hora;
@@ -912,7 +583,6 @@ function renderResumenFinal() {
     ['Cliente',   nombre],
     ['Teléfono',  telefono],
   ];
-
   if (email) items.push(['Email', email]);
 
   document.getElementById('resumen-items').innerHTML = items.map(([l,v]) => `
@@ -924,74 +594,67 @@ function renderResumenFinal() {
   document.getElementById('summary-total').innerHTML = `
     <span>Total a pagar</span>
     <span>$${estado.servicio.precio.toLocaleString('es-CL')}</span>`;
+
+  // Reset confirmación
+  document.getElementById('card-confirmar').style.display = 'block';
+  document.getElementById('confirmacion-box').style.display = 'none';
+  document.getElementById('btn-volver').style.display = 'block';
 }
 
-function actualizarResumen() {}
-
 // ═══════════════════════════════════════
-// CONFIRMAR CON IA
+// CONFIRMAR — sin IA, mensaje automático
 // ═══════════════════════════════════════
-async function confirmarCita() {
+function confirmarCita() {
   const nombre   = document.getElementById('nombre').value.trim();
   const telefono = document.getElementById('telefono').value.trim();
-  const statusEl = document.getElementById('status-area');
-  const chatEl   = document.getElementById('chat-box');
 
-  statusEl.innerHTML = `<div class="status-pill pill-loading">⏳ Confirmando tu cita...</div>`;
+  // Generar mensaje de confirmación automático
+  const mensaje = generarMensaje(nombre, telefono);
 
-  const prompt = `Eres el asistente virtual de "${CONFIG.nombre}".
-Un cliente acaba de reservar:
-- Nombre: ${nombre}
-- Teléfono: ${telefono}
-- Servicio: ${estado.servicio.nombre} (${estado.servicio.duracion})
-- Precio: $${estado.servicio.precio.toLocaleString('es-CL')}
-- Fecha: ${formatFecha(estado.fecha)}
-- Hora: ${estado.hora} hrs
+  // Ocultar botones y mostrar confirmación
+  document.getElementById('card-confirmar').style.display = 'none';
+  document.getElementById('btn-volver').style.display = 'none';
 
-Escribe un mensaje de confirmación cálido y profesional (3-4 oraciones), en español. Confirma la cita, pide llegar 5 min antes y menciona que se enviará recordatorio el día anterior. Firma como "${CONFIG.asistente}".`;
+  document.getElementById('confirmacion-box').style.display = 'block';
+  document.getElementById('confirmacion-box').innerHTML = `
+    <div class="confirm-box">
+      <div class="confirm-header">
+        <div class="confirm-icon">✓</div>
+        <div>
+          <div class="confirm-title">¡Cita confirmada!</div>
+          <div class="confirm-sub">Te esperamos el ${formatFecha(estado.fecha)} a las ${estado.hora} hrs</div>
+        </div>
+      </div>
+      <div class="confirm-msg">${mensaje}</div>
+    </div>
+    <button class="btn-whatsapp" style="margin-top:12px" onclick="compartirWhatsApp()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Guardar confirmación en WhatsApp
+    </button>`;
+}
 
-  try {
-    const res  = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CONFIG.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 300,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+function generarMensaje(nombre, telefono) {
+  const primerNombre = nombre.split(' ')[0];
+  return `¡Hola ${primerNombre}! 👋 Tu cita en <b>${CONFIG.nombre}</b> está confirmada.<br><br>
+📅 <b>${formatFecha(estado.fecha)}</b> a las <b>${estado.hora} hrs</b><br>
+✂️ <b>${estado.servicio.nombre}</b> — $${estado.servicio.precio.toLocaleString('es-CL')}<br>
+⏱ Duración aproximada: ${estado.servicio.duracion}<br><br>
+Te pedimos llegar <b>5 minutos antes</b>. Te enviaremos un recordatorio el día anterior. ¡Te esperamos! 🙌`;
+}
 
-    const data = await res.json();
-    const txt  = data.content[0].text;
-
-    statusEl.innerHTML = `<div class="status-pill pill-ok">✓ ¡Cita confirmada!</div>`;
-    const msg = document.createElement('div');
-    msg.className = 'ia-msg';
-    msg.innerHTML = `<div class="ia-sender">${CONFIG.asistente} ✦</div>${txt}`;
-    chatEl.appendChild(msg);
-    chatEl.scrollTop = chatEl.scrollHeight;
-
-  } catch(e) {
-    statusEl.innerHTML = `<div class="status-pill pill-err">⚠ Error de conexión</div>`;
-    const msg = document.createElement('div');
-    msg.className = 'ia-msg';
-    msg.innerHTML = `<div class="ia-sender">${CONFIG.asistente} ✦</div>¡Cita confirmada para ${nombre} el ${formatFecha(estado.fecha)} a las ${estado.hora} hrs! Te esperamos pronto. 👋`;
-    chatEl.appendChild(msg);
-  }
+function compartirWhatsApp() {
+  const nombre = document.getElementById('nombre').value.trim();
+  const msg = `¡Hola! Mi cita en ${CONFIG.nombre} está confirmada:\n📅 ${formatFecha(estado.fecha)} a las ${estado.hora} hrs\n✂️ ${estado.servicio.nombre}\n💰 $${estado.servicio.precio.toLocaleString('es-CL')}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ═══════════════════════════════════════
-// WHATSAPP
+// WHATSAPP AL NEGOCIO
 // ═══════════════════════════════════════
 function enviarWhatsApp() {
   const nombre = document.getElementById('nombre').value.trim();
   if (!nombre || !estado.servicio || !estado.fecha || !estado.hora) return;
-  const msg = `Hola ${CONFIG.nombre}! Quiero confirmar mi reserva:\n👤 ${nombre}\n🗓 ${estado.servicio.nombre}\n📅 ${formatFecha(estado.fecha)} · ${estado.hora} hrs\n💰 $${estado.servicio.precio.toLocaleString('es-CL')}`;
+  const msg = `Hola ${CONFIG.nombre}! Quiero confirmar mi reserva:\n👤 ${nombre}\n🗓 ${estado.servicio.nombre}\n📅 ${formatFecha(estado.fecha)} a las ${estado.hora} hrs\n💰 $${estado.servicio.precio.toLocaleString('es-CL')}`;
   window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
