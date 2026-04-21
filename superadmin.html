@@ -300,21 +300,27 @@ function saLogout() {
 const ADMIN_TOKEN = 'DonCesarion_SuperAdmin_2024_xK9mP3';
 
 async function edgeFetch(action, body=null) {
+  // Supabase requiere Authorization header con la anon/publishable key
+  // para autenticar la llamada a la Edge Function
   const method = body ? 'POST' : 'GET';
   const opts = {
     method,
     headers: {
       'Content-Type': 'application/json',
       'x-admin-token': ADMIN_TOKEN,
-      'apikey': SUPA_KEY,        // publishable key para identificar el proyecto
-      'Authorization': `Bearer ${SUPA_KEY}`,
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
     }
   };
   if (body) opts.body = JSON.stringify(body);
-  const edgeUrl = `${SUPA_URL}/functions/v1/admin-clientes?action=${action}`;
+  const edgeUrl = SUPA_URL + '/functions/v1/admin-clientes?action=' + action;
+  console.log('Calling:', edgeUrl);
   const res = await fetch(edgeUrl, opts);
-  const json = await res.json();
-  if (!res.ok || json.error) throw new Error(json.error || 'Error en Edge Function');
+  const text = await res.text();
+  console.log('Response:', res.status, text);
+  let json;
+  try { json = JSON.parse(text); } catch(e) { throw new Error('Respuesta inválida: ' + text); }
+  if (!res.ok || json.error) throw new Error(json.error || json.message || 'Error en Edge Function');
   return json.data;
 }
 
