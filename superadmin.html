@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SuperAdmin — DonCesarion</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --accent:#7c3aed;--accent-hover:#6d28d9;--accent-light:#f5f3ff;--accent-border:#ddd6fe;
+      --black:#0f172a;--gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;
+      --gray-400:#94a3b8;--gray-500:#64748b;--gray-600:#475569;
+      --white:#ffffff;--success:#16a34a;--success-light:#f0fdf4;--success-border:#bbf7d0;
+      --warn:#d97706;--warn-light:#fffbeb;--warn-border:#fde68a;
+      --danger:#dc2626;--danger-light:#fef2f2;--danger-border:#fecaca;
+      --radius:14px;--radius-sm:9px;
+      --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+    }
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--gray-50);color:var(--black);min-height:100vh}
+
+    /* LOGIN SUPERADMIN */
+    #sa-login{position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:999}
+    #sa-login.hidden{display:none}
+    .sa-login-box{background:#1e293b;border:1px solid #334155;border-radius:var(--radius);padding:40px;width:100%;max-width:380px}
+    .sa-logo{font-size:28px;font-weight:800;color:var(--white);margin-bottom:6px;letter-spacing:-1px}
+    .sa-logo span{color:#a78bfa}
+    .sa-sub{font-size:13px;color:#64748b;margin-bottom:28px}
+    .sa-input{width:100%;background:#0f172a;border:1.5px solid #334155;border-radius:var(--radius-sm);padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--white);outline:none;margin-bottom:12px;transition:border-color 0.15s}
+    .sa-input:focus{border-color:#7c3aed}
+    .sa-input::placeholder{color:#475569}
+    .sa-btn{width:100%;padding:12px;background:var(--accent);color:var(--white);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:background 0.15s}
+    .sa-btn:hover{background:var(--accent-hover)}
+    .sa-err{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;display:none}
+
+    /* DASHBOARD */
+    .topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;box-shadow:var(--shadow)}
+    .brand{font-size:16px;font-weight:800;color:var(--black);letter-spacing:-0.5px}
+    .brand span{color:var(--accent)}
+    .logout-link{font-size:13px;color:var(--danger);cursor:pointer;font-weight:500}
+    .logout-link:hover{text-decoration:underline}
+    .main{max-width:1100px;margin:0 auto;padding:32px 24px}
+
+    /* STATS */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+    .stat-box{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+    .stat-box-icon{font-size:22px;margin-bottom:10px}
+    .stat-box-num{font-size:30px;font-weight:800;color:var(--black);letter-spacing:-1px}
+    .stat-box-lbl{font-size:12px;color:var(--gray-400);margin-top:4px;font-weight:500}
+
+    /* CARD */
+    .card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:24px}
+    .card-header{padding:18px 24px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
+    .card-title{font-size:15px;font-weight:700;color:var(--black)}
+
+    /* BOTONES */
+    .btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;transition:all 0.15s}
+    .btn-primary{background:var(--accent);color:var(--white)}
+    .btn-primary:hover{background:var(--accent-hover)}
+    .btn-outline{background:var(--white);color:var(--gray-600);border:1px solid var(--gray-200)}
+    .btn-outline:hover{background:var(--gray-100)}
+    .btn-success{background:var(--success-light);color:var(--success);border:1px solid var(--success-border)}
+    .btn-danger{background:var(--danger-light);color:var(--danger);border:1px solid var(--danger-border)}
+    .btn-warn{background:var(--warn-light);color:var(--warn);border:1px solid var(--warn-border)}
+    .btn-sm{padding:5px 10px;font-size:11px}
+
+    /* TABLE */
+    table{width:100%;border-collapse:collapse}
+    thead th{text-align:left;font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;padding:12px 24px;border-bottom:1px solid var(--gray-100);background:var(--gray-50)}
+    tbody td{padding:14px 24px;font-size:13px;color:var(--gray-600);border-bottom:1px solid var(--gray-100);vertical-align:middle}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:hover td{background:var(--gray-50)}
+
+    /* TAGS */
+    .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
+    .tag-demo{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+    .tag-mensual{background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-border)}
+    .tag-anual{background:var(--success-light);color:var(--success);border:1px solid var(--success-border)}
+    .tag-vencido{background:var(--danger-light);color:var(--danger);border:1px solid var(--danger-border)}
+    .tag-inactivo{background:var(--gray-100);color:var(--gray-500);border:1px solid var(--gray-200)}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--white);border-radius:var(--radius);padding:28px;width:100%;max-width:520px;box-shadow:0 24px 64px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto}
+    .modal-title{font-size:18px;font-weight:700;margin-bottom:20px;color:var(--black)}
+    .modal-btns{display:flex;gap:10px;margin-top:20px}
+    .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+    .form-label{font-size:12px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.3px}
+    .form-input{background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--black);outline:none;transition:all 0.15s;width:100%}
+    .form-input:focus{border-color:var(--accent);background:var(--white);box-shadow:0 0 0 3px rgba(124,58,237,0.08)}
+    select.form-input{cursor:pointer}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--black);color:var(--white);padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,0.2);transform:translateY(80px);opacity:0;transition:all 0.3s ease;z-index:999}
+    .toast.show{transform:translateY(0);opacity:1}
+
+    /* DIAS RESTANTES BAR */
+    .dias-bar{height:4px;background:var(--gray-100);border-radius:100px;overflow:hidden;margin-top:4px;width:80px}
+    .dias-fill{height:100%;border-radius:100px;transition:width 0.3s}
+
+    .empty-state{text-align:center;padding:48px;color:var(--gray-400)}
+    .empty-icon{font-size:36px;margin-bottom:10px}
+
+    .conn-status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+    .conn-dot{width:8px;height:8px;border-radius:50%}
+    .conn-dot.ok{background:var(--success)}
+    .conn-dot.err{background:var(--danger)}
+    .conn-dot.loading{background:var(--warn);animation:pulse 1s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SUPERADMIN -->
+<div id="sa-login">
+  <div class="sa-login-box">
+    <div class="sa-logo">Don<span>Cesarion</span></div>
+    <div class="sa-sub">Panel de administración de licencias</div>
+    <div id="sa-err" class="sa-err">Credenciales incorrectas.</div>
+    <input class="sa-input" id="sa-user" placeholder="Usuario superadmin" onkeydown="if(event.key==='Enter')saLogin()">
+    <input class="sa-input" type="password" id="sa-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')saLogin()">
+    <div style="height:1px;background:#334155;margin:14px 0"></div>
+    <div style="font-size:11px;color:#475569;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">🔌 Conexión Supabase</div>
+    <input class="sa-input" id="sa-supa-url" placeholder="Project URL  https://xxx.supabase.co" onkeydown="if(event.key==='Enter')saLogin()">
+    <input class="sa-input" type="password" id="sa-supa-key" placeholder="Secret key  sb_secret_..." onkeydown="if(event.key==='Enter')saLogin()">
+    <button class="sa-btn" onclick="saLogin()">Ingresar al panel</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="brand">Don<span>Cesarion</span> <span style="font-size:11px;font-weight:500;color:var(--gray-400);letter-spacing:0">SuperAdmin</span></div>
+    <div class="conn-status" id="conn-status">
+      <div class="conn-dot loading" id="conn-dot"></div>
+      <span id="conn-text">Conectando...</span>
+    </div>
+  </div>
+  <span class="logout-link" onclick="saLogout()">🚪 Cerrar sesión</span>
+</div>
+
+<div class="main">
+
+  <!-- STATS -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-box"><div class="stat-box-icon">🏢</div><div class="stat-box-num" id="st-total">—</div><div class="stat-box-lbl">Clientes totales</div></div>
+    <div class="stat-box"><div class="stat-box-icon">⏳</div><div class="stat-box-num" id="st-demo">—</div><div class="stat-box-lbl">En demo</div></div>
+    <div class="stat-box"><div class="stat-box-icon">✅</div><div class="stat-box-num" id="st-activos">—</div><div class="stat-box-lbl">Pagos activos</div></div>
+    <div class="stat-box"><div class="stat-box-icon">💰</div><div class="stat-box-num" id="st-mrr">—</div><div class="stat-box-lbl">MRR estimado</div></div>
+  </div>
+
+  <!-- ALERTAS VENCIMIENTO -->
+  <div id="alertas-vencimiento"></div>
+
+  <!-- TABLA CLIENTES -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Clientes y licencias</div>
+      <div style="display:flex;gap:8px">
+        <input id="buscar-cliente" placeholder="🔍 Buscar..." oninput="filtrarTabla(this.value)"
+          style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:7px 12px;font-size:13px;font-family:'Inter',sans-serif;outline:none;width:200px">
+        <button class="btn btn-primary" onclick="abrirModalNuevo()">+ Nuevo cliente</button>
+      </div>
+    </div>
+    <div id="tabla-wrap">
+      <div class="empty-state"><div class="conn-dot loading" style="width:20px;height:20px;margin:0 auto 10px"></div><div>Cargando clientes...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL NUEVO / EDITAR CLIENTE -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-title" id="modal-cliente-title">Nuevo cliente demo</div>
+    <input type="hidden" id="mc-id">
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Nombre del negocio</label><input class="form-input" id="mc-negocio" placeholder="Clínica Los Andes"></div>
+      <div class="form-group"><label class="form-label">Rubro</label>
+        <select class="form-input" id="mc-rubro">
+          <option value="psicologia">Psicología</option>
+          <option value="medicina">Medicina / Clínica</option>
+          <option value="barberia">Barbería</option>
+          <option value="belleza">Belleza / Estética</option>
+          <option value="odontologia">Odontología</option>
+          <option value="kinesiologia">Kinesiología</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Nombre contacto</label><input class="form-input" id="mc-contacto" placeholder="Ana García"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="mc-tel" placeholder="+56 9..."></div>
+    </div>
+    <div class="form-group"><label class="form-label">Email (será su usuario de acceso)</label><input class="form-input" id="mc-email" placeholder="ana@clinica.cl" type="email"></div>
+    <div class="form-group"><label class="form-label">Contraseña inicial</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="mc-pass" placeholder="Mínimo 8 caracteres" style="flex:1">
+        <button class="btn btn-outline" onclick="generarPass()" style="white-space:nowrap">🎲 Generar</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Plan</label>
+        <select class="form-input" id="mc-plan" onchange="actualizarFechaExpiracion()">
+          <option value="demo">🕐 Demo (14 días)</option>
+          <option value="mensual">📅 Mensual — $29.900/mes</option>
+          <option value="anual">⭐ Anual — $269.100/año</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha expiración</label><input class="form-input" type="date" id="mc-expira"></div>
+    </div>
+    <div id="mc-precio-info" style="font-size:12px;color:var(--gray-400);margin-top:-8px;margin-bottom:12px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1" onclick="cerrarModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="guardarCliente()">Guardar cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PAGO -->
+<div class="modal-overlay" id="modal-pago">
+  <div class="modal">
+    <div class="modal-title">Registrar pago</div>
+    <input type="hidden" id="mp-cliente-id">
+    <div class="form-group"><label class="form-label">Plan activado</label>
+      <select class="form-input" id="mp-plan">
+        <option value="mensual">Mensual — $29.900</option>
+        <option value="anual">Anual — $269.100</option>
+      </select>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Monto recibido ($)</label><input class="form-input" type="number" id="mp-monto" placeholder="29900"></div>
+      <div class="form-group"><label class="form-label">Plataforma</label>
+        <select class="form-input" id="mp-plataforma">
+          <option value="transferencia">Transferencia bancaria</option>
+          <option value="flow">Flow.cl</option>
+          <option value="mercadopago">Mercado Pago</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Referencia / N° transacción</label><input class="form-input" id="mp-ref" placeholder="Opcional"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1" onclick="cerrarModal('modal-pago')">Cancelar</button>
+      <button class="btn btn-success" style="flex:2" onclick="registrarPago()">✓ Confirmar pago y activar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIGURACIÓN SUPABASE
+// ═══════════════════════════════════════════
+// Credenciales del superadmin — se ingresan en el login, no se guardan en el código
+let SUPA_URL = '';
+let SUPA_KEY = '';
+const SA_USER = 'cesar';        // Cambia esto si quieres otro usuario
+const SA_PASS = 'DonCesarion2024!';  // Cambia esto por tu contraseña
+
+let todosClientes = [];
+let sesionSA = false;
+
+// ═══════════════════════════════════════════
+// LOGIN SUPERADMIN (local, no en Supabase)
+// ═══════════════════════════════════════════
+function saLogin() {
+  const u    = document.getElementById('sa-user').value.trim();
+  const p    = document.getElementById('sa-pass').value;
+  const url  = document.getElementById('sa-supa-url').value.trim();
+  const key  = document.getElementById('sa-supa-key').value.trim();
+  if (u === SA_USER && p === SA_PASS && url && key) {
+    SUPA_URL = url.replace(/\/$/, ''); // quitar slash final si hay
+    SUPA_KEY = key;
+    sesionSA = true;
+    document.getElementById('sa-login').classList.add('hidden');
+    document.getElementById('sa-err').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('sa-err').style.display = 'block';
+    document.getElementById('sa-err').textContent = (!url||!key)
+      ? 'Ingresa también la URL y Secret Key de Supabase.'
+      : 'Usuario o contraseña incorrectos.';
+  }
+}
+function saLogout() {
+  sesionSA = false; SUPA_URL = ''; SUPA_KEY = '';
+  document.getElementById('sa-login').classList.remove('hidden');
+  document.getElementById('sa-user').value = '';
+  document.getElementById('sa-pass').value = '';
+  document.getElementById('sa-supa-url').value = '';
+  document.getElementById('sa-supa-key').value = '';
+}
+
+// ═══════════════════════════════════════════
+// API SUPABASE
+// ═══════════════════════════════════════════
+async function supaFetch(endpoint, method='GET', body=null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY,
+      'Authorization': `Bearer ${SUPA_KEY}`,
+      'Prefer': method==='POST' ? 'return=representation' : '',
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${SUPA_URL}/rest/v1/${endpoint}`, opts);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  setConn('loading');
+  try {
+    await cargarClientes();
+    setConn('ok');
+  } catch(e) {
+    setConn('err');
+    showToast('⚠️ Error conectando a Supabase: ' + e.message);
+  }
+  actualizarFechaExpiracion();
+}
+
+function setConn(estado) {
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  dot.className = 'conn-dot ' + estado;
+  text.textContent = estado==='ok'?'Conectado a Supabase ✓':estado==='err'?'Error de conexión':'Conectando...';
+}
+
+// ═══════════════════════════════════════════
+// CARGAR Y RENDERIZAR CLIENTES
+// ═══════════════════════════════════════════
+async function cargarClientes() {
+  todosClientes = await supaFetch('clientes_sistema?select=*&order=created_at.desc') || [];
+  renderStats();
+  renderAlertas();
+  renderTabla(todosClientes);
+}
+
+function renderStats() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const total   = todosClientes.length;
+  const demos   = todosClientes.filter(c=>c.plan==='demo'&&c.activo&&c.fecha_expiracion>=hoy).length;
+  const activos = todosClientes.filter(c=>['mensual','anual'].includes(c.plan)&&c.activo&&c.fecha_expiracion>=hoy).length;
+  const mrrMensual = todosClientes.filter(c=>c.plan==='mensual'&&c.activo&&c.fecha_expiracion>=hoy).length * 29900;
+  const mrrAnual   = todosClientes.filter(c=>c.plan==='anual'&&c.activo&&c.fecha_expiracion>=hoy).length * (269100/12);
+  const mrr = Math.round(mrrMensual + mrrAnual);
+
+  document.getElementById('st-total').textContent   = total;
+  document.getElementById('st-demo').textContent    = demos;
+  document.getElementById('st-activos').textContent = activos;
+  document.getElementById('st-mrr').textContent     = mrr > 0 ? '$' + mrr.toLocaleString('es-CL') : '$0';
+}
+
+function renderAlertas() {
+  const hoy = new Date();
+  const en7 = new Date(); en7.setDate(hoy.getDate() + 7);
+  const en7str = en7.toISOString().split('T')[0];
+  const hoystr = hoy.toISOString().split('T')[0];
+
+  const proxVencer = todosClientes.filter(c => c.activo && c.fecha_expiracion >= hoystr && c.fecha_expiracion <= en7str);
+  const vencidos   = todosClientes.filter(c => c.activo && c.fecha_expiracion < hoystr);
+
+  let html = '';
+  if (vencidos.length) {
+    html += `<div style="background:var(--danger-light);border:1px solid var(--danger-border);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:12px;font-size:13px;color:var(--danger)">
+      ⚠️ <b>${vencidos.length} cliente${vencidos.length>1?'s':''}</b> con licencia vencida: ${vencidos.map(c=>`<b>${c.nombre_negocio}</b>`).join(', ')}
+    </div>`;
+  }
+  if (proxVencer.length) {
+    html += `<div style="background:var(--warn-light);border:1px solid var(--warn-border);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:12px;font-size:13px;color:var(--warn)">
+      🔔 <b>${proxVencer.length} cliente${proxVencer.length>1?'s':''}</b> vence${proxVencer.length===1?'':'n'} en los próximos 7 días: ${proxVencer.map(c=>`<b>${c.nombre_negocio}</b> (${ffc(c.fecha_expiracion)})`).join(', ')}
+    </div>`;
+  }
+  document.getElementById('alertas-vencimiento').innerHTML = html;
+}
+
+function renderTabla(lista) {
+  const hoy = new Date().toISOString().split('T')[0];
+  if (!lista.length) {
+    document.getElementById('tabla-wrap').innerHTML = '<div class="empty-state"><div class="empty-icon">🏢</div><div>No hay clientes aún</div></div>';
+    return;
+  }
+  document.getElementById('tabla-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Negocio</th><th>Email</th><th>Rubro</th><th>Plan</th>
+        <th>Días restantes</th><th>Expira</th><th>Acciones</th>
+      </tr></thead>
+      <tbody>
+        ${lista.map(c => {
+          const vencido = c.fecha_expiracion < hoy;
+          const diasRestantes = Math.max(0, Math.ceil((new Date(c.fecha_expiracion) - new Date(hoy)) / 86400000));
+          const maxDias = c.plan==='anual'?365:c.plan==='mensual'?30:14;
+          const pct = Math.min(100, Math.round(diasRestantes/maxDias*100));
+          const barColor = diasRestantes<=3?'#dc2626':diasRestantes<=7?'#d97706':'#16a34a';
+          const tagClass = !c.activo?'tag-inactivo':vencido?'tag-vencido':c.plan==='anual'?'tag-anual':c.plan==='mensual'?'tag-mensual':'tag-demo';
+          const tagLabel = !c.activo?'Inactivo':vencido?'Vencido':c.plan==='anual'?'⭐ Anual':c.plan==='mensual'?'📅 Mensual':'🕐 Demo';
+          return `<tr>
+            <td><div style="font-weight:600;color:var(--black)">${c.nombre_negocio}</div><div style="font-size:11px;color:var(--gray-400)">${c.contacto_nombre||''}</div></td>
+            <td style="font-size:12px">${c.email}</td>
+            <td style="font-size:12px;color:var(--gray-500)">${c.rubro||'—'}</td>
+            <td><span class="tag ${tagClass}">${tagLabel}</span></td>
+            <td>
+              <div style="font-size:13px;font-weight:600;color:${barColor}">${diasRestantes}d</div>
+              <div class="dias-bar"><div class="dias-fill" style="width:${pct}%;background:${barColor}"></div></div>
+            </td>
+            <td style="font-size:12px">${ffc(c.fecha_expiracion)}</td>
+            <td>
+              <div style="display:flex;gap:5px;flex-wrap:wrap">
+                <button class="btn btn-outline btn-sm" onclick="editarCliente('${c.id}')">✏️ Editar</button>
+                <button class="btn btn-success btn-sm" onclick="abrirModalPago('${c.id}')">💰 Pago</button>
+                ${c.activo
+                  ? `<button class="btn btn-warn btn-sm" onclick="toggleActivo('${c.id}',false)">⏸ Pausar</button>`
+                  : `<button class="btn btn-success btn-sm" onclick="toggleActivo('${c.id}',true)">▶ Activar</button>`}
+                <button class="btn btn-danger btn-sm" onclick="eliminarCliente('${c.id}','${c.nombre_negocio}')">🗑</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function filtrarTabla(q) {
+  const lista = q
+    ? todosClientes.filter(c =>
+        c.nombre_negocio.toLowerCase().includes(q.toLowerCase()) ||
+        c.email.toLowerCase().includes(q.toLowerCase()) ||
+        (c.contacto_nombre||'').toLowerCase().includes(q.toLowerCase()))
+    : todosClientes;
+  renderTabla(lista);
+}
+
+// ═══════════════════════════════════════════
+// CREAR / EDITAR CLIENTE
+// ═══════════════════════════════════════════
+function abrirModalNuevo() {
+  document.getElementById('mc-id').value = '';
+  document.getElementById('mc-negocio').value = '';
+  document.getElementById('mc-rubro').value = 'psicologia';
+  document.getElementById('mc-contacto').value = '';
+  document.getElementById('mc-tel').value = '';
+  document.getElementById('mc-email').value = '';
+  document.getElementById('mc-pass').value = '';
+  document.getElementById('mc-plan').value = 'demo';
+  document.getElementById('modal-cliente-title').textContent = 'Nuevo cliente demo';
+  actualizarFechaExpiracion();
+  abrirModal('modal-cliente');
+}
+
+function editarCliente(id) {
+  const c = todosClientes.find(x=>x.id===id);
+  if (!c) return;
+  document.getElementById('mc-id').value = c.id;
+  document.getElementById('mc-negocio').value = c.nombre_negocio;
+  document.getElementById('mc-rubro').value = c.rubro||'otro';
+  document.getElementById('mc-contacto').value = c.contacto_nombre||'';
+  document.getElementById('mc-tel').value = c.contacto_tel||'';
+  document.getElementById('mc-email').value = c.email;
+  document.getElementById('mc-pass').value = '';
+  document.getElementById('mc-plan').value = c.plan;
+  document.getElementById('mc-expira').value = c.fecha_expiracion;
+  document.getElementById('modal-cliente-title').textContent = 'Editar cliente — ' + c.nombre_negocio;
+  abrirModal('modal-cliente');
+}
+
+function actualizarFechaExpiracion() {
+  const plan = document.getElementById('mc-plan')?.value;
+  const hoy = new Date();
+  let dias = plan==='anual'?365:plan==='mensual'?30:14;
+  const expira = new Date(hoy); expira.setDate(hoy.getDate()+dias);
+  document.getElementById('mc-expira').value = expira.toISOString().split('T')[0];
+  const info = {
+    demo:`Demo gratuita de 14 días`,
+    mensual:`$29.900 CLP/mes — renovación cada 30 días`,
+    anual:`$269.100 CLP/año — 25% de descuento frente al mensual`
+  };
+  const el = document.getElementById('mc-precio-info');
+  if (el) el.textContent = info[plan]||'';
+}
+
+function generarPass() {
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!';
+  let pass='';
+  for(let i=0;i<12;i++) pass+=chars[Math.floor(Math.random()*chars.length)];
+  document.getElementById('mc-pass').value = pass;
+  navigator.clipboard.writeText(pass).catch(()=>{});
+  showToast('🔑 Contraseña generada y copiada');
+}
+
+async function guardarCliente() {
+  const id       = document.getElementById('mc-id').value;
+  const negocio  = document.getElementById('mc-negocio').value.trim();
+  const email    = document.getElementById('mc-email').value.trim();
+  const pass     = document.getElementById('mc-pass').value.trim();
+  const plan     = document.getElementById('mc-plan').value;
+  const expira   = document.getElementById('mc-expira').value;
+  const contacto = document.getElementById('mc-contacto').value.trim();
+  const tel      = document.getElementById('mc-tel').value.trim();
+  const rubro    = document.getElementById('mc-rubro').value;
+
+  if (!negocio||!email) { alert('Completa nombre del negocio y email'); return; }
+  if (!id && !pass) { alert('Ingresa una contraseña inicial'); return; }
+
+  // Hash simple del password (en producción usar bcrypt via Edge Function)
+  // Por ahora guardamos el password hasheado con btoa + salt para no guardarlo en claro
+  const passHash = pass ? btoa(unescape(encodeURIComponent('sc_' + pass + '_doncesarion'))) : undefined;
+
+  const datos = {
+    nombre_negocio: negocio,
+    email,
+    plan,
+    fecha_expiracion: expira,
+    contacto_nombre: contacto,
+    contacto_tel: tel,
+    rubro,
+    activo: true,
+    updated_at: new Date().toISOString(),
+  };
+  if (passHash) datos.password_hash = passHash;
+  if (!id) datos.fecha_inicio = new Date().toISOString().split('T')[0];
+
+  try {
+    if (id) {
+      await supaFetch(`clientes_sistema?id=eq.${id}`, 'PATCH', datos);
+      showToast('✓ Cliente actualizado');
+    } else {
+      await supaFetch('clientes_sistema', 'POST', datos);
+      showToast('✓ Cliente creado — plan: ' + plan);
+    }
+    cerrarModal('modal-cliente');
+    await cargarClientes();
+  } catch(e) {
+    alert('Error guardando: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════
+// PAGO
+// ═══════════════════════════════════════════
+function abrirModalPago(clienteId) {
+  document.getElementById('mp-cliente-id').value = clienteId;
+  document.getElementById('mp-monto').value = '29900';
+  abrirModal('modal-pago');
+}
+
+async function registrarPago() {
+  const clienteId = document.getElementById('mp-cliente-id').value;
+  const plan      = document.getElementById('mp-plan').value;
+  const monto     = parseInt(document.getElementById('mp-monto').value)||0;
+  const plat      = document.getElementById('mp-plataforma').value;
+  const ref       = document.getElementById('mp-ref').value.trim();
+
+  const hoy = new Date();
+  const expira = new Date(hoy);
+  expira.setDate(hoy.getDate() + (plan==='anual'?365:30));
+
+  try {
+    // Registrar pago
+    await supaFetch('pagos', 'POST', {
+      cliente_id: clienteId, plan, monto, plataforma: plat,
+      referencia: ref||null, estado:'pagado', fecha_pago: new Date().toISOString()
+    });
+    // Actualizar plan del cliente
+    await supaFetch(`clientes_sistema?id=eq.${clienteId}`, 'PATCH', {
+      plan, fecha_expiracion: expira.toISOString().split('T')[0],
+      activo: true, updated_at: new Date().toISOString()
+    });
+    cerrarModal('modal-pago');
+    await cargarClientes();
+    showToast(`✓ Pago registrado y plan ${plan} activado`);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════
+// TOGGLE ACTIVO / ELIMINAR
+// ═══════════════════════════════════════════
+async function toggleActivo(id, activo) {
+  const label = activo ? 'activar' : 'pausar';
+  if (!confirm(`¿${label} este cliente?`)) return;
+  try {
+    await supaFetch(`clientes_sistema?id=eq.${id}`, 'PATCH', { activo, updated_at: new Date().toISOString() });
+    await cargarClientes();
+    showToast(activo ? '▶ Cliente activado' : '⏸ Cliente pausado');
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function eliminarCliente(id, nombre) {
+  if (!confirm(`¿Eliminar permanentemente a "${nombre}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    await supaFetch(`clientes_sistema?id=eq.${id}`, 'DELETE');
+    await cargarClientes();
+    showToast('🗑 Cliente eliminado');
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function abrirModal(id){document.getElementById(id).classList.add('open');}
+function cerrarModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+function ffc(f){if(!f)return'—';const[y,m,d]=f.split('-');return`${d}/${m}/${y}`;}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// Actualizar precio al cambiar plan en modal pago
+document.getElementById('mp-plan')?.addEventListener('change', function(){
+  document.getElementById('mp-monto').value = this.value==='anual'?'269100':'29900';
+});
+</script>
+</body>
+</html>
