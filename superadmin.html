@@ -124,7 +124,7 @@
     <div style="height:1px;background:#334155;margin:14px 0"></div>
     <div style="font-size:11px;color:#475569;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">🔌 Conexión Supabase</div>
     <input class="sa-input" id="sa-supa-url" placeholder="Project URL  https://xxx.supabase.co" onkeydown="if(event.key==='Enter')saLogin()">
-    <input class="sa-input" type="password" id="sa-supa-key" placeholder="Secret key  sb_secret_..." onkeydown="if(event.key==='Enter')saLogin()">
+    <input class="sa-input" type="password" id="sa-supa-key" placeholder="Publishable key  sb_publishable_..." onkeydown="if(event.key==='Enter')saLogin()">
     <button class="sa-btn" onclick="saLogin()">Ingresar al panel</button>
   </div>
 </div>
@@ -254,11 +254,11 @@
 // ═══════════════════════════════════════════
 // CONFIGURACIÓN SUPABASE
 // ═══════════════════════════════════════════
-// Credenciales del superadmin — se ingresan en el login, no se guardan en el código
+// Credenciales — se ingresan en el login, nada hardcodeado aquí
 let SUPA_URL = '';
-let SUPA_KEY = '';
-const SA_USER = 'cesar';        // Cambia esto si quieres otro usuario
-const SA_PASS = 'DonCesarion2024!';  // Cambia esto por tu contraseña
+let SUPA_KEY = ''; // publishable key (segura para browser)
+const SA_USER = 'cesar';
+const SA_PASS = 'DonCesarion2024!';
 
 let todosClientes = [];
 let sesionSA = false;
@@ -295,26 +295,27 @@ function saLogout() {
 }
 
 // ═══════════════════════════════════════════
-// API SUPABASE
+// API — EDGE FUNCTION (corre en servidor Supabase)
 // ═══════════════════════════════════════════
-async function supaFetch(endpoint, method='GET', body=null) {
+const ADMIN_TOKEN = 'DonCesarion_SuperAdmin_2024_xK9mP3';
+
+async function edgeFetch(action, body=null) {
+  const method = body ? 'POST' : 'GET';
   const opts = {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SUPA_KEY,
+      'x-admin-token': ADMIN_TOKEN,
+      'apikey': SUPA_KEY,        // publishable key para identificar el proyecto
       'Authorization': `Bearer ${SUPA_KEY}`,
-      'Prefer': method==='POST' ? 'return=representation' : '',
     }
   };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(`${SUPA_URL}/rest/v1/${endpoint}`, opts);
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err);
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  const edgeUrl = `${SUPA_URL}/functions/v1/admin-clientes?action=${action}`;
+  const res = await fetch(edgeUrl, opts);
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error || 'Error en Edge Function');
+  return json.data;
 }
 
 // ═══════════════════════════════════════════
@@ -343,7 +344,7 @@ function setConn(estado) {
 // CARGAR Y RENDERIZAR CLIENTES
 // ═══════════════════════════════════════════
 async function cargarClientes() {
-  todosClientes = await supaFetch('clientes_sistema?select=*&order=created_at.desc') || [];
+  todosClientes = await edgeFetch('listar') || [];
   renderStats();
   renderAlertas();
   renderTabla(todosClientes);
@@ -535,10 +536,10 @@ async function guardarCliente() {
 
   try {
     if (id) {
-      await supaFetch(`clientes_sistema?id=eq.${id}`, 'PATCH', datos);
+      await edgeFetch('actualizar', { ...datos, id });
       showToast('✓ Cliente actualizado');
     } else {
-      await supaFetch('clientes_sistema', 'POST', datos);
+      await edgeFetch('crear', { ...datos, password: pass });
       showToast('✓ Cliente creado — plan: ' + plan);
     }
     cerrarModal('modal-cliente');
@@ -564,20 +565,10 @@ async function registrarPago() {
   const plat      = document.getElementById('mp-plataforma').value;
   const ref       = document.getElementById('mp-ref').value.trim();
 
-  const hoy = new Date();
-  const expira = new Date(hoy);
-  expira.setDate(hoy.getDate() + (plan==='anual'?365:30));
-
   try {
     // Registrar pago
-    await supaFetch('pagos', 'POST', {
-      cliente_id: clienteId, plan, monto, plataforma: plat,
-      referencia: ref||null, estado:'pagado', fecha_pago: new Date().toISOString()
-    });
-    // Actualizar plan del cliente
-    await supaFetch(`clientes_sistema?id=eq.${clienteId}`, 'PATCH', {
-      plan, fecha_expiracion: expira.toISOString().split('T')[0],
-      activo: true, updated_at: new Date().toISOString()
+    await edgeFetch('pago', {
+      cliente_id: clienteId, plan, monto, plataforma: plat, referencia: ref||null
     });
     cerrarModal('modal-pago');
     await cargarClientes();
@@ -594,7 +585,7 @@ async function toggleActivo(id, activo) {
   const label = activo ? 'activar' : 'pausar';
   if (!confirm(`¿${label} este cliente?`)) return;
   try {
-    await supaFetch(`clientes_sistema?id=eq.${id}`, 'PATCH', { activo, updated_at: new Date().toISOString() });
+    await edgeFetch('toggle', { id, activo });
     await cargarClientes();
     showToast(activo ? '▶ Cliente activado' : '⏸ Cliente pausado');
   } catch(e) { alert('Error: '+e.message); }
@@ -603,7 +594,7 @@ async function toggleActivo(id, activo) {
 async function eliminarCliente(id, nombre) {
   if (!confirm(`¿Eliminar permanentemente a "${nombre}"? Esta acción no se puede deshacer.`)) return;
   try {
-    await supaFetch(`clientes_sistema?id=eq.${id}`, 'DELETE');
+    await edgeFetch('eliminar', { id });
     await cargarClientes();
     showToast('🗑 Cliente eliminado');
   } catch(e) { alert('Error: '+e.message); }
