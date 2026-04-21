@@ -119,12 +119,8 @@
     <div class="sa-logo">Don<span>Cesarion</span></div>
     <div class="sa-sub">Panel de administración de licencias</div>
     <div id="sa-err" class="sa-err">Credenciales incorrectas.</div>
-    <input class="sa-input" id="sa-user" placeholder="Usuario superadmin" onkeydown="if(event.key==='Enter')saLogin()">
+    <input class="sa-input" id="sa-user" placeholder="Usuario" onkeydown="if(event.key==='Enter')saLogin()">
     <input class="sa-input" type="password" id="sa-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')saLogin()">
-    <div style="height:1px;background:#334155;margin:14px 0"></div>
-    <div style="font-size:11px;color:#475569;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">🔌 Conexión Supabase</div>
-    <input class="sa-input" id="sa-supa-url" placeholder="Project URL  https://xxx.supabase.co" onkeydown="if(event.key==='Enter')saLogin()">
-    <input class="sa-input" type="password" id="sa-supa-key" placeholder="Publishable key  sb_publishable_..." onkeydown="if(event.key==='Enter')saLogin()">
     <button class="sa-btn" onclick="saLogin()">Ingresar al panel</button>
   </div>
 </div>
@@ -254,9 +250,9 @@
 // ═══════════════════════════════════════════
 // CONFIGURACIÓN SUPABASE
 // ═══════════════════════════════════════════
-// Credenciales — se ingresan en el login, nada hardcodeado aquí
-let SUPA_URL = '';
-let SUPA_KEY = ''; // publishable key (segura para browser)
+// Credenciales Supabase — anon key es pública por diseño, no es un secreto
+const SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
 const SA_USER = 'cesar';
 const SA_PASS = 'DonCesarion2024!';
 
@@ -267,31 +263,23 @@ let sesionSA = false;
 // LOGIN SUPERADMIN (local, no en Supabase)
 // ═══════════════════════════════════════════
 function saLogin() {
-  const u    = document.getElementById('sa-user').value.trim();
-  const p    = document.getElementById('sa-pass').value;
-  const url  = document.getElementById('sa-supa-url').value.trim();
-  const key  = document.getElementById('sa-supa-key').value.trim();
-  if (u === SA_USER && p === SA_PASS && url && key) {
-    SUPA_URL = url.replace(/\/$/, ''); // quitar slash final si hay
-    SUPA_KEY = key;
+  const u = document.getElementById('sa-user').value.trim();
+  const p = document.getElementById('sa-pass').value;
+  if (u === SA_USER && p === SA_PASS) {
     sesionSA = true;
     document.getElementById('sa-login').classList.add('hidden');
     document.getElementById('sa-err').style.display = 'none';
     init();
   } else {
     document.getElementById('sa-err').style.display = 'block';
-    document.getElementById('sa-err').textContent = (!url||!key)
-      ? 'Ingresa también la URL y Secret Key de Supabase.'
-      : 'Usuario o contraseña incorrectos.';
+    document.getElementById('sa-err').textContent = 'Usuario o contraseña incorrectos.';
   }
 }
 function saLogout() {
-  sesionSA = false; SUPA_URL = ''; SUPA_KEY = '';
+  sesionSA = false;
   document.getElementById('sa-login').classList.remove('hidden');
   document.getElementById('sa-user').value = '';
   document.getElementById('sa-pass').value = '';
-  document.getElementById('sa-supa-url').value = '';
-  document.getElementById('sa-supa-key').value = '';
 }
 
 // ═══════════════════════════════════════════
