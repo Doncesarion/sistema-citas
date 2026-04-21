@@ -232,17 +232,17 @@
       </div>
     </div>
     <div id="login-form">
-      <div id="login-err" class="login-err">Usuario o contraseña incorrectos.</div>
+      <div id="login-err" class="login-err">Credenciales incorrectas o licencia vencida.</div>
       <div class="form-group" style="margin-bottom:14px">
-        <label class="form-label">Usuario</label>
-        <input class="form-input" id="l-user" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="l-user" placeholder="tu@negocio.cl" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <div class="form-group" style="margin-bottom:8px">
         <label class="form-label">Contraseña</label>
         <input class="form-input" type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <div class="forgot-link" onclick="mostrarForgot()">¿Olvidaste tu contraseña?</div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="doLogin()">Ingresar</button>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" id="btn-login" onclick="doLogin()">Ingresar</button>
     </div>
     <div id="forgot-screen">
       <div style="margin-bottom:16px;font-size:14px;color:var(--gray-600)">Ingresa tu email y recibirás instrucciones para recuperar tu contraseña.</div>
@@ -256,6 +256,36 @@
         <button class="btn btn-primary" style="flex:2;justify-content:center" onclick="doForgot()">Enviar instrucciones</button>
       </div>
     </div>
+
+    <!-- PANTALLA DEMO VENCIDA -->
+    <div id="licencia-vencida" style="display:none">
+      <div style="text-align:center;padding:10px 0 20px">
+        <div style="font-size:40px;margin-bottom:12px">⏰</div>
+        <div style="font-size:17px;font-weight:700;color:var(--black);margin-bottom:8px">Tu demo ha expirado</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-bottom:20px;line-height:1.6">
+          Gracias por probar el sistema.<br>Activa tu plan para seguir usando todas las funciones.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:var(--accent-light);border:1px solid var(--accent-border);border-radius:var(--radius-sm);padding:16px">
+            <div style="font-weight:700;color:var(--accent);font-size:15px">📅 Plan Mensual</div>
+            <div style="font-size:22px;font-weight:800;color:var(--black);margin:4px 0">$29.900 <span style="font-size:13px;font-weight:400;color:var(--gray-400)">/mes</span></div>
+            <a href="mailto:cesar@doncesarion.cl?subject=Quiero activar plan Mensual" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;text-decoration:none">Activar plan mensual</a>
+          </div>
+          <div style="background:#fafaf5;border:1px solid #d4d4aa;border-radius:var(--radius-sm);padding:16px;position:relative">
+            <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:100px">25% OFF</div>
+            <div style="font-weight:700;color:#15803d;font-size:15px">⭐ Plan Anual</div>
+            <div style="font-size:22px;font-weight:800;color:var(--black);margin:4px 0">$269.100 <span style="font-size:13px;font-weight:400;color:var(--gray-400)">/año</span></div>
+            <div style="font-size:12px;color:var(--gray-400);margin-bottom:8px">$22.425/mes — ahorras $89.700</div>
+            <a href="mailto:cesar@doncesarion.cl?subject=Quiero activar plan Anual" class="btn btn-primary" style="width:100%;justify-content:center;text-decoration:none;background:#16a34a">Activar plan anual</a>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--gray-400)">
+          ¿Preguntas? Escríbenos a <a href="mailto:cesar@doncesarion.cl" style="color:var(--accent)">cesar@doncesarion.cl</a>
+        </div>
+        <button onclick="volverLogin()" style="margin-top:12px;background:none;border:none;color:var(--gray-400);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif">← Volver al login</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -617,6 +647,34 @@
 
 <script>
 // ═══════════════════════════════════════════
+// SUPABASE CONFIG — verificación de licencia
+// ═══════════════════════════════════════════
+const SUPA_URL  = 'https://xztqawulvrtjvtfixofy.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
+const EDGE_URL  = SUPA_URL + '/functions/v1/admin-clientes';
+const SA_TOKEN  = 'DonCesarion_SuperAdmin_2024_xK9mP3';
+
+async function verificarLicencia(email, password) {
+  try {
+    const res = await fetch(EDGE_URL + '?action=login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_ANON,
+        'Authorization': 'Bearer ' + SUPA_ANON,
+        'x-admin-token': SA_TOKEN,
+      },
+      body: JSON.stringify({ email, password })
+    });
+    const json = await res.json();
+    if (!res.ok || json.error) return { ok: false, error: json.error || 'Error de conexión' };
+    return { ok: true, cliente: json.data?.cliente };
+  } catch(e) {
+    return { ok: false, error: 'Sin conexión a internet' };
+  }
+}
+
+// ═══════════════════════════════════════════
 // EMAILJS CONFIG
 // ═══════════════════════════════════════════
 let EMAILJS_CFG = { pubkey:'', service:'', template:'', adminMail:'' };
@@ -752,21 +810,48 @@ let serviciosSeleccionados = [];
 // ═══════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════
-function doLogin() {
-  const user = document.getElementById('l-user').value.trim();
-  const pass = document.getElementById('l-pass').value;
-  const found = USUARIOS.find(u=>(u.email===user||u.nombre===user)&&u.pass===pass&&u.activo);
-  if (found) {
-    sesionActual = found;
+async function doLogin() {
+  const email = document.getElementById('l-user').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  if (!email || !pass) { document.getElementById('login-err').style.display='block'; return; }
+
+  // Mostrar loading
+  const btn = document.getElementById('btn-login');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+
+  const result = await verificarLicencia(email, pass);
+
+  btn.textContent = 'Ingresar'; btn.disabled = false;
+
+  if (result.ok && result.cliente) {
+    const cliente = result.cliente;
+    sesionActual = { nombre: cliente.contacto_nombre || cliente.nombre_negocio, email: cliente.email, rol: 'admin' };
+
+    // Configurar el negocio con los datos de Supabase
+    CFG.nombre = cliente.nombre_negocio || CFG.nombre;
+
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('sb-username').textContent = found.nombre;
-    document.getElementById('sb-avatar').textContent   = found.nombre[0].toUpperCase();
-    const rn = {admin:'Administrador',editor:'Editor',viewer:'Visualizador'};
-    document.getElementById('sb-role').textContent = rn[found.rol]||found.rol;
+    document.getElementById('sb-username').textContent = sesionActual.nombre;
+    document.getElementById('sb-avatar').textContent   = sesionActual.nombre[0].toUpperCase();
+    document.getElementById('sb-role').textContent     = 'Administrador';
+
+    // Mostrar días restantes si es demo
+    const hoy    = new Date().toISOString().split('T')[0];
+    const expira = cliente.fecha_expiracion;
+    const dias   = Math.ceil((new Date(expira) - new Date(hoy)) / 86400000);
+    if (cliente.plan === 'demo' && dias <= 7) {
+      setTimeout(()=>showToast(`⏰ Tu demo vence en ${dias} día${dias!==1?'s':''}`), 1500);
+    }
+
     document.getElementById('login-err').style.display='none';
     init();
+  } else if (result.error && result.error.includes('licencia vencida')) {
+    // Mostrar pantalla de demo vencida
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('licencia-vencida').style.display = 'block';
   } else {
     document.getElementById('login-err').style.display='block';
+    document.getElementById('login-err').textContent = result.error || 'Credenciales incorrectas';
   }
 }
 function doLogout() {
@@ -774,11 +859,12 @@ function doLogout() {
   document.getElementById('l-user').value='';
   document.getElementById('l-pass').value='';
   document.getElementById('login-err').style.display='none';
+  document.getElementById('licencia-vencida').style.display='none';
   volverLogin();
   document.getElementById('login-screen').classList.remove('hidden');
 }
 function mostrarForgot() { document.getElementById('login-form').classList.add('hidden'); document.getElementById('forgot-screen').classList.add('visible'); document.getElementById('forgot-ok').style.display='none'; }
-function volverLogin()   { document.getElementById('login-form').classList.remove('hidden'); document.getElementById('forgot-screen').classList.remove('visible'); }
+function volverLogin()   { document.getElementById('login-form').classList.remove('hidden'); document.getElementById('forgot-screen').classList.remove('visible'); document.getElementById('licencia-vencida').style.display='none'; }
 function doForgot() { const e=document.getElementById('forgot-email').value.trim(); if(!e){alert('Ingresa tu email');return;} document.getElementById('forgot-ok').style.display='block'; }
 
 // ═══════════════════════════════════════════
