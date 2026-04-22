@@ -509,7 +509,7 @@
             <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-input" id="cfg-wp" placeholder="+56 9 1234 5678"></div>
             <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="cfg-dir" placeholder="Av. Principal 123"></div>
           </div>
-          <div class="form-group" style="margin-top:16px"><label class="form-label">Horario general</label><input class="form-input" id="cfg-horario" placeholder="Lun–Sáb · 09:00–19:00"></div>
+          <div class="form-group" style="margin-top:16px"><label class="form-label">Descripción del horario</label><input class="form-input" id="cfg-horario" placeholder="Lun–Sáb · 09:00–19:00"></div>
           <button class="btn btn-primary" style="margin-top:16px;width:100%" onclick="guardarConfig()">Guardar cambios</button>
         </div>
       </div>
@@ -518,6 +518,51 @@
         <div id="lista-servicios"></div>
       </div>
     </div>
+
+    <!-- IMÁGENES -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Logo del negocio</div></div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:20px">
+            <div id="logo-preview" style="width:80px;height:80px;border-radius:var(--radius-sm);background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:32px;border:2px dashed var(--gray-200);flex-shrink:0;overflow:hidden">📋</div>
+            <div style="flex:1">
+              <div style="font-size:13px;color:var(--gray-600);margin-bottom:12px">Aparece en el sidebar del panel y en el sitio de reservas. Recomendado: cuadrado, mínimo 200x200px.</div>
+              <label style="cursor:pointer">
+                <input type="file" accept="image/*" style="display:none" onchange="subirLogo(this)">
+                <span class="btn btn-outline" style="font-size:12px">📁 Seleccionar imagen</span>
+              </label>
+              <button class="btn btn-danger" style="font-size:12px;margin-left:8px" onclick="eliminarLogo()">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Imagen de portada / Banner</div></div>
+        <div class="card-body">
+          <div id="banner-preview" style="width:100%;height:100px;border-radius:var(--radius-sm);background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--gray-400);border:2px dashed var(--gray-200);margin-bottom:12px;overflow:hidden">Sin banner</div>
+          <div style="font-size:13px;color:var(--gray-600);margin-bottom:12px">Aparece en el encabezado del sitio de reservas. Recomendado: 1200x300px.</div>
+          <label style="cursor:pointer">
+            <input type="file" accept="image/*" style="display:none" onchange="subirBanner(this)">
+            <span class="btn btn-outline" style="font-size:12px">📁 Seleccionar imagen</span>
+          </label>
+          <button class="btn btn-danger" style="font-size:12px;margin-left:8px" onclick="eliminarBanner()">Eliminar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HORARIOS POR DÍA -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div><div class="card-title">Horarios de atención por día</div><div class="card-sub">Define horario de apertura y cierre para cada día</div></div>
+        <button class="btn btn-primary" style="font-size:12px" onclick="guardarHorarios()">Guardar horarios</button>
+      </div>
+      <div class="card-body">
+        <div id="horarios-por-dia"></div>
+      </div>
+    </div>
+
+    <!-- COLOR -->
     <div class="card">
       <div class="card-header"><div class="card-title">Color del negocio</div></div>
       <div class="card-body">
@@ -746,7 +791,7 @@ function enviarEmail(datos) {
 let CFG = {
   nombre:'Mi Negocio', emoji:'📋', whatsapp:'+56 9 1234 5678',
   direccion:'Av. Principal 123, Santiago', horario:'Lun–Sáb · 09:00–19:00',
-  colorActual:'#2563eb',
+  colorActual:'#2563eb', logo:'', banner:'',
   colores:['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#db2777','#0f172a'],
   servicios:[
     {nombre:'Consulta general', emoji:'🩺', precio:25000, duracion:'45 min'},
@@ -754,6 +799,16 @@ let CFG = {
     {nombre:'Sesión completa',  emoji:'⭐', precio:40000, duracion:'60 min'},
     {nombre:'Seguimiento',      emoji:'📋', precio:18000, duracion:'30 min'},
   ],
+  horariosSemana: {
+    'lunes':     {inicio:'09:00',fin:'19:00',activo:true},
+    'martes':    {inicio:'09:00',fin:'19:00',activo:true},
+    'miércoles': {inicio:'09:00',fin:'19:00',activo:true},
+    'jueves':    {inicio:'09:00',fin:'19:00',activo:true},
+    'viernes':   {inicio:'09:00',fin:'19:00',activo:true},
+    'sábado':    {inicio:'09:00',fin:'14:00',activo:true},
+    'domingo':   {inicio:'09:00',fin:'14:00',activo:false},
+  },
+  horasBloqueadas: {}, // { 'lunes': ['10:00','11:00'], ... }
 };
 
 // Colores para avatares de especialistas
@@ -949,6 +1004,22 @@ async function init() {
 }
 
 // ══════════════════════════════════════════
+// LOGO Y BANNER
+// ══════════════════════════════════════════
+function aplicarLogoSidebar() {
+  const iconEl = document.getElementById('sb-icon');
+  const loginEl = document.getElementById('login-icon');
+  if (CFG.logo) {
+    const imgHtml = `<img src="${CFG.logo}" style="width:36px;height:36px;object-fit:cover;border-radius:8px" alt="logo">`;
+    if(iconEl) iconEl.innerHTML = imgHtml;
+    if(loginEl) loginEl.innerHTML = `<img src="${CFG.logo}" style="width:42px;height:42px;object-fit:cover;border-radius:11px" alt="logo">`;
+  } else {
+    if(iconEl) iconEl.textContent = CFG.emoji;
+    if(loginEl) loginEl.textContent = CFG.emoji;
+  }
+}
+
+// ══════════════════════════════════════════
 // CARGA DATOS DESDE SUPABASE
 // ══════════════════════════════════════════
 async function cargarConfig() {
@@ -962,10 +1033,20 @@ async function cargarConfig() {
     CFG.colorActual  = data.color_actual || CFG.colorActual;
     if (data.servicios && data.servicios.length > 0) CFG.servicios = data.servicios;
     document.documentElement.style.setProperty('--accent', CFG.colorActual);
-    document.getElementById('sb-icon').textContent = CFG.emoji;
     document.getElementById('sb-name').textContent = CFG.nombre;
     document.getElementById('login-biz-name').textContent = CFG.nombre;
-    document.getElementById('login-icon').textContent = CFG.emoji;
+    aplicarLogoSidebar();
+
+    // Cargar logo y banner
+    if (data.logo)   CFG.logo   = data.logo;
+    if (data.banner) CFG.banner = data.banner;
+
+    // Cargar horarios
+    if (data.horarios_semana)  CFG.horariosSemana  = data.horarios_semana;
+    if (data.horas_bloqueadas) CFG.horasBloqueadas = data.horas_bloqueadas;
+
+    // Aplicar logo en sidebar si existe
+    aplicarLogoSidebar();
 
     // Cargar credenciales EmailJS si existen
     if (data.emailjs_pubkey) {
@@ -1682,12 +1763,171 @@ function cambiarRol(id){const u=USUARIOS.find(x=>x.id===id);if(!u)return;const r
 // CONFIG
 // ═══════════════════════════════════════════
 function renderConfigPage() {
-  document.getElementById('cfg-nombre').value=CFG.nombre;
-  document.getElementById('cfg-emoji').value=CFG.emoji;
-  document.getElementById('cfg-wp').value=CFG.whatsapp;
-  document.getElementById('cfg-dir').value=CFG.direccion;
-  document.getElementById('cfg-horario').value=CFG.horario;
-  renderListaServicios(); renderColores();
+  document.getElementById('cfg-nombre').value  = CFG.nombre;
+  document.getElementById('cfg-emoji').value   = CFG.emoji;
+  document.getElementById('cfg-wp').value      = CFG.whatsapp;
+  document.getElementById('cfg-dir').value     = CFG.direccion;
+  document.getElementById('cfg-horario').value = CFG.horario;
+  renderListaServicios();
+  renderColores();
+  renderLogoPreview();
+  renderBannerPreview();
+  renderHorariosPorDia();
+}
+
+function renderLogoPreview() {
+  const el = document.getElementById('logo-preview');
+  if (!el) return;
+  if (CFG.logo) {
+    el.innerHTML = `<img src="${CFG.logo}" style="width:100%;height:100%;object-fit:cover" alt="logo">`;
+  } else {
+    el.textContent = CFG.emoji || '📋';
+  }
+}
+
+function renderBannerPreview() {
+  const el = document.getElementById('banner-preview');
+  if (!el) return;
+  if (CFG.banner) {
+    el.innerHTML = `<img src="${CFG.banner}" style="width:100%;height:100%;object-fit:cover" alt="banner">`;
+  } else {
+    el.textContent = 'Sin banner';
+  }
+}
+
+function renderHorariosPorDia() {
+  const dias = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  const horas = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30',
+    '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30',
+    '17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'];
+  const optsHtml = horas.map(h=>`<option value="${h}">${h}</option>`).join('');
+
+  document.getElementById('horarios-por-dia').innerHTML = dias.map(dia => {
+    const h = CFG.horariosSemana[dia] || {inicio:'09:00',fin:'19:00',activo:false};
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100)">
+      <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center">
+        <input type="checkbox" id="dia-activo-${dia}" ${h.activo?'checked':''} onchange="toggleDiaHorario('${dia}')"
+          style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
+      </div>
+      <div style="min-width:90px;font-size:13px;font-weight:600;color:var(--black);text-transform:capitalize">${dia}</div>
+      <div id="horario-row-${dia}" style="display:flex;align-items:center;gap:8px;${!h.activo?'opacity:0.3;pointer-events:none':''}">
+        <select class="form-input" id="dia-inicio-${dia}" style="padding:6px 10px;font-size:13px;width:auto">
+          ${horas.map(hr=>`<option value="${hr}" ${hr===h.inicio?'selected':''}>${hr}</option>`).join('')}
+        </select>
+        <span style="font-size:13px;color:var(--gray-400)">→</span>
+        <select class="form-input" id="dia-fin-${dia}" style="padding:6px 10px;font-size:13px;width:auto">
+          ${horas.map(hr=>`<option value="${hr}" ${hr===h.fin?'selected':''}>${hr}</option>`).join('')}
+        </select>
+      </div>
+      ${!h.activo?`<span style="font-size:12px;color:var(--danger)">Cerrado</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function toggleDiaHorario(dia) {
+  const activo = document.getElementById(`dia-activo-${dia}`).checked;
+  const row = document.getElementById(`horario-row-${dia}`);
+  if (row) {
+    row.style.opacity = activo ? '1' : '0.3';
+    row.style.pointerEvents = activo ? 'auto' : 'none';
+  }
+}
+
+async function guardarHorarios() {
+  const dias = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  dias.forEach(dia => {
+    CFG.horariosSemana[dia] = {
+      activo: document.getElementById(`dia-activo-${dia}`)?.checked || false,
+      inicio: document.getElementById(`dia-inicio-${dia}`)?.value || '09:00',
+      fin:    document.getElementById(`dia-fin-${dia}`)?.value    || '19:00',
+    };
+  });
+  try {
+    await edge('save_config', {
+      cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
+      whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
+      color_actual: CFG.colorActual, servicios: CFG.servicios,
+      logo: CFG.logo, banner: CFG.banner,
+      horarios_semana: CFG.horariosSemana, horas_bloqueadas: CFG.horasBloqueadas,
+    });
+    showToast('✓ Horarios guardados');
+  } catch(e) { showToast('⚠️ Error: ' + e.message); }
+}
+
+async function subirLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('⚠️ Imagen debe ser menor a 2MB'); return; }
+  const reader = new FileReader();
+  reader.onload = async e => {
+    CFG.logo = e.target.result;
+    renderLogoPreview();
+    aplicarLogoSidebar();
+    try {
+      await edge('save_config', {
+        cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
+        whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
+        color_actual: CFG.colorActual, servicios: CFG.servicios,
+        logo: CFG.logo, banner: CFG.banner,
+        horarios_semana: CFG.horariosSemana, horas_bloqueadas: CFG.horasBloqueadas,
+      });
+      showToast('✓ Logo guardado');
+    } catch(err) { showToast('⚠️ Error: ' + err.message); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function eliminarLogo() {
+  CFG.logo = '';
+  renderLogoPreview();
+  aplicarLogoSidebar();
+  try {
+    await edge('save_config', {
+      cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
+      whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
+      color_actual: CFG.colorActual, servicios: CFG.servicios,
+      logo: '', banner: CFG.banner,
+      horarios_semana: CFG.horariosSemana, horas_bloqueadas: CFG.horasBloqueadas,
+    });
+    showToast('Logo eliminado');
+  } catch(e) { showToast('⚠️ Error: ' + e.message); }
+}
+
+async function subirBanner(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) { showToast('⚠️ Imagen debe ser menor a 3MB'); return; }
+  const reader = new FileReader();
+  reader.onload = async e => {
+    CFG.banner = e.target.result;
+    renderBannerPreview();
+    try {
+      await edge('save_config', {
+        cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
+        whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
+        color_actual: CFG.colorActual, servicios: CFG.servicios,
+        logo: CFG.logo, banner: CFG.banner,
+        horarios_semana: CFG.horariosSemana, horas_bloqueadas: CFG.horasBloqueadas,
+      });
+      showToast('✓ Banner guardado');
+    } catch(err) { showToast('⚠️ Error: ' + err.message); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function eliminarBanner() {
+  CFG.banner = '';
+  renderBannerPreview();
+  try {
+    await edge('save_config', {
+      cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
+      whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
+      color_actual: CFG.colorActual, servicios: CFG.servicios,
+      logo: CFG.logo, banner: '',
+      horarios_semana: CFG.horariosSemana, horas_bloqueadas: CFG.horasBloqueadas,
+    });
+    showToast('Banner eliminado');
+  } catch(e) { showToast('⚠️ Error: ' + e.message); }
 }
 function renderListaServicios() {
   document.getElementById('lista-servicios').innerHTML=CFG.servicios.map((s,i)=>`
@@ -1709,20 +1949,22 @@ async function seleccionarColor(c){
   catch(e) { console.error('Error saving color:', e); }
 }
 async function guardarConfig(){
-  CFG.nombre   =document.getElementById('cfg-nombre').value||CFG.nombre;
-  CFG.emoji    =document.getElementById('cfg-emoji').value||CFG.emoji;
-  CFG.whatsapp =document.getElementById('cfg-wp').value||CFG.whatsapp;
-  CFG.direccion=document.getElementById('cfg-dir').value||CFG.direccion;
-  CFG.horario  =document.getElementById('cfg-horario').value||CFG.horario;
-  document.getElementById('sb-icon').textContent=CFG.emoji;
-  document.getElementById('sb-name').textContent=CFG.nombre;
+  CFG.nombre   = document.getElementById('cfg-nombre').value  || CFG.nombre;
+  CFG.emoji    = document.getElementById('cfg-emoji').value   || CFG.emoji;
+  CFG.whatsapp = document.getElementById('cfg-wp').value      || CFG.whatsapp;
+  CFG.direccion= document.getElementById('cfg-dir').value     || CFG.direccion;
+  CFG.horario  = document.getElementById('cfg-horario').value || CFG.horario;
+  document.getElementById('sb-name').textContent = CFG.nombre;
+  aplicarLogoSidebar();
   try {
     await edge('save_config', {
       cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
       whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
       color_actual: CFG.colorActual, servicios: CFG.servicios,
+      logo: CFG.logo, banner: CFG.banner,
+      horarios_semana: CFG.horariosSemana, horas_bloqueadas: CFG.horasBloqueadas,
     });
-    showToast('✓ Configuración guardada en Supabase');
+    showToast('✓ Configuración guardada');
   } catch(e) { showToast('⚠️ Error guardando config: ' + e.message); }
 }
 async function guardarServicio(){
