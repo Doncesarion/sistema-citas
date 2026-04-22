@@ -510,6 +510,15 @@
             <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="cfg-dir" placeholder="Av. Principal 123"></div>
           </div>
           <div class="form-group" style="margin-top:16px"><label class="form-label">Descripción del horario</label><input class="form-input" id="cfg-horario" placeholder="Lun–Sáb · 09:00–19:00"></div>
+          <div class="form-group" style="margin-top:16px">
+            <label class="form-label">Intervalo entre citas</label>
+            <select class="form-input" id="cfg-intervalo">
+              <option value="30">30 minutos</option>
+              <option value="45">45 minutos</option>
+              <option value="60">60 minutos (1 hora)</option>
+            </select>
+            <div style="font-size:12px;color:var(--gray-400);margin-top:4px">Define cada cuánto tiempo aparecen los bloques de hora en el sitio de reservas.</div>
+          </div>
           <button class="btn btn-primary" style="margin-top:16px;width:100%" onclick="guardarConfig()">Guardar cambios</button>
         </div>
       </div>
@@ -791,7 +800,7 @@ function enviarEmail(datos) {
 let CFG = {
   nombre:'Mi Negocio', emoji:'📋', whatsapp:'+56 9 1234 5678',
   direccion:'Av. Principal 123, Santiago', horario:'Lun–Sáb · 09:00–19:00',
-  colorActual:'#2563eb', logo:'', banner:'',
+  colorActual:'#2563eb', logo:'', banner:'', intervaloMinutos:30,
   colores:['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#db2777','#0f172a'],
   servicios:[
     {nombre:'Consulta general', emoji:'🩺', precio:25000, duracion:'45 min'},
@@ -1036,6 +1045,9 @@ async function cargarConfig() {
     document.getElementById('sb-name').textContent = CFG.nombre;
     document.getElementById('login-biz-name').textContent = CFG.nombre;
     aplicarLogoSidebar();
+
+    // Cargar intervalo
+    if (data.intervalo_minutos) CFG.intervaloMinutos = data.intervalo_minutos;
 
     // Cargar logo y banner
     if (data.logo)   CFG.logo   = data.logo;
@@ -1773,6 +1785,8 @@ function renderConfigPage() {
   renderLogoPreview();
   renderBannerPreview();
   renderHorariosPorDia();
+  const selInt = document.getElementById('cfg-intervalo');
+  if (selInt) selInt.value = String(CFG.intervaloMinutos || 30);
 }
 
 function renderLogoPreview() {
@@ -1957,12 +1971,14 @@ async function guardarConfig(){
   document.getElementById('sb-name').textContent = CFG.nombre;
   aplicarLogoSidebar();
   try {
+    CFG.intervaloMinutos = parseInt(document.getElementById('cfg-intervalo')?.value || '30');
     await edge('save_config', {
       cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
       whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
       color_actual: CFG.colorActual, servicios: CFG.servicios,
       logo: CFG.logo, banner: CFG.banner,
       horarios_semana: CFG.horariosSemana, horas_bloqueadas: CFG.horasBloqueadas,
+      intervalo_minutos: CFG.intervaloMinutos,
     });
     showToast('✓ Configuración guardada');
   } catch(e) { showToast('⚠️ Error guardando config: ' + e.message); }

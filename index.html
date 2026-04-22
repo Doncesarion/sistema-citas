@@ -271,34 +271,50 @@
 // ═══════════════════════════════════════
 // CONFIGURACIÓN — sincronizar con admin.html
 // ═══════════════════════════════════════
-const CONFIG = {
-  nombre:    'Mi Negocio',
-  emoji:     '📋',
-  whatsapp:  '56912345678',
-  direccion: 'Av. Principal 123, Santiago',
-  telefono:  '+56 9 1234 5678',
-  horario:   'Lun–Sáb · 09:00–19:00',
-  servicios: [
-    {nombre:'Consulta general', emoji:'🩺', precio:25000, duracion:'45 min'},
-    {nombre:'Revisión rápida',  emoji:'⚡', precio:15000, duracion:'20 min'},
-    {nombre:'Sesión completa',  emoji:'⭐', precio:40000, duracion:'60 min'},
-    {nombre:'Seguimiento',      emoji:'📋', precio:18000, duracion:'30 min'},
-  ],
+// ═══════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════
+const SUPA_URL  = 'https://xztqawulvrtjvtfixofy.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
+const EDGE_URL  = SUPA_URL + '/functions/v1/admin-clientes';
+const SA_TOKEN  = 'DonCesarion_SuperAdmin_2024_xK9mP3';
+
+let CLIENTE_ID = new URLSearchParams(window.location.search).get('id') || null;
+
+async function edgeIndex(action, body={}) {
+  const res = await fetch(EDGE_URL + '?action=' + action, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_ANON,
+      'Authorization': 'Bearer ' + SUPA_ANON,
+      'x-admin-token': SA_TOKEN,
+    },
+    body: JSON.stringify(body)
+  });
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error || 'Error');
+  return json.data;
+}
+
+let CONFIG = {
+  nombre:'Mi Negocio', emoji:'📋', whatsapp:'56912345678',
+  direccion:'Av. Principal 123, Santiago', horario:'Lun–Sáb · 09:00–19:00',
+  servicios:[], logo:'', banner:'',
+  horariosSemana: {
+    'lunes':       {inicio:'09:00',fin:'19:00',activo:true},
+    'martes':      {inicio:'09:00',fin:'19:00',activo:true},
+    'miércoles':   {inicio:'09:00',fin:'19:00',activo:true},
+    'jueves':      {inicio:'09:00',fin:'19:00',activo:true},
+    'viernes':     {inicio:'09:00',fin:'19:00',activo:true},
+    'sábado':     {inicio:'09:00',fin:'14:00',activo:true},
+    'domingo':     {inicio:'09:00',fin:'14:00',activo:false},
+  },
+  intervaloMinutos: 30,
 };
 
-// Especialistas — sincronizar con admin.html
-const ESPECIALISTAS = [
-  {id:1, nombre:'César Salinas',  especialidad:'Psicólogo clínico',  color:'#2563eb', foto:'', dias:['lunes','martes','miércoles','jueves','viernes'], servicios:['Consulta general','Sesión completa','Seguimiento'], citasTomadas:['2026-04-19-10:30','2026-04-19-11:00']},
-  {id:2, nombre:'Tamara Rojas',   especialidad:'Psicóloga infantil',  color:'#db2777', foto:'', dias:['lunes','miércoles','viernes'], servicios:['Consulta general','Revisión rápida','Seguimiento'], citasTomadas:['2026-04-19-09:30','2026-04-19-11:00']},
-  {id:3, nombre:'Andrea Muñoz',   especialidad:'Neuropsicóloga',      color:'#7c3aed', foto:'', dias:['martes','jueves','viernes'], servicios:['Sesión completa','Consulta general'], citasTomadas:['2026-04-19-10:00']},
-  {id:4, nombre:'Juanito Pérez',  especialidad:'Psicólogo deportivo', color:'#16a34a', foto:'', dias:['lunes','martes','miércoles','sábado'], servicios:['Revisión rápida','Seguimiento','Sesión completa'], citasTomadas:[]},
-];
-
-// EmailJS — completa con tus credenciales
+let ESPECIALISTAS = [];
 const EMAILJS = { pubkey:'', service:'', template:'', adminMail:'' };
-if(EMAILJS.pubkey) emailjs.init(EMAILJS.pubkey);
-
-const HORARIOS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','14:00','14:30','15:00','15:30','16:00','16:30','17:00'];
 const DIAS_MAP = {0:'domingo',1:'lunes',2:'martes',3:'miércoles',4:'jueves',5:'viernes',6:'sábado'};
 
 let estado = {servicio:null, especialista:null, fecha:null, hora:null};
@@ -306,12 +322,86 @@ const hoy = new Date();
 let mesActual = hoy.getMonth();
 let anioActual = hoy.getFullYear();
 
+function generarHorasDia(dia) {
+  const h = CONFIG.horariosSemana[dia];
+  if (!h || !h.activo) return [];
+  const horas = [];
+  const [hIni, mIni] = h.inicio.split(':').map(Number);
+  const [hFin, mFin] = h.fin.split(':').map(Number);
+  let cur = hIni * 60 + mIni;
+  const fin = hFin * 60 + mFin;
+  const intervalo = CONFIG.intervaloMinutos || 30;
+  while (cur < fin) {
+    const hh = String(Math.floor(cur/60)).padStart(2,'0');
+    const mm = String(cur%60).padStart(2,'0');
+    horas.push(hh+':'+mm);
+    cur += intervalo;
+  }
+  return horas;
+}
+
 // ═══════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════
-function init() {
+async function init() {
+  document.getElementById('logo-name').textContent = 'Cargando...';
+  try {
+    if (CLIENTE_ID) {
+      const cfg = await edgeIndex('get_config', { cliente_id: CLIENTE_ID });
+      if (cfg) {
+        CONFIG.nombre    = cfg.nombre    || CONFIG.nombre;
+        CONFIG.emoji     = cfg.emoji     || CONFIG.emoji;
+        CONFIG.whatsapp  = cfg.whatsapp  || CONFIG.whatsapp;
+        CONFIG.direccion = cfg.direccion || CONFIG.direccion;
+        CONFIG.horario   = cfg.horario   || CONFIG.horario;
+        CONFIG.logo      = cfg.logo      || '';
+        CONFIG.banner    = cfg.banner    || '';
+        CONFIG.intervaloMinutos = cfg.intervalo_minutos || 30;
+        if (cfg.servicios && cfg.servicios.length) CONFIG.servicios = cfg.servicios;
+        if (cfg.horarios_semana) CONFIG.horariosSemana = cfg.horarios_semana;
+        if (cfg.emailjs_pubkey) {
+          EMAILJS.pubkey    = cfg.emailjs_pubkey;
+          EMAILJS.service   = cfg.emailjs_service   || '';
+          EMAILJS.template  = cfg.emailjs_template  || '';
+          EMAILJS.adminMail = cfg.emailjs_adminmail || '';
+          emailjs.init(EMAILJS.pubkey);
+        }
+      }
+      const esps = await edgeIndex('get_especialistas', { cliente_id: CLIENTE_ID });
+      if (esps && esps.length) {
+        ESPECIALISTAS = esps.map(e => ({
+          ...e,
+          dias:      Array.isArray(e.dias)      ? e.dias      : [],
+          servicios: Array.isArray(e.servicios) ? e.servicios : [],
+          citasTomadas: [],
+        }));
+        const hasta = new Date(); hasta.setDate(hasta.getDate()+30);
+        const citas = await edgeIndex('get_citas', {
+          cliente_id: CLIENTE_ID,
+          desde: new Date().toISOString().split('T')[0],
+          hasta: hasta.toISOString().split('T')[0],
+        });
+        if (citas) {
+          citas.forEach(c => {
+            const esp = ESPECIALISTAS.find(e => e.id === c.especialista_id);
+            if (esp && c.estado !== 'canceled') esp.citasTomadas.push(c.fecha + '-' + c.hora);
+          });
+        }
+      }
+    }
+  } catch(e) { console.error('Error cargando Supabase:', e); }
+
   document.getElementById('logo-name').textContent = CONFIG.nombre;
-  document.getElementById('logo-icon').textContent = CONFIG.emoji;
+  const logoIcon = document.getElementById('logo-icon');
+  if (CONFIG.logo) {
+    logoIcon.innerHTML = '<img src="' + CONFIG.logo + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px" alt="logo">';
+  } else {
+    logoIcon.textContent = CONFIG.emoji;
+  }
+  if (CONFIG.banner) {
+    const hdr = document.querySelector('.app-header');
+    if (hdr) hdr.style.backgroundImage = 'linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url(' + CONFIG.banner + ')';
+  }
   renderServicios();
   renderInfoNegocio();
   renderCalendario();
@@ -474,14 +564,20 @@ function seleccionarFecha(fecha) {
 function renderHorarios() {
   if(!estado.fecha){document.getElementById('hours-grid').innerHTML='';return;}
   const esp=estado.especialista;
+  const diaNombre=DIAS_MAP[new Date(estado.fecha+'T12:00:00').getDay()];
   const tomados=esp?esp.citasTomadas.filter(ct=>ct.startsWith(estado.fecha+'-')).map(ct=>ct.split('-').slice(3).join(':')):[];
-  document.getElementById('hours-grid').innerHTML=HORARIOS.map(h=>{
+  const horasDia = generarHorasDia(diaNombre);
+  if(!horasDia.length){
+    document.getElementById('hours-grid').innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px">Este día está cerrado</div>';
+    return;
+  }
+  document.getElementById('hours-grid').innerHTML=horasDia.map(h=>{
     const tomado=tomados.includes(h);
     const sel=h===estado.hora;
     let cls='hour-btn';
     if(tomado)cls+=' taken';
     if(sel)   cls+=' selected';
-    return`<div class="${cls}" ${!tomado?`onclick="seleccionarHora('${h}')"`:''}>${tomado?`<s>${h}</s>`:h}</div>`;
+    return '<div class="'+cls+'" '+((!tomado)?'onclick="seleccionarHora(\''+h+'\')"':'')+'>'+( tomado?'<s>'+h+'</s>':h)+'</div>';
   }).join('');
 }
 
