@@ -693,13 +693,32 @@ async function verificarLicencia(email, password) {
 // ═══════════════════════════════════════════
 let EMAILJS_CFG = { pubkey:'', service:'', template:'', adminMail:'' };
 
-function guardarEmailJS() {
+async function guardarEmailJS() {
   EMAILJS_CFG.pubkey    = document.getElementById('ej-pubkey').value.trim();
   EMAILJS_CFG.service   = document.getElementById('ej-service').value.trim();
   EMAILJS_CFG.template  = document.getElementById('ej-template').value.trim();
   EMAILJS_CFG.adminMail = document.getElementById('ej-adminmail').value.trim();
   if (EMAILJS_CFG.pubkey) emailjs.init(EMAILJS_CFG.pubkey);
-  showToast('✓ Configuración EmailJS guardada');
+  // Guardar en Supabase junto con la config del negocio
+  try {
+    await edge('save_config', {
+      cliente_id:       clienteId,
+      nombre:           CFG.nombre,
+      emoji:            CFG.emoji,
+      whatsapp:         CFG.whatsapp,
+      direccion:        CFG.direccion,
+      horario:          CFG.horario,
+      color_actual:     CFG.colorActual,
+      servicios:        CFG.servicios,
+      emailjs_pubkey:   EMAILJS_CFG.pubkey,
+      emailjs_service:  EMAILJS_CFG.service,
+      emailjs_template: EMAILJS_CFG.template,
+      emailjs_adminmail:EMAILJS_CFG.adminMail,
+    });
+    showToast('✓ EmailJS guardado — no necesitarás ingresarlo de nuevo');
+  } catch(e) {
+    showToast('⚠️ Error guardando: ' + e.message);
+  }
 }
 
 function testEmail() {
@@ -947,6 +966,24 @@ async function cargarConfig() {
     document.getElementById('sb-name').textContent = CFG.nombre;
     document.getElementById('login-biz-name').textContent = CFG.nombre;
     document.getElementById('login-icon').textContent = CFG.emoji;
+
+    // Cargar credenciales EmailJS si existen
+    if (data.emailjs_pubkey) {
+      EMAILJS_CFG.pubkey    = data.emailjs_pubkey;
+      EMAILJS_CFG.service   = data.emailjs_service   || '';
+      EMAILJS_CFG.template  = data.emailjs_template  || '';
+      EMAILJS_CFG.adminMail = data.emailjs_adminmail || '';
+      emailjs.init(EMAILJS_CFG.pubkey);
+      // Rellenar los campos del formulario si están visibles
+      const ejPub  = document.getElementById('ej-pubkey');
+      const ejSvc  = document.getElementById('ej-service');
+      const ejTpl  = document.getElementById('ej-template');
+      const ejMail = document.getElementById('ej-adminmail');
+      if(ejPub)  ejPub.value  = EMAILJS_CFG.pubkey;
+      if(ejSvc)  ejSvc.value  = EMAILJS_CFG.service;
+      if(ejTpl)  ejTpl.value  = EMAILJS_CFG.template;
+      if(ejMail) ejMail.value = EMAILJS_CFG.adminMail;
+    }
   }
 }
 
