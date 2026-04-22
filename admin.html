@@ -654,9 +654,13 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 const EDGE_URL  = SUPA_URL + '/functions/v1/admin-clientes';
 const SA_TOKEN  = 'DonCesarion_SuperAdmin_2024_xK9mP3';
 
-async function verificarLicencia(email, password) {
+// Cliente ID de sesión actual
+let clienteId = null;
+
+// Función genérica para llamar a la Edge Function
+async function edge(action, body={}) {
   try {
-    const res = await fetch(EDGE_URL + '?action=login', {
+    const res = await fetch(EDGE_URL + '?action=' + action, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -664,13 +668,24 @@ async function verificarLicencia(email, password) {
         'Authorization': 'Bearer ' + SUPA_ANON,
         'x-admin-token': SA_TOKEN,
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify(body)
     });
     const json = await res.json();
-    if (!res.ok || json.error) return { ok: false, error: json.error || 'Error de conexión' };
-    return { ok: true, cliente: json.data?.cliente };
+    if (!res.ok || json.error) throw new Error(json.error || 'Error en Edge Function');
+    return json.data;
   } catch(e) {
-    return { ok: false, error: 'Sin conexión a internet' };
+    console.error('Edge error:', action, e.message);
+    throw e;
+  }
+}
+
+async function verificarLicencia(email, password) {
+  try {
+    const data = await edge('login', { email, password });
+    return { ok: true, cliente: data?.cliente };
+  } catch(e) {
+    const msg = e.message || '';
+    return { ok: false, error: msg };
   }
 }
 
@@ -830,6 +845,8 @@ async function doLogin() {
     // Configurar el negocio con los datos de Supabase
     CFG.nombre = cliente.nombre_negocio || CFG.nombre;
 
+    clienteId = cliente.id; // guardar ID para todas las operaciones
+
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('sb-username').textContent = sesionActual.nombre;
     document.getElementById('sb-avatar').textContent   = sesionActual.nombre[0].toUpperCase();
@@ -870,23 +887,107 @@ function doForgot() { const e=document.getElementById('forgot-email').value.trim
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
-function init() {
+async function init() {
   document.getElementById('login-biz-name').textContent = CFG.nombre;
   document.getElementById('login-icon').textContent = CFG.emoji;
-  document.getElementById('sb-icon').textContent = CFG.emoji;
-  document.getElementById('sb-name').textContent = CFG.nombre;
   const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('dash-fecha').value = hoy;
-  recalcularClientes();
-  renderDashboard();
-  renderCitas();
-  renderEspecialistas();
-  renderClientes();
-  renderConfigPage();
-  renderUsuarios();
-  setPreset(7);
-  actualizarSelectEsp();
-  renderColores();
+
+  // Mostrar loading
+  showToast('⏳ Cargando datos...');
+
+  try {
+    // 1. Cargar configuración del negocio
+    await cargarConfig();
+    // 2. Cargar especialistas
+    await cargarEspecialistas();
+    // 3. Cargar citas de hoy y últimos 30 días
+    await cargarCitas();
+    // 4. Render todo
+    recalcularClientes();
+    renderDashboard();
+    renderCitas();
+    renderEspecialistas();
+    renderClientes();
+    renderConfigPage();
+    renderUsuarios();
+    setPreset(7);
+    actualizarSelectEsp();
+    renderColores();
+    showToast('✓ Datos cargados');
+  } catch(e) {
+    showToast('⚠️ Error cargando datos: ' + e.message);
+    // Igual renderizamos con datos vacíos
+    renderDashboard();
+    renderCitas();
+    renderEspecialistas();
+    renderClientes();
+    renderConfigPage();
+    renderUsuarios();
+    setPreset(7);
+    actualizarSelectEsp();
+    renderColores();
+  }
+}
+
+// ══════════════════════════════════════════
+// CARGA DATOS DESDE SUPABASE
+// ══════════════════════════════════════════
+async function cargarConfig() {
+  const data = await edge('get_config', { cliente_id: clienteId, nombre_negocio: sesionActual?.negocio });
+  if (data) {
+    CFG.nombre       = data.nombre       || CFG.nombre;
+    CFG.emoji        = data.emoji        || CFG.emoji;
+    CFG.whatsapp     = data.whatsapp     || CFG.whatsapp;
+    CFG.direccion    = data.direccion    || CFG.direccion;
+    CFG.horario      = data.horario      || CFG.horario;
+    CFG.colorActual  = data.color_actual || CFG.colorActual;
+    if (data.servicios && data.servicios.length > 0) CFG.servicios = data.servicios;
+    document.documentElement.style.setProperty('--accent', CFG.colorActual);
+    document.getElementById('sb-icon').textContent = CFG.emoji;
+    document.getElementById('sb-name').textContent = CFG.nombre;
+    document.getElementById('login-biz-name').textContent = CFG.nombre;
+    document.getElementById('login-icon').textContent = CFG.emoji;
+  }
+}
+
+async function cargarEspecialistas() {
+  const data = await edge('get_especialistas', { cliente_id: clienteId });
+  if (data && data.length > 0) {
+    especialistas = data.map(e => ({
+      ...e,
+      dias: Array.isArray(e.dias) ? e.dias : (e.dias || []),
+      servicios: Array.isArray(e.servicios) ? e.servicios : (e.servicios || []),
+    }));
+  }
+}
+
+async function cargarCitas(desde=null, hasta=null) {
+  const hoy = new Date();
+  const hace30 = new Date(); hace30.setDate(hoy.getDate() - 30);
+  const en30   = new Date(); en30.setDate(hoy.getDate() + 30);
+  const data = await edge('get_citas', {
+    cliente_id: clienteId,
+    desde: desde || hace30.toISOString().split('T')[0],
+    hasta: hasta || en30.toISOString().split('T')[0],
+  });
+  if (data) {
+    citas = data.map(c => ({
+      id:              c.id,
+      fecha:           c.fecha,
+      hora:            c.hora,
+      nombre:          c.nombre_paciente,
+      email:           c.email_paciente,
+      tel:             c.tel_paciente,
+      servicio:        c.servicio,
+      precio:          c.precio,
+      estado:          c.estado,
+      espId:           c.especialista_id,
+      reagendamientos: c.reagendamientos || 0,
+      nota:            c.nota || '',
+      _dbId:           c.id, // UUID de Supabase
+    }));
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -1106,34 +1207,40 @@ function filtrarCitas(f) {
 }
 function buscarCita(q){renderCitas(filtroActual,q);}
 
-function cambiarEstado(id,estado) {
+async function cambiarEstado(id,estado) {
   const c=citas.find(x=>x.id===id);
   if(!c)return;
-  c.estado=estado;
-  const esp=especialistas.find(e=>e.id===c.espId);
-  renderCitas(); renderDashboard();
-  const tipo=estado==='done'?'cita_completada':estado==='canceled'?'cita_cancelada':'cita_reagendada';
-  enviarEmail({tipo,cliente:c.nombre,servicio:c.servicio,fecha:ffc(c.fecha),hora:c.hora,especialista:esp?esp.nombre:'—'});
-  showToast(estado==='done'?'✓ Cita completada':'✕ Cita cancelada');
+  try {
+    await edge('update_estado_cita', { id: c._dbId||c.id, cliente_id: clienteId, estado });
+    c.estado=estado;
+    const esp=especialistas.find(e=>e.id===c.espId);
+    renderCitas(); renderDashboard();
+    const tipo=estado==='done'?'cita_completada':'cita_cancelada';
+    enviarEmail({tipo,cliente:c.nombre,servicio:c.servicio,fecha:ffc(c.fecha),hora:c.hora,especialista:esp?esp.nombre:'—'});
+    showToast(estado==='done'?'✓ Cita completada':'✕ Cita cancelada');
+  } catch(e) { showToast('⚠️ Error: ' + e.message); }
 }
 
-function reagendar(id) {
+async function reagendar(id) {
   const c=citas.find(x=>x.id===id);
   if(!c)return;
-  if(!confirm(`¿Reagendar la cita de ${c.nombre}? Se sumará 1 al contador de reagendamientos.`))return;
-  c.reagendamientos=(c.reagendamientos||0)+1;
-  const esp=especialistas.find(e=>e.id===c.espId);
-  recalcularClientes();
-  renderCitas(); renderClientes();
-  enviarEmail({tipo:'reagendamiento',cliente:c.nombre,servicio:c.servicio,fecha:ffc(c.fecha),hora:c.hora,especialista:esp?esp.nombre:'—'});
-  showToast(`↩ Reagendamiento registrado (${c.reagendamientos}x total)`);
+  if(!confirm(`¿Reagendar la cita de ${c.nombre}? Se sumará 1 al contador.`))return;
+  const nuevos=(c.reagendamientos||0)+1;
+  try {
+    await edge('reagendar_cita', { id: c._dbId||c.id, cliente_id: clienteId, reagendamientos: nuevos });
+    c.reagendamientos=nuevos;
+    const esp=especialistas.find(e=>e.id===c.espId);
+    recalcularClientes(); renderCitas(); renderClientes();
+    enviarEmail({tipo:'reagendamiento',cliente:c.nombre,servicio:c.servicio,fecha:ffc(c.fecha),hora:c.hora,especialista:esp?esp.nombre:'—'});
+    showToast(`↩ Reagendamiento registrado (${nuevos}x total)`);
+  } catch(e) { showToast('⚠️ Error: ' + e.message); }
 }
 
-function agregarCita() {
+async function agregarCita() {
   const nombre  =document.getElementById('m-nombre').value.trim();
   const tel     =document.getElementById('m-tel').value.trim();
   const email   =document.getElementById('m-email').value.trim();
-  const espId   =parseInt(document.getElementById('m-esp').value);
+  const espId   =document.getElementById('m-esp').value;
   const sel     =document.getElementById('m-servicio');
   const servicio=sel.options[sel.selectedIndex]?.text||'Servicio';
   const precio  =parseInt(sel.value)||0;
@@ -1141,15 +1248,25 @@ function agregarCita() {
   if(!nombre){alert('Ingresa el nombre del cliente');return;}
   const hoy=new Date().toISOString().split('T')[0];
   const esp=especialistas.find(e=>e.id===espId);
-  citas.push({id:Date.now(),fecha:hoy,hora,nombre,email,tel:tel||'Sin teléfono',servicio,precio,estado:'pending',espId,reagendamientos:0});
-  cerrarModal('modal-cita');
-  recalcularClientes();
-  renderCitas(); renderDashboard(); renderClientes();
-  enviarEmail({tipo:'nueva_cita',cliente:nombre,servicio,fecha:ffc(hoy),hora,especialista:esp?esp.nombre:'—'});
-  document.getElementById('m-nombre').value='';
-  document.getElementById('m-tel').value='';
-  document.getElementById('m-email').value='';
-  showToast('✓ Cita agregada y notificación enviada');
+  try {
+    const nueva = await edge('create_cita', {
+      cliente_id: clienteId, especialista_id: espId,
+      fecha: hoy, hora, nombre_paciente: nombre,
+      email_paciente: email, tel_paciente: tel||'Sin teléfono',
+      servicio, precio,
+    });
+    // Agregar a memoria local
+    citas.push({
+      id: nueva.id, _dbId: nueva.id, fecha: hoy, hora, nombre, email,
+      tel: tel||'Sin teléfono', servicio, precio, estado:'pending', espId, reagendamientos:0, nota:'',
+    });
+    cerrarModal('modal-cita');
+    recalcularClientes();
+    renderCitas(); renderDashboard(); renderClientes();
+    enviarEmail({tipo:'nueva_cita',cliente:nombre,servicio,fecha:ffc(hoy),hora,especialista:esp?esp.nombre:'—'});
+    ['m-nombre','m-tel','m-email'].forEach(id=>document.getElementById(id).value='');
+    showToast('✓ Cita guardada en Supabase');
+  } catch(e) { showToast('⚠️ Error guardando cita: ' + e.message); }
 }
 
 // ═══════════════════════════════════════════
@@ -1231,12 +1348,15 @@ function verFichaEsp(id) {
         </div>`;}).join('')}
     </div>`;
 
-  document.getElementById('btn-eliminar-esp').onclick=()=>{
+  document.getElementById('btn-eliminar-esp').onclick=async()=>{
     if(!confirm(`¿Eliminar a ${e.nombre}? Sus citas quedarán sin especialista asignado.`))return;
-    especialistas=especialistas.filter(x=>x.id!==id);
-    cerrarModal('modal-ficha-esp');
-    renderEspecialistas(); actualizarSelectEsp();
-    showToast('Especialista eliminado');
+    try {
+      await edge('delete_especialista', { id: e.id, cliente_id: clienteId });
+      especialistas=especialistas.filter(x=>x.id!==id);
+      cerrarModal('modal-ficha-esp');
+      renderEspecialistas(); actualizarSelectEsp();
+      showToast('Especialista eliminado');
+    } catch(err) { showToast('⚠️ Error: ' + err.message); }
   };
   abrirModal('modal-ficha-esp');
 }
@@ -1246,13 +1366,16 @@ function subirFotoEsp(id, input) {
   if (!file) return;
   if (file.size > 3 * 1024 * 1024) { showToast('⚠️ La imagen debe ser menor a 3MB'); return; }
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async ev => {
     const esp = especialistas.find(x => x.id === id);
     if (esp) {
-      esp.foto = e.target.result;
-      verFichaEsp(id);       // refrescar modal con nueva foto
-      renderEspecialistas(); // refrescar grilla
-      showToast('✓ Foto actualizada');
+      try {
+        await edge('update_foto_especialista', { id: esp.id, cliente_id: clienteId, foto: ev.target.result });
+        esp.foto = ev.target.result;
+        verFichaEsp(id);
+        renderEspecialistas();
+        showToast('✓ Foto guardada en Supabase');
+      } catch(e) { showToast('⚠️ Error guardando foto: ' + e.message); }
     }
   };
   reader.readAsDataURL(file);
@@ -1276,7 +1399,7 @@ function toggleServicio(sv,el) {
   else{serviciosSeleccionados.push(sv);el.style.background='var(--accent-light)';el.style.borderColor='var(--accent)';el.style.color='var(--accent)';}
 }
 
-function guardarEspecialista() {
+async function guardarEspecialista() {
   const nombre=document.getElementById('e-nombre').value.trim();
   const esp   =document.getElementById('e-esp').value.trim();
   const email =document.getElementById('e-email').value.trim();
@@ -1285,11 +1408,17 @@ function guardarEspecialista() {
   if(!diasSeleccionados.length){alert('Selecciona al menos un día');return;}
   if(!serviciosSeleccionados.length){alert('Selecciona al menos un servicio');return;}
   const color=AVATAR_COLORS[especialistas.length%AVATAR_COLORS.length];
-  especialistas.push({id:Date.now(),nombre,especialidad:esp,email,tel,color,dias:diasSeleccionados,servicios:serviciosSeleccionados});
-  cerrarModal('modal-esp');
-  ['e-nombre','e-esp','e-email','e-tel'].forEach(id=>{document.getElementById(id).value='';});
-  renderEspecialistas(); actualizarSelectEsp();
-  showToast('✓ Especialista agregado');
+  try {
+    const nuevo = await edge('create_especialista', {
+      cliente_id: clienteId, nombre, especialidad: esp, email, tel, color,
+      dias: diasSeleccionados, servicios: serviciosSeleccionados,
+    });
+    especialistas.push({...nuevo, dias: diasSeleccionados, servicios: serviciosSeleccionados});
+    cerrarModal('modal-esp');
+    ['e-nombre','e-esp','e-email','e-tel'].forEach(id=>{document.getElementById(id).value='';});
+    renderEspecialistas(); actualizarSelectEsp();
+    showToast('✓ Especialista guardado en Supabase');
+  } catch(e) { showToast('⚠️ Error: ' + e.message); }
 }
 
 // ═══════════════════════════════════════════
@@ -1411,12 +1540,15 @@ function editarNota(citaId) {
   setTimeout(()=>document.getElementById('nota-edit-area')?.focus(),100);
 }
 
-function guardarNota(citaId, texto) {
+async function guardarNota(citaId, texto) {
   const c = citas.find(x=>x.id===citaId);
-  if(c){ c.nota = texto.trim(); }
-  // Refrescar historial si está abierto
-  if(clienteHistorialActual) verHistorial(clienteHistorialActual);
-  showToast('✓ Nota guardada');
+  if(!c) return;
+  try {
+    await edge('save_nota', { id: c._dbId||c.id, cliente_id: clienteId, nota: texto.trim() });
+    c.nota = texto.trim();
+    if(clienteHistorialActual) verHistorial(clienteHistorialActual);
+    showToast('✓ Nota guardada en Supabase');
+  } catch(e) { showToast('⚠️ Error guardando nota: ' + e.message); }
 }
 
 // ═══════════════════════════════════════════
@@ -1533,18 +1665,31 @@ function renderColores() {
   document.getElementById('color-opts').innerHTML=CFG.colores.map(c=>`
     <div class="color-opt ${c===CFG.colorActual?'selected':''}" style="background:${c}" onclick="seleccionarColor('${c}')"></div>`).join('');
 }
-function seleccionarColor(c){CFG.colorActual=c;document.documentElement.style.setProperty('--accent',c);renderColores();}
-function guardarConfig(){
-  CFG.nombre=document.getElementById('cfg-nombre').value||CFG.nombre;
-  CFG.emoji=document.getElementById('cfg-emoji').value||CFG.emoji;
-  CFG.whatsapp=document.getElementById('cfg-wp').value||CFG.whatsapp;
+async function seleccionarColor(c){
+  CFG.colorActual=c;
+  document.documentElement.style.setProperty('--accent',c);
+  renderColores();
+  try { await edge('save_config', { cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji, whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario, color_actual: c, servicios: CFG.servicios }); }
+  catch(e) { console.error('Error saving color:', e); }
+}
+async function guardarConfig(){
+  CFG.nombre   =document.getElementById('cfg-nombre').value||CFG.nombre;
+  CFG.emoji    =document.getElementById('cfg-emoji').value||CFG.emoji;
+  CFG.whatsapp =document.getElementById('cfg-wp').value||CFG.whatsapp;
   CFG.direccion=document.getElementById('cfg-dir').value||CFG.direccion;
-  CFG.horario=document.getElementById('cfg-horario').value||CFG.horario;
+  CFG.horario  =document.getElementById('cfg-horario').value||CFG.horario;
   document.getElementById('sb-icon').textContent=CFG.emoji;
   document.getElementById('sb-name').textContent=CFG.nombre;
-  showToast('✓ Configuración guardada');
+  try {
+    await edge('save_config', {
+      cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji,
+      whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario,
+      color_actual: CFG.colorActual, servicios: CFG.servicios,
+    });
+    showToast('✓ Configuración guardada en Supabase');
+  } catch(e) { showToast('⚠️ Error guardando config: ' + e.message); }
 }
-function guardarServicio(){
+async function guardarServicio(){
   const nombre=document.getElementById('ms-nombre').value.trim();
   const emoji=document.getElementById('ms-emoji').value.trim()||'📋';
   const precio=parseInt(document.getElementById('ms-precio').value)||0;
@@ -1553,9 +1698,18 @@ function guardarServicio(){
   CFG.servicios.push({nombre,emoji,precio,duracion:dur});
   cerrarModal('modal-servicio'); renderListaServicios();
   ['ms-nombre','ms-emoji','ms-precio','ms-dur'].forEach(id=>document.getElementById(id).value='');
-  showToast('✓ Servicio agregado');
+  try {
+    await edge('save_config', { cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji, whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario, color_actual: CFG.colorActual, servicios: CFG.servicios });
+    showToast('✓ Servicio guardado en Supabase');
+  } catch(e) { showToast('⚠️ Error: ' + e.message); }
 }
-function eliminarServicio(i){if(!confirm('¿Eliminar?'))return;CFG.servicios.splice(i,1);renderListaServicios();showToast('Servicio eliminado');}
+async function eliminarServicio(i){
+  if(!confirm('¿Eliminar este servicio?'))return;
+  CFG.servicios.splice(i,1);
+  renderListaServicios();
+  try { await edge('save_config', { cliente_id: clienteId, nombre: CFG.nombre, emoji: CFG.emoji, whatsapp: CFG.whatsapp, direccion: CFG.direccion, horario: CFG.horario, color_actual: CFG.colorActual, servicios: CFG.servicios }); showToast('Servicio eliminado'); }
+  catch(e) { showToast('⚠️ Error: ' + e.message); }
+}
 
 // ═══════════════════════════════════════════
 // MODALES
