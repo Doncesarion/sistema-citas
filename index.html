@@ -444,6 +444,55 @@
       text-align: center; padding: 20px;
       color: var(--gray-400); font-size: 13px;
     }
+
+    /* ── ESPECIALISTAS ── */
+    .esp-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+
+    .esp-card {
+      border:1.5px solid var(--gray-200);
+      border-radius:var(--radius);
+      padding:20px 16px; cursor:pointer;
+      transition:all 0.2s; text-align:center;
+      position:relative; background:var(--white);
+      box-shadow:var(--shadow);
+    }
+    .esp-card:hover  { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 16px rgba(79,70,229,0.12); }
+    .esp-card.selected { border-color:var(--accent); background:var(--accent-light); }
+
+    .esp-check {
+      position:absolute; top:10px; right:10px;
+      width:22px; height:22px; border-radius:50%;
+      background:var(--accent); color:white;
+      display:none; align-items:center; justify-content:center;
+      font-size:12px; font-weight:700;
+    }
+    .esp-card.selected .esp-check { display:flex; }
+
+    .esp-foto-placeholder {
+      width:68px; height:68px; border-radius:50%;
+      background:linear-gradient(135deg, var(--purple), var(--accent));
+      margin:0 auto 12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:24px; font-weight:700; color:white;
+      box-shadow:0 4px 12px rgba(79,70,229,0.25);
+    }
+    .esp-foto-img {
+      width:68px; height:68px; border-radius:50%;
+      object-fit:cover; margin:0 auto 12px; display:block;
+      border:2.5px solid var(--accent-border);
+    }
+    .esp-nombre      { font-size:14px; font-weight:700; color:var(--black); margin-bottom:2px; }
+    .esp-especialidad{ font-size:12px; color:var(--accent); font-weight:600; margin-bottom:6px; }
+    .esp-descripcion { font-size:11px; color:var(--gray-500); line-height:1.5; margin-bottom:10px; }
+    .esp-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      font-size:11px; font-weight:600;
+      padding:4px 12px; border-radius:100px; margin-bottom:6px;
+    }
+    .esp-libre   { background:var(--success-light); color:var(--success); border:1px solid var(--success-border); }
+    .esp-ocupado { background:var(--danger-light);  color:var(--danger);  border:1px solid var(--danger-border); }
+    .esp-dias    { font-size:10px; color:var(--gray-400); margin-top:4px; }
+
   </style>
 </head>
 <body>
@@ -501,7 +550,7 @@
       <div class="step-sub">Selecciona tu especialista de preferencia</div>
     </div>
     <div id="servicio-tag-esp" style="margin-bottom:14px"></div>
-    <div id="esp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+    <div id="esp-grid" class="esp-grid"></div>
     <div class="nav-btns" style="margin-top:16px">
       <button class="btn-back" onclick="irPaso(0)">Volver</button>
       <button class="btn-next" onclick="irPaso(2)">Continuar</button>
@@ -936,19 +985,25 @@ function renderEspecialistas() {
     var diaN = DIAS[hoy.getDay()];
     var horH = e.horarios[diaN];
     var disponible = horH && horH.activo;
-    var diasA = Object.keys(e.horarios).filter(function(d){ return e.horarios[d].activo; }).map(function(d){ return d.charAt(0).toUpperCase()+d.charAt(1); }).join(', ');
+    var diasA = Object.keys(e.horarios)
+      .filter(function(d){ return e.horarios[d].activo; })
+      .map(function(d){ return d.charAt(0).toUpperCase()+d.charAt(1); })
+      .join(', ');
+
     var div = document.createElement('div');
     div.className = 'esp-card';
     div.id = 'esp-'+e.id;
     div.setAttribute('data-espid', e.id);
     div.innerHTML =
-      '<div class="esp-check">&#10003;</div>'+
-      '<div class="esp-foto-placeholder">'+e.nombre[0]+'</div>'+
-      '<div class="esp-nombre">'+e.nombre+'</div>'+
-      '<div class="esp-esp">'+e.especialidad+'</div>'+
-      '<div class="esp-desc">'+e.descripcion+'</div>'+
-      '<div class="esp-badge '+(disponible?'esp-libre':'esp-ocupado')+'">'+(disponible?'Disponible hoy':'No atiende hoy')+'</div>'+
-      '<div style="font-size:10px;color:var(--gray-400);margin-top:4px">Dias: '+diasA+'</div>';
+      '<div class="esp-check">&#10003;</div>' +
+      '<div class="esp-foto-placeholder">' + e.nombre[0] + '</div>' +
+      '<div class="esp-nombre">' + e.nombre + '</div>' +
+      '<div class="esp-especialidad">' + e.especialidad + '</div>' +
+      '<div class="esp-descripcion">' + e.descripcion + '</div>' +
+      '<div class="esp-badge ' + (disponible ? 'esp-libre' : 'esp-ocupado') + '">' +
+        (disponible ? '&#9679; Disponible hoy' : '&#9679; No atiende hoy') +
+      '</div>' +
+      '<div class="esp-dias">&#128197; ' + diasA + '</div>';
     div.onclick = function() { seleccionarEspecialista(this.getAttribute('data-espid')); };
     grid.appendChild(div);
   }
@@ -974,30 +1029,45 @@ function renderCalendario() {
 
   document.getElementById('cal-month').textContent = meses[mesActual]+' '+anioActual;
 
-  let html = dias.map(d => '<div class="cal-day-name">'+d+'</div>').join('');
-  html += Array(ajuste).fill('<div class="cal-day empty"></div>').join('');
+  var calContainer = document.getElementById('cal-grid');
+  var headerHtml = dias.map(function(d){ return '<div class="cal-day-name">'+d+'</div>'; }).join('');
+  var emptyHtml = '';
+  for (var ei=0; ei<ajuste; ei++) emptyHtml += '<div class="cal-day empty"></div>';
+  var html = headerHtml + emptyHtml;
 
-  for (let dia = 1; dia <= totalDias; dia++) {
-    const fecha    = anioActual+'-'+String(mesActual+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
-    const fechaObj = new Date(anioActual, mesActual, dia);
-    const diaNombre = DIAS_MAP[fechaObj.getDay()];
-    const horarioDia = CFG.horarios[diaNombre];
-    const esCerrado  = !horarioDia?.activo;
-    const esPasado   = fechaObj < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-    const esHoy      = dia === hoy.getDate() && mesActual === hoy.getMonth() && anioActual === hoy.getFullYear();
-    const esSel      = fecha === estado.fecha;
+  var calGrid = document.getElementById('cal-grid');
+  calGrid.innerHTML = html; // headers already in html
 
-    let cls = 'cal-day';
-    if (esCerrado)               cls += ' closed';
-    else if (esPasado && !esHoy) cls += ' disabled';
-    else if (esSel)              cls += ' selected';
-    else if (esHoy)              cls += ' today';
+  for (var dia = 1; dia <= totalDias; dia++) {
+    var fecha    = anioActual+'-'+String(mesActual+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+    var fechaObj = new Date(anioActual, mesActual, dia);
+    var diaNombre2 = DIAS_MAP[fechaObj.getDay()];
+    var horarioBase = (estado.especialista && estado.especialista.horarios)
+      ? estado.especialista.horarios
+      : CFG.horarios;
+    var horarioDia2 = horarioBase[diaNombre2];
+    var esCerrado  = !horarioDia2 || !horarioDia2.activo;
+    var esPasado   = fechaObj < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    var esHoy2     = dia === hoy.getDate() && mesActual === hoy.getMonth() && anioActual === hoy.getFullYear();
+    var esSel      = fecha === estado.fecha;
 
-    const clickable = !esCerrado && (!esPasado || esHoy);
-    html += '<div class="'+cls+'" '+(clickable?'onclick="seleccionarFecha(\''+fecha+'\')"':'')+'>'+dia+'</div>';
+    var cls = 'cal-day';
+    if (esCerrado)                cls += ' closed';
+    else if (esPasado && !esHoy2) cls += ' disabled';
+    else if (esSel)               cls += ' selected';
+    else if (esHoy2)              cls += ' today';
+
+    var clickable = !esCerrado && (!esPasado || esHoy2);
+    var cell = document.createElement('div');
+    cell.className = cls;
+    cell.textContent = dia;
+    if (clickable) {
+      (function(f) {
+        cell.onclick = function() { seleccionarFecha(f); };
+      })(fecha);
+    }
+    calGrid.appendChild(cell);
   }
-
-  document.getElementById('cal-grid').innerHTML = html;
 }
 
 function cambiarMes(dir) {
@@ -1019,20 +1089,23 @@ function seleccionarFecha(fecha) {
 // HORARIOS — generados desde config del admin
 // ═══════════════════════════════════════════════════
 function renderHorarios(fecha) {
-  const fechaObj   = new Date(fecha + 'T12:00:00');
-  const diaNombre  = DIAS_MAP[fechaObj.getDay()];
-  const horarioDia = CFG.horarios[diaNombre];
+  var fechaObj   = new Date(fecha + 'T12:00:00');
+  var diaNombre  = DIAS_MAP[fechaObj.getDay()];
 
   document.getElementById('hours-label').textContent =
     'Horarios para el '+formatFecha(fecha);
 
-  if (estado.especialista && estado.especialista.horarios) {
-    var horEsp = estado.especialista.horarios[diaNombre];
-    if (!horEsp || !horEsp.activo) { document.getElementById('hours-grid').innerHTML = '<div class="no-hours-msg" style="grid-column:span 4">'+estado.especialista.nombre.split(' ')[0]+' no atiende este dia</div>'; return; }
-    horarioDia = horEsp;
+  // Usar horarios del especialista si está seleccionado, sino usar CFG
+  var horarioDia = null;
+  if (estado.especialista && estado.especialista.horarios && estado.especialista.horarios[diaNombre]) {
+    horarioDia = estado.especialista.horarios[diaNombre];
+  } else if (CFG.horarios && CFG.horarios[diaNombre]) {
+    horarioDia = CFG.horarios[diaNombre];
   }
   if (!horarioDia || !horarioDia.activo) {
-    document.getElementById('hours-grid').innerHTML = '<div class="no-hours-msg" style="grid-column:span 4">Dia no disponible</div>';
+    var nombre_esp = estado.especialista ? estado.especialista.nombre.split(' ')[0] : 'El profesional';
+    document.getElementById('hours-grid').innerHTML =
+      '<div class="no-hours-msg" style="grid-column:span 4">' + nombre_esp + ' no atiende este dia</div>';
     return;
   }
 
@@ -1045,33 +1118,52 @@ function renderHorarios(fecha) {
   const rangos = horarioDia.rangos
     || [{ inicio: horarioDia.inicio || '09:00', fin: horarioDia.fin || '19:00' }];
 
-  let slots = [];
-  rangos.forEach(r => {
+  var slots = [];
+  rangos.forEach(function(r) {
     slots = slots.concat(generarSlots(r.inicio, r.fin, intervalo));
   });
 
   // Eliminar duplicados y ordenar
-  slots = [...new Set(slots)].sort();
+  slots = slots.filter(function(v,i,a){ return a.indexOf(v)===i; }).sort();
+
+  // Filtrar horas pasadas si la fecha es hoy
+  var ahoraD = new Date();
+  var ahoraFecha = ahoraD.getFullYear()+'-'+
+    String(ahoraD.getMonth()+1).padStart(2,'0')+'-'+
+    String(ahoraD.getDate()).padStart(2,'0');
+  if (fecha === ahoraFecha) {
+    var minutosAhora = ahoraD.getHours() * 60 + ahoraD.getMinutes();
+    slots = slots.filter(function(s) {
+      var p = s.split(':');
+      return (parseInt(p[0]) * 60 + parseInt(p[1])) > minutosAhora + 30;
+    });
+  }
 
   if (!slots.length) {
     document.getElementById('hours-grid').innerHTML =
-      '<div class="no-hours-msg" style="grid-column:span 4">Sin horarios disponibles</div>';
+      '<div class="no-hours-msg" style="grid-column:span 4">Sin horarios disponibles para este dia</div>';
     return;
   }
 
-  // Calcular slots bloqueados (manuales + automáticos por citas)
-  const bloqueados = calcularSlotsBloqueados(intervalo, fecha);
+  var bloqueados = calcularSlotsBloqueados(intervalo, fecha);
 
-  document.getElementById('hours-grid').innerHTML = slots.map(h => {
-    const tomado   = bloqueados.has(h);
-    const selected = h === estado.hora;
-    let cls = 'hour-btn';
-    if (tomado)   cls += ' taken';
-    if (selected) cls += ' selected';
-    return '<div class="'+cls+'" '+(!tomado?'onclick="seleccionarHora(\''+h+'\')"':'')+'>'+( tomado?'<s>'+h+'</s>':h)+'</div>';
-  }).join('');
+  var grid = document.getElementById('hours-grid');
+  grid.innerHTML = '';
+  for (var si = 0; si < slots.length; si++) {
+    var h = slots[si];
+    var tomado   = bloqueados.has(h);
+    var selected = h === estado.hora;
+    var div = document.createElement('div');
+    div.className = 'hour-btn' + (tomado ? ' taken' : '') + (selected ? ' selected' : '');
+    div.innerHTML = tomado ? '<s>' + h + '</s>' : h;
+    if (!tomado) {
+      (function(hora) {
+        div.onclick = function() { seleccionarHora(hora); };
+      })(h);
+    }
+    grid.appendChild(div);
+  }
 }
-
 function seleccionarHora(h) {
   estado.hora = h;
   if (estado.fecha) renderHorarios(estado.fecha);
@@ -1085,13 +1177,14 @@ function renderResumenFinal() {
   const telefono = document.getElementById('telefono').value;
   const email    = document.getElementById('email').value;
 
-  const items = [
-    ['Servicio',  estado.servicio.nombre],
-    ['Duración',  estado.servicio.duracion],
-    ['Fecha',     formatFecha(estado.fecha)],
-    ['Hora',      estado.hora + ' hrs'],
-    ['Cliente',   nombre],
-    ['Teléfono',  telefono],
+  var items = [
+    ['Servicio',     estado.servicio.nombre],
+    ['Especialista', estado.especialista ? estado.especialista.nombre : '-'],
+    ['Duracion',     estado.servicio.duracion],
+    ['Fecha',        formatFecha(estado.fecha)],
+    ['Hora',         estado.hora + ' hrs'],
+    ['Cliente',      nombre],
+    ['Telefono',     telefono],
   ];
   if (email) items.push(['Email', email]);
 
