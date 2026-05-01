@@ -930,24 +930,28 @@ function renderEspecialistas() {
   var lista = (CFG.especialistas && CFG.especialistas.length > 0) ? CFG.especialistas : ESPECIALISTAS_DEFAULT;
   var hoy = new Date();
   var DIAS = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  var html = '';
+  grid.innerHTML = '';
   for (var i = 0; i < lista.length; i++) {
     var e = lista[i];
     var diaN = DIAS[hoy.getDay()];
     var horH = e.horarios[diaN];
     var disponible = horH && horH.activo;
     var diasA = Object.keys(e.horarios).filter(function(d){ return e.horarios[d].activo; }).map(function(d){ return d.charAt(0).toUpperCase()+d.charAt(1); }).join(', ');
-    html += '<div class="esp-card" id="esp-'+e.id+'" onclick="seleccionarEspecialista(''+e.id+'')">'+
+    var div = document.createElement('div');
+    div.className = 'esp-card';
+    div.id = 'esp-'+e.id;
+    div.setAttribute('data-espid', e.id);
+    div.innerHTML =
       '<div class="esp-check">&#10003;</div>'+
       '<div class="esp-foto-placeholder">'+e.nombre[0]+'</div>'+
       '<div class="esp-nombre">'+e.nombre+'</div>'+
       '<div class="esp-esp">'+e.especialidad+'</div>'+
       '<div class="esp-desc">'+e.descripcion+'</div>'+
       '<div class="esp-badge '+(disponible?'esp-libre':'esp-ocupado')+'">'+(disponible?'Disponible hoy':'No atiende hoy')+'</div>'+
-      '<div style="font-size:10px;color:var(--gray-400);margin-top:4px">Dias: '+diasA+'</div>'+
-    '</div>';
+      '<div style="font-size:10px;color:var(--gray-400);margin-top:4px">Dias: '+diasA+'</div>';
+    div.onclick = function() { seleccionarEspecialista(this.getAttribute('data-espid')); };
+    grid.appendChild(div);
   }
-  grid.innerHTML = html;
 }
 
 function seleccionarEspecialista(id) {
