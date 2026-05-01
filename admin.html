@@ -1597,7 +1597,7 @@ function setEspEspecialidad(valor) {
   var sel    = document.getElementById('esp-especialidad-sel');
   var custom = document.getElementById('esp-especialidad-custom');
   var hidden = document.getElementById('esp-especialidad');
-  if (!sel) return;
+  if (!sel || !valor) return;
 
   // Try to find in existing options
   var found = false;
@@ -1608,11 +1608,13 @@ function setEspEspecialidad(valor) {
     }
   }
 
-  if (!found && valor) {
-    // Add as custom option
+  if (!found) {
+    // Add as custom option before "otro"
     var opt = document.createElement('option');
     opt.value = valor; opt.textContent = valor;
-    sel.insertBefore(opt, sel.querySelector('option[value="otro"]'));
+    var otroOpt = sel.querySelector('option[value="otro"]');
+    if (otroOpt) sel.insertBefore(opt, otroOpt);
+    else sel.appendChild(opt);
     sel.value = valor;
   }
 
@@ -1626,11 +1628,13 @@ function editarEspecialista(idx) {
   document.getElementById('esp-modal-title').textContent = 'Editar especialista';
   document.getElementById('esp-edit-idx').value = idx;
   document.getElementById('esp-nombre').value      = e.nombre;
-  setEspEspecialidad(e.especialidad || '');
   document.getElementById('esp-email').value       = e.email||'';
   document.getElementById('esp-descripcion').value = e.descripcion;
+  // Open modal FIRST so DOM elements exist
   abrirModal('modal-especialista');
   abrirModalEspecialista();
+  // Now set especialidad (select exists in DOM)
+  setEspEspecialidad(e.especialidad || '');
   // Load horarios
   DIAS_SEMANA.forEach(function(dia) {
     var h = e.horarios[dia];
