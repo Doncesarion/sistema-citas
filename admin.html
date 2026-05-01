@@ -1011,8 +1011,56 @@
         <input class="form-input" id="esp-nombre" placeholder="Dr. Juan Perez">
       </div>
       <div class="form-group">
-        <label class="form-label">Especialidad</label>
-        <input class="form-input" id="esp-especialidad" placeholder="Medico general">
+        <label class="form-label">Especialidad / Categoría</label>
+        <select class="form-select" id="esp-especialidad-sel" onchange="onEspCatChange()">
+          <option value="">Selecciona una categoría...</option>
+          <optgroup label="Medicina">
+            <option>Médico general</option>
+            <option>Médico internista</option>
+            <option>Pediatra</option>
+            <option>Ginecólogo</option>
+            <option>Cardiólogo</option>
+            <option>Traumatólogo</option>
+            <option>Dermatólogo</option>
+            <option>Oftalmólogo</option>
+            <option>Otorrinolaringólogo</option>
+            <option>Urólogo</option>
+            <option>Neurólogo</option>
+          </optgroup>
+          <optgroup label="Salud mental">
+            <option>Psicólogo</option>
+            <option>Psiquiatra</option>
+            <option>Terapeuta</option>
+          </optgroup>
+          <optgroup label="Nutrición y bienestar">
+            <option>Nutricionista</option>
+            <option>Kinesiólogo</option>
+            <option>Fonoaudiólogo</option>
+            <option>Terapeuta ocupacional</option>
+          </optgroup>
+          <optgroup label="Odontología">
+            <option>Odontólogo</option>
+            <option>Ortodoncista</option>
+            <option>Endodoncista</option>
+          </optgroup>
+          <optgroup label="Estética y bienestar">
+            <option>Barbero</option>
+            <option>Estilista</option>
+            <option>Manicurista</option>
+            <option>Esteticista</option>
+            <option>Masajista</option>
+          </optgroup>
+          <optgroup label="Otros servicios">
+            <option>Entrenador personal</option>
+            <option>Coach</option>
+            <option>Tutor</option>
+            <option value="otro">✏️ Otra categoría...</option>
+          </optgroup>
+        </select>
+        <input class="form-input" id="esp-especialidad-custom" placeholder="Escribe la categoría..."
+          style="display:none;margin-top:8px"
+          oninput="document.getElementById('esp-especialidad').value=this.value">
+        <input type="hidden" id="esp-especialidad">
       </div>
       <div class="form-group">
         <label class="form-label">Email</label>
@@ -1513,13 +1561,72 @@ function toggleDiaEsp(dia) {
   if (rangos) rangos.style.display = ck && ck.checked ? 'block' : 'none';
 }
 
+function onEspCatChange() {
+  var sel    = document.getElementById('esp-especialidad-sel');
+  var custom = document.getElementById('esp-especialidad-custom');
+  var hidden = document.getElementById('esp-especialidad');
+  if (!sel || !custom || !hidden) return;
+
+  if (sel.value === 'otro') {
+    custom.style.display = 'block';
+    custom.focus();
+    hidden.value = custom.value;
+  } else {
+    custom.style.display = 'none';
+    hidden.value = sel.value;
+  }
+}
+
+function getEspEspecialidad() {
+  var sel    = document.getElementById('esp-especialidad-sel');
+  var custom = document.getElementById('esp-especialidad-custom');
+  if (sel && sel.value === 'otro') {
+    var val = custom ? custom.value.trim() : '';
+    // Save custom category for future use
+    if (val && !Array.from(sel.options).find(o => o.value === val)) {
+      var opt = document.createElement('option');
+      opt.value = val; opt.textContent = val;
+      sel.insertBefore(opt, sel.querySelector('option[value="otro"]'));
+    }
+    return val;
+  }
+  return sel ? sel.value : '';
+}
+
+function setEspEspecialidad(valor) {
+  var sel    = document.getElementById('esp-especialidad-sel');
+  var custom = document.getElementById('esp-especialidad-custom');
+  var hidden = document.getElementById('esp-especialidad');
+  if (!sel) return;
+
+  // Try to find in existing options
+  var found = false;
+  for (var i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === valor || sel.options[i].text === valor) {
+      sel.selectedIndex = i;
+      found = true; break;
+    }
+  }
+
+  if (!found && valor) {
+    // Add as custom option
+    var opt = document.createElement('option');
+    opt.value = valor; opt.textContent = valor;
+    sel.insertBefore(opt, sel.querySelector('option[value="otro"]'));
+    sel.value = valor;
+  }
+
+  if (custom) custom.style.display = 'none';
+  if (hidden) hidden.value = valor;
+}
+
 function editarEspecialista(idx) {
   var lista = getEspecialistas();
   var e = lista[idx];
   document.getElementById('esp-modal-title').textContent = 'Editar especialista';
   document.getElementById('esp-edit-idx').value = idx;
   document.getElementById('esp-nombre').value      = e.nombre;
-  document.getElementById('esp-especialidad').value= e.especialidad;
+  setEspEspecialidad(e.especialidad || '');
   document.getElementById('esp-email').value       = e.email||'';
   document.getElementById('esp-descripcion').value = e.descripcion;
   abrirModal('modal-especialista');
@@ -1554,7 +1661,7 @@ function editarEspecialista(idx) {
 
 function guardarEspecialista() {
   var nombre       = document.getElementById('esp-nombre').value.trim();
-  var especialidad = document.getElementById('esp-especialidad').value.trim();
+  var especialidad = getEspEspecialidad();
   var email        = document.getElementById('esp-email').value.trim();
   var descripcion  = document.getElementById('esp-descripcion').value.trim();
 
