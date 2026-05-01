@@ -1024,7 +1024,8 @@
       </div>
     </div>
     <div style="margin-top:16px">
-      <div class="form-label" style="margin-bottom:10px">Horarios de atencion</div>
+      <div class="form-label" style="margin-bottom:10px">Horarios de atención</div>
+      <div style="font-size:11px;color:var(--gray-400);margin-bottom:10px">Puedes definir hasta 2 rangos por día (ej: mañana y tarde con pausa de almuerzo)</div>
       <div id="esp-horarios-form"></div>
     </div>
     <div class="modal-btns">
@@ -1468,19 +1469,41 @@ function renderListaEspecialistas() {
 }
 
 function abrirModalEspecialista() {
-  // Build horarios form
   var html = '';
   DIAS_SEMANA.forEach(function(dia) {
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
-      '<input type="checkbox" id="esp-hck-'+dia+'" style="accent-color:var(--accent)">' +
-      '<span style="min-width:90px;font-size:13px">'+DIAS_LABEL2[dia]+'</span>' +
-      '<input type="time" id="esp-hinicio-'+dia+'" value="09:00" class="horario-time">' +
-      '<span style="color:var(--gray-400)">&#8594;</span>' +
-      '<input type="time" id="esp-hfin-'+dia+'" value="18:00" class="horario-time">' +
-    '</div>';
+    html +=
+      '<div style="background:var(--gray-50);border-radius:8px;padding:10px 12px;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+          '<input type="checkbox" id="esp-hck-'+dia+'" style="accent-color:var(--accent);width:16px;height:16px" onchange="toggleDiaEsp(''+dia+'')">' +
+          '<span style="min-width:90px;font-size:13px;font-weight:500">'+DIAS_LABEL2[dia]+'</span>' +
+        '</div>' +
+        '<div id="esp-rangos-'+dia+'" style="display:none;padding-left:26px">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+            '<span style="font-size:11px;color:var(--gray-500);min-width:50px">Bloque 1</span>' +
+            '<input type="time" id="esp-h1i-'+dia+'" value="09:00" class="horario-time">' +
+            '<span style="color:var(--gray-400);font-size:13px">&#8594;</span>' +
+            '<input type="time" id="esp-h1f-'+dia+'" value="13:00" class="horario-time">' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span style="font-size:11px;color:var(--gray-500);min-width:50px">Bloque 2</span>' +
+            '<input type="time" id="esp-h2i-'+dia+'" value="14:00" class="horario-time">' +
+            '<span style="color:var(--gray-400);font-size:13px">&#8594;</span>' +
+            '<input type="time" id="esp-h2f-'+dia+'" value="18:00" class="horario-time">' +
+            '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--gray-400);margin-left:4px;cursor:pointer">' +
+              '<input type="checkbox" id="esp-h2act-'+dia+'" style="accent-color:var(--accent)"> tarde' +
+            '</label>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
   });
   var hf = document.getElementById('esp-horarios-form');
   if (hf) hf.innerHTML = html;
+}
+
+function toggleDiaEsp(dia) {
+  var ck = document.getElementById('esp-hck-'+dia);
+  var rangos = document.getElementById('esp-rangos-'+dia);
+  if (rangos) rangos.style.display = ck && ck.checked ? 'block' : 'none';
 }
 
 function editarEspecialista(idx) {
@@ -1498,11 +1521,27 @@ function editarEspecialista(idx) {
   DIAS_SEMANA.forEach(function(dia) {
     var h = e.horarios[dia];
     var ck = document.getElementById('esp-hck-'+dia);
-    var hi = document.getElementById('esp-hinicio-'+dia);
-    var hf2= document.getElementById('esp-hfin-'+dia);
-    if (ck) ck.checked = h && h.activo;
-    if (hi) hi.value = h ? h.inicio : '09:00';
-    if (hf2) hf2.value = h ? h.fin : '18:00';
+    if (ck) {
+      ck.checked = h && h.activo;
+      toggleDiaEsp(dia);
+    }
+    if (h && h.activo) {
+      var rangos = h.rangos || [{inicio: h.inicio||'09:00', fin: h.fin||'18:00'}];
+      var r1 = rangos[0] || {};
+      var r2 = rangos[1] || null;
+      var h1i = document.getElementById('esp-h1i-'+dia);
+      var h1f = document.getElementById('esp-h1f-'+dia);
+      var h2i = document.getElementById('esp-h2i-'+dia);
+      var h2f = document.getElementById('esp-h2f-'+dia);
+      var h2act = document.getElementById('esp-h2act-'+dia);
+      if (h1i) h1i.value = r1.inicio || '09:00';
+      if (h1f) h1f.value = r1.fin   || '13:00';
+      if (r2) {
+        if (h2act) h2act.checked = true;
+        if (h2i) h2i.value = r2.inicio || '14:00';
+        if (h2f) h2f.value = r2.fin   || '18:00';
+      }
+    }
   });
 }
 
@@ -1516,10 +1555,23 @@ function guardarEspecialista() {
 
   var horarios = {};
   DIAS_SEMANA.forEach(function(dia) {
+    var activo = document.getElementById('esp-hck-'+dia) && document.getElementById('esp-hck-'+dia).checked;
+    var h1i = document.getElementById('esp-h1i-'+dia);
+    var h1f = document.getElementById('esp-h1f-'+dia);
+    var h2i = document.getElementById('esp-h2i-'+dia);
+    var h2f = document.getElementById('esp-h2f-'+dia);
+    var h2act = document.getElementById('esp-h2act-'+dia);
+
+    var rangos = [{ inicio: h1i ? h1i.value : '09:00', fin: h1f ? h1f.value : '13:00' }];
+    if (h2act && h2act.checked && h2i && h2f) {
+      rangos.push({ inicio: h2i.value, fin: h2f.value });
+    }
+
     horarios[dia] = {
-      activo: document.getElementById('esp-hck-'+dia)?.checked || false,
-      inicio: document.getElementById('esp-hinicio-'+dia)?.value || '09:00',
-      fin:    document.getElementById('esp-hfin-'+dia)?.value   || '18:00',
+      activo: activo || false,
+      inicio: rangos[0].inicio,
+      fin:    rangos[rangos.length-1].fin,
+      rangos: rangos,
     };
   });
 
