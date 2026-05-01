@@ -1474,7 +1474,7 @@ function abrirModalEspecialista() {
     html +=
       '<div style="background:var(--gray-50);border-radius:8px;padding:10px 12px;margin-bottom:8px">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-          '<input type="checkbox" id="esp-hck-'+dia+'" style="accent-color:var(--accent);width:16px;height:16px" onchange="toggleDiaEsp(''+dia+'')">' +
+          '<input type="checkbox" id="esp-hck-'+dia+'" style="accent-color:var(--accent);width:16px;height:16px" data-dia="'+dia+'">' +
           '<span style="min-width:90px;font-size:13px;font-weight:500">'+DIAS_LABEL2[dia]+'</span>' +
         '</div>' +
         '<div id="esp-rangos-'+dia+'" style="display:none;padding-left:26px">' +
@@ -1497,7 +1497,14 @@ function abrirModalEspecialista() {
       '</div>';
   });
   var hf = document.getElementById('esp-horarios-form');
-  if (hf) hf.innerHTML = html;
+  if (hf) {
+    hf.innerHTML = html;
+    // Add event listeners after DOM is built
+    DIAS_SEMANA.forEach(function(dia) {
+      var ck = document.getElementById('esp-hck-'+dia);
+      if (ck) ck.addEventListener('change', function() { toggleDiaEsp(dia); });
+    });
+  }
 }
 
 function toggleDiaEsp(dia) {
