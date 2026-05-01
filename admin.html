@@ -364,6 +364,7 @@
     <div class="nav-item" onclick="navTo('personalizar')"><span class="nav-icon">⚙️</span>Configuración</div>
     <div class="nav-item" onclick="navTo('horarios')"><span class="nav-icon">🕐</span>Horarios</div>
     <div class="nav-item" onclick="navTo('servicios')"><span class="nav-icon">🗂</span>Servicios</div>
+    <div class="nav-item" onclick="navTo('especialistas')"><span class="nav-icon">👨‍⚕️</span>Especialistas</div>
 
     <div class="nav-section">Plan y legal</div>
     <div class="nav-item" onclick="navTo('suscripcion')"><span class="nav-icon">💳</span>Suscripción y pagos</div>
@@ -685,6 +686,18 @@
     </div>
   </div>
 
+  <!-- ══ ESPECIALISTAS ══ -->
+  <div class="page" id="page-especialistas">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:15px;font-weight:600">Profesionales del negocio</div>
+        <div style="font-size:13px;color:var(--gray-400);margin-top:2px">Estos especialistas aparecerán en la app de reservas</div>
+      </div>
+      <button class="btn btn-primary" onclick="abrirModal('modal-especialista')">+ Agregar especialista</button>
+    </div>
+    <div id="lista-especialistas-page"></div>
+  </div>
+
   <!-- ══ ACCESOS ══ -->
   <div class="page" id="page-accesos">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -986,6 +999,40 @@
   </div>
 
 </div><!-- end content -->
+
+<!-- MODAL ESPECIALISTA -->
+<div class="modal-overlay" id="modal-especialista">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title" id="esp-modal-title">Agregar especialista</div>
+    <input type="hidden" id="esp-edit-idx" value="-1">
+    <div class="settings-grid">
+      <div class="form-group" style="grid-column:span 2">
+        <label class="form-label">Nombre completo</label>
+        <input class="form-input" id="esp-nombre" placeholder="Dr. Juan Perez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Especialidad</label>
+        <input class="form-input" id="esp-especialidad" placeholder="Medico general">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="esp-email" placeholder="dr@clinica.cl">
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <label class="form-label">Descripcion corta</label>
+        <input class="form-input" id="esp-descripcion" placeholder="Especialista en...">
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="form-label" style="margin-bottom:10px">Horarios de atencion</div>
+      <div id="esp-horarios-form"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1" onclick="cerrarModal('modal-especialista')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="guardarEspecialista()">Guardar especialista</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL NUEVO USUARIO -->
 <div class="modal-overlay" id="modal-usuario">
@@ -1376,6 +1423,141 @@ function cerrarSesion() {
   window.location.href = 'login.html';
 }
 
+// ═══════════════════════════════════════
+// ESPECIALISTAS
+// ═══════════════════════════════════════
+var DIAS_SEMANA = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+var DIAS_LABEL2 = {lunes:'Lunes',martes:'Martes',miercoles:'Miercoles',jueves:'Jueves',viernes:'Viernes',sabado:'Sabado',domingo:'Domingo'};
+
+function getEspecialistas() {
+  return CFG.especialistas && CFG.especialistas.length > 0 ? CFG.especialistas : [
+    {id:'esp1',nombre:'Dr. Cesar Salinas',especialidad:'Medico general',email:'cesar@clinica.cl',descripcion:'Especialista en medicina familiar.',horarios:{lunes:{activo:true,inicio:'09:00',fin:'19:00'},martes:{activo:true,inicio:'09:00',fin:'19:00'},miercoles:{activo:true,inicio:'09:00',fin:'19:00'},jueves:{activo:true,inicio:'09:00',fin:'19:00'},viernes:{activo:true,inicio:'09:00',fin:'17:00'},sabado:{activo:false,inicio:'09:00',fin:'14:00'},domingo:{activo:false,inicio:'09:00',fin:'14:00'}}},
+    {id:'esp2',nombre:'Dra. Maria Gonzalez',especialidad:'Psicologa',email:'maria@clinica.cl',descripcion:'Especialista en terapia cognitivo-conductual.',horarios:{lunes:{activo:true,inicio:'10:00',fin:'18:00'},martes:{activo:false,inicio:'10:00',fin:'18:00'},miercoles:{activo:true,inicio:'10:00',fin:'18:00'},jueves:{activo:false,inicio:'10:00',fin:'18:00'},viernes:{activo:true,inicio:'10:00',fin:'16:00'},sabado:{activo:true,inicio:'10:00',fin:'13:00'},domingo:{activo:false,inicio:'09:00',fin:'14:00'}}},
+    {id:'esp3',nombre:'Dr. Felipe Morales',especialidad:'Nutricionista',email:'felipe@clinica.cl',descripcion:'Experto en nutricion deportiva.',horarios:{lunes:{activo:false,inicio:'09:00',fin:'19:00'},martes:{activo:true,inicio:'08:00',fin:'16:00'},miercoles:{activo:false,inicio:'09:00',fin:'19:00'},jueves:{activo:true,inicio:'08:00',fin:'16:00'},viernes:{activo:true,inicio:'08:00',fin:'14:00'},sabado:{activo:false,inicio:'09:00',fin:'14:00'},domingo:{activo:false,inicio:'09:00',fin:'14:00'}}},
+  ];
+}
+
+function renderListaEspecialistas() {
+  var lista = getEspecialistas();
+  var el = document.getElementById('lista-especialistas-page');
+  if (!el) return;
+
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">👨‍⚕️</div><p>No hay especialistas configurados</p></div>';
+    return;
+  }
+
+  el.innerHTML = lista.map(function(e, i) {
+    var diasActivos = Object.keys(e.horarios||{}).filter(function(d){ return e.horarios[d].activo; }).map(function(d){ return d.charAt(0).toUpperCase()+d.charAt(1); }).join(', ');
+    return '<div class="card" style="margin-bottom:14px">' +
+      '<div class="cita-main">' +
+        '<div class="cita-avatar" style="width:46px;height:46px;font-size:17px;background:linear-gradient(135deg,var(--purple),var(--accent));color:white">'+e.nombre[0]+'</div>' +
+        '<div class="cita-info">' +
+          '<div class="cita-nombre">'+e.nombre+'</div>' +
+          '<div class="cita-servicio">'+e.especialidad+' · '+e.email+'</div>' +
+          '<div style="font-size:11px;color:var(--gray-400);margin-top:2px">'+e.descripcion+'</div>' +
+          '<div style="font-size:11px;color:var(--accent);margin-top:4px">&#128197; '+diasActivos+'</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button class="btn btn-outline" style="font-size:11px;padding:5px 10px" onclick="editarEspecialista('+i+')">&#9998; Editar</button>' +
+          '<button class="btn btn-danger"  style="font-size:11px;padding:5px 10px" onclick="eliminarEspecialista('+i+')">&#128465; Eliminar</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function abrirModalEspecialista() {
+  // Build horarios form
+  var html = '';
+  DIAS_SEMANA.forEach(function(dia) {
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+      '<input type="checkbox" id="esp-hck-'+dia+'" style="accent-color:var(--accent)">' +
+      '<span style="min-width:90px;font-size:13px">'+DIAS_LABEL2[dia]+'</span>' +
+      '<input type="time" id="esp-hinicio-'+dia+'" value="09:00" class="horario-time">' +
+      '<span style="color:var(--gray-400)">&#8594;</span>' +
+      '<input type="time" id="esp-hfin-'+dia+'" value="18:00" class="horario-time">' +
+    '</div>';
+  });
+  var hf = document.getElementById('esp-horarios-form');
+  if (hf) hf.innerHTML = html;
+}
+
+function editarEspecialista(idx) {
+  var lista = getEspecialistas();
+  var e = lista[idx];
+  document.getElementById('esp-modal-title').textContent = 'Editar especialista';
+  document.getElementById('esp-edit-idx').value = idx;
+  document.getElementById('esp-nombre').value      = e.nombre;
+  document.getElementById('esp-especialidad').value= e.especialidad;
+  document.getElementById('esp-email').value       = e.email||'';
+  document.getElementById('esp-descripcion').value = e.descripcion;
+  abrirModal('modal-especialista');
+  abrirModalEspecialista();
+  // Load horarios
+  DIAS_SEMANA.forEach(function(dia) {
+    var h = e.horarios[dia];
+    var ck = document.getElementById('esp-hck-'+dia);
+    var hi = document.getElementById('esp-hinicio-'+dia);
+    var hf2= document.getElementById('esp-hfin-'+dia);
+    if (ck) ck.checked = h && h.activo;
+    if (hi) hi.value = h ? h.inicio : '09:00';
+    if (hf2) hf2.value = h ? h.fin : '18:00';
+  });
+}
+
+function guardarEspecialista() {
+  var nombre       = document.getElementById('esp-nombre').value.trim();
+  var especialidad = document.getElementById('esp-especialidad').value.trim();
+  var email        = document.getElementById('esp-email').value.trim();
+  var descripcion  = document.getElementById('esp-descripcion').value.trim();
+
+  if (!nombre || !especialidad) { alert('Completa nombre y especialidad'); return; }
+
+  var horarios = {};
+  DIAS_SEMANA.forEach(function(dia) {
+    horarios[dia] = {
+      activo: document.getElementById('esp-hck-'+dia)?.checked || false,
+      inicio: document.getElementById('esp-hinicio-'+dia)?.value || '09:00',
+      fin:    document.getElementById('esp-hfin-'+dia)?.value   || '18:00',
+    };
+  });
+
+  var lista = getEspecialistas().slice();
+  var editIdx = parseInt(document.getElementById('esp-edit-idx').value);
+  var esp = {
+    id: editIdx >= 0 ? lista[editIdx].id : 'esp'+Date.now(),
+    nombre, especialidad, email, descripcion, horarios
+  };
+
+  if (editIdx >= 0) lista[editIdx] = esp;
+  else lista.push(esp);
+
+  CFG.especialistas = lista;
+  guardarCFG();
+  cerrarModal('modal-especialista');
+  renderListaEspecialistas();
+
+  // Reset modal
+  document.getElementById('esp-edit-idx').value = '-1';
+  document.getElementById('esp-modal-title').textContent = 'Agregar especialista';
+  ['esp-nombre','esp-especialidad','esp-email','esp-descripcion'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+
+  showToast('Especialista guardado y sincronizado con la app del cliente');
+}
+
+function eliminarEspecialista(idx) {
+  if (!confirm('Eliminar este especialista?')) return;
+  var lista = getEspecialistas().slice();
+  lista.splice(idx, 1);
+  CFG.especialistas = lista;
+  guardarCFG();
+  renderListaEspecialistas();
+  showToast('Especialista eliminado');
+}
+
 function init() {
   if (!verificarSesion()) return;
   document.getElementById('fecha-hoy').textContent =
@@ -1423,7 +1605,8 @@ const pageInfo = {
   reportes:    {title:'Reportes',               sub:'Análisis de ingresos y servicios'},
   personalizar:{title:'Configuración',           sub:'Configura lo que ven tus clientes'},
   horarios:    {title:'Horarios',               sub:'Define días y horas de atención'},
-  servicios:   {title:'Servicios',              sub:'Gestiona los servicios disponibles'},
+  servicios:    {title:'Servicios',              sub:'Gestiona los servicios disponibles'},
+  especialistas:{title:'Especialistas',           sub:'Gestiona los profesionales de tu negocio'},
   accesos:     {title:'Usuarios y accesos',     sub:'Gestiona roles y permisos del panel'},
   suscripcion: {title:'Suscripción y pagos',    sub:'Tu plan Attempo, facturas y próximos cobros'},
   terminos:    {title:'Términos y condiciones', sub:'Gestiona los términos de Attempo y de tu negocio'},
@@ -1441,7 +1624,8 @@ function navTo(page) {
   if (page==='citas')        { renderCitas(); renderCalendarioAgenda(); }
   if (page==='reportes')    renderReportes();
   if (page==='horarios')    { renderHorariosPage(); renderBloqueos(); initFechaBloqueo(); }
-  if (page==='accesos')     { renderUsuarios(); }
+  if (page==='accesos')        { renderUsuarios(); }
+  if (page==='especialistas')  { renderListaEspecialistas(); abrirModalEspecialista(); }
   if (page==='suscripcion') { renderFacturas(); }
   if (page==='terminos')    { navTerminos('attempo'); }
   if (page==='citas')       { renderCitas(); renderCalendarioAgenda(); initFiltroProfesional(); }

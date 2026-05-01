@@ -309,9 +309,10 @@
 <!-- STEP TABS -->
 <div class="step-tabs">
   <div class="step-tab active" onclick="irTab(0)">① Servicio</div>
-  <div class="step-tab" onclick="irTab(1)">② Fecha y hora</div>
-  <div class="step-tab" onclick="irTab(2)">③ Mis datos</div>
-  <div class="step-tab" onclick="irTab(3)">④ Confirmar</div>
+  <div class="step-tab" onclick="irTab(1)">② Especialista</div>
+  <div class="step-tab" onclick="irTab(2)">③ Fecha y hora</div>
+  <div class="step-tab" onclick="irTab(3)">④ Mis datos</div>
+  <div class="step-tab" onclick="irTab(4)">⑤ Confirmar</div>
 </div>
 
 <!-- EDITOR LAYOUT -->
@@ -391,8 +392,73 @@
       </div>
     </div>
 
-    <!-- ═══ TAB 1: FECHA/HORA ═══ -->
+    <!-- ═══ TAB 1: ESPECIALISTA ═══ -->
     <div id="tab-1" style="display:none">
+      <div class="editor-section">
+        <div class="editor-section-title">Textos del paso</div>
+        <div class="form-group">
+          <label class="form-label">Título principal</label>
+          <input class="form-input" id="e1-title" placeholder="¿Con quién quieres tu cita?" oninput="actualizarPreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subtítulo</label>
+          <input class="form-input" id="e1-sub" placeholder="Selecciona tu especialista de preferencia" oninput="actualizarPreview()">
+        </div>
+      </div>
+      <div class="editor-section">
+        <div class="editor-section-title">Elementos visibles</div>
+        <div class="elementos-list" id="elementos-1">
+          <div class="elemento-item" data-id="foto-especialista" draggable="true">
+            <span class="drag-handle">⠿</span>
+            <span class="elemento-icon">📷</span>
+            <div class="elemento-info">
+              <div class="elemento-name">Foto del especialista</div>
+              <div class="elemento-desc">Imagen de perfil circular</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-esp-foto" checked onchange="actualizarPreview()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="elemento-item" data-id="especialidad" draggable="true">
+            <span class="drag-handle">⠿</span>
+            <span class="elemento-icon">🏷</span>
+            <div class="elemento-info">
+              <div class="elemento-name">Especialidad</div>
+              <div class="elemento-desc">Ej: Médico general, Psicóloga...</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-esp-especialidad" checked onchange="actualizarPreview()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="elemento-item" data-id="descripcion-esp" draggable="true">
+            <span class="drag-handle">⠿</span>
+            <span class="elemento-icon">📝</span>
+            <div class="elemento-info">
+              <div class="elemento-name">Descripción corta</div>
+              <div class="elemento-desc">Texto breve del especialista</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-esp-desc" checked onchange="actualizarPreview()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="elemento-item" data-id="disponibilidad" draggable="true">
+            <span class="drag-handle">⠿</span>
+            <span class="elemento-icon">🟢</span>
+            <div class="elemento-info">
+              <div class="elemento-name">Disponibilidad hoy</div>
+              <div class="elemento-desc">Badge verde/rojo según agenda</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-esp-disp" checked onchange="actualizarPreview()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="elemento-item" data-id="dias-atencion" draggable="true">
+            <span class="drag-handle">⠿</span>
+            <span class="elemento-icon">📅</span>
+            <div class="elemento-info">
+              <div class="elemento-name">Días de atención</div>
+              <div class="elemento-desc">Resumen de días disponibles</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="tog-esp-dias" checked onchange="actualizarPreview()"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB 2: FECHA/HORA ═══ -->
+    <div id="tab-2" style="display:none">
       <div class="editor-section">
         <div class="editor-section-title">Textos del paso</div>
         <div class="form-group">
@@ -435,7 +501,7 @@
     </div>
 
     <!-- ═══ TAB 2: DATOS ═══ -->
-    <div id="tab-2" style="display:none">
+    <div id="tab-3" style="display:none">
       <div class="editor-section">
         <div class="editor-section-title">Textos del paso</div>
         <div class="form-group">
@@ -528,7 +594,7 @@
     </div>
 
     <!-- ═══ TAB 3: CONFIRMAR ═══ -->
-    <div id="tab-3" style="display:none">
+    <div id="tab-4" style="display:none">
       <div class="editor-section">
         <div class="editor-section-title">Textos del paso</div>
         <div class="form-group">
@@ -665,8 +731,11 @@ function init() {
 // ════════════════════════════════════
 function irTab(i) {
   tabActual = i;
-  document.querySelectorAll('.step-tab').forEach((t,j) => t.classList.toggle('active', i===j));
-  document.querySelectorAll('[id^="tab-"]').forEach((t,j) => t.style.display = j===i ? 'block' : 'none');
+  document.querySelectorAll('.step-tab').forEach(function(t,j){ t.classList.toggle('active', i===j); });
+  for (var n=0; n<5; n++) {
+    var el = document.getElementById('tab-'+n);
+    if (el) el.style.display = n===i ? 'block' : 'none';
+  }
   actualizarPreview();
 }
 
@@ -746,7 +815,7 @@ function renderPreviewHeader() {
 }
 
 function renderPreviewSteps() {
-  const labels = ['Servicio','Fecha y hora','Mis datos','Confirmar'];
+  const labels = ['Servicio','Especialista','Fecha y hora','Mis datos','Confirmar'];
   let html = '<div class="prev-steps">';
   labels.forEach((l, i) => {
     const cls = i < tabActual ? 'done' : i === tabActual ? 'active' : '';
@@ -766,6 +835,8 @@ function renderPreviewContent() {
     case 1: return renderPreview1();
     case 2: return renderPreview2();
     case 3: return renderPreview3();
+    case 4: return renderPreview4();
+    default: return '';
   }
 }
 
@@ -815,8 +886,45 @@ function renderPreview0() {
 }
 
 function renderPreview1() {
-  const title = getVal('e1-title', 'Elige fecha y hora');
-  const sub   = getVal('e1-sub',   'Selecciona cuándo quieres tu cita');
+  const title     = getVal('e1-title', '¿Con quién quieres tu cita?');
+  const sub       = getVal('e1-sub',   'Selecciona tu especialista de preferencia');
+  const showFoto  = document.getElementById('tog-esp-foto')?.checked ?? true;
+  const showEsp   = document.getElementById('tog-esp-especialidad')?.checked ?? true;
+  const showDesc  = document.getElementById('tog-esp-desc')?.checked ?? true;
+  const showDisp  = document.getElementById('tog-esp-disp')?.checked ?? true;
+  const showDias  = document.getElementById('tog-esp-dias')?.checked ?? true;
+
+  const especialistas = [
+    { nombre:'Dr. César Salinas',   especialidad:'Médico general',    desc:'Especialista en medicina familiar.', disponible:true,  dias:'Lu, Ma, Mi, Ju, Vi' },
+    { nombre:'Dra. María González', especialidad:'Psicóloga clínica', desc:'Experta en terapia cognitivo-conductual.', disponible:false, dias:'Lu, Mi, Vi, Sá' },
+    { nombre:'Dr. Felipe Morales',  especialidad:'Nutricionista',     desc:'Experto en nutrición deportiva.', disponible:true,  dias:'Ma, Ju, Vi' },
+  ];
+
+  let cards = especialistas.map(function(e, i) {
+    return '<div style="border:1.5px solid ' + (i===0?'var(--accent)':'var(--gray-200)') +
+      ';border-radius:10px;padding:12px;text-align:center;position:relative;' +
+      (i===0?'background:var(--accent-light)':'') + '">' +
+      (i===0?'<div style="position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:var(--accent);color:white;font-size:10px;display:flex;align-items:center;justify-content:center">✓</div>':'') +
+      (showFoto?'<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--accent));margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white">' + e.nombre[0] + '</div>':'') +
+      '<div style="font-size:12px;font-weight:600;color:var(--black)">' + e.nombre + '</div>' +
+      (showEsp?'<div style="font-size:11px;color:var(--accent);margin:2px 0">' + e.especialidad + '</div>':'') +
+      (showDesc?'<div style="font-size:10px;color:var(--gray-400);margin-bottom:6px">' + e.desc + '</div>':'') +
+      (showDisp?'<div style="display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 8px;border-radius:100px;' + (e.disponible?'background:var(--success-light);color:var(--success)':'background:var(--danger-light);color:var(--danger)') + '">' + (e.disponible?'🟢 Disponible hoy':'🔴 No atiende hoy') + '</div>':'') +
+      (showDias?'<div style="font-size:9px;color:var(--gray-400);margin-top:4px">📅 ' + e.dias + '</div>':'') +
+      '</div>';
+  }).join('');
+
+  return '<div class="prev-content">' +
+    '<div class="prev-title">' + title + '</div>' +
+    '<div class="prev-subtitle">' + sub + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">' + cards + '</div>' +
+    '<button class="prev-btn">Continuar →</button>' +
+    '</div>';
+}
+
+function renderPreview3() {
+  const title = getVal('e2-title', 'Elige fecha y hora');
+  const sub   = getVal('e2-sub',   'Selecciona cuándo quieres tu cita');
 
   // Mini calendar
   const hoy = new Date();
@@ -887,7 +995,7 @@ function renderPreview2() {
   </div>`;
 }
 
-function renderPreview3() {
+function renderPreview4() {
   const title  = getVal('e3-title', 'Confirma tu cita');
   const sub    = getVal('e3-sub',   'Revisa los detalles antes de confirmar');
   const btn    = getVal('e3-btn',   '✓ Confirmar mi cita');
@@ -920,15 +1028,24 @@ function guardarTodo() {
 
   // Textos
   CFG.textos = {
-    paso1:      getVal('e0-title'),
-    paso1sub:   getVal('e0-sub'),
-    paso2:      getVal('e1-title'),
-    paso2sub:   getVal('e1-sub'),
-    paso3:      getVal('e2-title'),
-    paso3sub:   getVal('e2-sub'),
-    paso4:      getVal('e3-title'),
-    paso4sub:   getVal('e3-sub'),
-    btnConfirm: getVal('e3-btn'),
+    paso1:       getVal('e0-title'),
+    paso1sub:    getVal('e0-sub'),
+    paso2:       getVal('e1-title'),
+    paso2sub:    getVal('e1-sub'),
+    paso3:       getVal('e2-title'),
+    paso3sub:    getVal('e2-sub'),
+    paso4:       getVal('e3-title'),
+    paso4sub:    getVal('e3-sub'),
+    btnConfirm:  getVal('e3-btn'),
+  };
+
+  // Config especialistas
+  CFG.especialistaConfig = {
+    mostrarFoto:         document.getElementById('tog-esp-foto')?.checked ?? true,
+    mostrarEspecialidad: document.getElementById('tog-esp-especialidad')?.checked ?? true,
+    mostrarDesc:         document.getElementById('tog-esp-desc')?.checked ?? true,
+    mostrarDisponible:   document.getElementById('tog-esp-disp')?.checked ?? true,
+    mostrarDias:         document.getElementById('tog-esp-dias')?.checked ?? true,
   };
 
   // Pasos
