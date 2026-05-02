@@ -3199,47 +3199,161 @@ function exportarExcel() {
 function exportarPDF() {
   try {
     var data = getReportesData();
-    var cobrado = data.lista.filter(function(c){return c.pago==='paid';}).reduce(function(s,c){return s+c.precio;},0);
-    var porCobrar = data.lista.filter(function(c){return c.pago==='unpaid';}).reduce(function(s,c){return s+c.precio;},0);
-    var filas = data.lista.map(function(c) {
+    var lista = data.lista;
+    var cobrado   = lista.filter(function(c){return c.pago==='paid';}).reduce(function(s,c){return s+c.precio;},0);
+    var porCobrar = lista.filter(function(c){return c.pago==='unpaid';}).reduce(function(s,c){return s+c.precio;},0);
+    var promedio  = lista.length ? Math.round((cobrado+porCobrar)/lista.length) : 0;
+    var completadas = lista.filter(function(c){return c.estado==='done';}).length;
+    var pendientes  = lista.filter(function(c){return c.estado==='pending';}).length;
+
+    // Citas por servicio
+    var porServicio = {};
+    lista.forEach(function(c){ porServicio[c.servicio]=(porServicio[c.servicio]||0)+1; });
+    var servicioKeys = Object.keys(porServicio);
+    var colores = ['#4F46E5','#7C3AED','#06b6d4','#10b981','#f59e0b','#ef4444'];
+
+    // Barras SVG citas por servicio
+    var maxVal = Math.max.apply(null, servicioKeys.map(function(k){return porServicio[k];}));
+    var barW = 60; var barGap = 24; var chartH = 140; var chartW = servicioKeys.length*(barW+barGap)+barGap;
+    var barsSVG = '<svg width="'+chartW+'" height="'+(chartH+50)+'" xmlns="http://www.w3.org/2000/svg">';
+    servicioKeys.forEach(function(k,i){
+      var val = porServicio[k];
+      var h = Math.round((val/maxVal)*chartH);
+      var x = barGap + i*(barW+barGap);
+      var y = chartH - h;
+      barsSVG += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+h+'" rx="6" fill="'+colores[i%colores.length]+'"/>';
+      barsSVG += '<text x="'+(x+barW/2)+'" y="'+(y-6)+'" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">'+val+'</text>';
+      var label = k.length>10 ? k.substring(0,10)+'...' : k;
+      barsSVG += '<text x="'+(x+barW/2)+'" y="'+(chartH+18)+'" text-anchor="middle" font-size="11" fill="#64748b">'+label+'</text>';
+    });
+    barsSVG += '</svg>';
+
+    // Donut SVG cobrado vs por cobrar
+    var total = cobrado + porCobrar || 1;
+    var pctCob = cobrado/total;
+    var r = 60; var cx = 80; var cy = 80;
+    var angle = pctCob * 2 * Math.PI;
+    var x1 = cx + r * Math.sin(0); var y1 = cy - r * Math.cos(0);
+    var x2 = cx + r * Math.sin(angle); var y2 = cy - r * Math.cos(angle);
+    var largeArc = pctCob > 0.5 ? 1 : 0;
+    var donutSVG = '<svg width="160" height="160" xmlns="http://www.w3.org/2000/svg">';
+    if (cobrado > 0 && porCobrar > 0) {
+      donutSVG += '<path d="M '+cx+' '+cy+' L '+x1+' '+y1+' A '+r+' '+r+' 0 '+largeArc+' 1 '+x2+' '+y2+' Z" fill="#16a34a"/>';
+      donutSVG += '<path d="M '+cx+' '+cy+' L '+x2+' '+y2+' A '+r+' '+r+' 0 '+(1-largeArc)+' 1 '+x1+' '+y1+' Z" fill="#f59e0b"/>';
+    } else {
+      donutSVG += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+(cobrado>0?'#16a34a':'#f59e0b')+'"/>';
+    }
+    donutSVG += '<circle cx="'+cx+'" cy="'+cy+'" r="36" fill="white"/>';
+    donutSVG += '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">'+Math.round(pctCob*100)+'%</text>';
+    donutSVG += '</svg>';
+
+    // Filas tabla
+    var filas = lista.map(function(c){
       var estado = c.estado==='done'?'Completada':c.estado==='pending'?'Pendiente':'Cancelada';
-      var pago = c.pago==='paid'?'Pagado':'Por cobrar';
-      var colorEstado = c.estado==='done'?'#16a34a':c.estado==='pending'?'#d97706':'#dc2626';
-      var colorPago = c.pago==='paid'?'#16a34a':'#d97706';
-      return '<tr><td>'+c.hora+'</td><td><b>'+c.nombre+'</b></td><td>'+c.servicio+'</td><td><b>$'+c.precio.toLocaleString('es-CL')+'</b></td><td style="color:'+colorPago+'">'+pago+'</td><td style="color:'+colorEstado+'">'+estado+'</td></tr>';
+      var pago   = c.pago==='paid'?'Pagado':'Por cobrar';
+      var bgRow  = lista.indexOf(c)%2===0?'#ffffff':'#f8fafc';
+      var cPago  = c.pago==='paid'?'#16a34a':'#d97706';
+      var cEst   = c.estado==='done'?'#16a34a':c.estado==='pending'?'#d97706':'#dc2626';
+      return '<tr style="background:'+bgRow+'"><td>'+c.hora+'</td><td><b>'+c.nombre+'</b></td><td>'+c.servicio+'</td><td style="text-align:right"><b>$'+c.precio.toLocaleString('es-CL')+'</b></td><td style="color:'+cPago+';font-weight:600">'+pago+'</td><td style="color:'+cEst+';font-weight:600">'+estado+'</td></tr>';
     }).join('');
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte Attempo</title><style>'+
-      'body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#1e293b}'+
-      '.header{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:20px}'+
-      '.header h1{margin:0;font-size:20px}.header p{margin:4px 0 0;font-size:13px;opacity:0.85}'+
-      '.stats{display:flex;gap:12px;margin-bottom:20px}'+
-      '.stat{flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center}'+
-      '.stat label{font-size:11px;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase}'+
-      '.stat span{font-size:18px;font-weight:700;color:#4F46E5}'+
-      'table{width:100%;border-collapse:collapse;font-size:13px}'+
-      'th{background:#4F46E5;color:#fff;padding:10px 12px;text-align:left;font-weight:600}'+
-      'td{padding:9px 12px;border-bottom:1px solid #e2e8f0}'+
-      'tr:nth-child(even) td{background:#f8fafc}'+
-      '.footer{margin-top:20px;font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:12px}'+
-      '@media print{body{padding:0}.no-print{display:none}}'+
-      '</style></head><body>'+
-      '<div class="header"><h1>attempo — Reporte de citas</h1><p>Período: '+data.periodo+' &nbsp;|&nbsp; Total: '+data.lista.length+' citas</p></div>'+
-      '<div class="stats">'+
-        '<div class="stat"><label>Total citas</label><span>'+data.lista.length+'</span></div>'+
-        '<div class="stat"><label>Cobrado</label><span>$'+cobrado.toLocaleString('es-CL')+'</span></div>'+
-        '<div class="stat"><label>Por cobrar</label><span>$'+porCobrar.toLocaleString('es-CL')+'</span></div>'+
-      '</div>'+
-      '<table><thead><tr><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Monto</th><th>Pago</th><th>Estado</th></tr></thead><tbody>'+filas+'</tbody></table>'+
-      '<div class="footer">attempo.cl &nbsp;·&nbsp; Generado el '+new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'})+'</div>'+
-      '<div class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()" style="background:#4F46E5;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer">🖨️ Imprimir / Guardar PDF</button></div>'+
-      '</body></html>';
+
+    var leyenda = '<div style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:#64748b">'
+      +'<span><span style="display:inline-block;width:12px;height:12px;background:#16a34a;border-radius:3px;margin-right:4px"></span>Cobrado</span>'
+      +'<span><span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:3px;margin-right:4px"></span>Por cobrar</span>'
+      +'</div>';
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte Attempo</title>'
+      +'<style>'
+      +'*{box-sizing:border-box}'
+      +'body{font-family:-apple-system,Arial,sans-serif;margin:0;padding:28px;color:#1e293b;background:#f8fafc}'
+      +'.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);padding:20px;margin-bottom:20px}'
+      +'.header{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);color:#fff;padding:24px 28px;border-radius:14px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}'
+      +'.header h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.5px}'
+      +'.header p{margin:5px 0 0;font-size:13px;opacity:0.85}'
+      +'.header .badge{background:rgba(255,255,255,0.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600}'
+      +'.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}'
+      +'.stat{background:#fff;border-radius:12px;padding:16px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);text-align:center}'
+      +'.stat .lbl{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:600}'
+      +'.stat .val{font-size:20px;font-weight:800;color:#4F46E5}'
+      +'.stat .sub{font-size:11px;color:#94a3b8;margin-top:3px}'
+      +'.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}'
+      +'.chart-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.07)}'
+      +'.chart-title{font-size:13px;font-weight:700;color:#1e293b;margin-bottom:14px}'
+      +'.chart-sub{font-size:11px;color:#94a3b8;margin-top:2px;font-weight:400}'
+      +'table{width:100%;border-collapse:collapse;font-size:13px}'
+      +'thead tr{background:#4F46E5}'
+      +'th{color:#fff;padding:11px 14px;text-align:left;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.4px}'
+      +'td{padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:13px}'
+      +'.footer{text-align:center;font-size:11px;color:#94a3b8;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}'
+      +'.print-btn{display:flex;justify-content:center;margin-top:20px}'
+      +'.print-btn button{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#fff;border:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,0.3)}'
+      +'@media print{body{padding:0;background:#fff}.print-btn{display:none}.card,.stat,.chart-card{box-shadow:none}}'
+      +'</style></head><body>'
+
+      // Header
+      +'<div class="header">'
+        +'<div><h1>attempo</h1><p>Reporte de citas &nbsp;·&nbsp; '+data.periodo+'</p></div>'
+        +'<div class="badge">'+lista.length+' citas</div>'
+      +'</div>'
+
+      // Stats
+      +'<div class="stats">'
+        +'<div class="stat"><div class="lbl">Total citas</div><div class="val">'+lista.length+'</div><div class="sub">en el período</div></div>'
+        +'<div class="stat"><div class="lbl">Cobrado</div><div class="val" style="color:#16a34a">$'+cobrado.toLocaleString('es-CL')+'</div><div class="sub">ingreso real</div></div>'
+        +'<div class="stat"><div class="lbl">Por cobrar</div><div class="val" style="color:#d97706">$'+porCobrar.toLocaleString('es-CL')+'</div><div class="sub">pendiente</div></div>'
+        +'<div class="stat"><div class="lbl">Promedio</div><div class="val">$'+promedio.toLocaleString('es-CL')+'</div><div class="sub">por cita</div></div>'
+      +'</div>'
+
+      // Charts
+      +'<div class="charts">'
+        +'<div class="chart-card">'
+          +'<div class="chart-title">Cobrado vs Por cobrar <span class="chart-sub">distribución del período</span></div>'
+          +'<div style="display:flex;align-items:center;gap:20px">'
+            +donutSVG
+            +'<div style="font-size:13px">'
+              +'<div style="margin-bottom:10px"><b style="color:#16a34a">$'+cobrado.toLocaleString('es-CL')+'</b><br><span style="color:#94a3b8;font-size:11px">Cobrado ('+Math.round(pctCob*100)+'%)</span></div>'
+              +'<div><b style="color:#d97706">$'+porCobrar.toLocaleString('es-CL')+'</b><br><span style="color:#94a3b8;font-size:11px">Por cobrar ('+Math.round((1-pctCob)*100)+'%)</span></div>'
+            +'</div>'
+          +'</div>'
+        +'</div>'
+        +'<div class="chart-card">'
+          +'<div class="chart-title">Citas por servicio <span class="chart-sub">rendimiento</span></div>'
+          +barsSVG
+        +'</div>'
+      +'</div>'
+
+      // Estado resumen
+      +'<div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">'
+        +'<div style="display:flex;align-items:center;gap:12px;padding:8px">'
+          +'<div style="width:40px;height:40px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">✓</div>'
+          +'<div><div style="font-size:22px;font-weight:800;color:#16a34a">'+completadas+'</div><div style="font-size:12px;color:#94a3b8">Citas completadas</div></div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:12px;padding:8px">'
+          +'<div style="width:40px;height:40px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">⏳</div>'
+          +'<div><div style="font-size:22px;font-weight:800;color:#d97706">'+pendientes+'</div><div style="font-size:12px;color:#94a3b8">Citas pendientes</div></div>'
+        +'</div>'
+      +'</div>'
+
+      // Tabla
+      +'<div class="card" style="padding:0;overflow:hidden">'
+        +'<div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">'
+          +'<b style="font-size:14px">Detalle de citas</b>'
+          +'<span style="font-size:12px;color:#94a3b8">'+lista.length+' citas &nbsp;·&nbsp; '+data.periodo+'</span>'
+        +'</div>'
+        +'<table><thead><tr><th>Hora</th><th>Cliente</th><th>Servicio</th><th style="text-align:right">Monto</th><th>Pago</th><th>Estado</th></tr></thead><tbody>'+filas+'</tbody></table>'
+      +'</div>'
+
+      +'<div class="footer">attempo.cl &nbsp;·&nbsp; Generado el '+new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'})+'</div>'
+      +'<div class="print-btn"><button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button></div>'
+      +'</body></html>';
+
     var win = window.open('','_blank');
     win.document.write(html);
     win.document.close();
     win.focus();
-    showToast('✅ PDF listo — usa Imprimir → Guardar como PDF');
+    showToast('✅ Reporte listo — usa Imprimir → Guardar como PDF');
   } catch(e) {
-    showToast('❌ Error al exportar: ' + e.message);
+    showToast('❌ Error: ' + e.message);
   }
 }</script>
 </body>
