@@ -351,7 +351,7 @@
       .topbar-sub { display:none; }
       .topbar-actions { gap:6px; }
       /* Pages */
-      .page { padding:14px 10px; overflow-x:clip; }
+      .page { padding:14px 10px; }
       /* Grids */
       .stats-grid { grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
       .grid-2,.grid-3 { grid-template-columns:1fr; gap:12px; }
@@ -411,6 +411,13 @@
       .btn-group { flex-wrap:wrap; gap:6px; }
       .section-title { font-size:15px; }
       .badge { font-size:11px; padding:2px 7px; }
+      .clientes-tabla-desktop { display:none !important; }
+      .clientes-cards-mobile { display:block !important; }
+      .cliente-card { background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:14px;margin-bottom:10px; }
+      .cliente-card-header { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+      .cliente-card-body { display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px; }
+      .cliente-card-field label { font-size:10px;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:2px; }
+      .cliente-card-field span { font-size:13px;color:var(--black);font-weight:500; }
       .clientes-scroll-hint { display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-400);padding:4px 0 6px;letter-spacing:0.3px; }
     }
     @media (max-width:480px) {
@@ -591,15 +598,13 @@
       </select>
       <div style="margin-left:auto;font-size:13px;color:var(--gray-400)" id="clientes-count"></div>
     </div>
-    <div class="clientes-scroll-hint">← desliza para ver más →</div>
-    <div class="card" style="overflow:hidden">
-      <div id="clientes-scroll" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;position:relative;">
-        <table style="min-width:700px;width:max-content">
-          <thead><tr><th>Cliente</th><th>Teléfono</th><th>Último servicio</th><th>Citas</th><th>Total gastado</th><th>Notas</th><th>Estado</th></tr></thead>
-          <tbody id="tabla-clientes"></tbody>
-        </table>
-      </div>
+    <div class="card clientes-tabla-desktop" style="overflow:hidden">
+      <table>
+        <thead><tr><th>Cliente</th><th>Teléfono</th><th>Último servicio</th><th>Citas</th><th>Total gastado</th><th>Notas</th><th>Estado</th></tr></thead>
+        <tbody id="tabla-clientes"></tbody>
+      </table>
     </div>
+    <div id="clientes-cards-mobile" class="clientes-cards-mobile"></div>
   </div>
 
   <!-- ══ REPORTES ══ -->
@@ -2185,8 +2190,8 @@ function renderClientes(busqueda='', servicio='', estado='') {
   let lista=clientes;
   if (busqueda) lista=lista.filter(c=>c.nombre.toLowerCase().includes(busqueda));
   if (servicio) lista=lista.filter(c=>c.servicio===servicio);
-  // estado filter (simple demo)
   document.getElementById('clientes-count').textContent=`${lista.length} clientes`;
+  // Desktop table
   document.getElementById('tabla-clientes').innerHTML=lista.map(c=>{
     const notas=citas.filter(ci=>ci.nombre===c.nombre&&ci.nota).length;
     return `<tr>
@@ -2201,6 +2206,29 @@ function renderClientes(busqueda='', servicio='', estado='') {
       <td><span class="tag tag-done">✓ Activo</span></td>
     </tr>`;
   }).join('');
+  // Mobile cards
+  var cardsEl = document.getElementById('clientes-cards-mobile');
+  if (cardsEl) {
+    cardsEl.innerHTML = lista.map(c=>{
+      const notas=citas.filter(ci=>ci.nombre===c.nombre&&ci.nota).length;
+      return `<div class="cliente-card">
+        <div class="cliente-card-header">
+          <div class="cita-avatar" style="width:36px;height:36px;font-size:14px;flex-shrink:0">${c.nombre[0]}</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:var(--black)">${c.nombre}</div>
+            <div style="font-size:12px;color:var(--gray-400)">${c.tel}</div>
+          </div>
+          <span class="tag tag-done" style="font-size:11px">✓ Activo</span>
+        </div>
+        <div class="cliente-card-body">
+          <div class="cliente-card-field"><label>Último servicio</label><span>${c.servicio}</span></div>
+          <div class="cliente-card-field"><label>Citas</label><span><b>${c.citas}</b> citas</span></div>
+          <div class="cliente-card-field"><label>Total gastado</label><span>$${c.gastado.toLocaleString('es-CL')}</span></div>
+          <div class="cliente-card-field"><label>Notas</label><span>${notas>0?`<span class="tag tag-nota" style="cursor:pointer;font-size:11px" onclick="verNotasCliente('${c.nombre}')">📝 ${notas} nota${notas>1?'s':''}</span>`:'—'}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 
 function buscarCliente(q){renderClientes(q);}
@@ -3029,38 +3057,6 @@ function renderBloqueos() {
 
 init();
 
-// ═══════════════════════════════════════════════════
-// TOUCH SCROLL HORIZONTAL TABLA CLIENTES (iOS fix)
-// ═══════════════════════════════════════════════════
-(function() {
-  var startX, startY, startScroll;
-  var isHorizontal = null;
-
-  function getEl() { return document.getElementById('clientes-scroll'); }
-
-  document.addEventListener('touchstart', function(e) {
-    var el = getEl();
-    if (!el || !el.contains(e.target)) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    startScroll = el.scrollLeft;
-    isHorizontal = null;
-  }, { passive: true });
-
-  document.addEventListener('touchmove', function(e) {
-    var el = getEl();
-    if (!el || !el.contains(e.target)) return;
-    var dx = e.touches[0].clientX - startX;
-    var dy = e.touches[0].clientY - startY;
-    if (isHorizontal === null) {
-      isHorizontal = Math.abs(dx) > Math.abs(dy);
-    }
-    if (isHorizontal) {
-      e.preventDefault();
-      el.scrollLeft = startScroll - dx;
-    }
-  }, { passive: false });
-})();
 </script>
 </body>
 </html>
