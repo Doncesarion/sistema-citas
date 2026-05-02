@@ -366,7 +366,7 @@
       /* Modals */
       .modal { margin:8px;max-width:calc(100vw - 16px) !important;max-height:90vh !important;border-radius:14px;overflow-y:auto; }
       /* Tables */
-      .card > table, table { display:block;overflow-x:auto;font-size:12px; }
+      table { font-size:12px; }
       th, td { padding:8px 10px;white-space:nowrap; }
       /* Calendario */
       #calendario-agenda { min-width:300px !important; }
@@ -378,9 +378,6 @@
       .esp-grid { grid-template-columns:1fr !important; }
       /* Horarios */
       .horario-row { flex-wrap:wrap; gap:6px; }
-    .horario-bloque-row { display:flex;align-items:center;gap:6px;margin-bottom:6px; }
-    .horario-bloque-row:last-child { margin-bottom:0; }
-    .col-mobile-hide { }
       /* Tabs */
       .tabs { overflow-x:auto;flex-wrap:nowrap; }
       .tab-btn { white-space:nowrap;font-size:12px;padding:8px 10px; }
@@ -412,12 +409,6 @@
       /* General */
       .btn { font-size:12px; padding:7px 12px; }
       .btn-group { flex-wrap:wrap; gap:6px; }
-      .col-mobile-hide { display:none !important; }
-      .horario-bloque-row { flex-wrap:wrap; gap:4px; }
-      .horario-time { width:100px !important; font-size:13px; padding:5px 6px; }
-      #modal-especialista .modal { max-width:calc(100vw - 16px) !important; }
-      #modal-especialista .settings-grid { grid-template-columns:1fr !important; }
-      #modal-especialista .form-group[style*="grid-column:span 2"] { grid-column:span 1 !important; }
       .section-title { font-size:15px; }
       .badge { font-size:11px; padding:2px 7px; }
     }
@@ -599,11 +590,13 @@
       </select>
       <div style="margin-left:auto;font-size:13px;color:var(--gray-400)" id="clientes-count"></div>
     </div>
-    <div class="card">
-      <table>
-        <thead><tr><th>Cliente</th><th class="col-mobile-hide">Teléfono</th><th>Último servicio</th><th>Citas</th><th class="col-mobile-hide">Total gastado</th><th class="col-mobile-hide">Notas</th><th class="col-mobile-hide">Estado</th></tr></thead>
-        <tbody id="tabla-clientes"></tbody>
-      </table>
+    <div class="card" style="overflow:hidden">
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <table style="min-width:600px">
+          <thead><tr><th>Cliente</th><th>Teléfono</th><th>Último servicio</th><th>Citas</th><th>Total gastado</th><th>Notas</th><th>Estado</th></tr></thead>
+          <tbody id="tabla-clientes"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -1624,19 +1617,19 @@ function abrirModalEspecialista() {
           '<span style="min-width:90px;font-size:13px;font-weight:500">'+DIAS_LABEL2[dia]+'</span>' +
         '</div>' +
         '<div id="esp-rangos-'+dia+'" style="display:none;padding-left:26px">' +
-          '<div class="horario-bloque-row">' +
-            '<span style="font-size:11px;color:var(--gray-500);min-width:44px">Mañana</span>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+            '<span style="font-size:11px;color:var(--gray-500);min-width:50px">Bloque 1</span>' +
             '<input type="time" id="esp-h1i-'+dia+'" value="09:00" class="horario-time">' +
-            '<span style="color:var(--gray-400);font-size:12px">→</span>' +
+            '<span style="color:var(--gray-400);font-size:13px">&#8594;</span>' +
             '<input type="time" id="esp-h1f-'+dia+'" value="13:00" class="horario-time">' +
           '</div>' +
-          '<div class="horario-bloque-row">' +
-            '<span style="font-size:11px;color:var(--gray-500);min-width:44px">Tarde</span>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span style="font-size:11px;color:var(--gray-500);min-width:50px">Bloque 2</span>' +
             '<input type="time" id="esp-h2i-'+dia+'" value="14:00" class="horario-time">' +
-            '<span style="color:var(--gray-400);font-size:12px">→</span>' +
+            '<span style="color:var(--gray-400);font-size:13px">&#8594;</span>' +
             '<input type="time" id="esp-h2f-'+dia+'" value="18:00" class="horario-time">' +
-            '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--gray-400);cursor:pointer">' +
-              '<input type="checkbox" id="esp-h2act-'+dia+'" style="accent-color:var(--accent)"> activar' +
+            '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--gray-400);margin-left:4px;cursor:pointer">' +
+              '<input type="checkbox" id="esp-h2act-'+dia+'" style="accent-color:var(--accent)"> tarde' +
             '</label>' +
           '</div>' +
         '</div>' +
@@ -2199,11 +2192,11 @@ function renderClientes(busqueda='', servicio='', estado='') {
         <div class="cita-avatar" style="width:32px;height:32px;font-size:12px">${c.nombre[0]}</div>
         <span class="td-name">${c.nombre}</span>
       </div></td>
-      <td class="col-mobile-hide">${c.tel}</td><td>${c.servicio}</td>
+      <td>${c.tel}</td><td>${c.servicio}</td>
       <td><b>${c.citas}</b> citas</td>
-      <td class="col-mobile-hide"><b>$${c.gastado.toLocaleString('es-CL')}</b></td>
-      <td class="col-mobile-hide">${notas>0?`<span class="tag tag-nota" style="cursor:pointer" onclick="verNotasCliente('${c.nombre}')">📝 ${notas} nota${notas>1?'s':''}</span>`:'<span style="font-size:12px;color:var(--gray-300)">Sin notas</span>'}</td>
-      <td class="col-mobile-hide"><span class="tag tag-done">✓ Activo</span></td>
+      <td><b>$${c.gastado.toLocaleString('es-CL')}</b></td>
+      <td>${notas>0?`<span class="tag tag-nota" style="cursor:pointer" onclick="verNotasCliente('${c.nombre}')">📝 ${notas} nota${notas>1?'s':''}</span>`:'<span style="font-size:12px;color:var(--gray-300)">Sin notas</span>'}</td>
+      <td><span class="tag tag-done">✓ Activo</span></td>
     </tr>`;
   }).join('');
 }
