@@ -922,8 +922,36 @@ function renderInfoNegocio() {
   if (!showInfo) return;
   var horarioTexto = '';
   try {
-    var activos = Object.entries(CFG.horarios||{}).filter(function(e){return e[1].activo;}).slice(0,2);
-    horarioTexto = activos.map(function(e){return e[0].charAt(0).toUpperCase()+e[0].slice(1,3)+' '+e[1].inicio+'-'+e[1].fin;}).join(', ');
+    var ORDEN_DIAS = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+    var ABREV = {lunes:'Lun',martes:'Mar',miercoles:'Mie',jueves:'Jue',viernes:'Vie',sabado:'Sab',domingo:'Dom'};
+    var horarios = CFG.horarios || {};
+    // Agrupar dias consecutivos con el mismo horario
+    var grupos = [];
+    var i = 0;
+    while (i < ORDEN_DIAS.length) {
+      var dia = ORDEN_DIAS[i];
+      var h = horarios[dia];
+      if (!h || !h.activo) { i++; continue; }
+      var inicio = h.inicio || '09:00';
+      var fin = h.fin || '19:00';
+      var j = i + 1;
+      while (j < ORDEN_DIAS.length) {
+        var dia2 = ORDEN_DIAS[j];
+        var h2 = horarios[dia2];
+        if (!h2 || !h2.activo || h2.inicio !== inicio || h2.fin !== fin) break;
+        j++;
+      }
+      var diasGrupo = ORDEN_DIAS.slice(i, j);
+      if (diasGrupo.length === 1) {
+        grupos.push(ABREV[dia] + ' ' + inicio + '-' + fin);
+      } else if (diasGrupo.length === 2) {
+        grupos.push(ABREV[diasGrupo[0]] + '-' + ABREV[diasGrupo[1]] + ' ' + inicio + '-' + fin);
+      } else {
+        grupos.push(ABREV[diasGrupo[0]] + '-' + ABREV[diasGrupo[diasGrupo.length-1]] + ' ' + inicio + '-' + fin);
+      }
+      i = j;
+    }
+    horarioTexto = grupos.join(', ');
   } catch(er) {}
   var d = CFG.direccion||'', t = CFG.telefono||'';
   var dom = CFG.horarios && CFG.horarios.domingo && CFG.horarios.domingo.activo;
