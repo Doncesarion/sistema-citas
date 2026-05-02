@@ -21,7 +21,7 @@
       --shadow:0 1px 2px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.06);
     }
 
-    body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); color:var(--black); display:flex; min-height:100vh; max-width:100vw; overflow-x:hidden; }
+    body { font-family:'Inter',-apple-system,sans-serif; background:var(--gray-50); color:var(--black); display:flex; min-height:100vh; }
 
     /* subtle dot pattern on body */
     body::before {
@@ -340,7 +340,6 @@
 
     @media (max-width:900px) {
       /* Layout */
-      html, body { max-width:100vw !important; overflow-x:hidden !important; }
       .sidebar { transform:translateX(-100%);transition:transform 0.25s ease;z-index:50; }
       .sidebar.open { transform:translateX(0); }
       .content { margin-left:0; }
@@ -352,7 +351,7 @@
       .topbar-sub { display:none; }
       .topbar-actions { gap:6px; }
       /* Pages */
-      .page { padding:14px 10px; }
+      .page { padding:14px 10px; overflow-x:clip; }
       /* Grids */
       .stats-grid { grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
       .grid-2,.grid-3 { grid-template-columns:1fr; gap:12px; }
@@ -594,7 +593,7 @@
     </div>
     <div class="clientes-scroll-hint">← desliza para ver más →</div>
     <div class="card" style="overflow:hidden">
-      <div id="clientes-scroll" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;overscroll-behavior-x:contain">
+      <div id="clientes-scroll" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;position:relative;">
         <table style="min-width:700px;width:max-content">
           <thead><tr><th>Cliente</th><th>Teléfono</th><th>Último servicio</th><th>Citas</th><th>Total gastado</th><th>Notas</th><th>Estado</th></tr></thead>
           <tbody id="tabla-clientes"></tbody>
