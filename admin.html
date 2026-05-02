@@ -339,43 +339,84 @@
     .fecha-hoy-desktop { }
 
     @media (max-width:900px) {
+      /* Layout */
       .sidebar { transform:translateX(-100%);transition:transform 0.25s ease;z-index:50; }
       .sidebar.open { transform:translateX(0); }
       .content { margin-left:0; }
-      .stats-grid { grid-template-columns:1fr 1fr; }
-      .grid-2,.grid-3 { grid-template-columns:1fr; }
-      .settings-grid { grid-template-columns:1fr; }
       .hamburger { display:flex; }
-      .page { padding:16px 12px; }
-      .topbar { padding:0 12px; height:56px; }
+      .fecha-hoy-desktop { display:none; }
+      /* Topbar */
+      .topbar { padding:0 12px; height:52px; }
       .topbar-title { font-size:14px; }
       .topbar-sub { display:none; }
       .topbar-actions .btn span { display:none; }
-      .fecha-hoy-desktop { display:none; }
-      .modal { margin:8px;max-width:calc(100vw - 16px) !important;max-height:calc(100vh - 16px) !important;border-radius:12px; }
+      .topbar-actions { gap:6px; }
+      /* Pages */
+      .page { padding:14px 10px; }
+      /* Grids */
+      .stats-grid { grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+      .grid-2,.grid-3 { grid-template-columns:1fr; gap:12px; }
+      .settings-grid { grid-template-columns:1fr; }
+      /* Cards */
       .card { border-radius:12px; }
-      .stat-card { padding:16px; }
-      .stat-icon { width:36px;height:36px;font-size:18px; }
-      .stat-value { font-size:22px; }
-      .card-body { padding:16px; }
-      .card-header { padding:14px 16px; }
-      .section-title { font-size:16px; }
-      table { font-size:13px; }
-      th, td { padding:8px 10px; }
-      .badge { font-size:11px;padding:3px 8px; }
-      #calendario-agenda { min-width:320px !important; }
-      .agenda-grid { font-size:12px; }
-      .tabs { overflow-x:auto;flex-wrap:nowrap; }
-      .tab-btn { white-space:nowrap;font-size:12px;padding:8px 12px; }
-      .form-row { flex-direction:column !important; }
+      .card-header { padding:12px 14px; flex-wrap:wrap; gap:8px; }
+      .card-body { padding:14px; }
+      .stat-card { padding:14px; }
+      .stat-icon { width:34px;height:34px;font-size:17px; }
+      .stat-value { font-size:20px; }
+      /* Modals */
+      .modal { margin:8px;max-width:calc(100vw - 16px) !important;max-height:90vh !important;border-radius:14px;overflow-y:auto; }
+      /* Tables */
+      .card > table, table { display:block;overflow-x:auto;font-size:12px; }
+      th, td { padding:8px 10px;white-space:nowrap; }
+      /* Calendario */
+      #calendario-agenda { min-width:300px !important; }
+      .agenda-grid { font-size:11px; }
+      /* Forms */
+      .form-row { flex-direction:column !important; gap:10px !important; }
       .form-group { min-width:unset !important;width:100% !important; }
+      /* Especialistas */
       .esp-grid { grid-template-columns:1fr !important; }
-      .horario-row { flex-wrap:wrap;gap:6px; }
-      .btn-group { flex-wrap:wrap;gap:6px; }
+      /* Horarios */
+      .horario-row { flex-wrap:wrap; gap:6px; }
+      /* Tabs */
+      .tabs { overflow-x:auto;flex-wrap:nowrap; }
+      .tab-btn { white-space:nowrap;font-size:12px;padding:8px 10px; }
+      /* Reportes filtros 4col -> 2col */
+      #page-reportes div[style*="repeat(4"] { grid-template-columns:1fr 1fr !important; gap:10px !important; }
+      /* Suscripcion grid-2 -> 1col */
+      #page-suscripcion .grid-2 { grid-template-columns:1fr !important; }
+      /* Plan incluye 2col -> 1col */
+      #page-suscripcion div[style*="1fr 1fr;gap:6px"] { grid-template-columns:1fr !important; }
+      /* Suscripcion cobro precio inline -> stack */
+      #page-suscripcion div[style*="justify-content:space-between"] { flex-direction:column !important; gap:8px; }
+      /* Usuarios header */
+      #page-accesos > div:first-child { flex-direction:column !important; align-items:flex-start !important; gap:10px; }
+      #page-accesos > div:first-child > div:last-child { display:flex;flex-wrap:wrap;gap:6px;width:100%; }
+      #page-accesos > div:first-child > div:last-child button { font-size:12px;padding:7px 10px;flex:1; }
+      /* Roles grid 2col -> 1col */
+      #accesos-roles > div { grid-template-columns:1fr !important; }
+      /* Usuarios lista item */
+      #lista-usuarios > div > div { flex-wrap:wrap; gap:8px; padding:12px 14px !important; }
+      #lista-usuarios > div > div > div[style*="display:flex;align-items:center;gap:6px"] { flex-wrap:wrap; gap:6px; }
+      /* Clientes filtros fullwidth */
+      #page-clientes > div:first-child { gap:8px; }
+      #page-clientes > div:first-child input,
+      #page-clientes > div:first-child select { width:100% !important; }
+      /* Config campos telefono+whatsapp */
+      #page-personalizar div[style*="display:flex"] > .form-group { width:100% !important; flex:unset !important; }
+      /* Accesos tabs */
+      #page-accesos div[style*="display:flex;gap:0"] { overflow-x:auto; }
+      /* General */
+      .btn { font-size:12px; padding:7px 12px; }
+      .btn-group { flex-wrap:wrap; gap:6px; }
+      .section-title { font-size:15px; }
+      .badge { font-size:11px; padding:2px 7px; }
     }
     @media (max-width:480px) {
-      .stats-grid { grid-template-columns:1fr 1fr; }
+      .stats-grid { grid-template-columns:1fr 1fr; gap:8px; }
       .topbar-title { font-size:13px; }
+      .page { padding:10px 8px; }
     }
   </style>
 </head>
