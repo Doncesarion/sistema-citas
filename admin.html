@@ -603,8 +603,11 @@
         <thead><tr><th>Cliente</th><th>Teléfono</th><th>Último servicio</th><th>Citas</th><th>Total gastado</th><th>Notas</th><th>Estado</th></tr></thead>
         <tbody id="tabla-clientes"></tbody>
       </table>
+      <div id="clientes-paginacion"></div>
     </div>
-    <div id="clientes-cards-mobile" class="clientes-cards-mobile"></div>
+    <div id="clientes-cards-mobile" class="clientes-cards-mobile">
+      <div id="clientes-paginacion-mobile"></div>
+    </div>
   </div>
 
   <!-- ══ REPORTES ══ -->
@@ -2186,13 +2189,31 @@ function filtrarClientes() {
 
 function buscarCliente(q){renderClientes(q);}
 
+var clientesPagina = 1;
+var clientesPorPagina = 10;
+var clientesListaFiltrada = [];
+
 function renderClientes(busqueda='', servicio='', estado='') {
   let lista=clientes;
   if (busqueda) lista=lista.filter(c=>c.nombre.toLowerCase().includes(busqueda));
   if (servicio) lista=lista.filter(c=>c.servicio===servicio);
-  document.getElementById('clientes-count').textContent=`${lista.length} clientes`;
+  clientesListaFiltrada = lista;
+  clientesPagina = 1;
+  renderClientesPagina();
+}
+
+function renderClientesPagina() {
+  var lista = clientesListaFiltrada;
+  var total = lista.length;
+  var totalPags = Math.ceil(total / clientesPorPagina);
+  var desde = (clientesPagina - 1) * clientesPorPagina;
+  var hasta = Math.min(desde + clientesPorPagina, total);
+  var paginada = lista.slice(desde, hasta);
+
+  document.getElementById('clientes-count').textContent = total + ' clientes';
+
   // Desktop table
-  document.getElementById('tabla-clientes').innerHTML=lista.map(c=>{
+  document.getElementById('tabla-clientes').innerHTML = paginada.map(c=>{
     const notas=citas.filter(ci=>ci.nombre===c.nombre&&ci.nota).length;
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:10px">
@@ -2206,10 +2227,11 @@ function renderClientes(busqueda='', servicio='', estado='') {
       <td><span class="tag tag-done">✓ Activo</span></td>
     </tr>`;
   }).join('');
+
   // Mobile cards
   var cardsEl = document.getElementById('clientes-cards-mobile');
   if (cardsEl) {
-    cardsEl.innerHTML = lista.map(c=>{
+    cardsEl.innerHTML = paginada.map(c=>{
       const notas=citas.filter(ci=>ci.nombre===c.nombre&&ci.nota).length;
       return `<div class="cliente-card">
         <div class="cliente-card-header">
@@ -2228,6 +2250,24 @@ function renderClientes(busqueda='', servicio='', estado='') {
         </div>
       </div>`;
     }).join('');
+  }
+
+  // Paginación
+  // Both desktop and mobile pagination
+  ['clientes-paginacion','clientes-paginacion-mobile'].forEach(function(id) {
+  var paginEl = document.getElementById(id);
+  if (paginEl) {
+    if (totalPags <= 1) { paginEl.innerHTML=''; return; }
+    paginEl.innerHTML =
+      `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--gray-100);font-size:13px;color:var(--gray-500)">
+        <span>${desde+1}–${hasta} de ${total}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" ${clientesPagina===1?'disabled':''} onclick="clientesPagina--;renderClientesPagina()">← Anterior</button>
+          <span style="padding:5px 10px;font-size:12px;color:var(--gray-600)">${clientesPagina} / ${totalPags}</span>
+          <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" ${clientesPagina===totalPags?'disabled':''} onclick="clientesPagina++;renderClientesPagina()">Siguiente →</button>
+        </div>
+      </div>`;
+  });
   }
 }
 
