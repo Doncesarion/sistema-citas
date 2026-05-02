@@ -604,9 +604,8 @@
       </table>
       <div id="clientes-paginacion"></div>
     </div>
-    <div id="clientes-cards-mobile" class="clientes-cards-mobile" style="display:none">
-      <div id="clientes-paginacion-mobile"></div>
-    </div>
+    <div id="clientes-cards-mobile" class="clientes-cards-mobile" style="display:none"></div>
+    <div id="clientes-paginacion-mobile"></div>
   </div>
 
   <!-- ══ REPORTES ══ -->
@@ -2284,7 +2283,7 @@ function renderClientesPagina() {
   var p1 = document.getElementById('clientes-paginacion');
   var p2 = document.getElementById('clientes-paginacion-mobile');
   if (p1) p1.innerHTML = esMobile ? '' : paginHtml;
-  if (p2) p2.innerHTML = esMobile ? paginHtml : '';
+  if (p2) { p2.innerHTML = esMobile ? paginHtml : ''; p2.style.display = esMobile ? 'block' : 'none'; }
 }
 
 function buscarCliente(q){renderClientes(q);}
