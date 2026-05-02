@@ -17,7 +17,7 @@
       --success:#16A34A; --success-light:#F0FDF4; --success-border:#BBF7D0;
       --warn:#D97706; --warn-light:#FFFBEB; --warn-border:#FDE68A;
       --danger:#DC2626; --danger-light:#FEF2F2; --danger-border:#FECACA;
-      --sidebar-w:248px; --radius:14px; --radius-sm:9px;
+      --sidebar-w:220px; --radius:14px; --radius-sm:9px;
       --shadow:0 1px 2px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.06);
     }
 
@@ -112,7 +112,7 @@
     .user-role { font-size:11px;color:rgba(255,255,255,0.4); }
 
     /* ── CONTENT ── */
-    .content { margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh; }
+    .content { margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;min-width:0;overflow-x:hidden; }
     .topbar { height:60px;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--gray-200);padding:0 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;box-shadow:0 1px 3px rgba(0,0,0,0.04); }
     .topbar-title { font-size:16px;font-weight:700;color:var(--black); }
     .topbar-sub   { font-size:12px;color:var(--gray-400);margin-top:1px; }
@@ -383,6 +383,7 @@
       .tab-btn { white-space:nowrap;font-size:12px;padding:8px 10px; }
       /* Reportes filtros 4col -> 2col */
       #page-reportes div[style*="repeat(4"] { grid-template-columns:1fr 1fr !important; gap:10px !important; }
+      .stats-grid { grid-template-columns:1fr 1fr; }
       /* Suscripcion grid-2 -> 1col */
       #page-suscripcion .grid-2 { grid-template-columns:1fr !important; }
       /* Plan incluye 2col -> 1col */
@@ -3214,12 +3215,12 @@ function exportarPDF() {
 
     // Barras SVG citas por servicio
     var maxVal = Math.max.apply(null, servicioKeys.map(function(k){return porServicio[k];}));
-    var barW = 60; var barGap = 24; var chartH = 140; var chartW = servicioKeys.length*(barW+barGap)+barGap;
+    var barW = 56; var barGap = 20; var chartH = 130; var chartW = Math.max(300, servicioKeys.length*(barW+barGap)+barGap*2);
     var barsSVG = '<svg width="'+chartW+'" height="'+(chartH+50)+'" xmlns="http://www.w3.org/2000/svg">';
     servicioKeys.forEach(function(k,i){
       var val = porServicio[k];
       var h = Math.round((val/maxVal)*chartH);
-      var x = barGap + i*(barW+barGap);
+      var totalW = servicioKeys.length*(barW+barGap); var offsetX = Math.max(barGap, (chartW-totalW)/2); var x = offsetX + i*(barW+barGap);
       var y = chartH - h;
       barsSVG += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+h+'" rx="6" fill="'+colores[i%colores.length]+'"/>';
       barsSVG += '<text x="'+(x+barW/2)+'" y="'+(y-6)+'" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">'+val+'</text>';
@@ -3236,7 +3237,7 @@ function exportarPDF() {
     var x1 = cx + r * Math.sin(0); var y1 = cy - r * Math.cos(0);
     var x2 = cx + r * Math.sin(angle); var y2 = cy - r * Math.cos(angle);
     var largeArc = pctCob > 0.5 ? 1 : 0;
-    var donutSVG = '<svg width="160" height="160" xmlns="http://www.w3.org/2000/svg">';
+    var donutSVG = '<svg width="180" height="180" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">';
     if (cobrado > 0 && porCobrar > 0) {
       donutSVG += '<path d="M '+cx+' '+cy+' L '+x1+' '+y1+' A '+r+' '+r+' 0 '+largeArc+' 1 '+x2+' '+y2+' Z" fill="#16a34a"/>';
       donutSVG += '<path d="M '+cx+' '+cy+' L '+x2+' '+y2+' A '+r+' '+r+' 0 '+(1-largeArc)+' 1 '+x1+' '+y1+' Z" fill="#f59e0b"/>';
