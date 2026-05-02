@@ -670,7 +670,7 @@
     <!-- Botones exportar -->
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;flex-wrap:wrap">
       <button class="btn btn-outline" onclick="exportarExcel()" style="font-size:13px;gap:6px">
-        📊 Exportar Excel
+        📊 Exportar CSV
       </button>
       <button class="btn btn-outline" onclick="exportarPDF()" style="font-size:13px;gap:6px">
         📄 Exportar PDF
@@ -715,7 +715,7 @@
         <div style="font-size:12px;color:var(--gray-400)" id="rep-subtitle"></div>
       </div>
       <table>
-        <thead><tr><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Monto</th><th>Pago</th><th>Estado</th><th>Acción</th></tr></thead>
+        <thead><tr><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Monto</th><th>Pago</th><th>Estado</th></tr></thead>
         <tbody id="rep-tabla"></tbody>
       </table>
     </div>
@@ -3172,24 +3172,25 @@ function getReportesData() {
 function exportarExcel() {
   try {
     var data = getReportesData();
-    var rows = [['Cliente','Servicio','Fecha','Hora','Estado','Pago','Precio']];
-    data.lista.forEach(function(c) {
-      rows.push([
-        c.nombre,
-        c.servicio,
+    var cabecera = ['Cliente','Servicio','Fecha','Hora','Estado','Pago','Precio'];
+    var filas = data.lista.map(function(c) {
+      return [
+        '"'+c.nombre+'"',
+        '"'+c.servicio+'"',
         c.fecha || '',
         c.hora || '',
-        c.estado === 'done' ? 'Completada' : c.estado === 'pending' ? 'Pendiente' : c.estado,
-        c.pago === 'paid' ? 'Cobrado' : 'Por cobrar',
+        c.estado === 'done' ? 'Completada' : c.estado === 'pending' ? 'Pendiente' : 'Cancelada',
+        c.pago === 'paid' ? 'Pagado' : 'Por cobrar',
         c.precio || 0
-      ]);
+      ].join(',');
     });
-    var ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{wch:22},{wch:18},{wch:14},{wch:10},{wch:14},{wch:14},{wch:12}];
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
-    XLSX.writeFile(wb, 'reporte-attempo-' + data.periodo.replace(/ /g,'-') + '.xlsx');
-    showToast('✅ Excel descargado correctamente');
+    var csv = [cabecera.join(',')].concat(filas).join('\n');
+    var blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'reporte-attempo.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ CSV descargado — ábrelo con Excel');
   } catch(e) {
     showToast('❌ Error al exportar: ' + e.message);
   }
