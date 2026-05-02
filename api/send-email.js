@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     '<table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">' +
     // Header morado
     '<tr><td style="background:linear-gradient(135deg,#4F46E5,#7C3AED);padding:32px;text-align:center;">' +
-    '<img src="https://attempo.cl/logo_attempo.png" width="64" height="64" style="border-radius:14px;margin-bottom:12px;" />' +
+    '<img src="https://attempo.cl/logo_attempo_v2.png" width="64" height="64" style="border-radius:14px;margin-bottom:12px;" />' +
     '<h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">attempo</h1>' +
     '<p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px;">Todo a tu tiempo</p>' +
     '</td></tr>' +
