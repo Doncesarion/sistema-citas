@@ -411,6 +411,7 @@
       .btn-group { flex-wrap:wrap; gap:6px; }
       .section-title { font-size:15px; }
       .badge { font-size:11px; padding:2px 7px; }
+      .clientes-scroll-hint { display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-400);padding:4px 0 6px;letter-spacing:0.3px; }
     }
     @media (max-width:480px) {
       .stats-grid { grid-template-columns:1fr 1fr; gap:8px; }
@@ -590,9 +591,10 @@
       </select>
       <div style="margin-left:auto;font-size:13px;color:var(--gray-400)" id="clientes-count"></div>
     </div>
+    <div class="clientes-scroll-hint">← desliza para ver más →</div>
     <div class="card" style="overflow:hidden">
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x">
-        <table style="min-width:600px;width:max-content">
+      <div id="clientes-scroll" style="overflow-x:scroll;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;overscroll-behavior-x:contain">
+        <table style="min-width:700px;width:max-content">
           <thead><tr><th>Cliente</th><th>Teléfono</th><th>Último servicio</th><th>Citas</th><th>Total gastado</th><th>Notas</th><th>Estado</th></tr></thead>
           <tbody id="tabla-clientes"></tbody>
         </table>
