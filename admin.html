@@ -667,6 +667,15 @@
         <button class="btn btn-primary" onclick="renderReportes()" style="margin-bottom:1px">Aplicar</button>
       </div>
     </div>
+    <!-- Botones exportar -->
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="exportarExcel()" style="font-size:13px;gap:6px">
+        📊 Exportar Excel
+      </button>
+      <button class="btn btn-outline" onclick="exportarPDF()" style="font-size:13px;gap:6px">
+        📄 Exportar PDF
+      </button>
+    </div>
 
     <!-- Stats -->
     <div class="stats-grid" style="margin-bottom:20px">
@@ -2140,8 +2149,24 @@ function cambiarEstado(id,estado) {
 function togglePago(id) {
   citas=citas.map(c=>c.id===id?{...c,pago:c.pago==='paid'?'unpaid':'paid'}:c);
   renderCitas(); renderDashboard();
+  if (document.getElementById('page-reportes')?.classList.contains('visible')) renderReportes();
   const c=citas.find(x=>x.id===id);
   showToast(c.pago==='paid'?'💚 Marcado como pagado':'💳 Marcado como pendiente');
+}
+
+function setPago(id, valor) {
+  citas=citas.map(c=>c.id===id?{...c,pago:valor}:c);
+  renderCitas(); renderDashboard();
+  if (document.getElementById('page-reportes')?.classList.contains('visible')) renderReportes();
+  showToast(valor==='paid'?'💚 Marcado como pagado':'💳 Marcado como por cobrar');
+}
+
+function setEstado(id, valor) {
+  citas=citas.map(c=>c.id===id?{...c,estado:valor}:c);
+  renderCitas(); renderDashboard();
+  if (document.getElementById('page-reportes')?.classList.contains('visible')) renderReportes();
+  var labels = {done:'✓ Completada', pending:'⏳ Pendiente', canceled:'✕ Cancelada'};
+  showToast('Estado actualizado: ' + (labels[valor]||valor));
 }
 
 // NOTAS
@@ -2465,9 +2490,19 @@ function renderRepTabla(lista) {
       <td class="td-name">${c.nombre}</td>
       <td>${c.servicio}</td>
       <td><b>$${c.precio.toLocaleString('es-CL')}</b></td>
-      <td>${c.pago==='paid'?'<span class="tag tag-paid">💚 Pagado</span>':'<span class="tag tag-unpaid">💳 Por cobrar</span>'}</td>
-      <td>${tagMap[c.estado]||''}</td>
-      <td><button class="btn ${c.pago==='paid'?'btn-outline':'btn-success'}" style="font-size:11px;padding:5px 10px" onclick="togglePago(${c.id})">${c.pago==='paid'?'Desmarcar':'Marcar pagado'}</button></td>
+      <td>
+        <select onchange="setPago(${c.id}, this.value)" style="border:1px solid var(--gray-200);border-radius:8px;padding:4px 8px;font-size:12px;font-family:Inter,sans-serif;cursor:pointer;background:${c.pago==='paid'?'#f0fdf4':'#fffbeb'};color:${c.pago==='paid'?'#16a34a':'#d97706'}">
+          <option value="paid"  ${c.pago==='paid'  ?'selected':''}>Pagado</option>
+          <option value="unpaid"${c.pago==='unpaid'?'selected':''}>Por cobrar</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="setEstado(${c.id}, this.value)" style="border:1px solid var(--gray-200);border-radius:8px;padding:4px 8px;font-size:12px;font-family:Inter,sans-serif;cursor:pointer;background:${c.estado==='done'?'#f0fdf4':c.estado==='pending'?'#fffbeb':'#fef2f2'};color:${c.estado==='done'?'#16a34a':c.estado==='pending'?'#d97706':'#dc2626'}">
+          <option value="pending"  ${c.estado==='pending'  ?'selected':''}>Pendiente</option>
+          <option value="done"     ${c.estado==='done'     ?'selected':''}>Completada</option>
+          <option value="canceled" ${c.estado==='canceled' ?'selected':''}>Cancelada</option>
+        </select>
+      </td>
     </tr>`).join('');
 }
 
@@ -3112,6 +3147,117 @@ function renderBloqueos() {
 
 init();
 
+
+// ═══════════════════════════════════════════════════
+// EXPORTAR REPORTES
+// ═══════════════════════════════════════════════════
+function getReportesData() {
+  var servFiltro   = document.getElementById('rep-servicio')?.value || '';
+  var pagoFiltro   = document.getElementById('rep-pago')?.value     || '';
+  var estadoFiltro = document.getElementById('rep-estado')?.value   || '';
+  var periodo      = document.getElementById('rep-periodo')?.value  || 'mes';
+  var periodoLabels = {
+    hoy:'Hoy', ayer:'Ayer', '7d':'Últimos 7 días', '10d':'Últimos 10 días',
+    '14d':'Últimos 14 días', mes:'Este mes', 'mes-pasado':'Mes pasado',
+    '60d':'Últimos 60 días', '90d':'Últimos 90 días', '3m':'Últimos 3 meses', custom:'Rango personalizado'
+  };
+  var lista = [...citas];
+  if (servFiltro)   lista = lista.filter(function(c){return c.servicio===servFiltro;});
+  if (pagoFiltro)   lista = lista.filter(function(c){return c.pago===pagoFiltro;});
+  if (estadoFiltro) lista = lista.filter(function(c){return c.estado===estadoFiltro;});
+  else              lista = lista.filter(function(c){return c.estado!=='canceled';});
+  return { lista: lista, periodo: periodoLabels[periodo]||periodo };
+}
+
+function exportarExcel() {
+  try {
+    var data = getReportesData();
+    var rows = [['Cliente','Servicio','Fecha','Hora','Estado','Pago','Precio']];
+    data.lista.forEach(function(c) {
+      rows.push([
+        c.nombre,
+        c.servicio,
+        c.fecha || '',
+        c.hora || '',
+        c.estado === 'done' ? 'Completada' : c.estado === 'pending' ? 'Pendiente' : c.estado,
+        c.pago === 'paid' ? 'Cobrado' : 'Por cobrar',
+        c.precio || 0
+      ]);
+    });
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:22},{wch:18},{wch:14},{wch:10},{wch:14},{wch:14},{wch:12}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
+    XLSX.writeFile(wb, 'reporte-attempo-' + data.periodo.replace(/ /g,'-') + '.xlsx');
+    showToast('✅ Excel descargado correctamente');
+  } catch(e) {
+    showToast('❌ Error al exportar: ' + e.message);
+  }
+}
+
+function exportarPDF() {
+  try {
+    var data = getReportesData();
+    var { jsPDF } = window.jspdf;
+    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    // Header
+    doc.setFillColor(79, 70, 229);
+    doc.rect(0, 0, 297, 22, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica','bold');
+    doc.text('attempo — Reporte de citas', 14, 10);
+    doc.setFontSize(9);
+    doc.setFont('helvetica','normal');
+    doc.text('Período: ' + data.periodo + '   |   Total: ' + data.lista.length + ' citas', 14, 17);
+
+    // Stats
+    var cobrado = data.lista.filter(function(c){return c.pago==='paid';}).reduce(function(s,c){return s+c.precio;},0);
+    var porCobrar = data.lista.filter(function(c){return c.pago==='unpaid';}).reduce(function(s,c){return s+c.precio;},0);
+    doc.setTextColor(0,0,0);
+    doc.setFontSize(9);
+    doc.text('Cobrado: $' + cobrado.toLocaleString('es-CL') + '   Por cobrar: $' + porCobrar.toLocaleString('es-CL'), 14, 29);
+
+    // Table
+    var rows = data.lista.map(function(c) {
+      return [
+        c.nombre,
+        c.servicio,
+        c.fecha || '',
+        c.hora || '',
+        c.estado === 'done' ? 'Completada' : c.estado === 'pending' ? 'Pendiente' : c.estado,
+        c.pago === 'paid' ? 'Cobrado' : 'Por cobrar',
+        '$' + (c.precio||0).toLocaleString('es-CL')
+      ];
+    });
+
+    doc.autoTable({
+      startY: 33,
+      head: [['Cliente','Servicio','Fecha','Hora','Estado','Pago','Precio']],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: { 6: { halign: 'right' } }
+    });
+
+    // Footer
+    var pageCount = doc.internal.getNumberOfPages();
+    for (var i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(150,150,150);
+      doc.text('attempo.cl — Generado el ' + new Date().toLocaleDateString('es-CL'), 14, doc.internal.pageSize.height - 5);
+      doc.text('Página ' + i + ' de ' + pageCount, 280, doc.internal.pageSize.height - 5, {align:'right'});
+    }
+
+    doc.save('reporte-attempo-' + data.periodo.replace(/ /g,'-') + '.pdf');
+    showToast('✅ PDF descargado correctamente');
+  } catch(e) {
+    showToast('❌ Error al exportar: ' + e.message);
+  }
+}
 </script>
 </body>
 </html>
