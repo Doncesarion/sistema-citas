@@ -2253,22 +2253,21 @@ function renderClientesPagina() {
   }
 
   // Paginación
-  // Both desktop and mobile pagination
-  ['clientes-paginacion','clientes-paginacion-mobile'].forEach(function(id) {
-  var paginEl = document.getElementById(id);
-  if (paginEl) {
-    if (totalPags <= 1) { paginEl.innerHTML=''; return; }
-    paginEl.innerHTML =
-      `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--gray-100);font-size:13px;color:var(--gray-500)">
-        <span>${desde+1}–${hasta} de ${total}</span>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" ${clientesPagina===1?'disabled':''} onclick="clientesPagina--;renderClientesPagina()">← Anterior</button>
-          <span style="padding:5px 10px;font-size:12px;color:var(--gray-600)">${clientesPagina} / ${totalPags}</span>
-          <button class="btn btn-outline" style="padding:5px 12px;font-size:12px" ${clientesPagina===totalPags?'disabled':''} onclick="clientesPagina++;renderClientesPagina()">Siguiente →</button>
-        </div>
-      </div>`;
-  });
+  var paginHtml = '';
+  if (totalPags > 1) {
+    paginHtml = '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--gray-100);font-size:13px;color:var(--gray-500)">' +
+      '<span>' + (desde+1) + '–' + hasta + ' de ' + total + '</span>' +
+      '<div style="display:flex;gap:6px">' +
+        '<button class="btn btn-outline" style="padding:5px 12px;font-size:12px" ' + (clientesPagina===1?'disabled':'') + ' onclick="clientesPagina--;renderClientesPagina()">← Ant</button>' +
+        '<span style="padding:5px 6px;font-size:12px;color:var(--gray-600)">' + clientesPagina + '/' + totalPags + '</span>' +
+        '<button class="btn btn-outline" style="padding:5px 12px;font-size:12px" ' + (clientesPagina===totalPags?'disabled':'') + ' onclick="clientesPagina++;renderClientesPagina()">Sig →</button>' +
+      '</div>' +
+    '</div>';
   }
+  var p1 = document.getElementById('clientes-paginacion');
+  var p2 = document.getElementById('clientes-paginacion-mobile');
+  if (p1) p1.innerHTML = paginHtml;
+  if (p2) p2.innerHTML = paginHtml;
 }
 
 function buscarCliente(q){renderClientes(q);}
