@@ -494,8 +494,6 @@
     .esp-dias    { font-size:10px; color:var(--gray-400); margin-top:4px; }
 
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <script>(function(){ emailjs.init({ publicKey: "rkgCrCE6FJSgNc9Ak" }); })();</script>
 </head>
 <body>
 
@@ -1242,18 +1240,21 @@ function confirmarCita() {
   // Enviar email de confirmacion al paciente
   var emailPaciente = document.getElementById("email").value.trim();
   if (emailPaciente) {
-    var params = {
-      to_email:    emailPaciente,
-      cliente:     nombre,
-      negocio:     CFG.nombre || "Mi Negocio",
-      fecha:       formatFecha(estado.fecha),
-      hora:        estado.hora + " hrs",
-      especialista: espNombre || "-",
-      servicio:    estado.servicio.nombre,
-      duracion:    estado.servicio.duracion,
-      total:       "$" + (estado.servicio.precio||0).toLocaleString("es-CL")
-    };
-    emailjs.send("service_8t9468h", "template_znpx7ah", params).catch(function(e){ console.warn("EmailJS error:", e); });
+    fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to:          emailPaciente,
+        cliente:     nombre,
+        negocio:     CFG.nombre || "Mi Negocio",
+        fecha:       formatFecha(estado.fecha),
+        hora:        estado.hora + " hrs",
+        especialista: espNombre || "-",
+        servicio:    estado.servicio.nombre,
+        duracion:    estado.servicio.duracion,
+        total:       "$" + (estado.servicio.precio||0).toLocaleString("es-CL")
+      })
+    }).catch(function(e){ console.warn("Resend error:", e); });
   }
 
   var mensaje = 'Hola ' + primerNombre + '! Tu cita en ' + CFG.nombre + ' esta confirmada.<br><br>' +
