@@ -3199,66 +3199,48 @@ function exportarExcel() {
 function exportarPDF() {
   try {
     var data = getReportesData();
-    var { jsPDF } = window.jspdf;
-    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-    // Header
-    doc.setFillColor(79, 70, 229);
-    doc.rect(0, 0, 297, 22, 'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(14);
-    doc.setFont('helvetica','bold');
-    doc.text('attempo — Reporte de citas', 14, 10);
-    doc.setFontSize(9);
-    doc.setFont('helvetica','normal');
-    doc.text('Período: ' + data.periodo + '   |   Total: ' + data.lista.length + ' citas', 14, 17);
-
-    // Stats
     var cobrado = data.lista.filter(function(c){return c.pago==='paid';}).reduce(function(s,c){return s+c.precio;},0);
     var porCobrar = data.lista.filter(function(c){return c.pago==='unpaid';}).reduce(function(s,c){return s+c.precio;},0);
-    doc.setTextColor(0,0,0);
-    doc.setFontSize(9);
-    doc.text('Cobrado: $' + cobrado.toLocaleString('es-CL') + '   Por cobrar: $' + porCobrar.toLocaleString('es-CL'), 14, 29);
-
-    // Table
-    var rows = data.lista.map(function(c) {
-      return [
-        c.nombre,
-        c.servicio,
-        c.fecha || '',
-        c.hora || '',
-        c.estado === 'done' ? 'Completada' : c.estado === 'pending' ? 'Pendiente' : c.estado,
-        c.pago === 'paid' ? 'Cobrado' : 'Por cobrar',
-        '$' + (c.precio||0).toLocaleString('es-CL')
-      ];
-    });
-
-    doc.autoTable({
-      startY: 33,
-      head: [['Cliente','Servicio','Fecha','Hora','Estado','Pago','Precio']],
-      body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: { 6: { halign: 'right' } }
-    });
-
-    // Footer
-    var pageCount = doc.internal.getNumberOfPages();
-    for (var i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(150,150,150);
-      doc.text('attempo.cl — Generado el ' + new Date().toLocaleDateString('es-CL'), 14, doc.internal.pageSize.height - 5);
-      doc.text('Página ' + i + ' de ' + pageCount, 280, doc.internal.pageSize.height - 5, {align:'right'});
-    }
-
-    doc.save('reporte-attempo-' + data.periodo.replace(/ /g,'-') + '.pdf');
-    showToast('✅ PDF descargado correctamente');
+    var filas = data.lista.map(function(c) {
+      var estado = c.estado==='done'?'Completada':c.estado==='pending'?'Pendiente':'Cancelada';
+      var pago = c.pago==='paid'?'Pagado':'Por cobrar';
+      var colorEstado = c.estado==='done'?'#16a34a':c.estado==='pending'?'#d97706':'#dc2626';
+      var colorPago = c.pago==='paid'?'#16a34a':'#d97706';
+      return '<tr><td>'+c.hora+'</td><td><b>'+c.nombre+'</b></td><td>'+c.servicio+'</td><td><b>$'+c.precio.toLocaleString('es-CL')+'</b></td><td style="color:'+colorPago+'">'+pago+'</td><td style="color:'+colorEstado+'">'+estado+'</td></tr>';
+    }).join('');
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte Attempo</title><style>'+
+      'body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#1e293b}'+
+      '.header{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:20px}'+
+      '.header h1{margin:0;font-size:20px}.header p{margin:4px 0 0;font-size:13px;opacity:0.85}'+
+      '.stats{display:flex;gap:12px;margin-bottom:20px}'+
+      '.stat{flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center}'+
+      '.stat label{font-size:11px;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase}'+
+      '.stat span{font-size:18px;font-weight:700;color:#4F46E5}'+
+      'table{width:100%;border-collapse:collapse;font-size:13px}'+
+      'th{background:#4F46E5;color:#fff;padding:10px 12px;text-align:left;font-weight:600}'+
+      'td{padding:9px 12px;border-bottom:1px solid #e2e8f0}'+
+      'tr:nth-child(even) td{background:#f8fafc}'+
+      '.footer{margin-top:20px;font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:12px}'+
+      '@media print{body{padding:0}.no-print{display:none}}'+
+      '</style></head><body>'+
+      '<div class="header"><h1>attempo — Reporte de citas</h1><p>Período: '+data.periodo+' &nbsp;|&nbsp; Total: '+data.lista.length+' citas</p></div>'+
+      '<div class="stats">'+
+        '<div class="stat"><label>Total citas</label><span>'+data.lista.length+'</span></div>'+
+        '<div class="stat"><label>Cobrado</label><span>$'+cobrado.toLocaleString('es-CL')+'</span></div>'+
+        '<div class="stat"><label>Por cobrar</label><span>$'+porCobrar.toLocaleString('es-CL')+'</span></div>'+
+      '</div>'+
+      '<table><thead><tr><th>Hora</th><th>Cliente</th><th>Servicio</th><th>Monto</th><th>Pago</th><th>Estado</th></tr></thead><tbody>'+filas+'</tbody></table>'+
+      '<div class="footer">attempo.cl &nbsp;·&nbsp; Generado el '+new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'})+'</div>'+
+      '<div class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()" style="background:#4F46E5;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer">🖨️ Imprimir / Guardar PDF</button></div>'+
+      '</body></html>';
+    var win = window.open('','_blank');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    showToast('✅ PDF listo — usa Imprimir → Guardar como PDF');
   } catch(e) {
     showToast('❌ Error al exportar: ' + e.message);
   }
-}
-</script>
+}</script>
 </body>
 </html>
