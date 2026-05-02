@@ -336,6 +336,7 @@
     /* HAMBURGER */
     .hamburger { display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;flex-direction:column;gap:5px;align-items:center;justify-content:center; }
     .hamburger span { display:block;width:22px;height:2px;background:var(--gray-600);border-radius:2px;transition:all 0.2s; }
+    .fecha-hoy-desktop { }
 
     @media (max-width:900px) {
       .sidebar { transform:translateX(-100%);transition:transform 0.25s ease;z-index:50; }
@@ -345,13 +346,36 @@
       .grid-2,.grid-3 { grid-template-columns:1fr; }
       .settings-grid { grid-template-columns:1fr; }
       .hamburger { display:flex; }
-      .page { padding:20px 16px; }
-      .topbar { padding:0 16px; }
-      .modal { margin:16px;max-width:calc(100vw - 32px) !important; }
+      .page { padding:16px 12px; }
+      .topbar { padding:0 12px; height:56px; }
+      .topbar-title { font-size:14px; }
+      .topbar-sub { display:none; }
+      .topbar-actions .btn span { display:none; }
+      .fecha-hoy-desktop { display:none; }
+      .modal { margin:8px;max-width:calc(100vw - 16px) !important;max-height:calc(100vh - 16px) !important;border-radius:12px; }
+      .card { border-radius:12px; }
+      .stat-card { padding:16px; }
+      .stat-icon { width:36px;height:36px;font-size:18px; }
+      .stat-value { font-size:22px; }
+      .card-body { padding:16px; }
+      .card-header { padding:14px 16px; }
+      .section-title { font-size:16px; }
+      table { font-size:13px; }
+      th, td { padding:8px 10px; }
+      .badge { font-size:11px;padding:3px 8px; }
+      #calendario-agenda { min-width:320px !important; }
+      .agenda-grid { font-size:12px; }
+      .tabs { overflow-x:auto;flex-wrap:nowrap; }
+      .tab-btn { white-space:nowrap;font-size:12px;padding:8px 12px; }
+      .form-row { flex-direction:column !important; }
+      .form-group { min-width:unset !important;width:100% !important; }
+      .esp-grid { grid-template-columns:1fr !important; }
+      .horario-row { flex-wrap:wrap;gap:6px; }
+      .btn-group { flex-wrap:wrap;gap:6px; }
     }
     @media (max-width:480px) {
-      .stats-grid { grid-template-columns:1fr; }
-      .topbar-title { font-size:14px; }
+      .stats-grid { grid-template-columns:1fr 1fr; }
+      .topbar-title { font-size:13px; }
     }
   </style>
 </head>
@@ -426,8 +450,8 @@
       </div>
     </div>
     <div class="topbar-actions">
-      <span style="font-size:13px;color:var(--gray-400)" id="fecha-hoy"></span>
-      <button class="btn btn-primary" onclick="abrirModal('modal-cita')">+ Nueva cita</button>
+      <span style="font-size:13px;color:var(--gray-400)" id="fecha-hoy" class="fecha-hoy-desktop"></span>
+      <button class="btn btn-primary" onclick="abrirModal('modal-cita')"><span>+ Nueva cita</span></button>
     </div>
   </div>
 
