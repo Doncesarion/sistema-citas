@@ -412,7 +412,6 @@
       .section-title { font-size:15px; }
       .badge { font-size:11px; padding:2px 7px; }
       .clientes-tabla-desktop { display:none !important; }
-      .clientes-cards-mobile { display:block !important; }
       .cliente-card { background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:14px;margin-bottom:10px;touch-action:pan-y; }
       .cliente-card-header { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
       .cliente-card-body { display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px; }
@@ -605,7 +604,7 @@
       </table>
       <div id="clientes-paginacion"></div>
     </div>
-    <div id="clientes-cards-mobile" class="clientes-cards-mobile">
+    <div id="clientes-cards-mobile" class="clientes-cards-mobile" style="display:none">
       <div id="clientes-paginacion-mobile"></div>
     </div>
   </div>
@@ -2228,9 +2227,11 @@ function renderClientesPagina() {
     </tr>`;
   }).join('');
 
-  // Mobile cards
+  // Mobile cards - solo en mobile
   var cardsEl = document.getElementById('clientes-cards-mobile');
+  var esMobile = window.innerWidth <= 900;
   if (cardsEl) {
+    cardsEl.style.display = esMobile ? 'block' : 'none';
     cardsEl.innerHTML = paginada.map(c=>{
       const notas=citas.filter(ci=>ci.nombre===c.nombre&&ci.nota).length;
       return `<div class="cliente-card">
@@ -2266,8 +2267,8 @@ function renderClientesPagina() {
   }
   var p1 = document.getElementById('clientes-paginacion');
   var p2 = document.getElementById('clientes-paginacion-mobile');
-  if (p1) p1.innerHTML = paginHtml;
-  if (p2) p2.innerHTML = paginHtml;
+  if (p1) p1.innerHTML = esMobile ? '' : paginHtml;
+  if (p2) p2.innerHTML = esMobile ? paginHtml : '';
 }
 
 function buscarCliente(q){renderClientes(q);}
