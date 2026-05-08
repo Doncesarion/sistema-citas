@@ -1,65 +1,111 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
-  var body = req.body;
-  var to           = body.to;
-  var cliente      = body.cliente;
-  var negocio      = body.negocio;
-  var fecha        = body.fecha;
-  var hora         = body.hora;
-  var especialista = body.especialista;
-  var servicio     = body.servicio;
-  var duracion     = body.duracion;
-  var total        = body.total;
+  const { to, cliente, negocio, fecha, hora, especialista, servicio, duracion, total } = req.body;
+  if (!to) return res.status(400).json({ error: 'Falta email' });
 
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f8;font-family:Arial,sans-serif;">' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:32px 0;">' +
-    '<tr><td align="center">' +
-    '<table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">' +
-    // Header morado
-    '<tr><td style="background:linear-gradient(135deg,#4F46E5,#7C3AED);padding:32px;text-align:center;">' +
-    '<img src="https://attempo.cl/logo_attempo_v2.png" width="64" height="64" style="border-radius:14px;margin-bottom:12px;" />' +
-    '<h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">attempo</h1>' +
-    '<p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px;">Todo a tu tiempo</p>' +
-    '</td></tr>' +
-    // Cuerpo
-    '<tr><td style="padding:32px;">' +
-    '<h2 style="color:#0F172A;font-size:18px;margin:0 0 8px;">¡Cita confirmada! ✅</h2>' +
-    '<p style="color:#64748B;font-size:14px;margin:0 0 24px;">Hola <strong>' + cliente + '</strong>, tu cita en <strong>' + negocio + '</strong> ha sido confirmada.</p>' +
-    // Tabla de detalles
-    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:12px;padding:20px;border:1px solid #E2E8F0;">' +
-    '<tr><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;"><span style="color:#64748B;font-size:13px;">📅 Fecha</span></td><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;text-align:right;"><strong style="color:#0F172A;font-size:13px;">' + fecha + '</strong></td></tr>' +
-    '<tr><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;"><span style="color:#64748B;font-size:13px;">🕐 Hora</span></td><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;text-align:right;"><strong style="color:#0F172A;font-size:13px;">' + hora + '</strong></td></tr>' +
-    '<tr><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;"><span style="color:#64748B;font-size:13px;">👨‍⚕️ Especialista</span></td><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;text-align:right;"><strong style="color:#0F172A;font-size:13px;">' + especialista + '</strong></td></tr>' +
-    '<tr><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;"><span style="color:#64748B;font-size:13px;">💼 Servicio</span></td><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;text-align:right;"><strong style="color:#0F172A;font-size:13px;">' + servicio + '</strong></td></tr>' +
-    '<tr><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;"><span style="color:#64748B;font-size:13px;">⏱ Duración</span></td><td style="padding:8px 0;border-bottom:1px solid #E2E8F0;text-align:right;"><strong style="color:#0F172A;font-size:13px;">' + duracion + '</strong></td></tr>' +
-    '<tr><td style="padding:8px 0;"><span style="color:#64748B;font-size:13px;">💰 Total</span></td><td style="padding:8px 0;text-align:right;"><strong style="color:#4F46E5;font-size:15px;">' + total + '</strong></td></tr>' +
-    '</table>' +
-    '<p style="color:#64748B;font-size:13px;margin:24px 0 0;text-align:center;">Te pedimos llegar <strong>5 minutos antes</strong>. ¡Te esperamos!</p>' +
-    '</td></tr>' +
-    // Footer
-    '<tr><td style="background:#F8FAFC;padding:20px;text-align:center;border-top:1px solid #E2E8F0;">' +
-    '<p style="color:#94A3B8;font-size:12px;margin:0;">Este correo fue enviado por <strong>Attempo</strong> · <a href="https://attempo.cl" style="color:#4F46E5;text-decoration:none;">attempo.cl</a></p>' +
-    '</td></tr>' +
-    '</table>' +
-    '</td></tr></table>' +
-    '</body></html>';
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cita confirmada</title></head>
+<body style="margin:0;padding:0;background:#F4F4F8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F8;padding:32px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
 
-  var response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from: 'Attempo <contacto@attempo.cl>',
-      to: [to],
-      subject: 'Confirmacion de cita — ' + negocio,
-      html: html
-    })
-  });
+        <!-- HEADER -->
+        <tr><td style="background:linear-gradient(135deg,#6C5CE4 0%,#4F3EE0 100%);border-radius:14px 14px 0 0;padding:36px 40px;text-align:center">
+          <div style="width:56px;height:56px;background:rgba(255,255,255,0.18);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px">
+            <span style="font-size:22px;font-weight:700;color:#fff;font-family:monospace;letter-spacing:-1px">tt</span>
+          </div>
+          <div style="color:#fff;font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px">attempo</div>
+          <div style="color:rgba(255,255,255,0.75);font-size:13px">Todo a tu tiempo</div>
+        </td></tr>
 
-  var data = await response.json();
-  if (!response.ok) return res.status(500).json({ error: data });
-  return res.status(200).json({ ok: true });
-}
+        <!-- BODY -->
+        <tr><td style="background:#ffffff;padding:36px 40px">
+          <p style="font-size:22px;font-weight:700;color:#16143A;margin:0 0 6px">¡Cita confirmada! ✅</p>
+          <p style="font-size:14px;color:#5E5880;margin:0 0 28px">Hola ${cliente}, tu cita en <strong>${negocio}</strong> ha sido confirmada.</p>
+
+          <!-- INFO CARD -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.12);border-radius:10px;overflow:hidden">
+            <tr><td style="padding:0 20px">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="padding:14px 0;border-bottom:1px solid rgba(108,92,228,0.08)">
+                  <table width="100%"><tr>
+                    <td style="font-size:13px;color:#5E5880">📅 Fecha</td>
+                    <td align="right" style="font-size:13px;font-weight:600;color:#16143A">${fecha}</td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:14px 0;border-bottom:1px solid rgba(108,92,228,0.08)">
+                  <table width="100%"><tr>
+                    <td style="font-size:13px;color:#5E5880">🕐 Hora</td>
+                    <td align="right" style="font-size:13px;font-weight:600;color:#16143A">${hora}</td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:14px 0;border-bottom:1px solid rgba(108,92,228,0.08)">
+                  <table width="100%"><tr>
+                    <td style="font-size:13px;color:#5E5880">👨‍⚕️ Especialista</td>
+                    <td align="right" style="font-size:13px;font-weight:600;color:#16143A">${especialista}</td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:14px 0;border-bottom:1px solid rgba(108,92,228,0.08)">
+                  <table width="100%"><tr>
+                    <td style="font-size:13px;color:#5E5880">🗂 Servicio</td>
+                    <td align="right" style="font-size:13px;font-weight:600;color:#16143A">${servicio}</td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:14px 0;border-bottom:1px solid rgba(108,92,228,0.08)">
+                  <table width="100%"><tr>
+                    <td style="font-size:13px;color:#5E5880">⏱ Duración</td>
+                    <td align="right" style="font-size:13px;font-weight:600;color:#16143A">${duracion}</td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:14px 0">
+                  <table width="100%"><tr>
+                    <td style="font-size:13px;color:#5E5880">💰 Total</td>
+                    <td align="right" style="font-size:14px;font-weight:700;color:#6C5CE4">${total}</td>
+                  </tr></table>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <p style="font-size:13px;color:#5E5880;text-align:center;margin:24px 0 0">Te pedimos llegar 5 minutos antes. ¡Te esperamos!</p>
+        </td></tr>
+
+        <!-- FOOTER -->
+        <tr><td style="background:#F8F7FF;border-radius:0 0 14px 14px;padding:18px 40px;text-align:center;border-top:1px solid rgba(108,92,228,0.08)">
+          <p style="font-size:11px;color:#9C96B4;margin:0">Este correo fue enviado por <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none">Attempo</a> · <a href="https://attempo.cl" style="color:#9C96B4;text-decoration:none">attempo.cl</a></p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Attempo <contacto@attempo.cl>',
+        to: [to],
+        subject: '¡Tu cita está confirmada! ✅',
+        html
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      return res.status(500).json({ error: err });
+    }
+
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+};
