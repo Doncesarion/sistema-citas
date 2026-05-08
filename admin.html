@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Attempo — Dashboard</title>
+<script>(function(){if(!sessionStorage.getItem('attempo_user'))window.location.replace('login.html');}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -814,7 +815,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <span class="btn-new-txt">+ Nueva reserva</span>
       <span class="btn-new-ico" style="display:none">+</span>
     </button>
-    <div class="nav-av" title="cesar salinas" onclick="openProfile()" style="cursor:pointer">CS</div>
+    <div class="nav-av" id="nav-av" title="cesar salinas" onclick="openProfile()" style="cursor:pointer">CS</div>
   </div>
 </nav>
 
@@ -861,7 +862,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
         <div onclick="setProf('cesar')" style="display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s;border-bottom:1px solid var(--b1)" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
           <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0">CS</div>
-          <div><div style="font-weight:500">cesar salinas</div><div style="font-size:11px;color:var(--t3)">Psicólogo · 8 citas/sem</div></div>
+          <div><div style="font-weight:500" id="nav-nombre">cesar salinas</div><div style="font-size:11px;color:var(--t3)">Psicólogo · 8 citas/sem</div></div>
           <div id="check-cesar" style="margin-left:auto;color:var(--a);font-size:14px;display:none">✓</div>
         </div>
         <div onclick="setProf('maria')" style="display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s;border-bottom:1px solid var(--b1)" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
@@ -3412,6 +3413,24 @@ renderWeekHeader();
 renderWeekBody();
 renderLista();
 
+// ── Sesión: cargar nombre del usuario ──
+(function() {
+  var s = sessionStorage.getItem('attempo_user');
+  if (!s) return;
+  var u = JSON.parse(s);
+  if (!u.nombre) return;
+  var ini = u.nombre.split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+  var navAv = document.getElementById('nav-av');
+  var navNombre = document.getElementById('nav-nombre');
+  if (navAv) { navAv.textContent = ini; navAv.title = u.nombre; }
+  if (navNombre) navNombre.textContent = u.nombre;
+})();
+
+function logout() {
+  sessionStorage.removeItem('attempo_user');
+  window.location.replace('login.html');
+}
+
 </script>
 <!-- ═══ PERFIL / CUENTA ═══ -->
 <div class="overlay" id="profile-ov" onclick="if(event.target===this)closeProfile()">
@@ -3468,7 +3487,7 @@ renderLista();
       </div>
     </div>
     <div class="mfoot" style="justify-content:space-between">
-      <button class="btn-g" style="color:var(--red);border-color:rgba(220,38,38,0.2)" onclick="toast('Sesión cerrada. Redirigiendo...');closeProfile()">Cerrar sesión</button>
+      <button class="btn-g" style="color:var(--red);border-color:rgba(220,38,38,0.2)" onclick="logout()">Cerrar sesión</button>
       <div style="display:flex;gap:8px">
         <button class="btn-g" onclick="closeProfile()">Cancelar</button>
         <button class="btn-a" onclick="saveProfile()">Guardar cambios</button>
