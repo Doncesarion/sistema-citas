@@ -2827,7 +2827,7 @@ const NOMBRE_FULL = {
   'Ignacio M.':'Ignacio Muñoz','Isabella T.':'Isabella Torres','María F.':'María Fernández',
 };
 function evNombreFull(abrev) { return NOMBRE_FULL[abrev] || abrev; }
-function evIniciales(full) { return full.split(' ').slice(0,2).map(w=>w[0]).toUpperCase().join(''); }
+function evIniciales(full) { return full.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 
 function renderLista() {
   const container = document.getElementById('lista-container');
