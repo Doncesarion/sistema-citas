@@ -70,7 +70,7 @@
     .logo-area { text-align:center; margin-bottom:32px; }
     .logo-img { width:64px; height:64px; border-radius:18px; margin-bottom:14px; box-shadow:0 8px 24px rgba(79,70,229,0.3); }
     .brand-name { font-size:26px; font-weight:700; color:var(--black); letter-spacing:-1px; }
-    .brand-name span { color:var(--accent); }
+    .brand-name span { color:var(--black); }
     .brand-sub { font-size:13px; color:var(--gray-400); margin-top:4px; }
 
     .login-title { font-size:20px; font-weight:700; color:var(--black); text-align:center; margin-bottom:4px; }
@@ -219,7 +219,7 @@
   <button class="forgot-link" type="button" id="btn-forgot">¿Olvidaste tu contraseña?</button>
 
   <div class="footer-text">
-    ¿Necesitas ayuda? <a href="mailto:soporte@attempo.cl">soporte@attempo.cl</a>
+    ¿Necesitas ayuda? <a href="mailto:soporte@attempo.cl?subject=Recuperaci%C3%B3n%20de%20contrase%C3%B1a&body=Hola%2C%20necesito%20ayuda%20para%20recuperar%20mi%20contrase%C3%B1a%20de%20Attempo.">soporte@attempo.cl</a>
   </div>
 </div>
 
@@ -351,14 +351,27 @@ document.getElementById('btn-send-forgot').addEventListener('click', enviarRecup
 function enviarRecuperacion() {
   var email = document.getElementById('forgot-email').value.trim();
   var input = document.getElementById('forgot-email');
+  var btn   = document.getElementById('btn-send-forgot');
   if (!email || !email.includes('@')) {
     input.style.borderColor = '#DC2626';
     setTimeout(function(){ input.style.borderColor = '#E2E8F0'; }, 2000);
     return;
   }
-  // Aquí conectarías con Supabase: supabase.auth.resetPasswordForEmail(email)
-  document.getElementById('forgot-form').style.display = 'none';
-  document.getElementById('forgot-ok').style.display   = 'block';
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  fetch('/api/recover-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  })
+  .then(function() {
+    document.getElementById('forgot-form').style.display = 'none';
+    document.getElementById('forgot-ok').style.display   = 'block';
+  })
+  .catch(function() {
+    document.getElementById('forgot-form').style.display = 'none';
+    document.getElementById('forgot-ok').style.display   = 'block';
+  });
 }
 
 // ── SESIÓN ACTIVA ──
