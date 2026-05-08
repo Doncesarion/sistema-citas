@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
         <!-- HEADER -->
         <tr><td style="background:#6C5CE4;border-radius:14px 14px 0 0;padding:36px 40px;text-align:center">
           <table cellpadding="0" cellspacing="0" style="margin:0 auto 14px auto">
-            <tr><td width="56" height="56" align="center" valign="middle" style="width:56px;height:56px;background:rgba(255,255,255,0.18);border-radius:14px;font-size:22px;font-weight:700;color:#ffffff;font-family:monospace;letter-spacing:-1px;line-height:56px">tt</td></tr>
+            <tr><td align="center"><img src="https://sistema-citas-mu.vercel.app/logo_attempo.png" width="64" height="64" alt="attempo" style="display:block;border-radius:14px;border:0"></td></tr>
           </table>
           <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px">attempo</div>
           <div style="color:rgba(255,255,255,0.75);font-size:13px">Todo a tu tiempo</div>
