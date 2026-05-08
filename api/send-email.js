@@ -13,11 +13,11 @@ module.exports = async (req, res) => {
       <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
 
         <!-- HEADER -->
-        <tr><td style="background:linear-gradient(135deg,#6C5CE4 0%,#4F3EE0 100%);border-radius:14px 14px 0 0;padding:36px 40px;text-align:center">
-          <div style="width:56px;height:56px;background:rgba(255,255,255,0.18);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px">
-            <span style="font-size:22px;font-weight:700;color:#fff;font-family:monospace;letter-spacing:-1px">tt</span>
-          </div>
-          <div style="color:#fff;font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px">attempo</div>
+        <tr><td style="background:#6C5CE4;border-radius:14px 14px 0 0;padding:36px 40px;text-align:center">
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto 14px auto">
+            <tr><td width="56" height="56" align="center" valign="middle" style="width:56px;height:56px;background:rgba(255,255,255,0.18);border-radius:14px;font-size:22px;font-weight:700;color:#ffffff;font-family:monospace;letter-spacing:-1px;line-height:56px">tt</td></tr>
+          </table>
+          <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px">attempo</div>
           <div style="color:rgba(255,255,255,0.75);font-size:13px">Todo a tu tiempo</div>
         </td></tr>
 
