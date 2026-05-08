@@ -2778,48 +2778,63 @@ function renderWeekHeader() {
 function renderWeekBody() {
   const body = document.getElementById('semana-body');
   if (!body) return;
+
   const SLOTS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
   const today = new Date();
 
-  let html = `<div class="time-col"><div class="tslot" style="height:52px"></div>${SLOTS.map(s=>`<div class="tslot">${s}</div>`).join('')}</div>`;
+  // Columna de horas
+  let html = '<div class="time-col"><div class="tslot" style="height:52px"></div>';
+  SLOTS.forEach(s => { html += '<div class="tslot">' + s + '</div>'; });
+  html += '</div>';
 
   for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
+    const d = new Date(weekStart.getTime());
+    d.setDate(d.getDate() + i);
     const isToday = d.toDateString() === today.toDateString();
-    const isSun   = i === 6;
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    const events = mesEvents[key] || [];
+    const isSun   = (i === 6);
+    const key     = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    const events  = mesEvents[key] || [];
 
-    // Agrupar eventos por hora en punto
-    const evBySlot = {};
-    events.forEach(ev => {
-      const t = (ev.lbl.match(/(\d{2}:\d{2})/) || ['',''])[1];
-      const h = t ? t.slice(0,2) + ':00' : null;
-      if (h) { evBySlot[h] = evBySlot[h] || []; evBySlot[h].push(ev); }
+    // Agrupar por hora slot
+    const bySlot = {};
+    events.forEach(function(ev) {
+      var m = ev.lbl.match(/(\d{2}):\d{2}/);
+      if (!m) return;
+      var slot = m[1] + ':00';
+      if (!bySlot[slot]) bySlot[slot] = [];
+      bySlot[slot].push(ev);
     });
 
-    let col = `<div class="dcol${isToday?' today-col':''}${isSun?' style="background:rgba(108,92,228,0.01)"':''}">`;
-    col += `<div class="slot" style="height:52px${isToday?';position:relative':''}">`;
-    if (isToday) col += `<div class="now-line" style="top:34px"><div class="now-dot"></div><div class="now-track"></div></div>`;
-    col += `</div>`;
+    var colClass = 'dcol' + (isToday ? ' today-col' : '');
+    var colStyle = isSun ? ' style="background:rgba(108,92,228,0.01)"' : '';
+    html += '<div class="' + colClass + '"' + colStyle + '>';
 
-    SLOTS.forEach(slot => {
-      const slotEvs = evBySlot[slot] || [];
-      col += `<div class="slot">`;
-      slotEvs.forEach(ev => {
-        const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
-        const full  = evNombreFull(abrev);
-        const ini   = evIniciales(full);
-        const time  = (ev.lbl.match(/(\d{2}:\d{2})/) || ['',''])[1];
-        const hEnd  = `${String(parseInt(time||'09')+1).padStart(2,'0')}:00`;
-        col += `<div class="ev ${ev.cls}" style="top:4px;height:44px" onclick="openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${time} – ${hEnd}</div></div>`;
+    // Primer slot (offset cabecera)
+    html += '<div class="slot" style="height:52px' + (isToday ? ';position:relative' : '') + '">';
+    if (isToday) html += '<div class="now-line" style="top:34px"><div class="now-dot"></div><div class="now-track"></div></div>';
+    html += '</div>';
+
+    // Slots horarios
+    SLOTS.forEach(function(slot) {
+      html += '<div class="slot">';
+      (bySlot[slot] || []).forEach(function(ev) {
+        var abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
+        var full  = evNombreFull(abrev);
+        var ini   = evIniciales(full);
+        var t     = ev.lbl.match(/(\d{2}:\d{2})/);
+        var hora  = t ? t[1] : slot;
+        var hEnd  = String(parseInt(hora) + 1).padStart(2, '0') + ':00';
+        html += '<div class="ev ' + ev.cls + '" style="top:4px;height:44px" onclick="openFicha(\'' + full + '\',\'' + ini + '\',\'\')">';
+        html += '<div class="evn">' + full + '</div>';
+        html += '<div class="evt">' + hora + ' – ' + hEnd + '</div>';
+        html += '</div>';
       });
-      col += `</div>`;
+      html += '</div>';
     });
-    col += `</div>`;
-    html += col;
+
+    html += '</div>';
   }
+
   body.innerHTML = html;
 }
 
@@ -3690,6 +3705,9 @@ async function cargarCitasSupabase() {
     }
   } catch(e) { console.warn('Supabase load error:', e); }
 }
+
+// Reemplazar hardcoded HTML de la semana al cargar
+renderWeekBody();
 
 // Carga inicial y refresco cada 30 segundos
 cargarCitasSupabase();
