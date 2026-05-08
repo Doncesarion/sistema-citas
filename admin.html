@@ -2599,16 +2599,19 @@ let currentCalView = 'semana';
 
 // Navigate mini calendar day → vista Día
 // ── Constantes de navegación ──
-const DEMO_TODAY  = new Date(2026, 4, 3);
+const DEMO_TODAY  = new Date();
 const DOW_SHORT   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DOW_LONG    = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const MON_SHORT   = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const MON_LONG_LC = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const EV_COLORS   = {'ev-p':'var(--a)','ev-g':'var(--green)','ev-a':'var(--amber)','ev-r':'var(--red)','ev-b':'#3B82F6','ev-t':'#14B8A6'};
 
-let weekStart      = new Date(2026, 3, 28); // Lun 28 abr (semana actual)
-let currentDayDate = new Date(2026, 4, 3);  // Hoy: 3 mayo
-let listaStart     = new Date(2026, 4, 3);  // Lista empieza desde hoy
+// Calcular lunes de la semana actual dinámicamente
+const _todayInit = new Date();
+const _dowInit = (_todayInit.getDay() + 6) % 7; // Lun=0 … Dom=6
+let weekStart      = new Date(_todayInit); weekStart.setDate(_todayInit.getDate() - _dowInit); weekStart.setHours(0,0,0,0);
+let currentDayDate = new Date();
+let listaStart     = new Date();
 
 function goToDay(day, month) {
   const mIdx = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
@@ -2950,6 +2953,7 @@ let mesEvents = {
   '2026-4-3':  [{cls:'ev-p',lbl:'Juana P. 11:00'},{cls:'ev-a',lbl:'Juan P. 15:00'}],
   '2026-4-5':  [{cls:'ev-b',lbl:'Ana S. 09:00'}],
   '2026-4-7':  [{cls:'ev-p',lbl:'Camila G. 10:00'}],
+  '2026-4-8':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-t',lbl:'Carlos V. 11:00'},{cls:'ev-a',lbl:'Juan P. 15:00'}],
   '2026-4-9':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-b',lbl:'Carla B. 12:00'}],
   '2026-4-13': [{cls:'ev-t',lbl:'Carlos V. 14:00'}],
   '2026-4-15': [{cls:'ev-p',lbl:'Valentina F. 14:00'}],
@@ -2990,7 +2994,7 @@ function renderMesGrid() {
   const container = document.getElementById('mes-grid-container');
   if (!container) return;
   const {y, m} = mesBase[mesIdx];
-  const today = new Date(2026, 4, 3); // 3 mayo 2026 = HOY
+  const today = new Date();
   const firstDay = new Date(y, m, 1);
   const lastDay  = new Date(y, m+1, 0);
   // Day of week of first day (0=Sun→convert to Mon-based)
