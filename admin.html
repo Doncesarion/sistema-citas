@@ -956,7 +956,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="chc today"><span class="dn">3</span>Sáb</div>
         <div class="chc"><span class="dn">4</span>Dom</div>
       </div>
-      <div class="cal-body">
+      <div class="cal-body" id="semana-body">
         <div class="time-col">
           <div class="tslot" style="height:52px"></div>
           <div class="tslot">09:00</div><div class="tslot">10:00</div>
@@ -2775,6 +2775,54 @@ function renderWeekHeader() {
   }
 }
 
+function renderWeekBody() {
+  const body = document.getElementById('semana-body');
+  if (!body) return;
+  const SLOTS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+  const today = new Date();
+
+  let html = `<div class="time-col"><div class="tslot" style="height:52px"></div>${SLOTS.map(s=>`<div class="tslot">${s}</div>`).join('')}</div>`;
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    const isToday = d.toDateString() === today.toDateString();
+    const isSun   = i === 6;
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const events = mesEvents[key] || [];
+
+    // Agrupar eventos por hora en punto
+    const evBySlot = {};
+    events.forEach(ev => {
+      const t = (ev.lbl.match(/(\d{2}:\d{2})/) || ['',''])[1];
+      const h = t ? t.slice(0,2) + ':00' : null;
+      if (h) { evBySlot[h] = evBySlot[h] || []; evBySlot[h].push(ev); }
+    });
+
+    let col = `<div class="dcol${isToday?' today-col':''}${isSun?' style="background:rgba(108,92,228,0.01)"':''}">`;
+    col += `<div class="slot" style="height:52px${isToday?';position:relative':''}">`;
+    if (isToday) col += `<div class="now-line" style="top:34px"><div class="now-dot"></div><div class="now-track"></div></div>`;
+    col += `</div>`;
+
+    SLOTS.forEach(slot => {
+      const slotEvs = evBySlot[slot] || [];
+      col += `<div class="slot">`;
+      slotEvs.forEach(ev => {
+        const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
+        const full  = evNombreFull(abrev);
+        const ini   = evIniciales(full);
+        const time  = (ev.lbl.match(/(\d{2}:\d{2})/) || ['',''])[1];
+        const hEnd  = `${String(parseInt(time||'09')+1).padStart(2,'0')}:00`;
+        col += `<div class="ev ${ev.cls}" style="top:4px;height:44px" onclick="openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${time} – ${hEnd}</div></div>`;
+      });
+      col += `</div>`;
+    });
+    col += `</div>`;
+    html += col;
+  }
+  body.innerHTML = html;
+}
+
 function setCalView(view, btn) {
   currentCalView = view;
 
@@ -2802,7 +2850,7 @@ function setCalView(view, btn) {
   if (target) target.style.display = 'flex';
 
   // Render vistas dinámicas (cada función actualiza su propio period label)
-  if (view === 'semana') renderWeekHeader();
+  if (view === 'semana') { renderWeekHeader(); renderWeekBody(); }
   if (view === 'mes') renderMesGrid();
   if (view === 'dia') renderDiaView(currentDayDate);
   if (view === 'lista') renderLista();
@@ -3062,6 +3110,7 @@ function navCal(dir) {
     weekStart = new Date(weekStart);
     weekStart.setDate(weekStart.getDate() + dir * 7);
     renderWeekHeader();
+    renderWeekBody();
   }
 }
 
@@ -3626,7 +3675,7 @@ async function cargarCitasSupabase() {
     });
 
     // 4. Re-renderizar vista actual
-    if (currentCalView === 'semana')      renderWeekHeader();
+    if (currentCalView === 'semana')     { renderWeekHeader(); renderWeekBody(); }
     else if (currentCalView === 'dia')   renderDiaView(currentDayDate);
     else if (currentCalView === 'mes')   renderMesGrid();
     else if (currentCalView === 'lista') renderLista();
