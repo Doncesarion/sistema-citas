@@ -1042,7 +1042,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
   <!-- LISTA -->
   <div id="cv-lista" style="display:none;flex:1;overflow-y:auto">
-    <div id="lista-container" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px"></div>
+    <div id="lista-container" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;max-width:720px;margin:0 auto;width:100%"></div>
   </div><!-- end cv-lista -->
 
 </div><!-- end v-agenda -->
@@ -1867,9 +1867,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="fg">
           <label class="fl">Hora inicio</label>
           <div style="display:flex;align-items:center;gap:4px">
-            <select class="fs" style="flex:1"><option>12</option><option>09</option><option>10</option><option>11</option><option>13</option><option>14</option><option>15</option></select>
+            <select class="fs" id="ms-hora" style="flex:1"><option>09</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option></select>
             <span style="color:var(--t4);font-weight:500;font-size:14px">:</span>
-            <select class="fs" style="flex:1"><option>00</option><option>30</option></select>
+            <select class="fs" id="ms-min" style="flex:1"><option>00</option><option>30</option></select>
           </div>
         </div>
       </div>
@@ -2249,8 +2249,38 @@ function removePt() {
   document.getElementById('s-cli').textContent = '—';
 }
 function saveReservation() {
+  // Leer cliente seleccionado
+  const chip = document.getElementById('pt-chip');
+  const chipName = document.getElementById('pt-chip-name');
+  const fullName = (chip && chip.style.display !== 'none' && chipName) ? chipName.textContent.trim() : null;
+  if (!fullName) { toast('⚠ Selecciona un cliente antes de confirmar'); return; }
+
+  // Leer hora y minuto
+  const hora = (document.getElementById('ms-hora') || {}).value || '09';
+  const min  = (document.getElementById('ms-min')  || {}).value || '00';
+  const time = `${hora}:${min}`;
+
+  // Abreviatura del nombre para el label (ej: "Sofía Lagos" → "Sofía L.")
+  const parts = fullName.split(' ');
+  const abrev = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
+
+  // Agregar a mesEvents con la fecha de hoy
+  const d   = new Date();
+  const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  if (!mesEvents[key]) mesEvents[key] = [];
+  const lbl = `${abrev} ${time}`;
+  if (!mesEvents[key].some(e => e.lbl === lbl)) {
+    mesEvents[key].push({ cls: 'ev-p', lbl, real: true });
+  }
+
+  // Re-renderizar vista activa
+  if (currentCalView === 'semana')     { renderWeekHeader(); renderWeekBody(); }
+  else if (currentCalView === 'dia')   renderDiaView(currentDayDate);
+  else if (currentCalView === 'mes')   renderMesGrid();
+  else if (currentCalView === 'lista') renderLista();
+
   closeModal();
-  toast('Reserva confirmada · WhatsApp enviado ✓');
+  toast('✓ Reserva confirmada · WhatsApp enviado');
 }
 
 /* ════ FICHA CLIENTE ════ */
