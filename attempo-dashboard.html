@@ -2911,7 +2911,7 @@ const mesBase = [
 ]; // month 0-indexed
 
 // Events per month keyed as "YYYY-M-D" (month 0-indexed)
-const mesEvents = {
+let mesEvents = {
   // Enero 2026 (m=0)
   '2026-0-5':  [{cls:'ev-p',lbl:'Valentina F. 10:00'}],
   '2026-0-7':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-b',lbl:'Ana S. 11:00'}],
@@ -3580,5 +3580,71 @@ document.querySelectorAll('#cv-semana .ev').forEach(ev => {
   </div>
 </div>
 
+<script>
+/* ════ CARGA REAL DESDE SUPABASE ════ */
+const _SURL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+const _SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
+const _SH   = { apikey: _SKEY, Authorization: `Bearer ${_SKEY}` };
+
+// Colores por especialista (iniciales → clase css)
+const PROF_COLOR = { 'CS':'ev-p', 'MJ':'ev-g', 'JP':'ev-a' };
+function profColor(nombre) {
+  if (!nombre) return 'ev-b';
+  const p = nombre.trim().split(' ');
+  const ini = ((p[0]||'')[0]||'') + ((p[1]||'')[0]||'');
+  return PROF_COLOR[ini.toUpperCase()] || 'ev-b';
+}
+
+async function cargarCitasSupabase() {
+  try {
+    // 1. Cliente ID
+    const r1 = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&activo=eq.true&order=created_at.asc&limit=1`, { headers: _SH });
+    const cls = await r1.json();
+    if (!Array.isArray(cls) || !cls.length) return;
+    const cid = cls[0].id;
+
+    // 2. Traer todas las citas (con datos del especialista)
+    const r2 = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.asc,hora.asc`, { headers: _SH });
+    const citas = await r2.json();
+    if (!Array.isArray(citas)) return;
+
+    // 3. Construir mesEvents desde citas reales y agregar a los existentes
+    citas.forEach(c => {
+      const [y, mStr, d] = c.fecha.split('-').map(Number);
+      const m = mStr - 1; // JS months 0-indexed
+      const key = `${y}-${m}-${d}`;
+      const espNom = c.especialistas?.nombre || c.nombre_paciente;
+      const parts  = c.nombre_paciente.trim().split(' ');
+      const abrev  = `${parts[0]} ${(parts[1]||'')[0]||''}.`.trim();
+      const lbl    = `${abrev} ${c.hora}`;
+      const cls_   = profColor(espNom);
+      if (!mesEvents[key]) mesEvents[key] = [];
+      // Evitar duplicados
+      if (!mesEvents[key].some(e => e.lbl === lbl)) {
+        mesEvents[key].push({ cls: cls_, lbl, id: c.id, real: true });
+      }
+    });
+
+    // 4. Re-renderizar vista actual
+    if (currentCalView === 'semana')      renderWeekHeader();
+    else if (currentCalView === 'dia')   renderDiaView(currentDayDate);
+    else if (currentCalView === 'mes')   renderMesGrid();
+    else if (currentCalView === 'lista') renderLista();
+
+    // Actualizar contador de citas de hoy en nav
+    const today = new Date();
+    const tk = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    const hoy = (mesEvents[tk] || []).filter(e => e.real).length;
+    if (hoy > 0) {
+      const navSpan = document.querySelector('.nav-center span');
+      if (navSpan) navSpan.textContent = `En línea · ${hoy} cita${hoy!==1?'s':''} hoy`;
+    }
+  } catch(e) { console.warn('Supabase load error:', e); }
+}
+
+// Carga inicial y refresco cada 30 segundos
+cargarCitasSupabase();
+setInterval(cargarCitasSupabase, 30000);
+</script>
 </body>
 </html>

@@ -816,9 +816,11 @@ function confirmar() {
     fechaTexto = `${dias[d.getDay()]} ${st.fecha.d} de ${MESES[st.fecha.m].toLowerCase()} ${st.fecha.y}`;
     document.getElementById('cf-fecha').textContent = fechaTexto;
   }
-  // Enviar email de confirmación
+  // Enviar email de confirmación y guardar en Supabase
   const emailPaciente = document.getElementById('d-em').value.trim();
   const nombreCompleto = document.getElementById('d-nom').value.trim() + ' ' + document.getElementById('d-ap').value.trim();
+  const telPaciente    = document.getElementById('d-tel').value.trim();
+  const notaPaciente   = document.getElementById('d-nota').value.trim();
   if (emailPaciente) {
     fetch('/api/send-email', {
       method: 'POST',
@@ -836,6 +838,7 @@ function confirmar() {
       })
     }).catch(e => console.warn('Email error:', e));
   }
+  guardarCitaSupabase(nombreCompleto, emailPaciente, telPaciente, notaPaciente);
   // Hide accordions, show confirmation
   [1,2,3,4].forEach(i => document.getElementById('acc'+i).style.display = 'none');
   document.getElementById('sbar').style.display = 'none';
@@ -850,6 +853,48 @@ function confirmar() {
     if (i < 5) sb.classList.add('done');
     if (i === 5) sb.classList.add('active');
   }
+}
+
+/* ════ SUPABASE ════ */
+const SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
+const SH = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' };
+
+async function guardarCitaSupabase(nombre, email, tel, nota) {
+  try {
+    // 1. Obtener cliente_id
+    const r1 = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?select=id&activo=eq.true&order=created_at.asc&limit=1`, { headers: SH });
+    const cls = await r1.json();
+    if (!Array.isArray(cls) || !cls.length) return;
+    const cid = cls[0].id;
+
+    // 2. Buscar especialista_id si se eligió uno específico
+    let eid = null;
+    if (st.prof && st.prof.key !== 'any') {
+      const r2 = await fetch(`${SUPA_URL}/rest/v1/especialistas?cliente_id=eq.${cid}&nombre=ilike.*${encodeURIComponent(st.prof.nom)}*&select=id&limit=1`, { headers: SH });
+      const esps = await r2.json();
+      if (Array.isArray(esps) && esps.length) eid = esps[0].id;
+    }
+
+    // 3. Guardar cita
+    const fecha = `${st.fecha.y}-${String(st.fecha.m + 1).padStart(2,'0')}-${String(st.fecha.d).padStart(2,'0')}`;
+    await fetch(`${SUPA_URL}/rest/v1/citas`, {
+      method: 'POST',
+      headers: { ...SH, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        cliente_id:      cid,
+        especialista_id: eid,
+        fecha,
+        hora:            st.hora,
+        nombre_paciente: nombre,
+        email_paciente:  email,
+        tel_paciente:    tel,
+        servicio:        st.svc.nom,
+        precio:          st.svc.precio,
+        nota:            nota || ''
+      })
+    });
+  } catch(e) { console.warn('Supabase error:', e); }
 }
 
 /* ════ RESET ════ */
