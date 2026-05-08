@@ -809,10 +809,32 @@ function confirmar() {
   document.getElementById('cf-prof').textContent  = st.prof  ? st.prof.nom : '—';
   document.getElementById('cf-hora').textContent  = st.hora  || '—';
   document.getElementById('cf-precio').textContent = st.svc  ? '$' + st.svc.precio.toLocaleString('es-CL') : '—';
+  let fechaTexto = '—';
   if (st.fecha) {
     const d = new Date(st.fecha.y, st.fecha.m, st.fecha.d);
     const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    document.getElementById('cf-fecha').textContent = `${dias[d.getDay()]} ${st.fecha.d} de ${MESES[st.fecha.m].toLowerCase()} ${st.fecha.y}`;
+    fechaTexto = `${dias[d.getDay()]} ${st.fecha.d} de ${MESES[st.fecha.m].toLowerCase()} ${st.fecha.y}`;
+    document.getElementById('cf-fecha').textContent = fechaTexto;
+  }
+  // Enviar email de confirmación
+  const emailPaciente = document.getElementById('d-em').value.trim();
+  const nombreCompleto = document.getElementById('d-nom').value.trim() + ' ' + document.getElementById('d-ap').value.trim();
+  if (emailPaciente) {
+    fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to:          emailPaciente,
+        cliente:     nombreCompleto,
+        negocio:     'Attempo',
+        fecha:       fechaTexto,
+        hora:        (st.hora || '—') + ' hrs',
+        especialista: st.prof ? st.prof.nom : '—',
+        servicio:    st.svc ? st.svc.nom : '—',
+        duracion:    st.svc ? st.svc.dur : '—',
+        total:       st.svc ? '$' + st.svc.precio.toLocaleString('es-CL') : '—'
+      })
+    }).catch(e => console.warn('Email error:', e));
   }
   // Hide accordions, show confirmation
   [1,2,3,4].forEach(i => document.getElementById('acc'+i).style.display = 'none');
