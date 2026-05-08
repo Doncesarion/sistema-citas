@@ -2659,7 +2659,7 @@ function renderDiaView(date) {
         const full  = evNombreFull(abrev);
         const ini   = evIniciales(full);
         const hEnd  = `${String(parseInt(slotTime)+1).padStart(2,'0')}:00`;
-        return `<div class="ev ${ev.cls}" style="top:4px;height:44px;right:8px" onclick="openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+        return `<div class="ev ${ev.cls}" style="position:absolute;top:4px;left:3px;right:8px;height:44px" onclick="openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
       }).join('');
       html += `<div class="slot">${evHtml}</div>`;
     });
@@ -2759,7 +2759,7 @@ function renderWeekBody() {
         var ini   = evIniciales(full);
         var hr    = parseInt(HOURS[s].split(':')[0]);
         var hEnd  = (hr + 1 < 10 ? '0' : '') + (hr + 1) + ':00';
-        evHtml += '<div class="ev ' + cur.cls + '" style="top:4px;height:44px" onclick="openFicha(\'' +
+        evHtml += '<div class="ev ' + cur.cls + '" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="openFicha(\'' +
                   full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
