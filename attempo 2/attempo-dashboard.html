@@ -1197,7 +1197,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ═══ VENTAS ═══ -->
 <div id="v-ventas" style="display:none">
   <div class="vp">
-    <div class="vh">Ventas<button class="btn-new" onclick="toast('Abriendo registro de pago...')">+ Registrar pago</button></div>
+    <div class="vh">Ventas<button class="btn-new" onclick="openRegistrarPago()">+ Registrar pago</button></div>
     <!-- Filtro de período igual que reportes -->
     <div class="period-sel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
       <button class="ptab" onclick="filterVentas('hoy',this)">Hoy</button>
@@ -1224,11 +1224,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <table>
         <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método</th><th>Monto</th><th>Estado</th></tr></thead>
-        <tbody>
-          <tr><td style="font-family:var(--mono);font-size:12px">03/05 11:00</td><td><div class="tdn"><div class="tav">JP</div>Juana Pérez</div></td><td>Consulta</td><td>cesar salinas</td><td><span class="tag tp">Online</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$15.000</td><td><span class="tag tg">Pagado</span></td></tr>
-          <tr><td style="font-family:var(--mono);font-size:12px">01/05 10:00</td><td><div class="tdn"><div class="tav">CG</div>Camila G.</div></td><td>Terapia</td><td>cesar salinas</td><td><span class="tag tn">Efectivo</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$35.000</td><td><span class="tag tg">Pagado</span></td></tr>
-          <tr><td style="font-family:var(--mono);font-size:12px">30/04 14:00</td><td><div class="tdn"><div class="tav">IT</div>Isabella T.</div></td><td>Evaluación</td><td>cesar salinas</td><td><span class="tag tp">Online</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$30.000</td><td><span class="tag ta">Pendiente</span></td></tr>
-          <tr><td style="font-family:var(--mono);font-size:12px">29/04 12:00</td><td><div class="tdn"><div class="tav" style="background:var(--t3)">PP</div>prueba prueba</div></td><td>Consulta</td><td>cesar salinas</td><td><span class="tag tn">Efectivo</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$15.000</td><td><span class="tag tg">Pagado</span></td></tr>
+        <tbody id="ventas-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2214,6 +2211,7 @@ function sv(v, btn) {
     }
   });
   document.querySelectorAll('.ntab').forEach((t, i) => t.classList.toggle('on', views[i] === v));
+  if (v === 'ventas') cargarVentas();
 }
 
 /* ════ MODAL — 3 STEPS ════ */
@@ -3646,6 +3644,136 @@ async function cargarCitasSupabase() {
 // Carga inicial y refresco cada 30 segundos
 cargarCitasSupabase();
 setInterval(cargarCitasSupabase, 30000);
+
+/* ════ VENTAS ════ */
+let _ventasCid = null;
+
+async function getClienteId() {
+  if (_ventasCid) return _ventasCid;
+  let r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&activo=eq.true&order=created_at.asc&limit=1`, { headers: _SH });
+  let cls = await r.json();
+  if (!Array.isArray(cls) || !cls.length) {
+    r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&order=created_at.asc&limit=1`, { headers: _SH });
+    cls = await r.json();
+  }
+  if (Array.isArray(cls) && cls.length) { _ventasCid = cls[0].id; return _ventasCid; }
+  return null;
+}
+
+async function cargarVentas() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=50`, { headers: _SH });
+  const citas = await r.json();
+  const tbody = document.getElementById('ventas-tbody');
+  if (!tbody) return;
+  if (!Array.isArray(citas) || !citas.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones aún</td></tr>';
+    return;
+  }
+  const MTAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>' };
+  tbody.innerHTML = citas.map(c => {
+    const ini   = c.nombre_paciente.trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const fecha = c.fecha ? c.fecha.slice(5).replace('-','/') + ' ' + (c.hora||'').slice(0,5) : '—';
+    const esp   = c.especialistas?.nombre || '—';
+    const met   = MTAG[c.metodo_pago] || '<span class="tag tn">—</span>';
+    const est   = c.estado_pago === 'pagado' ? '<span class="tag tg">Pagado</span>' : '<span class="tag ta">Pendiente</span>';
+    const monto = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
+    return `<tr><td style="font-family:var(--mono);font-size:12px">${fecha}</td><td><div class="tdn"><div class="tav">${ini}</div>${c.nombre_paciente}</div></td><td>${c.servicio||'—'}</td><td>${esp}</td><td>${met}</td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">${monto}</td><td>${est}</td></tr>`;
+  }).join('');
+}
+
+let _pagoCitas = [];
+
+function openRegistrarPago() {
+  const sel = document.getElementById('pago-cita-sel');
+  sel.innerHTML = '<option value="">Cargando citas...</option>';
+  document.getElementById('pago-monto').value = '';
+  document.getElementById('pago-metodo').value = 'efectivo';
+  document.getElementById('registrar-pago-ov').classList.add('open');
+  getClienteId().then(cid => {
+    if (!cid) { sel.innerHTML = '<option value="">Sin cliente configurado</option>'; return; }
+    return fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=id,nombre_paciente,servicio,fecha,hora,precio,estado_pago&order=fecha.desc,hora.desc&limit=100`, { headers: _SH })
+      .then(r => r.json())
+      .then(citas => {
+        if (!Array.isArray(citas) || !citas.length) { sel.innerHTML = '<option value="">Sin citas disponibles</option>'; return; }
+        const lista = citas.filter(c => c.estado_pago !== 'pagado');
+        _pagoCitas = lista.length ? lista : citas;
+        sel.innerHTML = '<option value="">— Selecciona una cita —</option>' +
+          _pagoCitas.map(c => {
+            const fecha = c.fecha ? c.fecha.slice(5).replace('-','/') : '';
+            return `<option value="${c.id}" data-precio="${c.precio||0}">${c.nombre_paciente} · ${c.servicio||'—'} · ${fecha} ${(c.hora||'').slice(0,5)}</option>`;
+          }).join('');
+      });
+  }).catch(e => { console.warn('openRegistrarPago:', e); sel.innerHTML = '<option value="">Error al cargar citas</option>'; });
+}
+
+function closeRegistrarPago() { document.getElementById('registrar-pago-ov').classList.remove('open'); }
+
+function onPagoCitaChange() {
+  const sel = document.getElementById('pago-cita-sel');
+  document.getElementById('pago-monto').value = sel.options[sel.selectedIndex]?.dataset?.precio || '';
+}
+
+async function saveRegistrarPago() {
+  const citaId = document.getElementById('pago-cita-sel').value;
+  const metodo = document.getElementById('pago-metodo').value;
+  const monto  = document.getElementById('pago-monto').value;
+  if (!citaId) { toast('Selecciona una cita'); return; }
+  const btn = document.getElementById('btn-save-pago');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const cid = await getClienteId();
+    await fetch(`${_SURL}/rest/v1/citas?id=eq.${citaId}&cliente_id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ estado_pago: 'pagado', metodo_pago: metodo, ...(monto ? {precio: Number(monto)} : {}) })
+    });
+    closeRegistrarPago();
+    toast('✓ Pago registrado correctamente');
+    cargarVentas();
+  } catch(e) { toast('Error al guardar el pago'); }
+  finally { btn.disabled = false; btn.textContent = 'Registrar pago'; }
+}
+
+cargarVentas();
 </script>
+
+<!-- ═══ MODAL REGISTRAR PAGO ═══ -->
+<div class="overlay" id="registrar-pago-ov" style="z-index:600" onclick="if(event.target===this)closeRegistrarPago()">
+  <div class="modal" style="width:480px">
+    <div class="modal-head">
+      <span class="modal-title">Registrar pago</span>
+      <button class="mclose" onclick="closeRegistrarPago()">×</button>
+    </div>
+    <div class="mbody" style="gap:14px">
+      <div class="fg">
+        <label class="fl">Cita</label>
+        <select class="fs" id="pago-cita-sel" onchange="onPagoCitaChange()">
+          <option value="">— Selecciona una cita —</option>
+        </select>
+      </div>
+      <div class="r2">
+        <div class="fg">
+          <label class="fl">Monto ($)</label>
+          <input class="fi" id="pago-monto" type="number" min="0" placeholder="Ej: 15000">
+        </div>
+        <div class="fg">
+          <label class="fl">Método de pago</label>
+          <select class="fs" id="pago-metodo">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeRegistrarPago()">Cancelar</button>
+      <button class="btn-a" id="btn-save-pago" onclick="saveRegistrarPago()">Registrar pago</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
