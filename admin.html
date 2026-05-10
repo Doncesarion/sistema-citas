@@ -1134,7 +1134,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ═══ VENTAS ═══ -->
 <div id="v-ventas" style="display:none">
   <div class="vp">
-    <div class="vh">Ventas<button class="btn-new" onclick="toast('Abriendo registro de pago...')">+ Registrar pago</button></div>
+    <div class="vh">Ventas<button class="btn-new" onclick="openRegistrarPago()">+ Registrar pago</button></div>
     <!-- Filtro de período igual que reportes -->
     <div class="period-sel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
       <button class="ptab" onclick="filterVentas('hoy',this)">Hoy</button>
@@ -1161,11 +1161,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <table>
         <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método</th><th>Monto</th><th>Estado</th></tr></thead>
-        <tbody>
-          <tr><td style="font-family:var(--mono);font-size:12px">03/05 11:00</td><td><div class="tdn"><div class="tav">JP</div>Juana Pérez</div></td><td>Consulta</td><td>cesar salinas</td><td><span class="tag tp">Online</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$15.000</td><td><span class="tag tg">Pagado</span></td></tr>
-          <tr><td style="font-family:var(--mono);font-size:12px">01/05 10:00</td><td><div class="tdn"><div class="tav">CG</div>Camila G.</div></td><td>Terapia</td><td>cesar salinas</td><td><span class="tag tn">Efectivo</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$35.000</td><td><span class="tag tg">Pagado</span></td></tr>
-          <tr><td style="font-family:var(--mono);font-size:12px">30/04 14:00</td><td><div class="tdn"><div class="tav">IT</div>Isabella T.</div></td><td>Evaluación</td><td>cesar salinas</td><td><span class="tag tp">Online</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$30.000</td><td><span class="tag ta">Pendiente</span></td></tr>
-          <tr><td style="font-family:var(--mono);font-size:12px">29/04 12:00</td><td><div class="tdn"><div class="tav" style="background:var(--t3)">PP</div>prueba prueba</div></td><td>Consulta</td><td>cesar salinas</td><td><span class="tag tn">Efectivo</span></td><td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$15.000</td><td><span class="tag tg">Pagado</span></td></tr>
+        <tbody id="ventas-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1461,83 +1458,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="btn-new" onclick="openEditProf('nuevo')">+ Nuevo profesional</button>
       </div>
 
-      <!-- Prof cards -->
+      <!-- Prof cards (dinámico desde Supabase) -->
       <div style="display:flex;flex-direction:column;gap:10px" id="prof-cards">
-
-        <!-- cesar salinas -->
-        <div class="card" style="padding:0;overflow:hidden">
-          <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer" onclick="toggleProfCard('pc-cesar')">
-            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 3px 8px rgba(108,92,228,0.3)">CS</div>
-            <div style="flex:1">
-              <div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:2px">cesar salinas</div>
-              <div style="font-size:12px;color:var(--t3)">Psicólogo · Administrador general</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="tag tg">Activo</span>
-              <button class="btn-sm" onclick="event.stopPropagation();openEditProf('cesar')">Editar</button>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--t4);transition:transform .2s" id="arr-cesar"><path d="M2 4l4 4 4-4"/></svg>
-            </div>
-          </div>
-          <div id="pc-cesar" style="display:none;border-top:1px solid var(--b1);padding:16px 20px;background:rgba(248,247,255,0.5)">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Email</div><div style="font-size:13px;color:var(--t1)">cesarsalinasmunoz@gmail.com</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Teléfono</div><div style="font-size:13px;font-family:var(--mono);color:var(--t1)">+56 9 5617 5328</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Especialidad</div><div style="font-size:13px;color:var(--t1)">Psicología clínica</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Horario</div><div style="font-size:13px;color:var(--t1)">Lun–Vie 09:00–18:00</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Citas esta semana</div><div style="font-size:13px;font-family:var(--mono);font-weight:500;color:var(--a)">8 citas</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Rol</div><div style="font-size:13px;color:var(--t1)">Administrador general</div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- maría jose -->
-        <div class="card" style="padding:0;overflow:hidden">
-          <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer" onclick="toggleProfCard('pc-maria')">
-            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--green),#22C55E);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 3px 8px rgba(22,163,74,0.3)">MJ</div>
-            <div style="flex:1">
-              <div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:2px">maría jose</div>
-              <div style="font-size:12px;color:var(--t3)">Nutricionista · Staff</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="tag tg">Activa</span>
-              <button class="btn-sm" onclick="event.stopPropagation();openEditProf('maria')">Editar</button>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--t4)" id="arr-maria"><path d="M2 4l4 4 4-4"/></svg>
-            </div>
-          </div>
-          <div id="pc-maria" style="display:none;border-top:1px solid var(--b1);padding:16px 20px;background:rgba(248,247,255,0.5)">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Email</div><div style="font-size:13px;color:var(--t1)">mariajose@attempo.cl</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Teléfono</div><div style="font-size:13px;font-family:var(--mono);color:var(--t1)">+56 9 8765 4321</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Especialidad</div><div style="font-size:13px;color:var(--t1)">Nutrición deportiva</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Horario</div><div style="font-size:13px;color:var(--t1)">Lun–Sáb 08:00–17:00</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Citas esta semana</div><div style="font-size:13px;font-family:var(--mono);font-weight:500;color:var(--green)">5 citas</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Rol</div><div style="font-size:13px;color:var(--t1)">Staff</div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- juan pablo -->
-        <div class="card" style="padding:0;overflow:hidden">
-          <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer" onclick="toggleProfCard('pc-juan')">
-            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--amber),#FBBF24);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 3px 8px rgba(217,119,6,0.3)">JP</div>
-            <div style="flex:1">
-              <div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:2px">juan pablo</div>
-              <div style="font-size:12px;color:var(--t3)">Barbero · Staff</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="tag tg">Activo</span>
-              <button class="btn-sm" onclick="event.stopPropagation();openEditProf('juan')">Editar</button>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--t4)" id="arr-juan"><path d="M2 4l4 4 4-4"/></svg>
-            </div>
-          </div>
-          <div id="pc-juan" style="display:none;border-top:1px solid var(--b1);padding:16px 20px;background:rgba(248,247,255,0.5)">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Email</div><div style="font-size:13px;color:var(--t1)">juanpablo@attempo.cl</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Teléfono</div><div style="font-size:13px;font-family:var(--mono);color:var(--t1)">+56 9 4321 0987</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Especialidad</div><div style="font-size:13px;color:var(--t1)">Barbería clásica</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Horario</div><div style="font-size:13px;color:var(--t1)">Mar–Dom 10:00–20:00</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Citas esta semana</div><div style="font-size:13px;font-family:var(--mono);font-weight:500;color:var(--amber)">6 citas</div></div>
-              <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Rol</div><div style="font-size:13px;color:var(--t1)">Staff</div></div>
+        <div style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando profesionales...</div>
+      </div>
+      <div style="display:none">
             </div>
           </div>
         </div>
@@ -1701,47 +1626,44 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 <!-- ═══ EDITAR PROFESIONAL ═══ -->
 <div class="overlay" id="edit-prof-ov" onclick="if(event.target===this)closeEditProf()">
-  <div class="modal" style="width:520px">
+  <div class="modal" style="width:540px;max-height:90vh;overflow-y:auto">
     <div class="modal-head">
-      <span class="modal-title" id="edit-prof-title">Editar profesional</span>
+      <span class="modal-title" id="edit-prof-title">Nuevo profesional</span>
       <div class="modal-head-r"><button class="mclose" onclick="closeEditProf()">×</button></div>
     </div>
+    <input type="hidden" id="ep-id">
     <div class="mbody" style="gap:14px">
       <div style="display:flex;align-items:center;gap:14px">
-        <div id="ep-av" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(108,92,228,0.3)">CS</div>
-        <div><button class="btn-g" style="font-size:12px;padding:5px 12px">Cambiar foto</button><div style="font-size:11px;color:var(--t4);margin-top:4px">JPG, PNG o GIF. Máximo 2MB.</div></div>
+        <div id="ep-av" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(108,92,228,0.3)">?</div>
+        <div style="font-size:12px;color:var(--t3)">Las iniciales se generan automáticamente</div>
       </div>
       <div class="r2">
-        <div class="fg"><label class="fl">Nombre</label><input class="fi" id="ep-nombre" value="cesar salinas"></div>
-        <div class="fg"><label class="fl">Especialidad / Cargo</label><input class="fi" id="ep-cargo" value="Psicólogo"></div>
+        <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="ep-nombre" placeholder="Nombre completo" oninput="const p=this.value.trim().split(' ');document.getElementById('ep-av').textContent=p.slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?'"></div>
+        <div class="fg"><label class="fl">Especialidad / Cargo</label><input class="fi" id="ep-cargo" placeholder="Ej: Psicólogo"></div>
       </div>
       <div class="r2">
-        <div class="fg"><label class="fl">Email</label><input class="fi" id="ep-email" value="cesarsalinasmunoz@gmail.com"></div>
-        <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="ep-tel" value="+56 9 5617 5328" type="tel"></div>
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="ep-email" type="email" placeholder="email@ejemplo.com"></div>
+        <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="ep-tel" type="tel" placeholder="+56 9 1234 5678"></div>
       </div>
       <div class="r2">
         <div class="fg"><label class="fl">Rol en el sistema</label>
-          <select class="fs" id="ep-rol"><option value="admin" selected>Administrador general</option><option value="staff">Staff / Profesional</option><option value="recep">Recepcionista</option></select>
+          <select class="fs" id="ep-rol"><option value="admin">Administrador general</option><option value="staff" selected>Staff / Profesional</option><option value="recep">Recepcionista</option></select>
         </div>
         <div class="fg"><label class="fl">Estado</label>
           <select class="fs" id="ep-estado"><option value="activo" selected>Activo</option><option value="inactivo">Inactivo</option><option value="vacaciones">De vacaciones</option></select>
         </div>
       </div>
+      <!-- Horario -->
       <div class="fg">
-        <label class="fl">Servicios que ofrece</label>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r);background:#fafafe">
-          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--adim);border-radius:100px;font-size:12px;color:var(--a);font-weight:500">Consulta Médica <span style="cursor:pointer;opacity:.6" onclick="toast('Servicio eliminado')">×</span></span>
-          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--adim);border-radius:100px;font-size:12px;color:var(--a);font-weight:500">Seguimiento <span style="cursor:pointer;opacity:.6" onclick="toast('Servicio eliminado')">×</span></span>
-          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--adim);border-radius:100px;font-size:12px;color:var(--a);font-weight:500">Terapia <span style="cursor:pointer;opacity:.6" onclick="toast('Servicio eliminado')">×</span></span>
-          <button onclick="toast('Agregar servicio próximamente')" style="padding:3px 10px;border:1px dashed var(--b2);border-radius:100px;font-size:12px;color:var(--t3);background:none;cursor:pointer">+ Agregar servicio</button>
-        </div>
+        <label class="fl">Horario de atención</label>
+        <div id="ep-horario" style="border:1px solid var(--b1);border-radius:var(--r);padding:10px 14px;background:#fafafe;display:flex;flex-direction:column;gap:0"></div>
       </div>
     </div>
     <div class="mfoot" style="justify-content:space-between">
-      <button class="btn-g" style="color:var(--red);border-color:rgba(220,38,38,0.2)" onclick="if(confirm('¿Eliminar profesional? Esta acción no se puede deshacer.'))toast('Profesional eliminado')">Eliminar profesional</button>
+      <button class="btn-g" id="btn-delete-prof" style="color:var(--red);border-color:rgba(220,38,38,0.2);display:none" onclick="deleteProf()">Eliminar profesional</button>
       <div style="display:flex;gap:8px">
         <button class="btn-g" onclick="closeEditProf()">Cancelar</button>
-        <button class="btn-a" onclick="saveEditProf()">Guardar cambios</button>
+        <button class="btn-a" id="btn-save-prof" onclick="saveEditProf()">Guardar cambios</button>
       </div>
     </div>
   </div>
@@ -2152,6 +2074,7 @@ function sv(v, btn) {
     }
   });
   document.querySelectorAll('.ntab').forEach((t, i) => t.classList.toggle('on', views[i] === v));
+  if (v === 'ventas') cargarVentas();
 }
 
 /* ════ MODAL — 3 STEPS ════ */
@@ -2459,6 +2382,7 @@ function showCfg(panel, btn) {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
+  if (panel === 'profesionales') cargarProfesionales();
 }
 
 /* ════ PERFIL ════ */
@@ -2508,56 +2432,198 @@ function toggleProfCard(id) {
 }
 
 /* ════ EDIT PROFESSIONAL MODAL ════ */
-const profDefaults = {
-  nuevo: {title:'Nuevo profesional', av:'', nombre:'', cargo:'', email:'', tel:'', rol:'staff'},
-  cesar: {title:'Editar: cesar salinas', av:'CS', nombre:'cesar salinas', cargo:'Psicólogo', email:'cesarsalinasmunoz@gmail.com', tel:'+56 9 5617 5328', rol:'admin'},
-  maria: {title:'Editar: maría jose', av:'MJ', nombre:'maría jose', cargo:'Nutricionista', email:'mariajose@attempo.cl', tel:'+56 9 8765 4321', rol:'staff'},
-  juan:  {title:'Editar: juan pablo', av:'JP', nombre:'juan pablo', cargo:'Barbero', email:'juanpablo@attempo.cl', tel:'+56 9 4321 0987', rol:'staff'},
-};
-let currentEditKey = '';
-function openEditProf(key) {
-  currentEditKey = key;
-  const d = profDefaults[key] || profDefaults.nuevo;
-  document.getElementById('edit-prof-title').textContent = d.title;
-  document.getElementById('ep-av').textContent = d.av || (d.nombre ? d.nombre.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?');
-  document.getElementById('ep-nombre').value = d.nombre;
-  document.getElementById('ep-cargo').value = d.cargo;
-  document.getElementById('ep-email').value = d.email;
-  document.getElementById('ep-tel').value = d.tel;
-  document.getElementById('ep-rol').value = d.rol;
+/* ════ PROFESIONALES SUPABASE ════ */
+let _profList = [];
+let currentEditId = null;
+
+const PROF_COLORS = [
+  'linear-gradient(135deg,var(--a),var(--a3))',
+  'linear-gradient(135deg,var(--green),#22C55E)',
+  'linear-gradient(135deg,var(--amber),#FBBF24)',
+  'linear-gradient(135deg,#3B82F6,#60A5FA)',
+  'linear-gradient(135deg,#14B8A6,#2DD4BF)',
+  'linear-gradient(135deg,#EF4444,#F87171)'
+];
+const ROL_LABELS  = {admin:'Administrador general', staff:'Staff / Profesional', recep:'Recepcionista'};
+const ESTADO_TAGS = {activo:'<span class="tag tg">Activo</span>', inactivo:'<span class="tag ta">Inactivo</span>', vacaciones:'<span class="tag tn">Vacaciones</span>'};
+
+function horarioResumen(h) {
+  if (!h || typeof h !== 'object') return 'Sin horario';
+  const dias = ['lun','mar','mie','jue','vie','sab','dom'];
+  const activos = dias.filter(d => h[d]?.activo && h[d]?.bloques?.length);
+  if (!activos.length) return 'Sin horario';
+  const blq = h[activos[0]]?.bloques?.[0];
+  if (activos.length >= 5 && blq) return `${activos[0][0].toUpperCase()+activos[0].slice(1)}–${activos[activos.length-1][0].toUpperCase()+activos[activos.length-1].slice(1)} ${blq.desde}–${blq.hasta}`;
+  return activos.map(d => d[0].toUpperCase()+d.slice(1)).join(', ');
+}
+
+async function cargarProfesionales() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  const r = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&select=*&order=nombre.asc`, { headers: _SH });
+  const profs = await r.json();
+  if (!Array.isArray(profs)) return;
+  _profList = profs;
+  renderProfCards(profs);
+}
+
+function renderProfCards(profs) {
+  const container = document.getElementById('prof-cards');
+  if (!container) return;
+  if (!profs.length) {
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Sin profesionales. Agrega el primero con "+ Nuevo profesional".</div>';
+    return;
+  }
+  container.innerHTML = profs.map((p, i) => {
+    const ini   = p.nombre.trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const color = PROF_COLORS[i % PROF_COLORS.length];
+    const rolLbl   = ROL_LABELS[p.rol] || p.rol || 'Staff';
+    const estadoTag = ESTADO_TAGS[p.estado] || ESTADO_TAGS.activo;
+    const horTxt   = horarioResumen(p.horario);
+    return `<div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer" onclick="toggleProfCard('pc-${p.id}')">
+        <div style="width:44px;height:44px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 3px 8px rgba(0,0,0,0.15)">${ini}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:2px">${p.nombre}</div>
+          <div style="font-size:12px;color:var(--t3)">${p.cargo||'—'} · ${rolLbl}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${estadoTag}
+          <button class="btn-sm" onclick="event.stopPropagation();openEditProf('${p.id}')">Editar</button>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--t4);transition:transform .2s" id="arr-${p.id}"><path d="M2 4l4 4 4-4"/></svg>
+        </div>
+      </div>
+      <div id="pc-${p.id}" style="display:none;border-top:1px solid var(--b1);padding:16px 20px;background:rgba(248,247,255,0.5)">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Email</div><div style="font-size:13px;color:var(--t1)">${p.email||'—'}</div></div>
+          <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Teléfono</div><div style="font-size:13px;font-family:var(--mono);color:var(--t1)">${p.tel||'—'}</div></div>
+          <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Especialidad</div><div style="font-size:13px;color:var(--t1)">${p.cargo||'—'}</div></div>
+          <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Horario</div><div style="font-size:13px;color:var(--t1)">${horTxt}</div></div>
+          <div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Rol</div><div style="font-size:13px;color:var(--t1)">${rolLbl}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openEditProf(idOrNuevo) {
+  currentEditId = (idOrNuevo === 'nuevo') ? null : idOrNuevo;
+  const p = currentEditId ? (_profList.find(x => x.id === currentEditId) || {}) : {};
+  document.getElementById('ep-id').value = p.id || '';
+  document.getElementById('edit-prof-title').textContent = p.id ? 'Editar: ' + p.nombre : 'Nuevo profesional';
+  const ini = p.nombre ? p.nombre.trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() : '?';
+  document.getElementById('ep-av').textContent = ini;
+  document.getElementById('ep-nombre').value = p.nombre || '';
+  document.getElementById('ep-cargo').value  = p.cargo  || '';
+  document.getElementById('ep-email').value  = p.email  || '';
+  document.getElementById('ep-tel').value    = p.tel    || '';
+  document.getElementById('ep-rol').value    = p.rol    || 'staff';
+  document.getElementById('ep-estado').value = p.estado || 'activo';
+  renderHorarioEdit(p.horario || {});
+  document.getElementById('btn-delete-prof').style.display = p.id ? 'inline-flex' : 'none';
+  document.getElementById('btn-save-prof').textContent = 'Guardar cambios';
   document.getElementById('edit-prof-ov').classList.add('open');
 }
+
 function closeEditProf() {
   document.getElementById('edit-prof-ov').classList.remove('open');
 }
-function saveEditProf() {
+
+function renderHorarioEdit(h) {
+  const dias = [{k:'lun',l:'Lunes'},{k:'mar',l:'Martes'},{k:'mie',l:'Miércoles'},{k:'jue',l:'Jueves'},{k:'vie',l:'Viernes'},{k:'sab',l:'Sábado'},{k:'dom',l:'Domingo'}];
+  const HORAS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'];
+  const opts = HORAS.map(t => `<option value="${t}">${t}</option>`).join('');
+  document.getElementById('ep-horario').innerHTML = dias.map(({k,l}) => {
+    const d = h[k] || {activo:false, bloques:[]};
+    const activo = d.activo;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--b1)">
+      <input type="checkbox" id="hd-${k}" ${activo?'checked':''} onchange="toggleHorarioDia('${k}',this.checked)" style="accent-color:var(--a);cursor:pointer;flex-shrink:0">
+      <span style="width:82px;font-size:13px;color:var(--t2);flex-shrink:0">${l}</span>
+      <div id="hblk-${k}" style="display:flex;align-items:center;gap:6px;flex:1;${activo?'':'opacity:.35;pointer-events:none'}">
+        <select class="fs" id="hd-${k}-desde" style="padding:4px 8px;font-size:12px;width:76px">${opts}</select>
+        <span style="font-size:12px;color:var(--t3)">–</span>
+        <select class="fs" id="hd-${k}-hasta" style="padding:4px 8px;font-size:12px;width:76px">${opts}</select>
+      </div>
+      <span id="hcerrado-${k}" style="font-size:12px;color:var(--t4);${activo?'display:none':''}">Cerrado</span>
+    </div>`;
+  }).join('');
+  dias.forEach(({k}) => {
+    const blq = (h[k]?.bloques||[])[0] || {};
+    const de = document.getElementById(`hd-${k}-desde`);
+    const ha = document.getElementById(`hd-${k}-hasta`);
+    if (de) de.value = blq.desde || '09:00';
+    if (ha) ha.value = blq.hasta || '18:00';
+  });
+}
+
+function toggleHorarioDia(dia, activo) {
+  const blk = document.getElementById('hblk-' + dia);
+  const cer = document.getElementById('hcerrado-' + dia);
+  if (blk) { blk.style.opacity = activo?'1':'.35'; blk.style.pointerEvents = activo?'':'none'; }
+  if (cer) cer.style.display = activo ? 'none' : '';
+}
+
+function getHorarioFromModal() {
+  const dias = ['lun','mar','mie','jue','vie','sab','dom'];
+  const h = {};
+  dias.forEach(d => {
+    const activo = document.getElementById('hd-'+d)?.checked || false;
+    const desde  = document.getElementById('hd-'+d+'-desde')?.value || '09:00';
+    const hasta  = document.getElementById('hd-'+d+'-hasta')?.value || '18:00';
+    h[d] = {activo, bloques: activo ? [{desde, hasta}] : []};
+  });
+  return h;
+}
+
+async function saveEditProf() {
   const nombre = document.getElementById('ep-nombre').value.trim();
-  const cargo  = document.getElementById('ep-cargo').value.trim();
   if (!nombre) { toast('El nombre es obligatorio'); return; }
-  const key = currentEditKey;
-  // Update live data
-  if (key && key !== 'nuevo' && profDefaults[key]) {
-    profDefaults[key].nombre = nombre;
-    profDefaults[key].cargo  = cargo;
-    profDefaults[key].email  = document.getElementById('ep-email').value.trim();
-    profDefaults[key].tel    = document.getElementById('ep-tel').value.trim();
-    profDefaults[key].title  = 'Editar: ' + nombre;
-    // Update the card header name
-    const card = document.getElementById('pc-' + key);
-    if (card) {
-      const nameEl = card.previousElementSibling?.querySelector('div:nth-child(2) > div:first-child');
-      if (nameEl) nameEl.textContent = nombre;
+  const btn = document.getElementById('btn-save-prof');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const cid  = await getClienteId();
+    const data = {
+      nombre,
+      cargo:   document.getElementById('ep-cargo').value.trim(),
+      email:   document.getElementById('ep-email').value.trim(),
+      tel:     document.getElementById('ep-tel').value.trim(),
+      rol:     document.getElementById('ep-rol').value,
+      estado:  document.getElementById('ep-estado').value,
+      horario: getHorarioFromModal()
+    };
+    if (currentEditId) {
+      await fetch(`${_SURL}/rest/v1/especialistas?id=eq.${currentEditId}&cliente_id=eq.${cid}`, {
+        method: 'PATCH',
+        headers: {..._SH, 'Content-Type':'application/json', Prefer:'return=minimal'},
+        body: JSON.stringify(data)
+      });
+    } else {
+      await fetch(`${_SURL}/rest/v1/especialistas`, {
+        method: 'POST',
+        headers: {..._SH, 'Content-Type':'application/json', Prefer:'return=minimal'},
+        body: JSON.stringify({...data, cliente_id: cid})
+      });
     }
-    // Update dropdown option
-    const lbl = document.getElementById('prof-label');
-    if (lbl && currentProf === key) lbl.textContent = nombre;
-    const profData_key = profData[key];
-    if (profData_key) profData_key.label = nombre;
+    closeEditProf();
     toast('✓ ' + nombre + ' guardado correctamente');
-  } else {
-    toast('Profesional creado: ' + nombre);
-  }
-  closeEditProf();
+    cargarProfesionales();
+  } catch(e) { toast('Error al guardar profesional'); }
+  finally { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
+}
+
+async function deleteProf() {
+  if (!currentEditId) return;
+  const prof = _profList.find(p => p.id === currentEditId);
+  if (!confirm(`¿Eliminar a ${prof?.nombre||'este profesional'}? Esta acción no se puede deshacer.`)) return;
+  try {
+    const cid = await getClienteId();
+    await fetch(`${_SURL}/rest/v1/especialistas?id=eq.${currentEditId}&cliente_id=eq.${cid}`, {
+      method: 'DELETE', headers: {..._SH, Prefer:'return=minimal'}
+    });
+    closeEditProf();
+    toast('Profesional eliminado');
+    cargarProfesionales();
+  } catch(e) { toast('Error al eliminar profesional'); }
 }
 
 /* ════ HORARIOS ════ */
@@ -3691,6 +3757,180 @@ async function cargarCitasSupabase() {
 // Carga inicial y refresco cada 30 segundos
 cargarCitasSupabase();
 setInterval(cargarCitasSupabase, 30000);
+
+/* ════ VENTAS: carga y registrar pago ════ */
+let _ventasCid = null;
+
+async function getClienteId() {
+  if (_ventasCid) return _ventasCid;
+  // Intentar con activo=true primero, luego sin filtro como fallback
+  let r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&activo=eq.true&order=created_at.asc&limit=1`, { headers: _SH });
+  let cls = await r.json();
+  if (!Array.isArray(cls) || !cls.length) {
+    r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&order=created_at.asc&limit=1`, { headers: _SH });
+    cls = await r.json();
+  }
+  if (Array.isArray(cls) && cls.length) { _ventasCid = cls[0].id; return _ventasCid; }
+  return null;
+}
+
+async function cargarVentas() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=50`, { headers: _SH });
+  const citas = await r.json();
+  if (!Array.isArray(citas)) return;
+
+  const tbody = document.getElementById('ventas-tbody');
+  if (!tbody) return;
+
+  if (!citas.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones aún</td></tr>';
+    return;
+  }
+
+  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>' };
+
+  tbody.innerHTML = citas.map(c => {
+    const parts = c.nombre_paciente.trim().split(' ');
+    const ini   = parts.slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const fecha = c.fecha ? c.fecha.slice(5).replace('-','/') + ' ' + (c.hora||'').slice(0,5) : '—';
+    const esp   = c.especialistas?.nombre || '—';
+    const metodo = METODO_TAG[c.metodo_pago] || '<span class="tag tn">—</span>';
+    const estado = c.estado_pago === 'pagado'
+      ? '<span class="tag tg">Pagado</span>'
+      : '<span class="tag ta">Pendiente</span>';
+    const monto = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:12px">${fecha}</td>
+      <td><div class="tdn"><div class="tav">${ini}</div>${c.nombre_paciente}</div></td>
+      <td>${c.servicio || '—'}</td>
+      <td>${esp}</td>
+      <td>${metodo}</td>
+      <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">${monto}</td>
+      <td>${estado}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Modal registrar pago ── */
+let _pagoCitas = [];
+
+function openRegistrarPago() {
+  // Abrir modal de inmediato
+  const sel = document.getElementById('pago-cita-sel');
+  sel.innerHTML = '<option value="">Cargando citas...</option>';
+  document.getElementById('pago-monto').value = '';
+  document.getElementById('pago-metodo').value = 'efectivo';
+  document.getElementById('registrar-pago-ov').classList.add('open');
+
+  // Cargar citas en segundo plano
+  getClienteId().then(cid => {
+    if (!cid) {
+      sel.innerHTML = '<option value="">Sin cliente configurado</option>';
+      return;
+    }
+    // Traer citas sin pago (estado_pago pendiente o nulo) o todas si no hay filtro
+    return fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=id,nombre_paciente,servicio,fecha,hora,precio,estado_pago&order=fecha.desc,hora.desc&limit=100`, { headers: _SH })
+      .then(r => r.json())
+      .then(citas => {
+        if (!Array.isArray(citas) || !citas.length) {
+          sel.innerHTML = '<option value="">Sin citas disponibles</option>';
+          return;
+        }
+        // Mostrar solo las no pagadas (o todas si no tienen el campo)
+        const pendientes = citas.filter(c => c.estado_pago !== 'pagado');
+        const lista = pendientes.length ? pendientes : citas;
+        _pagoCitas = lista;
+        sel.innerHTML = '<option value="">— Selecciona una cita —</option>' +
+          lista.map(c => {
+            const fecha = c.fecha ? c.fecha.slice(5).replace('-','/') : '';
+            return `<option value="${c.id}" data-precio="${c.precio||0}">${c.nombre_paciente} · ${c.servicio||'—'} · ${fecha} ${(c.hora||'').slice(0,5)}</option>`;
+          }).join('');
+      });
+  }).catch(e => {
+    console.warn('openRegistrarPago error:', e);
+    sel.innerHTML = '<option value="">Error al cargar citas</option>';
+  });
+}
+
+function closeRegistrarPago() {
+  document.getElementById('registrar-pago-ov').classList.remove('open');
+}
+
+function onPagoCitaChange() {
+  const sel = document.getElementById('pago-cita-sel');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('pago-monto').value = opt?.dataset?.precio || '';
+}
+
+async function saveRegistrarPago() {
+  const citaId = document.getElementById('pago-cita-sel').value;
+  const metodo = document.getElementById('pago-metodo').value;
+  const monto  = document.getElementById('pago-monto').value;
+  if (!citaId) { toast('Selecciona una cita'); return; }
+
+  const btn = document.getElementById('btn-save-pago');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try {
+    const cid = await getClienteId();
+    await fetch(`${_SURL}/rest/v1/citas?id=eq.${citaId}&cliente_id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ estado_pago: 'pagado', metodo_pago: metodo, precio: monto ? Number(monto) : undefined })
+    });
+    closeRegistrarPago();
+    toast('✓ Pago registrado correctamente');
+    cargarVentas();
+  } catch(e) {
+    toast('Error al guardar el pago');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Registrar pago';
+  }
+}
+
+// Cargar ventas al iniciar y cuando se entra a la tab
+cargarVentas();
 </script>
+
+<!-- ═══ MODAL REGISTRAR PAGO ═══ -->
+<div class="overlay" id="registrar-pago-ov" style="z-index:600" onclick="if(event.target===this)closeRegistrarPago()">
+  <div class="modal" style="width:480px">
+    <div class="modal-head">
+      <span class="modal-title">Registrar pago</span>
+      <button class="mclose" onclick="closeRegistrarPago()">×</button>
+    </div>
+    <div class="mbody" style="gap:14px">
+      <div class="fg">
+        <label class="fl">Cita</label>
+        <select class="fs" id="pago-cita-sel" onchange="onPagoCitaChange()">
+          <option value="">— Selecciona una cita —</option>
+        </select>
+      </div>
+      <div class="r2">
+        <div class="fg">
+          <label class="fl">Monto ($)</label>
+          <input class="fi" id="pago-monto" type="number" min="0" placeholder="Ej: 15000">
+        </div>
+        <div class="fg">
+          <label class="fl">Método de pago</label>
+          <select class="fs" id="pago-metodo">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeRegistrarPago()">Cancelar</button>
+      <button class="btn-a" id="btn-save-pago" onclick="saveRegistrarPago()">Registrar pago</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
