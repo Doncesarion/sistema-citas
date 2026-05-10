@@ -3763,8 +3763,13 @@ let _ventasCid = null;
 
 async function getClienteId() {
   if (_ventasCid) return _ventasCid;
-  const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&activo=eq.true&order=created_at.asc&limit=1`, { headers: _SH });
-  const cls = await r.json();
+  // Intentar con activo=true primero, luego sin filtro como fallback
+  let r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&activo=eq.true&order=created_at.asc&limit=1`, { headers: _SH });
+  let cls = await r.json();
+  if (!Array.isArray(cls) || !cls.length) {
+    r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id&order=created_at.asc&limit=1`, { headers: _SH });
+    cls = await r.json();
+  }
   if (Array.isArray(cls) && cls.length) { _ventasCid = cls[0].id; return _ventasCid; }
   return null;
 }
@@ -3811,45 +3816,53 @@ async function cargarVentas() {
 /* ── Modal registrar pago ── */
 let _pagoCitas = [];
 
-async function openRegistrarPago() {
-  const cid = await getClienteId();
-  if (!cid) return;
-  // Cargar citas pendientes de pago
-  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&estado_pago=eq.pendiente&select=id,nombre_paciente,servicio,fecha,hora,precio&order=fecha.desc,hora.desc&limit=100`, { headers: _SH });
-  let pendientes = await r.json();
-  // Fallback: si la columna aún no existe, traer todas
-  if (!Array.isArray(pendientes)) pendientes = [];
-  if (!pendientes.length) {
-    // Traer todas sin filtro de estado
-    const r2 = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=id,nombre_paciente,servicio,fecha,hora,precio&order=fecha.desc,hora.desc&limit=100`, { headers: _SH });
-    pendientes = await r2.json();
-    if (!Array.isArray(pendientes)) pendientes = [];
-  }
-  _pagoCitas = pendientes;
-
+function openRegistrarPago() {
+  // Abrir modal de inmediato
   const sel = document.getElementById('pago-cita-sel');
-  sel.innerHTML = '<option value="">— Selecciona una cita —</option>' +
-    pendientes.map(c => {
-      const fecha = c.fecha ? c.fecha.slice(5).replace('-','/') : '';
-      return `<option value="${c.id}" data-precio="${c.precio||0}">${c.nombre_paciente} · ${c.servicio} · ${fecha} ${(c.hora||'').slice(0,5)}</option>`;
-    }).join('');
-
+  sel.innerHTML = '<option value="">Cargando citas...</option>';
   document.getElementById('pago-monto').value = '';
   document.getElementById('pago-metodo').value = 'efectivo';
   document.getElementById('registrar-pago-ov').classList.add('open');
+
+  // Cargar citas en segundo plano
+  getClienteId().then(cid => {
+    if (!cid) {
+      sel.innerHTML = '<option value="">Sin cliente configurado</option>';
+      return;
+    }
+    // Traer citas sin pago (estado_pago pendiente o nulo) o todas si no hay filtro
+    return fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=id,nombre_paciente,servicio,fecha,hora,precio,estado_pago&order=fecha.desc,hora.desc&limit=100`, { headers: _SH })
+      .then(r => r.json())
+      .then(citas => {
+        if (!Array.isArray(citas) || !citas.length) {
+          sel.innerHTML = '<option value="">Sin citas disponibles</option>';
+          return;
+        }
+        // Mostrar solo las no pagadas (o todas si no tienen el campo)
+        const pendientes = citas.filter(c => c.estado_pago !== 'pagado');
+        const lista = pendientes.length ? pendientes : citas;
+        _pagoCitas = lista;
+        sel.innerHTML = '<option value="">— Selecciona una cita —</option>' +
+          lista.map(c => {
+            const fecha = c.fecha ? c.fecha.slice(5).replace('-','/') : '';
+            return `<option value="${c.id}" data-precio="${c.precio||0}">${c.nombre_paciente} · ${c.servicio||'—'} · ${fecha} ${(c.hora||'').slice(0,5)}</option>`;
+          }).join('');
+      });
+  }).catch(e => {
+    console.warn('openRegistrarPago error:', e);
+    sel.innerHTML = '<option value="">Error al cargar citas</option>';
+  });
 }
 
 function closeRegistrarPago() {
   document.getElementById('registrar-pago-ov').classList.remove('open');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('pago-cita-sel')?.addEventListener('change', function() {
-    const opt = this.options[this.selectedIndex];
-    const precio = opt?.dataset?.precio || '';
-    document.getElementById('pago-monto').value = precio;
-  });
-});
+function onPagoCitaChange() {
+  const sel = document.getElementById('pago-cita-sel');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('pago-monto').value = opt?.dataset?.precio || '';
+}
 
 async function saveRegistrarPago() {
   const citaId = document.getElementById('pago-cita-sel').value;
@@ -3893,7 +3906,7 @@ cargarVentas();
     <div class="mbody" style="gap:14px">
       <div class="fg">
         <label class="fl">Cita</label>
-        <select class="fs" id="pago-cita-sel">
+        <select class="fs" id="pago-cita-sel" onchange="onPagoCitaChange()">
           <option value="">— Selecciona una cita —</option>
         </select>
       </div>
