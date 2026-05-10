@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Norte — Reserva tu hora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --a:#6C5CE4;--a2:#8B7CF8;--a3:#4F3EE0;--adim:rgba(108,92,228,0.08);
+  --bg:#F8F7FF;
+  --t1:#16143A;--t2:#5E5880;--t3:#9C96B4;--t4:#C4C0D8;
+  --green:#16A34A;--amber:#D97706;--red:#DC2626;
+  --b1:rgba(108,92,228,0.08);--b2:rgba(108,92,228,0.18);
+  --sh1:0 1px 4px rgba(108,92,228,0.07),0 4px 16px rgba(108,92,228,0.05);
+  --sh2:0 4px 20px rgba(108,92,228,0.12);
+  --r:8px;--rl:12px;--rx:16px;--rxx:20px;
+  --mono:'Geist Mono',monospace;
+}
+html,body{height:100%;font-family:'Geist',sans-serif;background:var(--bg);color:var(--t1)}
+body{min-height:100vh;display:flex;flex-direction:column}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 35% at 15% 8%,rgba(108,92,228,0.07),transparent 70%),
+    radial-gradient(ellipse 40% 50% at 85% 92%,rgba(139,124,248,0.06),transparent 70%);
+}
+
+/* ── NAV ── */
+.nav{
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(135deg,#1E1B3A 0%,#16143A 60%,#1A1642 100%);
+  padding:11px 32px;min-height:60px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(108,92,228,0.25);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-mark{width:28px;height:28px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:#fff;letter-spacing:-.01em;box-shadow:0 2px 10px rgba(108,92,228,0.5),0 0 0 1px rgba(139,124,248,0.3)}
+.nav-biz{font-size:14px;font-weight:600;color:#fff;letter-spacing:-.03em}
+.nav-badge{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.07);font-size:12px;color:rgba(255,255,255,0.65)}
+.nav-badge .ldot{width:6px;height:6px;border-radius:50%;background:#16A34A;flex-shrink:0;animation:blink 2.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+
+/* ── PAGE ── */
+.page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:28px 20px 64px;width:100%}
+
+/* ── BIZ HEADER ── */
+.biz-header{
+  background:#fff;border:1px solid var(--b1);border-radius:var(--rxx);
+  padding:28px 32px;margin-bottom:24px;box-shadow:var(--sh1);
+  display:flex;gap:22px;align-items:center;position:relative;overflow:hidden;
+}
+.biz-header::after{content:'';position:absolute;top:0;right:0;width:200px;height:100%;background:radial-gradient(ellipse at 100% 50%,rgba(108,92,228,0.05),transparent 70%);pointer-events:none}
+.biz-logo{width:72px;height:72px;flex-shrink:0;border-radius:16px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:22px;font-weight:500;color:#fff;box-shadow:0 6px 20px rgba(108,92,228,0.32)}
+.biz-info{flex:1;min-width:0}
+.biz-name{font-size:22px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:5px}
+.biz-desc{font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:12px}
+.biz-meta{display:flex;flex-wrap:wrap;gap:14px}
+.biz-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t3)}
+.biz-open{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green);padding:4px 11px;background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.18);border-radius:100px}
+.biz-open.closed{color:var(--t3);background:rgba(156,150,180,0.08);border-color:rgba(156,150,180,0.18)}
+.biz-open.closed .dot-pulse{background:var(--t3);animation:none}
+.dot-pulse{width:7px;height:7px;border-radius:50%;background:var(--green);animation:dp 2s infinite}
+@keyframes dp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* ── STEPS BAR ── */
+.sbar{display:flex;margin-bottom:24px;background:#fff;border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1)}
+.sbi{flex:1;padding:13px 6px;text-align:center;position:relative;transition:background .15s}
+.sbi::after{content:'›';position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:13px;color:var(--t4);z-index:1}
+.sbi:last-child::after{display:none}
+.sbi-num{width:20px;height:20px;border-radius:50%;background:var(--b1);color:var(--t4);font-size:10px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 3px;transition:all .2s}
+.sbi-lbl{font-size:10px;color:var(--t4);font-weight:400;transition:color .2s;white-space:nowrap}
+.sbi.active .sbi-num{background:var(--a);color:#fff;box-shadow:0 2px 8px rgba(108,92,228,.35)}
+.sbi.active .sbi-lbl{color:var(--t1);font-weight:500}
+.sbi.done .sbi-num{background:var(--green);color:#fff}
+.sbi.done .sbi-lbl{color:var(--t3)}
+
+/* ── ACCORDION CARD ── */
+.acc{background:#fff;border:1px solid var(--b1);border-radius:var(--rx);box-shadow:var(--sh1);margin-bottom:12px;overflow:hidden;transition:box-shadow .2s}
+.acc.open{box-shadow:var(--sh2);border-color:var(--b2)}
+.acc-head{
+  display:flex;align-items:center;gap:14px;padding:18px 22px;cursor:pointer;
+  transition:background .12s;user-select:none;
+}
+.acc-head:hover{background:rgba(108,92,228,0.02)}
+.acc-num{width:28px;height:28px;border-radius:50%;background:var(--b1);color:var(--t3);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.acc.open .acc-num,.acc.done .acc-num{background:var(--a);color:#fff;box-shadow:0 2px 8px rgba(108,92,228,.3)}
+.acc.done .acc-num{background:var(--green)}
+.acc-title{font-size:14px;font-weight:600;color:var(--t1);flex:1}
+.acc-preview{font-size:12px;color:var(--t3);margin-left:auto;text-align:right;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc.open .acc-preview{display:none}
+.acc-chevron{color:var(--t4);transition:transform .2s;flex-shrink:0}
+.acc.open .acc-chevron{transform:rotate(180deg);color:var(--a)}
+.acc-body{display:none;padding:0 22px 22px;border-top:1px solid var(--b1)}
+.acc.open .acc-body{display:block}
+.acc-body-pad{padding-top:18px}
+
+/* ── SERVICIOS ── */
+.svc-list{display:flex;flex-direction:column;gap:7px}
+.svc-row{
+  display:flex;align-items:center;gap:12px;padding:13px 15px;
+  border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;
+}
+.svc-row:hover{border-color:var(--b2);background:rgba(108,92,228,0.03)}
+.svc-row.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
+.svc-icon{width:36px;height:36px;border-radius:9px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.svc-row.sel .svc-icon{background:rgba(108,92,228,0.14)}
+.svc-info{flex:1;min-width:0}
+.svc-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:1px}
+.svc-meta{font-size:11px;color:var(--t3)}
+.svc-price{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--a);flex-shrink:0}
+.svc-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.svc-row.sel .svc-radio{background:var(--a);border-color:var(--a)}
+.svc-row.sel .svc-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+
+/* ── PROFESIONALES ── */
+.prof-list{display:flex;flex-direction:column;gap:7px}
+.prof-row{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;
+  border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;
+}
+.prof-row:hover{border-color:var(--b2);background:rgba(108,92,228,0.03)}
+.prof-row.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
+.prof-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--a),var(--a3))}
+.prof-row.any .prof-dot{background:linear-gradient(135deg,var(--t4),var(--t3))}
+.prof-info{flex:1}
+.prof-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.prof-role{font-size:12px;color:var(--t3)}
+.prof-rating{display:flex;align-items:center;gap:4px;margin-top:3px;font-size:11px}
+.pstars{color:#F59E0B;letter-spacing:.5px}
+.pval{font-weight:600;color:var(--t1);font-family:var(--mono)}
+.pcnt{color:var(--t3)}
+.prof-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.prof-row.sel .prof-radio{background:var(--a);border-color:var(--a)}
+.prof-row.sel .prof-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+
+/* ── CALENDARIO ── */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-month-lbl{font-size:14px;font-weight:600;color:var(--t1);letter-spacing:-.02em}
+.cal-arr{width:30px;height:30px;border:1px solid var(--b1);border-radius:7px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t2);transition:all .12s}
+.cal-arr:hover{border-color:var(--a);color:var(--a)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:20px}
+.cal-dh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t4);text-align:center;padding:5px 0}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;border-radius:8px;cursor:default;transition:all .12s;border:1.5px solid transparent;position:relative}
+.cal-day.other{color:var(--t4);font-weight:400}
+.cal-day.past{color:var(--t4)}
+.cal-day.today{background:rgba(108,92,228,0.08);color:var(--a);font-weight:600}
+.cal-day.avail{cursor:pointer;color:var(--t1)}
+.cal-day.avail:hover{background:var(--adim);border-color:var(--b2)}
+.cal-day.avail::after{content:'';width:4px;height:4px;border-radius:50%;background:var(--green);position:absolute;bottom:3px;left:50%;transform:translateX(-50%)}
+.cal-day.sel{background:var(--a)!important;color:#fff!important;border-color:var(--a)!important;box-shadow:0 2px 10px rgba(108,92,228,.35);font-weight:600}
+.cal-day.sel::after{background:#fff!important}
+
+/* ── HORAS ── */
+.horas-wrap{animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.horas-sep{height:1px;background:var(--b1);margin-bottom:18px}
+.horas-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:10px}
+.horas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.h-btn{
+  padding:10px 4px;border:1.5px solid var(--b1);border-radius:var(--r);
+  background:#fff;cursor:pointer;font-size:12px;font-family:var(--mono);
+  font-weight:500;color:var(--t2);transition:all .12s;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+}
+.h-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.h-btn.sel{background:var(--a);border-color:var(--a);color:#fff;box-shadow:0 2px 8px rgba(108,92,228,.3)}
+.h-btn.taken{background:var(--bg);color:var(--t4);cursor:not-allowed;border-style:dashed}
+.h-btn.past{background:var(--bg);color:var(--t4);cursor:not-allowed;opacity:.5}
+.h-taken-lbl{font-size:9px;opacity:.6}
+.horas-none{text-align:center;padding:18px 0;font-size:13px;color:var(--t3)}
+
+/* ── DATOS ── */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fl{font-size:12px;font-weight:500;color:var(--t2)}
+.fi{padding:10px 12px;border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-family:'Geist',sans-serif;color:var(--t1);background:#fff;outline:none;transition:border-color .12s;width:100%}
+.fi:focus{border-color:var(--a)}
+.fi::placeholder{color:var(--t4)}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.check-label{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;background:var(--adim);border-radius:var(--r);cursor:pointer;margin-bottom:7px}
+.check-label input{accent-color:var(--a);width:15px;height:15px;flex-shrink:0;margin-top:1px;cursor:pointer}
+.check-lbl{font-size:12px;color:var(--t2);line-height:1.5}
+
+/* ── BTNS ── */
+.btn-a{padding:11px 22px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif;box-shadow:0 2px 8px rgba(108,92,228,.25)}
+.btn-a:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(108,92,228,.4)}
+.btn-a:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none}
+.btn-g{padding:11px 20px;background:#fff;color:var(--t2);border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif}
+.btn-g:hover{border-color:var(--b2);color:var(--t1)}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:18px;border-top:1px solid var(--b1)}
+
+/* ── RESUMEN FLOTANTE ── */
+.res-bar{
+  background:#fff;border:1px solid var(--b1);border-radius:var(--rx);
+  padding:16px 20px;margin-bottom:20px;box-shadow:var(--sh1);
+  display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+}
+.res-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:var(--adim);border-radius:100px;font-size:12px;color:var(--t2);font-weight:500}
+.res-chip svg{flex-shrink:0;color:var(--a)}
+.res-chip .val{color:var(--t1);font-weight:600}
+.res-sep{width:1px;height:16px;background:var(--b1);flex-shrink:0}
+.res-price{margin-left:auto;font-family:var(--mono);font-size:16px;font-weight:700;color:var(--a)}
+
+/* ── CONFIRMACIÓN ── */
+.confirm{text-align:center;padding:36px 24px}
+.c-icon{width:68px;height:68px;border-radius:50%;background:rgba(22,163,74,0.1);border:2px solid rgba(22,163,74,0.22);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:26px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.c-title{font-size:22px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:8px}
+.c-sub{font-size:13px;color:var(--t2);line-height:1.6;max-width:360px;margin:0 auto 24px}
+.c-card{background:var(--adim);border:1px solid var(--b1);border-radius:var(--rl);padding:16px 20px;text-align:left;margin-bottom:24px;display:flex;flex-direction:column;gap:9px}
+.c-row{display:flex;align-items:baseline;gap:8px;font-size:13px}
+.c-row b{color:var(--t1);font-weight:600;min-width:90px;flex-shrink:0}
+.c-row span{color:var(--t2)}
+.c-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.wa-btn{display:flex;align-items:center;gap:7px;padding:11px 18px;background:#25D366;color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s}
+.wa-btn:hover{background:#1eb85a;transform:translateY(-1px)}
+.ical-btn{display:flex;align-items:center;gap:7px;padding:11px 18px;background:#fff;color:var(--t1);border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s}
+.ical-btn:hover{border-color:var(--a);color:var(--a)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .biz-header{gap:14px;padding:18px 20px}
+  .biz-logo{width:48px;height:48px;font-size:15px}
+  .biz-name{font-size:17px}
+  .sbi-lbl{display:none}
+  .page{padding:18px 14px 48px}
+  .acc-head{padding:15px 16px}
+  .acc-body{padding:0 16px 18px}
+  .horas-grid{grid-template-columns:repeat(3,1fr)}
+  .r2{grid-template-columns:1fr}
+  .res-bar{gap:6px}
+  .res-price{margin-left:0;width:100%}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="#">
+    <div class="nav-mark">tt</div>
+    <span class="nav-biz">Studio Norte</span>
+  </a>
+  <span class="nav-badge"><span class="ldot"></span>Reserva en línea</span>
+</nav>
+
+<div class="page">
+
+  <!-- BIZ HEADER -->
+  <div class="biz-header">
+    <div class="biz-logo">tt</div>
+    <div class="biz-info">
+      <div class="biz-name">Studio Norte</div>
+      <div class="biz-desc">Centro de salud y bienestar. Psicología, nutrición y barbería con profesionales certificados.</div>
+      <div class="biz-meta">
+        <div class="biz-open" id="biz-status"><span class="dot-pulse"></span><span id="biz-status-lbl">Abierto ahora</span></div>
+        <div class="biz-item">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
+          Providencia 1234, Santiago
+        </div>
+        <div class="biz-item">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3.5v2.5l1.5 1.5"/></svg>
+          Lun–Vie 8:00–19:00 · Sáb 10:00–15:00
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEPS BAR -->
+  <div class="sbar" id="sbar">
+    <div class="sbi active" id="sb1"><div class="sbi-num">1</div><div class="sbi-lbl">Servicio</div></div>
+    <div class="sbi" id="sb2"><div class="sbi-num">2</div><div class="sbi-lbl">Profesional</div></div>
+    <div class="sbi" id="sb3"><div class="sbi-num">3</div><div class="sbi-lbl">Fecha y hora</div></div>
+    <div class="sbi" id="sb4"><div class="sbi-num">4</div><div class="sbi-lbl">Tus datos</div></div>
+    <div class="sbi" id="sb5"><div class="sbi-num">5</div><div class="sbi-lbl">Confirmar</div></div>
+  </div>
+
+  <!-- RESUMEN FLOTANTE -->
+  <div class="res-bar" id="res-bar" style="display:none">
+    <div class="res-chip" id="rc-svc" style="display:none">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x=".5" y=".5" width="10" height="10" rx="2.5"/><path d="M3 5.5l2 2 3-3"/></svg>
+      <span class="val" id="rc-svc-v">—</span>
+    </div>
+    <div class="res-sep" id="rs1" style="display:none"></div>
+    <div class="res-chip" id="rc-prof" style="display:none">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5.5" cy="4" r="2.5"/><path d="M1 11c0-2.5 2-4.5 4.5-4.5S10 8.5 10 11"/></svg>
+      <span class="val" id="rc-prof-v">—</span>
+    </div>
+    <div class="res-sep" id="rs2" style="display:none"></div>
+    <div class="res-chip" id="rc-fecha" style="display:none">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x=".5" y="1.5" width="10" height="9" rx="2"/><path d="M.5 4.5h10M3.5 0v2M7.5 0v2"/></svg>
+      <span class="val" id="rc-fecha-v">—</span>
+    </div>
+    <div class="res-sep" id="rs3" style="display:none"></div>
+    <div class="res-chip" id="rc-hora" style="display:none">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5.5" cy="5.5" r="4.5"/><path d="M5.5 3v2.5l1.5 1"/></svg>
+      <span class="val" id="rc-hora-v">—</span>
+    </div>
+    <div class="res-price" id="rc-precio" style="display:none"></div>
+  </div>
+
+  <!-- ════ ACCORDION 1: SERVICIO ════ -->
+  <div class="acc open" id="acc1">
+    <div class="acc-head" onclick="toggleAcc(1)">
+      <div class="acc-num">1</div>
+      <div class="acc-title">Elige el servicio</div>
+      <div class="acc-preview" id="prev1"></div>
+      <svg class="acc-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6l4 4 4-4"/></svg>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-pad">
+        <div class="svc-list">
+          <div class="svc-row" onclick="selSvc(this,'Consulta psicológica','Psicología','60 min',35000,'🧠')">
+            <div class="svc-icon">🧠</div>
+            <div class="svc-info"><div class="svc-name">Consulta psicológica</div><div class="svc-meta">Psicología · 60 min</div></div>
+            <div class="svc-price">$35.000</div>
+            <div class="svc-radio"></div>
+          </div>
+          <div class="svc-row" onclick="selSvc(this,'Terapia de seguimiento','Psicología','45 min',28000,'💬')">
+            <div class="svc-icon">💬</div>
+            <div class="svc-info"><div class="svc-name">Terapia de seguimiento</div><div class="svc-meta">Psicología · 45 min</div></div>
+            <div class="svc-price">$28.000</div>
+            <div class="svc-radio"></div>
+          </div>
+          <div class="svc-row" onclick="selSvc(this,'Consulta nutricional','Nutrición','60 min',30000,'🥗')">
+            <div class="svc-icon">🥗</div>
+            <div class="svc-info"><div class="svc-name">Consulta nutricional</div><div class="svc-meta">Nutrición · 60 min</div></div>
+            <div class="svc-price">$30.000</div>
+            <div class="svc-radio"></div>
+          </div>
+          <div class="svc-row" onclick="selSvc(this,'Evaluación nutricional','Nutrición','90 min',45000,'📊')">
+            <div class="svc-icon">📊</div>
+            <div class="svc-info"><div class="svc-name">Evaluación nutricional completa</div><div class="svc-meta">Nutrición · 90 min</div></div>
+            <div class="svc-price">$45.000</div>
+            <div class="svc-radio"></div>
+          </div>
+          <div class="svc-row" onclick="selSvc(this,'Corte de cabello','Barbería','30 min',12000,'✂️')">
+            <div class="svc-icon">✂️</div>
+            <div class="svc-info"><div class="svc-name">Corte de cabello</div><div class="svc-meta">Barbería · 30 min</div></div>
+            <div class="svc-price">$12.000</div>
+            <div class="svc-radio"></div>
+          </div>
+          <div class="svc-row" onclick="selSvc(this,'Corte + barba','Barbería','60 min',22000,'💈')">
+            <div class="svc-icon">💈</div>
+            <div class="svc-info"><div class="svc-name">Corte + barba</div><div class="svc-meta">Barbería · 60 min</div></div>
+            <div class="svc-price">$22.000</div>
+            <div class="svc-radio"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ ACCORDION 2: PROFESIONAL ════ -->
+  <div class="acc" id="acc2">
+    <div class="acc-head" onclick="toggleAcc(2)">
+      <div class="acc-num">2</div>
+      <div class="acc-title">Elige el profesional</div>
+      <div class="acc-preview" id="prev2"></div>
+      <svg class="acc-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6l4 4 4-4"/></svg>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-pad">
+        <div class="prof-list" id="prof-list">
+          <!-- rendered by JS based on service -->
+        </div>
+        <div class="foot">
+          <button class="btn-g" onclick="toggleAcc(1)">← Volver</button>
+          <button class="btn-a" id="btn2" onclick="openAcc(3)" disabled>Continuar →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ ACCORDION 3: FECHA Y HORA ════ -->
+  <div class="acc" id="acc3">
+    <div class="acc-head" onclick="toggleAcc(3)">
+      <div class="acc-num">3</div>
+      <div class="acc-title">Elige fecha y hora</div>
+      <div class="acc-preview" id="prev3"></div>
+      <svg class="acc-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6l4 4 4-4"/></svg>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-pad">
+        <div class="cal-nav">
+          <button class="cal-arr" onclick="prevMes()">‹</button>
+          <div class="cal-month-lbl" id="cal-lbl">Mayo 2026</div>
+          <button class="cal-arr" onclick="nextMes()">›</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div id="horas-wrap" style="display:none" class="horas-wrap">
+          <div class="horas-sep"></div>
+          <div class="horas-title" id="horas-lbl">Horas disponibles</div>
+          <div class="horas-grid" id="horas-grid"></div>
+          <div class="horas-none" id="horas-none" style="display:none">No hay horas disponibles este día.</div>
+        </div>
+        <div class="foot">
+          <button class="btn-g" onclick="toggleAcc(2)">← Volver</button>
+          <button class="btn-a" id="btn3" onclick="openAcc(4)" disabled>Continuar →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ ACCORDION 4: DATOS ════ -->
+  <div class="acc" id="acc4">
+    <div class="acc-head" onclick="toggleAcc(4)">
+      <div class="acc-num">4</div>
+      <div class="acc-title">Tus datos de contacto</div>
+      <div class="acc-preview" id="prev4"></div>
+      <svg class="acc-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6l4 4 4-4"/></svg>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-pad">
+        <div class="r2">
+          <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="d-nom" placeholder="Tu nombre" oninput="checkForm()"></div>
+          <div class="fg"><label class="fl">Apellido *</label><input class="fi" id="d-ap" placeholder="Tu apellido" oninput="checkForm()"></div>
+        </div>
+        <div class="fg"><label class="fl">Email *</label><input class="fi" id="d-em" type="email" placeholder="correo@ejemplo.com" oninput="checkForm()"></div>
+        <div class="fg"><label class="fl">Teléfono / WhatsApp *</label><input class="fi" id="d-tel" type="tel" placeholder="+56 9 XXXX XXXX" oninput="checkForm()"></div>
+        <div class="fg"><label class="fl">Notas para el profesional <span style="color:var(--t4)">(opcional)</span></label><textarea class="fi" id="d-nota" rows="3" placeholder="Cuéntanos el motivo de tu consulta..." style="resize:vertical;min-height:68px"></textarea></div>
+        <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="#" style="color:var(--a)">términos de uso</a> y la <a href="#" style="color:var(--a)">política de privacidad</a> *</span></label>
+        <div class="foot">
+          <button class="btn-g" onclick="toggleAcc(3)">← Volver</button>
+          <button class="btn-a" id="btn4" onclick="confirmar()" disabled>Confirmar reserva →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ CONFIRMACIÓN ════ -->
+  <div class="acc" id="acc5" style="display:none">
+    <div class="acc-body" style="display:block">
+      <div class="confirm">
+        <div class="c-icon">✓</div>
+        <div class="c-title">¡Reserva confirmada!</div>
+        <div class="c-sub">Te enviamos un resumen a tu correo y WhatsApp. Puedes cancelar hasta 24 horas antes sin costo.</div>
+        <div class="c-card">
+          <div class="c-row"><b>Servicio</b><span id="cf-svc">—</span></div>
+          <div class="c-row"><b>Profesional</b><span id="cf-prof">—</span></div>
+          <div class="c-row"><b>Fecha</b><span id="cf-fecha">—</span></div>
+          <div class="c-row"><b>Hora</b><span id="cf-hora">—</span></div>
+          <div class="c-row"><b>Precio</b><span id="cf-precio" style="color:var(--a);font-weight:700;font-family:var(--mono)">—</span></div>
+        </div>
+        <div class="c-actions">
+          <button class="btn-g" onclick="resetear()">Hacer otra reserva</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<footer style="margin-top:auto;border-top:1px solid var(--b1);padding:14px 24px;text-align:center;font-size:11px;color:var(--t4);position:relative;z-index:1">
+  Powered by <a href="#" style="color:var(--a);text-decoration:none">attempo</a> · <a href="#" style="color:var(--t4);text-decoration:none">Política de privacidad</a> · <a href="#" style="color:var(--t4);text-decoration:none">Cancelar reserva</a>
+</footer>
+
+<script>
+/* ════ ESTADO ════ */
+const st = {svc:null, prof:null, fecha:null, hora:null};
+
+/* ════ PROFESIONALES ════ */
+const profs = {
+  all: [
+    {key:'any', nom:'Sin preferencia', rol:'Asignación automática', av:'🎲', bg:'#9C96B4,#5E5880', rating:null},
+    {key:'cesar', nom:'Cesar Salinas', rol:'Psicólogo', av:'CS', bg:'#6C5CE4,#4F3EE0', rating:'5.0', cnt:23, cats:['Psicología']},
+    {key:'maria', nom:'María José', rol:'Nutricionista', av:'MJ', bg:'#10B981,#059669', rating:'4.9', cnt:18, cats:['Nutrición']},
+    {key:'juan', nom:'Juan Pablo', rol:'Barbero', av:'JP', bg:'#F59E0B,#D97706', rating:'4.7', cnt:31, cats:['Barbería']},
+  ]
+};
+
+function profsParaSvc(cat) {
+  return profs.all.filter(p => !p.cats || p.cats.includes(cat));
+}
+
+/* ════ MESES ════ */
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+let calY = 2026, calM = 4;
+
+/* ════ DISPONIBILIDAD ════ */
+// Días disponibles por mes (m=0-indexed)
+const DISP = {
+  4:{5:1,6:1,7:1,8:1,9:1,12:1,13:1,14:1,15:1,16:1,19:1,20:1,21:1,22:1,23:1,26:1,27:1,28:1,29:1},
+  5:{6:1,7:1,8:1,11:1,12:1,13:1,14:1,15:1,18:1,19:1,20:1,21:1,22:1,25:1,26:1,27:1,28:1,29:1},
+  6:{1:1,2:1,3:1,6:1,7:1,8:1,9:1,10:1,13:1,14:1,15:1,16:1,17:1,20:1,21:1,22:1,23:1,24:1},
+};
+
+// Horas por día de semana (0=dom): {h:'HH:MM', t?:true(ocupado)}
+const HORAS_BASE = {
+  1:[{h:'08:30'},{h:'09:00'},{h:'09:30'},{h:'10:00'},{h:'10:30'},{h:'11:00',t:1},{h:'11:30'},{h:'12:00'},{h:'14:00'},{h:'14:30',t:1},{h:'15:00'},{h:'15:30'},{h:'16:00'},{h:'17:00'}],
+  2:[{h:'09:00',t:1},{h:'09:30'},{h:'10:00'},{h:'10:30'},{h:'11:00'},{h:'11:30'},{h:'12:00',t:1},{h:'14:00'},{h:'14:30'},{h:'15:00'},{h:'15:30',t:1},{h:'16:00'},{h:'17:00'}],
+  3:[{h:'08:30'},{h:'09:00'},{h:'09:30',t:1},{h:'10:00'},{h:'10:30'},{h:'11:00'},{h:'11:30',t:1},{h:'12:00'},{h:'14:00'},{h:'14:30'},{h:'15:00',t:1},{h:'16:00'},{h:'17:00'}],
+  4:[{h:'09:00'},{h:'09:30'},{h:'10:00',t:1},{h:'10:30'},{h:'11:00'},{h:'11:30'},{h:'12:00'},{h:'14:00',t:1},{h:'14:30'},{h:'15:00'},{h:'15:30'},{h:'16:00'},{h:'17:00'}],
+  5:[{h:'09:00'},{h:'09:30',t:1},{h:'10:00'},{h:'10:30'},{h:'11:00'},{h:'11:30'},{h:'12:00',t:1},{h:'14:00'},{h:'14:30'},{h:'15:00'},{h:'15:30',t:1},{h:'16:00'},{h:'17:00'}],
+  6:[{h:'10:00'},{h:'10:30'},{h:'11:00',t:1},{h:'11:30'},{h:'12:00'},{h:'12:30',t:1},{h:'13:00'},{h:'13:30'}],
+};
+
+const NOW = new Date();
+
+function hToMin(h) {
+  const [hh, mm] = h.split(':').map(Number);
+  return hh * 60 + mm;
+}
+
+function isHoraValida(hStr, durMin, fecha) {
+  const fDate = new Date(fecha.y, fecha.m, fecha.d);
+  const todayDate = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+  // Fecha futura: todas las horas disponibles (solo filtrar ocupadas)
+  if (fDate > todayDate) return true;
+  // Hoy: el slot debe empezar al menos durMin minutos después de ahora
+  // Ej: son las 12:00, servicio 30min → primer slot válido 12:30
+  //     son las 12:00, servicio 45min → primer slot válido 13:00
+  //     son las 12:00, servicio 60min → primer slot válido 13:00
+  const slotMin = hToMin(hStr);
+  const ahoraMin = NOW.getHours() * 60 + NOW.getMinutes();
+  return slotMin >= ahoraMin + durMin;
+}
+
+/* ════ RENDER CALENDARIO ════ */
+function renderCal() {
+  document.getElementById('cal-lbl').textContent = MESES[calM] + ' ' + calY;
+  const grid = document.getElementById('cal-grid');
+  let html = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => `<div class="cal-dh">${d}</div>`).join('');
+
+  const first = new Date(calY, calM, 1);
+  let startDow = first.getDay(); // 0=dom
+  startDow = startDow === 0 ? 6 : startDow - 1;
+  const lastDay = new Date(calY, calM + 1, 0).getDate();
+  const prevLast = new Date(calY, calM, 0).getDate();
+  const todayDate = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+  const disp = DISP[calM] || {};
+
+  // Prev month
+  for (let i = startDow - 1; i >= 0; i--) html += `<div class="cal-day other">${prevLast - i}</div>`;
+
+  // Current month
+  for (let d = 1; d <= lastDay; d++) {
+    const date = new Date(calY, calM, d);
+    const isToday = date.toDateString() === todayDate.toDateString();
+    const isPast = date < todayDate;
+    let isAvail = !isPast && disp[d];
+    // Si es hoy, verificar que queden slots disponibles según el horario
+    if (isAvail && isToday) {
+      const dow = date.getDay();
+      const base = HORAS_BASE[dow] || [];
+      const durMin = st.svc ? st.svc.durMin : 30;
+      const fechaHoy = {d, m: calM, y: calY};
+      isAvail = base.some(h => !h.t && isHoraValida(h.h, durMin, fechaHoy));
+    }
+    const isSel = st.fecha && st.fecha.d === d && st.fecha.m === calM && st.fecha.y === calY;
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (isPast) cls += ' past';
+    if (isAvail) cls += ' avail';
+    if (isSel) cls += ' sel';
+    const click = isAvail ? `onclick="selDia(${d},${calM},${calY})"` : '';
+    html += `<div class="${cls}" ${click}>${d}</div>`;
+  }
+
+  // Next month padding
+  const total = startDow + lastDay;
+  const rows = Math.ceil(total / 7);
+  for (let d = 1; d <= rows * 7 - total; d++) html += `<div class="cal-day other">${d}</div>`;
+
+  grid.innerHTML = html;
+}
+
+function prevMes() {
+  calM--; if (calM < 0) { calM = 11; calY--; }
+  if (calY < NOW.getFullYear() || (calY === NOW.getFullYear() && calM < NOW.getMonth())) {
+    calM++; if (calM > 11) { calM = 0; calY++; }
+    return;
+  }
+  st.fecha = null; st.hora = null;
+  renderCal(); hideHoras(); updateResumen();
+  document.getElementById('btn3').disabled = true;
+}
+function nextMes() {
+  calM++; if (calM > 11) { calM = 0; calY++; }
+  st.fecha = null; st.hora = null;
+  renderCal(); hideHoras(); updateResumen();
+  document.getElementById('btn3').disabled = true;
+}
+
+function selDia(d, m, y) {
+  st.fecha = {d, m, y};
+  st.hora = null;
+  document.getElementById('btn3').disabled = true;
+  renderCal();
+  renderHoras();
+  updateResumen();
+}
+
+/* ════ RENDER HORAS ════ */
+function hideHoras() {
+  document.getElementById('horas-wrap').style.display = 'none';
+}
+
+function renderHoras() {
+  if (!st.fecha || !st.svc) return;
+  const {d, m, y} = st.fecha;
+  const date = new Date(y, m, d);
+  const dow = date.getDay();
+  const durMin = st.svc.durMin;
+  const base = HORAS_BASE[dow] || [];
+
+  const wrap = document.getElementById('horas-wrap');
+  const grid = document.getElementById('horas-grid');
+  const none = document.getElementById('horas-none');
+  const lbl = document.getElementById('horas-lbl');
+
+  const diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  lbl.textContent = `Horas para el ${diasNom[dow]} ${d} de ${MESES[m].toLowerCase()}`;
+
+  wrap.style.display = 'block';
+
+  // Filtrar horas: quitar ocupadas Y quitar pasadas/insuficientes para hoy
+  const disponibles = base.filter(h => {
+    if (h.t) return false; // ocupada
+    if (!isHoraValida(h.h, durMin, st.fecha)) return false;
+    return true;
+  });
+
+  if (!disponibles.length) {
+    grid.innerHTML = '';
+    none.style.display = 'block';
+    return;
+  }
+  none.style.display = 'none';
+
+  grid.innerHTML = disponibles.map(h => {
+    const isSel = st.hora === h.h;
+    return `<button class="h-btn${isSel?' sel':''}" onclick="selHora('${h.h}')">${h.h}</button>`;
+  }).join('');
+}
+
+function selHora(h) {
+  st.hora = h;
+  renderHoras();
+  document.getElementById('btn3').disabled = false;
+  updateResumen();
+}
+
+/* ════ SELECCIÓN SERVICIO ════ */
+function selSvc(el, nom, cat, dur, precio, icon) {
+  document.querySelectorAll('.svc-row').forEach(r => r.classList.remove('sel'));
+  el.classList.add('sel');
+  // Parse duration to minutes
+  let durMin = 60;
+  if (dur.includes('30')) durMin = 30;
+  else if (dur.includes('45')) durMin = 45;
+  else if (dur.includes('60')) durMin = 60;
+  else if (dur.includes('90')) durMin = 90;
+
+  st.svc = {nom, cat, dur, durMin, precio, icon};
+  st.prof = null; st.fecha = null; st.hora = null;
+  renderCal(); hideHoras();
+
+  document.getElementById('prev1').textContent = nom;
+  updateResumen();
+
+  // Render profesionales filtrados por categoría
+  renderProfs(cat);
+
+  // Auto-open acc2 after brief delay
+  setTimeout(() => openAcc(2), 250);
+}
+
+/* ════ SELECCIÓN PROFESIONAL ════ */
+function renderProfs(cat) {
+  const list = document.getElementById('prof-list');
+  const available = profsParaSvc(cat);
+  list.innerHTML = available.map(p => {
+    const isAny = p.key === 'any';
+    const ratingHtml = p.rating
+      ? `<div class="prof-rating"><span class="pstars">${'★'.repeat(Math.round(Number(p.rating)))}</span><span class="pval">${p.rating}</span><span class="pcnt">(${p.cnt} reseñas)</span></div>`
+      : '';
+    return `<div class="prof-row${isAny?' any':''}" onclick="selProf(this,'${p.key}','${p.nom}','${p.rol}')">
+      <div class="prof-dot"></div>
+      <div class="prof-info">
+        <div class="prof-name">${p.nom}</div>
+        <div class="prof-role">${p.rol}</div>
+        ${ratingHtml}
+      </div>
+      <div class="prof-radio"></div>
+    </div>`;
+  }).join('');
+}
+
+function selProf(el, key, nom, rol) {
+  document.querySelectorAll('.prof-row').forEach(r => r.classList.remove('sel'));
+  el.classList.add('sel');
+  st.prof = {key, nom, rol};
+  document.getElementById('prev2').textContent = nom;
+  document.getElementById('btn2').disabled = false;
+  updateResumen();
+}
+
+/* ════ ACORDEÓN ════ */
+function openAcc(n) {
+  for (let i = 1; i <= 4; i++) {
+    const acc = document.getElementById('acc' + i);
+    acc.classList.remove('open');
+    // Mark done if completed
+    if (i < n) acc.classList.add('done');
+    else acc.classList.remove('done');
+  }
+  document.getElementById('acc' + n).classList.add('open');
+  // Update step bar
+  for (let i = 1; i <= 5; i++) {
+    const sb = document.getElementById('sb' + i);
+    sb.classList.remove('active','done');
+    if (i < n) sb.classList.add('done');
+    if (i === n) sb.classList.add('active');
+  }
+  // Scroll to accordion
+  setTimeout(() => {
+    document.getElementById('acc' + n).scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
+}
+
+function toggleAcc(n) {
+  const acc = document.getElementById('acc' + n);
+  if (n === 2 && !st.svc) return;
+  if (n === 3 && !st.prof) return;
+  if (n === 4 && (!st.fecha || !st.hora)) return;
+  if (acc.classList.contains('open')) {
+    acc.classList.remove('open');
+    return;
+  }
+  openAcc(n);
+}
+
+function checkHorario() {
+  // Lun-Vie 8:00-19:00, Sáb 10:00-15:00, Dom cerrado
+  const horarios = {1:[8,19],2:[8,19],3:[8,19],4:[8,19],5:[8,19],6:[10,15],0:null};
+  const now = new Date();
+  const dia = now.getDay();
+  const min = now.getHours() * 60 + now.getMinutes();
+  const h = horarios[dia];
+  const abierto = h && min >= h[0]*60 && min < h[1]*60;
+  const badge = document.getElementById('biz-status');
+  const lbl = document.getElementById('biz-status-lbl');
+  if (abierto) {
+    badge.classList.remove('closed');
+    lbl.textContent = 'Abierto ahora';
+  } else {
+    badge.classList.add('closed');
+    lbl.textContent = 'Cerrado';
+  }
+}
+
+/* ════ DATOS & VALIDACIÓN ════ */
+function checkForm() {
+  const ok = document.getElementById('d-nom').value.trim() &&
+             document.getElementById('d-ap').value.trim() &&
+             document.getElementById('d-em').value.trim() &&
+             document.getElementById('d-tel').value.trim() &&
+             document.getElementById('chk-t').checked;
+  document.getElementById('btn4').disabled = !ok;
+}
+document.getElementById('chk-t').addEventListener('change', checkForm);
+
+/* ════ RESUMEN FLOTANTE ════ */
+function updateResumen() {
+  const bar = document.getElementById('res-bar');
+  const any = st.svc || st.prof || st.fecha || st.hora;
+  bar.style.display = any ? 'flex' : 'none';
+
+  const show = (id, sepId, val) => {
+    const el = document.getElementById(id);
+    const sep = sepId ? document.getElementById(sepId) : null;
+    if (val) {
+      el.style.display = 'flex';
+      el.querySelector('.val').textContent = val;
+      if (sep) sep.style.display = '';
+    } else {
+      el.style.display = 'none';
+      if (sep) sep.style.display = 'none';
+    }
+  };
+
+  show('rc-svc', null, st.svc ? `${st.svc.nom} · ${st.svc.dur}` : null);
+  show('rc-prof', 'rs1', st.prof ? st.prof.nom : null);
+
+  if (st.fecha) {
+    const d = new Date(st.fecha.y, st.fecha.m, st.fecha.d);
+    const s = `${d.getDate()} ${MESES[st.fecha.m].slice(0,3)}`;
+    show('rc-fecha', 'rs2', s);
+  } else { show('rc-fecha','rs2',null); }
+
+  show('rc-hora', 'rs3', st.hora || null);
+
+  const priceEl = document.getElementById('rc-precio');
+  if (st.svc) {
+    priceEl.style.display = '';
+    priceEl.textContent = '$' + st.svc.precio.toLocaleString('es-CL');
+  } else {
+    priceEl.style.display = 'none';
+  }
+}
+
+/* ════ CONFIRMAR ════ */
+function confirmar() {
+  // Fill confirmation card
+  document.getElementById('cf-svc').textContent   = st.svc   ? `${st.svc.nom} · ${st.svc.dur}` : '—';
+  document.getElementById('cf-prof').textContent  = st.prof  ? st.prof.nom : '—';
+  document.getElementById('cf-hora').textContent  = st.hora  || '—';
+  document.getElementById('cf-precio').textContent = st.svc  ? '$' + st.svc.precio.toLocaleString('es-CL') : '—';
+  if (st.fecha) {
+    const d = new Date(st.fecha.y, st.fecha.m, st.fecha.d);
+    const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    document.getElementById('cf-fecha').textContent = `${dias[d.getDay()]} ${st.fecha.d} de ${MESES[st.fecha.m].toLowerCase()} ${st.fecha.y}`;
+  }
+  // Hide accordions, show confirmation
+  [1,2,3,4].forEach(i => document.getElementById('acc'+i).style.display = 'none');
+  document.getElementById('sbar').style.display = 'none';
+  document.getElementById('res-bar').style.display = 'none';
+  const c = document.getElementById('acc5');
+  c.style.display = 'block';
+  c.scrollIntoView({behavior:'smooth', block:'start'});
+  // Update step bar
+  for (let i = 1; i <= 5; i++) {
+    const sb = document.getElementById('sb'+i);
+    sb.classList.remove('active','done');
+    if (i < 5) sb.classList.add('done');
+    if (i === 5) sb.classList.add('active');
+  }
+}
+
+/* ════ RESET ════ */
+function resetear() {
+  Object.assign(st, {svc:null, prof:null, fecha:null, hora:null});
+  calY = 2026; calM = 4;
+  document.querySelectorAll('.svc-row,.prof-row').forEach(r => r.classList.remove('sel'));
+  document.querySelectorAll('.fi').forEach(i => { if(i.tagName==='TEXTAREA') i.value=''; else if(i.type!=='checkbox') i.value=''; });
+  ['chk-wa','chk-em'].forEach(id => document.getElementById(id).checked = true);
+  document.getElementById('chk-t').checked = false;
+  document.getElementById('prev1').textContent = '';
+  document.getElementById('prev2').textContent = '';
+  document.getElementById('prev3').textContent = '';
+  document.getElementById('prev4').textContent = '';
+  document.getElementById('btn2').disabled = true;
+  document.getElementById('btn3').disabled = true;
+  document.getElementById('btn4').disabled = true;
+  document.getElementById('acc5').style.display = 'none';
+  [1,2,3,4].forEach(i => { document.getElementById('acc'+i).style.display=''; document.getElementById('acc'+i).classList.remove('open','done'); });
+  document.getElementById('sbar').style.display = '';
+  document.getElementById('acc1').classList.add('open');
+  hideHoras();
+  renderCal();
+  updateResumen();
+  for (let i = 1; i <= 5; i++) { const sb = document.getElementById('sb'+i); sb.classList.remove('active','done'); if(i===1) sb.classList.add('active'); }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ════ INIT ════ */
+renderCal();
+checkHorario();
+</script>
+</body>
+</html>
