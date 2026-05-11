@@ -336,6 +336,9 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 .btn-a:active{transform:none}
 .btn-sm{padding:5px 10px;border-radius:var(--r);border:1px solid var(--b1);background:none;color:var(--t2);font-size:12px;cursor:pointer;font-family:var(--font);transition:all .12s}
 .btn-sm:hover{border-color:var(--b2);color:var(--t1)}
+.vmdrop-item{padding:8px 14px;font-size:13px;color:var(--t2);cursor:pointer;transition:background .1s}
+.vmdrop-item:hover{background:var(--b1);color:var(--t1)}
+.vmdrop-item.on{color:var(--a);font-weight:500}
 
 .fg{display:flex;flex-direction:column;gap:5px}
 .fl{font-size:11px;font-weight:500;color:var(--t2);letter-spacing:.02em}
@@ -1154,7 +1157,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="thb">
         <span class="tt">Transacciones</span>
         <div style="display:flex;gap:6px">
-          <button class="btn-sm" id="vbtn-metodo" onclick="cycleMetodoFilter(this)">Método: Todos ▾</button>
+          <div style="position:relative">
+            <button class="btn-sm" id="vbtn-metodo" onclick="toggleMetodoDropdown(event)">Método: Todos ▾</button>
+            <div id="vmetodo-drop" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--b2);border:1px solid var(--b3);border-radius:8px;z-index:200;min-width:150px;box-shadow:0 4px 16px rgba(0,0,0,.15);overflow:hidden">
+              <div class="vmdrop-item" onclick="setMetodoFilter('',this)">Todos los métodos</div>
+              <div class="vmdrop-item" onclick="setMetodoFilter('efectivo',this)">Efectivo</div>
+              <div class="vmdrop-item" onclick="setMetodoFilter('transferencia',this)">Transferencia</div>
+              <div class="vmdrop-item" onclick="setMetodoFilter('tarjeta',this)">Tarjeta</div>
+            </div>
+          </div>
           <button class="btn-sm" onclick="exportarVentasCSV()">↓ Exportar</button>
         </div>
       </div>
@@ -3507,15 +3518,27 @@ function filterVentas(p, btn) {
   renderVentasChart();
 }
 
-const _METODOS_CICLO = ['', 'efectivo', 'transferencia', 'tarjeta'];
-function cycleMetodoFilter(btn) {
-  const idx  = (_METODOS_CICLO.indexOf(_ventasMetodo) + 1) % _METODOS_CICLO.length;
-  _ventasMetodo = _METODOS_CICLO[idx];
+function toggleMetodoDropdown(e) {
+  e.stopPropagation();
+  const drop = document.getElementById('vmetodo-drop');
+  drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+}
+function setMetodoFilter(metodo, itemEl) {
+  _ventasMetodo = metodo;
   _ventasPage   = 0;
-  btn.textContent = _ventasMetodo ? 'Método: ' + _ventasMetodo.charAt(0).toUpperCase() + _ventasMetodo.slice(1) + ' ▾' : 'Método: Todos ▾';
+  const lbl = metodo ? metodo.charAt(0).toUpperCase() + metodo.slice(1) : 'Todos';
+  document.getElementById('vbtn-metodo').textContent = 'Método: ' + lbl + ' ▾';
+  document.querySelectorAll('.vmdrop-item').forEach(el => el.classList.remove('on'));
+  if (itemEl) itemEl.classList.add('on');
+  document.getElementById('vmetodo-drop').style.display = 'none';
   renderVentasKPIs();
   renderVentasTable();
+  renderVentasChart();
 }
+document.addEventListener('click', function() {
+  const drop = document.getElementById('vmetodo-drop');
+  if (drop) drop.style.display = 'none';
+});
 
 function renderVentasChart() {
   const svg  = document.getElementById('ventas-chart');
