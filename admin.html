@@ -339,6 +339,7 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 .vmdrop-item{padding:8px 14px;font-size:13px;color:var(--t2);cursor:pointer;transition:background .1s}
 .vmdrop-item:hover{background:var(--b1);color:var(--t1)}
 .vmdrop-item.on{color:var(--a);font-weight:500}
+.cfg-back-btn{display:none}
 
 .fg{display:flex;flex-direction:column;gap:5px}
 .fl{font-size:11px;font-weight:500;color:var(--t2);letter-spacing:.02em}
@@ -744,8 +745,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   /* MODAL full width */
   .modal{width:95vw!important;max-width:95vw!important}
 
-  /* CHARTS */
+  /* CHARTS / REPORTES */
   .charts-row{flex-direction:column!important}
+  .rep-grid{grid-template-columns:1fr!important}
+  .rep-grid2{grid-template-columns:1fr!important}
+  .lc-wrap{overflow-x:auto}
+  .lc-svg{min-width:320px}
 
   /* PERIOD selector */
   .period-sel{flex-wrap:wrap!important}
@@ -769,6 +774,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   .period-sel{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;padding-bottom:2px}
   .period-sel::-webkit-scrollbar{display:none}
   .ptab{white-space:nowrap;flex-shrink:0}
+
+  /* CONFIG: mostrar botón volver en sub-paneles */
+  .cfg-back-btn{display:inline-flex!important}
 
   /* SEMANA: columnas más angostas */
   #cv-semana .cal-wrap > .cal-head,
@@ -832,7 +840,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 <!-- ═══ TOP NAV ═══ -->
 <nav class="nav">
-  <div style="display:flex;align-items:center;gap:4px">
+  <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden">
     <!-- Hamburger (solo móvil) -->
     <button class="nav-hamburger" onclick="toggleMobSidebar()" style="display:none;width:32px;height:32px;border:none;background:rgba(255,255,255,0.1);border-radius:6px;color:#fff;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;margin-right:4px">
       <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M0 1h16M0 6h16M0 11h16"/></svg>
@@ -984,6 +992,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="view-tabs">
         <button class="vtab on" id="vtab-semana" onclick="setCalView('semana',this)">Semana</button>
         <button class="vtab"    id="vtab-dia"    onclick="setCalView('dia',this)">Día</button>
+        <button class="vtab"    id="vtab-lista"  onclick="setCalView('lista',this)">Lista</button>
       </div>
     </div>
   </div>
@@ -1432,11 +1441,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <div class="vp">
 
     <!-- Config nav tabs -->
-    <div style="display:flex;gap:1px;background:var(--adim);border-radius:var(--r);padding:2px;width:fit-content;margin-bottom:22px">
-      <button class="ptab on" id="ctab-general"        onclick="showCfg('general',this)">General</button>
-      <button class="ptab"    id="ctab-profesionales"  onclick="showCfg('profesionales',this)">Profesionales</button>
-      <button class="ptab"    id="ctab-horarios"       onclick="showCfg('horarios',this)">Horarios</button>
-      <button class="ptab"    id="ctab-notificaciones" onclick="showCfg('notificaciones',this)">Notificaciones</button>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:22px;padding-bottom:2px">
+      <div style="display:flex;gap:1px;background:var(--adim);border-radius:var(--r);padding:2px;width:max-content;min-width:100%">
+        <button class="ptab on" id="ctab-general"        onclick="showCfg('general',this)">General</button>
+        <button class="ptab"    id="ctab-profesionales"  onclick="showCfg('profesionales',this)">Profesionales</button>
+        <button class="ptab"    id="ctab-horarios"       onclick="showCfg('horarios',this)">Horarios</button>
+        <button class="ptab"    id="ctab-notificaciones" onclick="showCfg('notificaciones',this)">Notificaciones</button>
+      </div>
     </div>
 
     <!-- Panel: General -->
@@ -1477,7 +1488,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
     <!-- Panel: Horarios -->
     <div id="cfg-horarios" style="display:none">
-      <div class="vh" style="margin-bottom:16px">Horarios de atención</div>
+      <div class="vh" style="margin-bottom:16px">
+        <span>Horarios de atención</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Horarios por día</div>
         <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Puedes agregar múltiples bloques por día, por ejemplo 08:00–14:00 y 15:00–19:00 (pausa almuerzo).</div>
@@ -1567,7 +1581,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
     <!-- Panel: Notificaciones -->
     <div id="cfg-notificaciones" style="display:none">
-      <div class="vh" style="margin-bottom:16px">Notificaciones automáticas</div>
+      <div class="vh" style="margin-bottom:16px">
+        <span>Notificaciones automáticas</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
 
       <!-- WhatsApp -->
       <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
@@ -3806,6 +3823,12 @@ function toggleMobSidebar() {
 renderWeekHeader();
 renderWeekBody();
 renderLista();
+
+// En móvil, vista Lista por defecto
+if (window.innerWidth <= 768) {
+  const tab = document.getElementById('vtab-lista');
+  if (tab) setCalView('lista', tab);
+}
 
 // ── Sesión: cargar nombre del usuario ──
 (function() {
