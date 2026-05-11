@@ -245,8 +245,8 @@
 
 <script>
 var USUARIOS = [
-  { usuario:'admin',      email:'admin@attempo.cl',  password:'attempo2026',      rol:'admin',      nombre:'Administrador', destino:'admin.html' },
-  { usuario:'cesar',      email:'cesar@attempo.cl',  password:'cesar2026',        rol:'admin',      nombre:'César Salinas', destino:'admin.html' },
+  { usuario:'admin',      email:'admin@attempo.cl',  password:'attempo2026',      rol:'admin',      nombre:'Administrador', cliente_id:'99604035-4bc4-4d73-8136-dbaf06827747', destino:'admin.html' },
+  { usuario:'cesar',      email:'cesar@attempo.cl',  password:'cesar2026',        rol:'admin',      nombre:'César Salinas', cliente_id:'99604035-4bc4-4d73-8136-dbaf06827747', destino:'admin.html' },
   { usuario:'superadmin', email:'super@attempo.cl',  password:'superattempo2026', rol:'superadmin', nombre:'Super Admin',   destino:'superadmin.html' }
 ];
 
@@ -280,7 +280,7 @@ function loginSubmit() {
     if (found) {
       sessionStorage.setItem('attempo_user', JSON.stringify({
         nombre: found.nombre, rol: found.rol,
-        email: found.email, ts: Date.now()
+        email: found.email, cliente_id: found.cliente_id || null, ts: Date.now()
       }));
       window.location.href = found.destino;
     } else {
