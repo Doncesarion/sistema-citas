@@ -366,7 +366,7 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 /* ─────────────────────────────────────
    VIEW PANELS (non-agenda)
 ───────────────────────────────────── */
-.vp{flex:1;overflow-y:auto;padding:24px;min-height:0;box-sizing:border-box}
+.vp{flex:1;overflow-y:auto;padding:24px;min-height:0;box-sizing:border-box;-webkit-overflow-scrolling:touch}
 .vp::-webkit-scrollbar{width:4px}
 .vp::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
 .vp>*{max-width:1060px;margin-left:auto;margin-right:auto}
@@ -2091,7 +2091,7 @@ function sv(v, btn) {
       el.style.flexDirection = 'column';
       el.style.flex = '1';
       el.style.minHeight = '0';
-      el.style.overflow = n === 'agenda' ? 'hidden' : 'auto';
+      el.style.overflow = 'hidden';
     } else {
       el.style.display = 'none';
     }
