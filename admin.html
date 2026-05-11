@@ -1145,18 +1145,17 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ptab" onclick="filterVentas('1y',this)">Este año</button>
     </div>
     <div class="sg">
-      <div class="sc"><div class="sc-lbl">Ingresado este mes</div><div class="sc-val">$<span class="hi">284.000</span></div><div class="sc-delta du">↑ 34% vs mes anterior</div><div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div></div></div>
-      <div class="sc"><div class="sc-lbl">Citas cobradas</div><div class="sc-val"><span class="hi">19</span></div><div class="sc-delta du">↑ 5 más que semana pasada</div><div class="minibars"><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div></div></div>
-      <div class="sc"><div class="sc-lbl">Pendiente cobrar</div><div class="sc-val">$<span class="hi">27.000</span></div><div class="sc-delta dd">3 reservas sin cobrar</div></div>
-      <div class="sc"><div class="sc-lbl">Próxima transferencia</div><div class="sc-val" style="font-size:19px;padding-top:5px;letter-spacing:-.02em">Martes</div><div class="sc-delta dn">Siguiente día hábil · $210.000</div></div>
+      <div class="sc"><div class="sc-lbl" id="vkpi-lbl1">Ingresado</div><div class="sc-val">$<span class="hi" id="vkpi-ing">—</span></div><div class="sc-delta" id="vkpi-d1">Cargando...</div><div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div></div></div>
+      <div class="sc"><div class="sc-lbl">Citas cobradas</div><div class="sc-val"><span class="hi" id="vkpi-cobradas">—</span></div><div class="sc-delta" id="vkpi-d2">—</div><div class="minibars"><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div></div></div>
+      <div class="sc"><div class="sc-lbl">Pendiente cobrar</div><div class="sc-val">$<span class="hi" id="vkpi-pend">—</span></div><div class="sc-delta dd" id="vkpi-d3">—</div></div>
+      <div class="sc"><div class="sc-lbl">Total citas período</div><div class="sc-val"><span class="hi" id="vkpi-total">—</span></div><div class="sc-delta dn" id="vkpi-d4">—</div></div>
     </div>
     <div class="tw">
       <div class="thb">
-        <span class="tt">Transacciones recientes</span>
+        <span class="tt">Transacciones</span>
         <div style="display:flex;gap:6px">
-          <button class="btn-sm">Este mes ▾</button>
-          <button class="btn-sm">Método ▾</button>
-          <button class="btn-sm">↓ Exportar</button>
+          <button class="btn-sm" id="vbtn-metodo" onclick="cycleMetodoFilter(this)">Método: Todos ▾</button>
+          <button class="btn-sm" onclick="exportarVentasCSV()">↓ Exportar</button>
         </div>
       </div>
       <table>
@@ -1165,6 +1164,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
         </tbody>
       </table>
+      <div id="ventas-pager" style="display:none;text-align:center;padding:12px 0">
+        <button class="btn-sm" onclick="ventasVerMas()" id="ventas-ver-mas">Ver más</button>
+        <span id="ventas-pager-info" style="font-size:12px;color:var(--t3);margin-left:10px"></span>
+      </div>
     </div>
 
     <!-- Gráfico ingresos diarios -->
@@ -3422,31 +3425,181 @@ function downloadCSVTemplate() {
 }
 
 /* ════ VENTAS FILTRO PERÍODO ════ */
-const ventasData = {
-  hoy:  {ing:'45.000',  cobradas:'3',  pend:'0',        delta1:'↑ 12% vs ayer',          delta2:'↑ 1 más que ayer',       label:'Hoy · Sáb 3 mayo'},
-  ayer: {ing:'72.000',  cobradas:'5',  pend:'15.000',   delta1:'↑ 8% vs hace 2 días',    delta2:'↑ 2 más que el martes',  label:'Ayer · Vie 1 mayo'},
-  sem:  {ing:'186.000', cobradas:'12', pend:'27.000',   delta1:'↑ 22% vs semana pasada', delta2:'↑ 3 más que sem. pasada',label:'Esta semana'},
-  mes:  {ing:'284.000', cobradas:'19', pend:'27.000',   delta1:'↑ 34% vs mes anterior',  delta2:'↑ 5 más que sem. pasada',label:'Mayo 2026'},
-  '3m': {ing:'1.200.000',cobradas:'87',pend:'54.000',  delta1:'↑ 18% vs trim. anterior',delta2:'↑ 12 más que trim. ant.', label:'Últimos 3 meses'},
-  '1y': {ing:'5.400.000',cobradas:'384',pend:'120.000',delta1:'↑ 41% vs año anterior',  delta2:'↑ 89 más que año ant.',  label:'Este año 2026'},
-};
+/* ── Ventas state ── */
+let _allVentas     = [];
+let _ventasPeriodo = 'mes';
+let _ventasMetodo  = '';
+let _ventasPage    = 0;
+const VENTAS_PER_PAGE = 10;
+
+const PERIODO_LABELS = { hoy:'Hoy', ayer:'Ayer', sem:'Esta semana', mes:'Este mes', '3m':'Últimos 3 meses', '1y':'Este año' };
+
+function _ventasFechaRange(periodo) {
+  const now  = new Date();
+  const hoy  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch(periodo) {
+    case 'hoy':  return [hoy, hoy];
+    case 'ayer': { const y = new Date(hoy); y.setDate(hoy.getDate()-1); return [y,y]; }
+    case 'sem':  { const lun = new Date(hoy); const dow = hoy.getDay()||7; lun.setDate(hoy.getDate()-dow+1); return [lun, hoy]; }
+    case 'mes':  return [new Date(now.getFullYear(), now.getMonth(), 1), hoy];
+    case '3m':   { const d = new Date(hoy); d.setMonth(d.getMonth()-3); return [d, hoy]; }
+    case '1y':   return [new Date(now.getFullYear(), 0, 1), hoy];
+    default:     return [new Date(now.getFullYear(), now.getMonth(), 1), hoy];
+  }
+}
+
+function _ventasFiltradas() {
+  const [desde, hasta] = _ventasFechaRange(_ventasPeriodo);
+  return _allVentas.filter(c => {
+    if (!c.fecha) return false;
+    const f = new Date(c.fecha + 'T00:00:00');
+    if (f < desde || f > hasta) return false;
+    if (_ventasMetodo && c.metodo_pago !== _ventasMetodo) return false;
+    return true;
+  });
+}
+
+function renderVentasKPIs() {
+  const lista = _ventasFiltradas();
+  const pagadas   = lista.filter(c => c.estado_pago === 'pagado');
+  const pendientes = lista.filter(c => c.estado_pago !== 'pagado');
+  const ing  = pagadas.reduce((s,c)   => s + (Number(c.precio)||0), 0);
+  const pend = pendientes.reduce((s,c) => s + (Number(c.precio)||0), 0);
+  const label = PERIODO_LABELS[_ventasPeriodo] || 'Período';
+
+  const el = id => document.getElementById(id);
+  if (el('vkpi-lbl1'))     el('vkpi-lbl1').textContent   = 'Ingresado · ' + label;
+  if (el('vkpi-ing'))      el('vkpi-ing').textContent    = ing.toLocaleString('es-CL');
+  if (el('vkpi-cobradas')) el('vkpi-cobradas').textContent = pagadas.length;
+  if (el('vkpi-pend'))     el('vkpi-pend').textContent   = pend.toLocaleString('es-CL');
+  if (el('vkpi-total'))    el('vkpi-total').textContent  = lista.length;
+  if (el('vkpi-d1'))       el('vkpi-d1').textContent     = ing > 0 ? pagadas.length + ' citas pagadas' : 'Sin ingresos en este período';
+  if (el('vkpi-d2'))       el('vkpi-d2').textContent     = pagadas.length + ' de ' + lista.length + ' citas';
+  if (el('vkpi-d3'))       el('vkpi-d3').textContent     = pendientes.length ? pendientes.length + ' cita(s) sin cobrar' : 'Sin pendientes ✓';
+  if (el('vkpi-d4'))       el('vkpi-d4').textContent     = label;
+}
+
+function renderVentasTable() {
+  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>' };
+  const lista  = _ventasFiltradas();
+  const tbody  = document.getElementById('ventas-tbody');
+  const pager  = document.getElementById('ventas-pager');
+  const info   = document.getElementById('ventas-pager-info');
+  const verMas = document.getElementById('ventas-ver-mas');
+  if (!tbody) return;
+
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones en este período</td></tr>';
+    if (pager) pager.style.display = 'none';
+    return;
+  }
+
+  const total   = lista.length;
+  const visible = Math.min((_ventasPage + 1) * VENTAS_PER_PAGE, total);
+  const slice   = lista.slice(0, visible);
+
+  tbody.innerHTML = slice.map(c => {
+    const parts  = (c.nombre_paciente||'?').trim().split(' ');
+    const ini    = parts.slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const fecha  = c.fecha ? c.fecha.slice(5).replace('-','/') + ' ' + (c.hora||'').slice(0,5) : '—';
+    const esp    = c.especialistas?.nombre || '—';
+    const metodo = METODO_TAG[c.metodo_pago] || '<span class="tag tn">—</span>';
+    const estado = c.estado_pago === 'pagado'
+      ? '<span class="tag tg">Pagado</span>'
+      : '<span class="tag ta">Pendiente</span>';
+    const monto  = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
+    const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente}));
+    return `<tr style="cursor:pointer" onclick="openVentaDetalle(decodeURIComponent('${cJson}'))">
+      <td style="font-family:var(--mono);font-size:12px">${fecha}</td>
+      <td><div class="tdn"><div class="tav">${ini}</div>${c.nombre_paciente||'—'}</div></td>
+      <td>${c.servicio || '—'}</td>
+      <td>${esp}</td>
+      <td>${metodo}</td>
+      <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">${monto}</td>
+      <td>${estado}</td>
+    </tr>`;
+  }).join('');
+
+  if (pager) {
+    if (visible < total) {
+      pager.style.display = 'block';
+      if (info) info.textContent = `Mostrando ${visible} de ${total}`;
+      if (verMas) verMas.textContent = `Ver ${Math.min(VENTAS_PER_PAGE, total-visible)} más`;
+    } else {
+      pager.style.display = total > VENTAS_PER_PAGE ? 'block' : 'none';
+      if (info) info.textContent = `${total} transacciones en total`;
+      if (verMas) verMas.style.display = 'none';
+    }
+  }
+}
+
+function ventasVerMas() {
+  _ventasPage++;
+  renderVentasTable();
+}
+
 function filterVentas(p, btn) {
-  // Update tab highlight — only within the ventas period selector
   document.querySelectorAll('#v-ventas .period-sel .ptab').forEach(t => t.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  const d = ventasData[p] || ventasData.mes;
-  // Update the 4 KPI cards inside #v-ventas specifically
-  const ventasEl = document.getElementById('v-ventas');
-  if (!ventasEl) return;
-  const hiEls = ventasEl.querySelectorAll('.sg .sc .hi');
-  const deltaEls = ventasEl.querySelectorAll('.sg .sc .sc-delta');
-  if (hiEls[0]) hiEls[0].textContent = d.ing;
-  if (hiEls[1]) hiEls[1].textContent = d.cobradas;
-  if (hiEls[2]) hiEls[2].textContent = d.pend;
-  if (deltaEls[0]) deltaEls[0].textContent = d.delta1;
-  if (deltaEls[1]) deltaEls[1].textContent = d.delta2;
-  if (deltaEls[2]) deltaEls[2].textContent = d.pend === '0' ? 'Sin pendientes ✓' : '3 reservas sin cobrar';
-  toast('Período: ' + d.label);
+  _ventasPeriodo = p;
+  _ventasPage    = 0;
+  renderVentasKPIs();
+  renderVentasTable();
+}
+
+const _METODOS_CICLO = ['', 'efectivo', 'transferencia', 'tarjeta'];
+function cycleMetodoFilter(btn) {
+  const idx  = (_METODOS_CICLO.indexOf(_ventasMetodo) + 1) % _METODOS_CICLO.length;
+  _ventasMetodo = _METODOS_CICLO[idx];
+  _ventasPage   = 0;
+  btn.textContent = _ventasMetodo ? 'Método: ' + _ventasMetodo.charAt(0).toUpperCase() + _ventasMetodo.slice(1) + ' ▾' : 'Método: Todos ▾';
+  renderVentasKPIs();
+  renderVentasTable();
+}
+
+function exportarVentasCSV() {
+  const lista = _ventasFiltradas();
+  if (!lista.length) { toast('Sin datos para exportar'); return; }
+  const cols = ['Fecha','Hora','Cliente','Servicio','Profesional','Método','Monto','Estado'];
+  const rows = lista.map(c => [
+    c.fecha||'', (c.hora||'').slice(0,5),
+    '"'+(c.nombre_paciente||'').replace(/"/g,'""')+'"',
+    '"'+(c.servicio||'').replace(/"/g,'""')+'"',
+    '"'+(c.especialistas?.nombre||'').replace(/"/g,'""')+'"',
+    c.metodo_pago||'', c.precio||'0', c.estado_pago||''
+  ].join(','));
+  const csv = [cols.join(','), ...rows].join('\n');
+  const a   = document.createElement('a');
+  a.href    = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
+  a.download = 'ventas_' + _ventasPeriodo + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function openVentaDetalle(jsonStr) {
+  let c;
+  try { c = JSON.parse(jsonStr); } catch(e) { return; }
+  const parts = (c.nombre_paciente||'').trim().split(' ');
+  const ini   = parts.slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+  const fecha = c.fecha ? c.fecha.split('-').reverse().join('/') + (c.hora ? ' ' + c.hora.slice(0,5) : '') : '—';
+  const monto = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
+  const estado = c.estado_pago === 'pagado' ? 'Pagado' : 'Pendiente';
+  document.getElementById('fp-av').textContent     = ini;
+  document.getElementById('fp-name').textContent   = c.nombre_paciente || '—';
+  document.getElementById('fp-since').textContent  = (c.servicio || '—') + ' · ' + fecha;
+  document.getElementById('fps-citas').textContent = '1';
+  document.getElementById('fps-gasto').textContent = c.precio ? Number(c.precio).toLocaleString('es-CL') : '0';
+  const asEl = document.getElementById('fps-asist');
+  asEl.textContent  = estado;
+  asEl.style.color  = c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
+  document.getElementById('fpi-email').textContent = c.email_paciente || '—';
+  document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
+  document.getElementById('ficha-ov').classList.add('open');
+  document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.fptab')[0].classList.add('on');
+  ['ft-info','ft-hist','ft-notas'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = i===0?'flex':'none'; if(i===0) el.style.flexDirection='column'; }
+  });
 }
 
 /* ════ NUEVO CLIENTE ════ */
@@ -3777,40 +3930,13 @@ async function getClienteId() {
 async function cargarVentas() {
   const cid = await getClienteId();
   if (!cid) return;
-  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=50`, { headers: _SH });
+  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _SH });
   const citas = await r.json();
   if (!Array.isArray(citas)) return;
-
-  const tbody = document.getElementById('ventas-tbody');
-  if (!tbody) return;
-
-  if (!citas.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones aún</td></tr>';
-    return;
-  }
-
-  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>' };
-
-  tbody.innerHTML = citas.map(c => {
-    const parts = c.nombre_paciente.trim().split(' ');
-    const ini   = parts.slice(0,2).map(w=>w[0]).join('').toUpperCase();
-    const fecha = c.fecha ? c.fecha.slice(5).replace('-','/') + ' ' + (c.hora||'').slice(0,5) : '—';
-    const esp   = c.especialistas?.nombre || '—';
-    const metodo = METODO_TAG[c.metodo_pago] || '<span class="tag tn">—</span>';
-    const estado = c.estado_pago === 'pagado'
-      ? '<span class="tag tg">Pagado</span>'
-      : '<span class="tag ta">Pendiente</span>';
-    const monto = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
-    return `<tr>
-      <td style="font-family:var(--mono);font-size:12px">${fecha}</td>
-      <td><div class="tdn"><div class="tav">${ini}</div>${c.nombre_paciente}</div></td>
-      <td>${c.servicio || '—'}</td>
-      <td>${esp}</td>
-      <td>${metodo}</td>
-      <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">${monto}</td>
-      <td>${estado}</td>
-    </tr>`;
-  }).join('');
+  _allVentas  = citas;
+  _ventasPage = 0;
+  renderVentasKPIs();
+  renderVentasTable();
 }
 
 /* ── Modal registrar pago ── */
