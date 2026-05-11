@@ -233,6 +233,35 @@ body::before{
   .res-bar{gap:6px}
   .res-price{margin-left:0;width:100%}
 }
+
+@media(max-width:480px){
+  .nav{padding:10px 16px;min-height:52px}
+  .biz-header{flex-direction:column;align-items:flex-start;gap:10px;padding:16px 18px}
+  .biz-logo{width:44px;height:44px;font-size:14px}
+  .biz-name{font-size:16px;margin-bottom:3px}
+  .biz-desc{font-size:12px;margin-bottom:8px}
+  .biz-meta{gap:10px}
+  .foot{flex-direction:column-reverse;gap:8px}
+  .foot .btn-a,.foot .btn-g{width:100%;text-align:center;justify-content:center}
+  .c-actions{flex-direction:column;align-items:center}
+  .c-actions button,.c-actions a{width:100%}
+  .c-title{font-size:19px}
+  .c-sub{font-size:12px}
+  .res-chip .val{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+
+@media(max-width:380px){
+  .page{padding:12px 10px 40px}
+  .nav{padding:9px 12px}
+  .horas-grid{grid-template-columns:repeat(2,1fr);gap:5px}
+  .h-btn{padding:9px 4px;font-size:11px}
+  .acc-head{padding:13px 14px;gap:10px}
+  .acc-body{padding:0 14px 14px}
+  .biz-header{padding:14px 14px}
+  .sbar{border-radius:var(--r)}
+  .sbi{padding:10px 4px}
+  .c-card{padding:13px 14px}
+}
 </style>
 </head>
 <body>
