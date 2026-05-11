@@ -64,7 +64,7 @@
 }
 
 html,body{height:100%;overflow:hidden}
-body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad);color:var(--t1);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad);color:var(--t1);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overscroll-behavior-y:none}
 
 /* ─────────────────────────────────────
    TOP NAV
@@ -366,7 +366,7 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 /* ─────────────────────────────────────
    VIEW PANELS (non-agenda)
 ───────────────────────────────────── */
-.vp{flex:1;overflow-y:auto;padding:24px;min-height:0;box-sizing:border-box;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+.vp{flex:1;overflow-y:auto;padding:24px;min-height:0;box-sizing:border-box;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .vp::-webkit-scrollbar{width:4px}
 .vp::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
 .vp>*{max-width:1060px;margin-left:auto;margin-right:auto}
@@ -727,7 +727,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   .tslot{font-size:10px;width:44px}
 
   /* VISTAS vp */
-  .vp{padding:16px!important}
+  .vp{padding:16px 16px 72px!important}
 
   /* STATS 2 cols */
   .sg{grid-template-columns:1fr 1fr!important}
@@ -793,7 +793,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   /* STATS 1 col */
   .sg{grid-template-columns:1fr!important}
 
-  .vp{padding:12px!important}
+  .vp{padding:12px 12px 72px!important}
   .vp>*{max-width:100%!important}
   .vh{font-size:15px}
 
@@ -817,7 +817,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   .modal{width:100vw!important;border-radius:var(--rx) var(--rx) 0 0!important;position:fixed!important;bottom:0!important;top:auto!important;transform:none!important}
   .overlay{align-items:flex-end!important}
   .ficha-panel{border-radius:var(--rx) var(--rx) 0 0}
-  .vp{padding:10px!important}
+  .vp{padding:10px 10px 72px!important}
 
   /* PROF CARDS: detalle en 1 columna */
   .prof-detail-grid{grid-template-columns:1fr!important}
