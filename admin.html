@@ -1157,15 +1157,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="thb">
         <span class="tt">Transacciones</span>
         <div style="display:flex;gap:6px">
-          <div style="position:relative">
-            <button class="btn-sm" id="vbtn-metodo" onclick="toggleMetodoDropdown(event)">Método: Todos ▾</button>
-            <div id="vmetodo-drop" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--b2);border:1px solid var(--b3);border-radius:8px;z-index:200;min-width:150px;box-shadow:0 4px 16px rgba(0,0,0,.15);overflow:hidden">
-              <div class="vmdrop-item" onclick="setMetodoFilter('',this)">Todos los métodos</div>
-              <div class="vmdrop-item" onclick="setMetodoFilter('efectivo',this)">Efectivo</div>
-              <div class="vmdrop-item" onclick="setMetodoFilter('transferencia',this)">Transferencia</div>
-              <div class="vmdrop-item" onclick="setMetodoFilter('tarjeta',this)">Tarjeta</div>
-            </div>
-          </div>
+          <button class="btn-sm" id="vbtn-metodo" onclick="toggleMetodoDropdown(event)">Filtros ▾</button>
           <button class="btn-sm" onclick="exportarVentasCSV()">↓ Exportar</button>
         </div>
       </div>
@@ -3425,6 +3417,7 @@ function _ventasFiltradas() {
     const f = new Date(c.fecha + 'T00:00:00');
     if (f < desde || f > hasta) return false;
     if (_ventasMetodo && c.metodo_pago !== _ventasMetodo) return false;
+    if (_ventasEstado && c.estado_pago !== _ventasEstado) return false;
     return true;
   });
 }
@@ -3518,19 +3511,42 @@ function filterVentas(p, btn) {
   renderVentasChart();
 }
 
+let _ventasEstado = '';
 function toggleMetodoDropdown(e) {
   e.stopPropagation();
   const drop = document.getElementById('vmetodo-drop');
-  drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+  if (drop.style.display !== 'none') { drop.style.display = 'none'; return; }
+  const btn  = document.getElementById('vbtn-metodo');
+  const rect = btn.getBoundingClientRect();
+  drop.style.top   = (rect.bottom + 6) + 'px';
+  drop.style.right = (window.innerWidth - rect.right) + 'px';
+  drop.style.left  = 'auto';
+  drop.style.display = 'block';
+}
+function _updateFiltroBtn() {
+  const partes = [];
+  if (_ventasMetodo) partes.push(_ventasMetodo.charAt(0).toUpperCase() + _ventasMetodo.slice(1));
+  if (_ventasEstado) partes.push(_ventasEstado.charAt(0).toUpperCase() + _ventasEstado.slice(1));
+  document.getElementById('vbtn-metodo').textContent = partes.length ? partes.join(' · ') + ' ▾' : 'Filtros ▾';
 }
 function setMetodoFilter(metodo, itemEl) {
   _ventasMetodo = metodo;
   _ventasPage   = 0;
-  const lbl = metodo ? metodo.charAt(0).toUpperCase() + metodo.slice(1) : 'Todos';
-  document.getElementById('vbtn-metodo').textContent = 'Método: ' + lbl + ' ▾';
-  document.querySelectorAll('.vmdrop-item').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('#vmetodo-drop .vmdrop-item').forEach(el => el.classList.remove('on'));
   if (itemEl) itemEl.classList.add('on');
   document.getElementById('vmetodo-drop').style.display = 'none';
+  _updateFiltroBtn();
+  renderVentasKPIs();
+  renderVentasTable();
+  renderVentasChart();
+}
+function setEstadoFilter(estado, itemEl) {
+  _ventasEstado = estado;
+  _ventasPage   = 0;
+  document.querySelectorAll('#vmetodo-drop .vmdrop-item').forEach(el => el.classList.remove('on'));
+  if (itemEl) itemEl.classList.add('on');
+  document.getElementById('vmetodo-drop').style.display = 'none';
+  _updateFiltroBtn();
   renderVentasKPIs();
   renderVentasTable();
   renderVentasChart();
@@ -4176,6 +4192,21 @@ cargarVentas();
       <button class="btn-a" id="btn-save-pago" onclick="saveRegistrarPago()">Registrar pago</button>
     </div>
   </div>
+</div>
+
+<!-- Dropdown filtros ventas (fixed para no ser recortado por overflow:hidden) -->
+<div id="vmetodo-drop" style="display:none;position:fixed;background:#fff;border:1px solid var(--b1);border-radius:10px;z-index:900;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden">
+  <div style="padding:8px 14px 4px;font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">Método de pago</div>
+  <div class="vmdrop-item on" onclick="setMetodoFilter('',this)">Todos los métodos</div>
+  <div class="vmdrop-item" onclick="setMetodoFilter('efectivo',this)">Efectivo</div>
+  <div class="vmdrop-item" onclick="setMetodoFilter('transferencia',this)">Transferencia</div>
+  <div class="vmdrop-item" onclick="setMetodoFilter('tarjeta',this)">Tarjeta</div>
+  <div style="height:1px;background:var(--b1);margin:4px 0"></div>
+  <div style="padding:4px 14px 4px;font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">Estado</div>
+  <div class="vmdrop-item" onclick="setEstadoFilter('',this)">Todos los estados</div>
+  <div class="vmdrop-item" onclick="setEstadoFilter('pagado',this)">Pagado</div>
+  <div class="vmdrop-item" onclick="setEstadoFilter('pendiente',this)">Pendiente</div>
+  <div style="height:8px"></div>
 </div>
 </body>
 </html>
