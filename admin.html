@@ -1171,72 +1171,31 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
 
     <!-- Gráfico ingresos diarios -->
-    <div class="card" style="padding:20px;margin-top:0">
+    <div class="card" style="padding:20px;margin-top:0;position:relative">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div>
           <div style="font-size:14px;font-weight:600;color:var(--t1)">Ingresos por día</div>
-          <div style="font-size:12px;color:var(--t3);margin-top:2px">Mayo 2026 · Transacciones e ingresos diarios</div>
+          <div id="vchart-sub" style="font-size:12px;color:var(--t3);margin-top:2px">Cargando...</div>
         </div>
         <div style="display:flex;gap:14px;font-size:11px;color:var(--t3);align-items:center">
           <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--a);display:inline-block"></span>Ingresos</span>
           <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block"></span>Citas</span>
         </div>
       </div>
-      <svg id="ventas-chart" viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;margin-top:8px;overflow:visible">
-        <defs>
-          <linearGradient id="vg1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#6C5CE4" stop-opacity="0.18"/>
-            <stop offset="100%" stop-color="#6C5CE4" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <!-- Grid lines -->
-        <line x1="0" y1="20" x2="760" y2="20" stroke="rgba(108,92,228,0.06)" stroke-width="1"/>
-        <line x1="0" y1="55" x2="760" y2="55" stroke="rgba(108,92,228,0.06)" stroke-width="1"/>
-        <line x1="0" y1="90" x2="760" y2="90" stroke="rgba(108,92,228,0.06)" stroke-width="1"/>
-        <line x1="0" y1="125" x2="760" y2="125" stroke="rgba(108,92,228,0.06)" stroke-width="1"/>
-        <!-- Y axis labels -->
-        <text x="0" y="18" font-size="9" fill="#9C96B4" font-family="Geist Mono,monospace">$35k</text>
-        <text x="0" y="53" font-size="9" fill="#9C96B4" font-family="Geist Mono,monospace">$25k</text>
-        <text x="0" y="88" font-size="9" fill="#9C96B4" font-family="Geist Mono,monospace">$15k</text>
-        <text x="0" y="123" font-size="9" fill="#9C96B4" font-family="Geist Mono,monospace">$5k</text>
-        <!-- Area fill under line -->
-        <path d="M36,125 L60,90 L84,125 L108,55 L132,125 L156,125 L180,90 L204,125 L228,20 L252,125 L276,125 L300,55 L324,125 L348,125 L372,90 L396,125 L420,55 L444,125 L468,125 L492,90 L516,125 L540,20 L564,125 L588,125 L612,90 L636,125 L660,55 L684,125 L708,125 L732,90 L756,125 L756,145 L36,145 Z" fill="url(#vg1)"/>
-        <!-- Income line -->
-        <polyline points="36,125 60,90 84,125 108,55 132,125 156,125 180,90 204,125 228,20 252,125 276,125 300,55 324,125 348,125 372,90 396,125 420,55 444,125 468,125 492,90 516,125 540,20 564,125 588,125 612,90 636,125 660,55 684,125 708,125 732,90 756,125" fill="none" stroke="#6C5CE4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-        <!-- Transaction dots (citas) -->
-        <circle cx="108" cy="55"  r="4" fill="#16A34A" stroke="#fff" stroke-width="1.5"/>
-        <circle cx="228" cy="20"  r="4" fill="#16A34A" stroke="#fff" stroke-width="1.5"/>
-        <circle cx="300" cy="55"  r="4" fill="#16A34A" stroke="#fff" stroke-width="1.5"/>
-        <circle cx="420" cy="55"  r="4" fill="#16A34A" stroke="#fff" stroke-width="1.5"/>
-        <circle cx="540" cy="20"  r="4" fill="#16A34A" stroke="#fff" stroke-width="1.5"/>
-        <circle cx="660" cy="55"  r="4" fill="#16A34A" stroke="#fff" stroke-width="1.5"/>
-        <!-- Today marker -->
-        <line x1="84" y1="10" x2="84" y2="145" stroke="rgba(108,92,228,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
-        <text x="84" y="8" font-size="9" fill="#6C5CE4" font-family="Geist,sans-serif" text-anchor="middle" font-weight="600">HOY</text>
-        <!-- X axis labels - días del mes -->
-        <text x="36"  y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">1</text>
-        <text x="84"  y="160" font-size="9" fill="#6C5CE4" text-anchor="middle" font-family="Geist Mono,monospace" font-weight="600">3</text>
-        <text x="132" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">5</text>
-        <text x="180" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">7</text>
-        <text x="228" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">9</text>
-        <text x="276" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">11</text>
-        <text x="324" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">13</text>
-        <text x="372" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">15</text>
-        <text x="420" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">17</text>
-        <text x="468" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">19</text>
-        <text x="516" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">21</text>
-        <text x="564" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">23</text>
-        <text x="612" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">25</text>
-        <text x="660" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">27</text>
-        <text x="708" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">29</text>
-        <text x="756" y="160" font-size="9" fill="#9C96B4" text-anchor="middle" font-family="Geist Mono,monospace">31</text>
-      </svg>
+      <div id="ventas-chart-wrap" style="position:relative;margin-top:8px">
+        <svg id="ventas-chart" viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible"></svg>
+        <div id="vchart-tip" style="display:none;position:absolute;background:var(--b2);border:1px solid var(--b3);border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;z-index:10;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,.15)">
+          <div id="vchart-tip-date" style="font-weight:600;color:var(--t1);margin-bottom:4px"></div>
+          <div id="vchart-tip-ing" style="color:var(--a);font-family:var(--mono)"></div>
+          <div id="vchart-tip-citas" style="color:var(--t3);margin-top:2px"></div>
+        </div>
+      </div>
       <!-- Totales rápidos -->
       <div style="display:flex;gap:24px;margin-top:10px;padding-top:12px;border-top:1px solid var(--b1)">
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Total mes</div><div style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">$284.000</div></div>
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Día promedio</div><div style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">$14.947</div></div>
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Mejor día</div><div style="font-size:16px;font-weight:600;color:var(--a);font-family:var(--mono);margin-top:2px">$35.000</div></div>
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Citas cobradas</div><div style="font-size:16px;font-weight:600;color:var(--green);font-family:var(--mono);margin-top:2px">19</div></div>
+        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Total período</div><div id="vchart-total" style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
+        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Día promedio</div><div id="vchart-prom" style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
+        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Mejor día</div><div id="vchart-best" style="font-size:16px;font-weight:600;color:var(--a);font-family:var(--mono);margin-top:2px">—</div></div>
+        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Citas cobradas</div><div id="vchart-cobradas" style="font-size:16px;font-weight:600;color:var(--green);font-family:var(--mono);margin-top:2px">—</div></div>
       </div>
     </div>
   </div>
@@ -3545,6 +3504,7 @@ function filterVentas(p, btn) {
   _ventasPage    = 0;
   renderVentasKPIs();
   renderVentasTable();
+  renderVentasChart();
 }
 
 const _METODOS_CICLO = ['', 'efectivo', 'transferencia', 'tarjeta'];
@@ -3555,6 +3515,141 @@ function cycleMetodoFilter(btn) {
   btn.textContent = _ventasMetodo ? 'Método: ' + _ventasMetodo.charAt(0).toUpperCase() + _ventasMetodo.slice(1) + ' ▾' : 'Método: Todos ▾';
   renderVentasKPIs();
   renderVentasTable();
+}
+
+function renderVentasChart() {
+  const svg  = document.getElementById('ventas-chart');
+  const wrap = document.getElementById('ventas-chart-wrap');
+  const tip  = document.getElementById('vchart-tip');
+  if (!svg || !wrap) return;
+
+  const [desde, hasta] = _ventasFechaRange(_ventasPeriodo);
+  const lista = _ventasFiltradas();
+
+  // Agrupar por día
+  const byDay = {};
+  lista.forEach(c => {
+    if (!c.fecha) return;
+    const k = c.fecha;
+    if (!byDay[k]) byDay[k] = { pagado: 0, citas: 0 };
+    byDay[k].citas++;
+    if (c.estado_pago === 'pagado') byDay[k].pagado += Number(c.precio) || 0;
+  });
+
+  // Construir array de días del rango
+  const days = [];
+  const cur  = new Date(desde.getTime());
+  const now  = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  while (cur <= hasta) {
+    const key = cur.toISOString().slice(0,10);
+    const [,mStr,dStr] = key.split('-');
+    days.push({ key, label: parseInt(dStr) + '/' + parseInt(mStr), d: parseInt(dStr), isToday: key === todayStr, ...(byDay[key]||{pagado:0,citas:0}) });
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  const n      = days.length;
+  const W = 760, H = 145, PAD_L = 36, PAD_R = 4, PAD_TOP = 12;
+  const cW     = W - PAD_L - PAD_R;
+  const maxVal = Math.max(...days.map(d => d.pagado), 1);
+  const xOf    = i => PAD_L + (n > 1 ? (i / (n-1)) * cW : cW / 2);
+  const yOf    = v  => H - 8 - (v / maxVal) * (H - PAD_TOP - 8);
+
+  // Y axis scale labels
+  const yStep = maxVal / 4;
+  const fmtK  = v => v >= 1000 ? '$' + Math.round(v/1000) + 'k' : '$' + v;
+  const gridLines = [1,2,3,4].map(i => {
+    const val = Math.round(yStep * (4-i));
+    const y   = yOf(val);
+    return `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(108,92,228,0.06)" stroke-width="1"/>
+<text x="0" y="${y-2}" font-size="9" fill="#9C96B4" font-family="Geist Mono,monospace">${fmtK(val)}</text>`;
+  }).join('');
+
+  // Area + line points
+  const pts = days.map((d,i) => `${xOf(i).toFixed(1)},${yOf(d.pagado).toFixed(1)}`).join(' ');
+  const firstX = xOf(0).toFixed(1), lastX = xOf(n-1).toFixed(1);
+  const areaPath = n > 1
+    ? `M${pts.replace(/ /g,' L')} L${lastX},${H} L${firstX},${H} Z`
+    : `M${firstX},${yOf(days[0]?.pagado||0)} L${lastX},${H} Z`;
+
+  // X labels (show every N days to avoid crowding)
+  const labelEvery = n <= 7 ? 1 : n <= 14 ? 2 : n <= 31 ? Math.ceil(n/16) : Math.ceil(n/10);
+  const xLabels = days.map((d,i) => {
+    if (i % labelEvery !== 0 && i !== n-1) return '';
+    const fill = d.isToday ? '#6C5CE4' : '#9C96B4';
+    const fw   = d.isToday ? '600' : 'normal';
+    return `<text x="${xOf(i).toFixed(1)}" y="170" font-size="9" fill="${fill}" text-anchor="middle" font-family="Geist Mono,monospace" font-weight="${fw}">${d.label}</text>`;
+  }).join('');
+
+  // Today marker
+  const todayIdx = days.findIndex(d => d.isToday);
+  const todayLine = todayIdx >= 0
+    ? `<line x1="${xOf(todayIdx).toFixed(1)}" y1="0" x2="${xOf(todayIdx).toFixed(1)}" y2="${H}" stroke="rgba(108,92,228,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+       <text x="${xOf(todayIdx).toFixed(1)}" y="8" font-size="9" fill="#6C5CE4" text-anchor="middle" font-family="Geist,sans-serif" font-weight="600">HOY</text>` : '';
+
+  // Dots for days with citas
+  const dots = days.map((d,i) => d.citas > 0
+    ? `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(d.pagado).toFixed(1)}" r="4" fill="#16A34A" stroke="#fff" stroke-width="1.5"/>`
+    : '').join('');
+
+  // Invisible hover strips
+  const stripW = n > 1 ? cW / n : cW;
+  const strips = days.map((d,i) => {
+    const cx = xOf(i);
+    const sx = (cx - stripW/2).toFixed(1);
+    return `<rect x="${sx}" y="0" width="${stripW.toFixed(1)}" height="${H}" fill="transparent" data-idx="${i}" class="vchart-strip"/>`;
+  }).join('');
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="vg1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6C5CE4" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#6C5CE4" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${gridLines}
+    <path d="${areaPath}" fill="url(#vg1)"/>
+    <polyline points="${pts}" fill="none" stroke="#6C5CE4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${todayLine}
+    ${dots}
+    ${xLabels}
+    ${strips}`;
+
+  // Hover logic
+  svg.querySelectorAll('.vchart-strip').forEach(rect => {
+    rect.addEventListener('mouseenter', function(e) {
+      const d = days[+this.dataset.idx];
+      if (!d) return;
+      document.getElementById('vchart-tip-date').textContent = d.label;
+      document.getElementById('vchart-tip-ing').textContent  = '$' + d.pagado.toLocaleString('es-CL');
+      document.getElementById('vchart-tip-citas').textContent = d.citas + ' cita' + (d.citas !== 1 ? 's' : '');
+      const svgRect = wrap.getBoundingClientRect();
+      const r       = rect.getBoundingClientRect();
+      const tipEl   = document.getElementById('vchart-tip');
+      tipEl.style.display = 'block';
+      let left = r.left - svgRect.left + r.width/2 - 60;
+      left = Math.max(0, Math.min(left, svgRect.width - 140));
+      tipEl.style.left = left + 'px';
+      tipEl.style.top  = '-48px';
+    });
+    rect.addEventListener('mouseleave', function() {
+      document.getElementById('vchart-tip').style.display = 'none';
+    });
+  });
+
+  // Totales rápidos
+  const totalPagado = days.reduce((s,d) => s+d.pagado, 0);
+  const diasConData = days.filter(d => d.pagado > 0);
+  const bestDay     = days.reduce((a,b) => b.pagado > a.pagado ? b : a, {pagado:0,label:'—'});
+  const promedio    = diasConData.length ? Math.round(totalPagado / diasConData.length) : 0;
+  const totalCitas  = days.reduce((s,d) => s+d.citas, 0);
+
+  const el = id => document.getElementById(id);
+  if (el('vchart-sub'))      el('vchart-sub').textContent      = PERIODO_LABELS[_ventasPeriodo] + ' · Ingresos pagados por día';
+  if (el('vchart-total'))    el('vchart-total').textContent    = '$' + totalPagado.toLocaleString('es-CL');
+  if (el('vchart-prom'))     el('vchart-prom').textContent     = diasConData.length ? '$' + promedio.toLocaleString('es-CL') : '—';
+  if (el('vchart-best'))     el('vchart-best').textContent     = bestDay.pagado > 0 ? '$' + bestDay.pagado.toLocaleString('es-CL') : '—';
+  if (el('vchart-cobradas')) el('vchart-cobradas').textContent = totalCitas;
 }
 
 function exportarVentasCSV() {
@@ -3937,6 +4032,7 @@ async function cargarVentas() {
   _ventasPage = 0;
   renderVentasKPIs();
   renderVentasTable();
+  renderVentasChart();
 }
 
 /* ── Modal registrar pago ── */
