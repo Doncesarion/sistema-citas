@@ -128,7 +128,7 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 /* ─────────────────────────────────────
    LAYOUT
 ───────────────────────────────────── */
-.layout{display:flex;flex:1;overflow:hidden}
+.layout{display:flex;flex:1;overflow:hidden;min-height:0}
 
 /* ─────────────────────────────────────
    SIDEBAR
@@ -183,7 +183,7 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 /* ─────────────────────────────────────
    MAIN AREA
 ───────────────────────────────────── */
-.main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0}
 
 /* ─────────────────────────────────────
    AGENDA VIEW
@@ -811,7 +811,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 /* ── 420px: móvil pequeño ── */
 @media (max-width:420px){
   .ntab{padding:4px 6px;font-size:10px}
-  .ag-btn{width:22px;height:22px;font-size:11px}
+  .ag-btn{width:40px;height:40px;font-size:20px}
   .ag-period{font-size:10px;max-width:140px}
   .nav-mark{width:22px;height:22px;font-size:9px}
   .modal{width:100vw!important;border-radius:var(--rx) var(--rx) 0 0!important;position:fixed!important;bottom:0!important;top:auto!important;transform:none!important}
@@ -1088,15 +1088,27 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div><!-- end cv-dia -->
 
   <!-- MES -->
-  <div id="cv-mes" style="display:none;flex:1;overflow:hidden">
-    <div style="display:flex;flex:1;overflow-y:auto;padding:12px 16px;height:100%">
+  <div id="cv-mes" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--b1);flex-shrink:0">
+      <button class="ag-btn" onclick="navCal(-1)" style="width:40px;height:40px;font-size:20px">‹</button>
+      <span id="mes-nav-lbl" style="font-size:14px;font-weight:600;color:var(--t1);letter-spacing:-.02em"></span>
+      <button class="ag-btn" onclick="navCal(1)"  style="width:40px;height:40px;font-size:20px">›</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px">
       <div id="mes-grid-container" style="width:100%"></div>
     </div>
   </div><!-- end cv-mes -->
 
   <!-- LISTA -->
-  <div id="cv-lista" style="display:none;flex:1;overflow-y:auto">
-    <div id="lista-container" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;max-width:720px;margin:0 auto;width:100%"></div>
+  <div id="cv-lista" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--b1);flex-shrink:0">
+      <button class="ag-btn" onclick="navCal(-1)" style="width:40px;height:40px;font-size:20px">‹</button>
+      <span id="lista-nav-lbl" style="font-size:13px;font-weight:600;color:var(--t1)"></span>
+      <button class="ag-btn" onclick="navCal(1)"  style="width:40px;height:40px;font-size:20px">›</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+      <div id="lista-container" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;max-width:720px;margin:0 auto;width:100%"></div>
+    </div>
   </div><!-- end cv-lista -->
 
 </div><!-- end v-agenda -->
@@ -2930,11 +2942,13 @@ function setCalView(view, btn) {
   if (view === 'dia') renderDiaView(currentDayDate);
   if (view === 'lista') renderLista();
 
-  // Solo mes no tiene render function que actualice label
+  // Actualizar label del mes en ag-bar y en el nav interno del cv-mes
   if (view === 'mes') {
     const {y:my, m:mm} = mesBase[mesIdx];
     const el = document.getElementById('ag-period-lbl');
     if (el) el.textContent = monthNames[mm] + ' ' + my;
+    const inl = document.getElementById('mes-nav-lbl');
+    if (inl) inl.textContent = monthNames[mm] + ' ' + my;
   }
 }
 
@@ -2959,11 +2973,12 @@ function renderLista() {
 
   // Label período (solo cuando la vista activa es lista)
   if (currentCalView === 'lista') {
+    const s = listaStart, e = listaEnd;
+    const label = `${s.getDate()} ${MON_SHORT[s.getMonth()]} — ${e.getDate()} ${MON_SHORT[e.getMonth()]} ${e.getFullYear()}`;
     const lbl = document.getElementById('ag-period-lbl');
-    if (lbl) {
-      const s = listaStart, e = listaEnd;
-      lbl.textContent = `${s.getDate()} ${MON_SHORT[s.getMonth()]} — ${e.getDate()} ${MON_SHORT[e.getMonth()]} ${e.getFullYear()}`;
-    }
+    if (lbl) lbl.textContent = label;
+    const inl = document.getElementById('lista-nav-lbl');
+    if (inl) inl.textContent = label;
   }
 
   const TAG_MAP   = {'ev-p':'tp','ev-g':'tg','ev-a':'ta','ev-r':'tr','ev-b':'tp','ev-t':'tg'};
@@ -3172,6 +3187,8 @@ function navCal(dir) {
     const {y, m} = mesBase[mesIdx];
     const el = document.getElementById('ag-period-lbl');
     if (el) el.textContent = monthNames[m] + ' ' + y;
+    const inl = document.getElementById('mes-nav-lbl');
+    if (inl) inl.textContent = monthNames[m] + ' ' + y;
     renderMesGrid();
   } else if (view === 'dia') {
     currentDayDate = new Date(currentDayDate);
