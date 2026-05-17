@@ -28,17 +28,16 @@
 
     #at-btn {
       width: 60px; height: 60px; border-radius: 50%;
-      background: linear-gradient(135deg, #8B7CF8, #4F3EE0);
+      background: #fff;
       border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 6px 24px rgba(108,92,228,0.52);
+      box-shadow: 0 6px 24px rgba(108,92,228,0.45);
       transition: transform .2s, box-shadow .2s;
-      position: relative;
+      position: relative; overflow: hidden; padding: 10px;
     }
-    #at-btn:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(108,92,228,0.62); }
-    #at-btn svg { color: #fff; }
-    #at-btn .at-open  { display: flex; }
-    #at-btn .at-close { display: none; }
+    #at-btn:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(108,92,228,0.58); }
+    #at-btn .at-open  { display: flex; width:100%; height:100%; object-fit:contain; }
+    #at-btn .at-close { display: none; color:#6C5CE4; }
     #at-btn.on .at-open  { display: none; }
     #at-btn.on .at-close { display: flex; }
 
@@ -59,9 +58,7 @@
     <div id="at-panel" class="at-off"></div>
     <button id="at-btn" aria-label="Chat de reservas">
       <div class="at-ring"></div>
-      <svg class="at-open" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
+      <img class="at-open" src="${BASE}/logo_attempo.png" alt="Attempo">
       <svg class="at-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
