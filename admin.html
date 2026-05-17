@@ -2091,7 +2091,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 <script>
 /* ════ VIEW SWITCHING ════ */
-function sv(v, btn) {
+function sv(v, btn, skipPush) {
   const views = ['agenda','clientes','ventas','reportes','config'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
@@ -2108,6 +2108,10 @@ function sv(v, btn) {
   });
   document.querySelectorAll('.ntab').forEach((t, i) => t.classList.toggle('on', views[i] === v));
   if (v === 'ventas') cargarVentas();
+  if (!skipPush) {
+    const slug = v === 'config' ? 'configuracion' : v;
+    history.pushState({ section: v }, '', '/' + slug);
+  }
 }
 
 /* ════ MODAL — 3 STEPS ════ */
@@ -2406,7 +2410,7 @@ function updateReport(p, btn) {
 }
 
 /* ════ CONFIG PANEL SWITCHING ════ */
-function showCfg(panel, btn) {
+function showCfg(panel, btn, skipPush) {
   ['general','profesionales','horarios','notificaciones'].forEach(p => {
     const el = document.getElementById('cfg-' + p);
     if (el) el.style.display = p === panel ? 'block' : 'none';
@@ -2416,6 +2420,7 @@ function showCfg(panel, btn) {
     if (t) t.classList.toggle('on', p === panel);
   });
   if (panel === 'profesionales') cargarProfesionales();
+  if (!skipPush) history.pushState({ section:'config', sub: panel }, '', '/configuracion/' + panel);
 }
 
 /* ════ PERFIL ════ */
@@ -2908,7 +2913,7 @@ function renderWeekBody() {
   body.innerHTML = html;
 }
 
-function setCalView(view, btn) {
+function setCalView(view, btn, skipPush) {
   currentCalView = view;
 
   // Sidebar vista buttons
@@ -2948,6 +2953,7 @@ function setCalView(view, btn) {
     const inl = document.getElementById('mes-nav-lbl');
     if (inl) inl.textContent = monthNames[mm] + ' ' + my;
   }
+  if (!skipPush) history.pushState({ section:'agenda', sub: view }, '', '/agenda/' + view);
 }
 
 // Mapa de nombres abreviados → nombre completo para openFicha
@@ -4243,6 +4249,32 @@ async function saveRegistrarPago() {
 
 // Cargar ventas al iniciar y cuando se entra a la tab
 cargarVentas();
+
+/* ════ URL ROUTER ════ */
+function routeFromURL() {
+  const parts = window.location.pathname.replace(/^\//, '').split('/');
+  const section = parts[0];
+  const sub     = parts[1] || null;
+  const calSubs = ['semana','dia','mes','lista'];
+  const cfgSubs = ['general','profesionales','horarios','notificaciones'];
+
+  if (!section || section === 'admin.html' || section === 'agenda') {
+    sv('agenda', null, true);
+    setCalView(calSubs.includes(sub) ? sub : 'semana', null, true);
+  } else if (section === 'clientes') {
+    sv('clientes', null, true);
+  } else if (section === 'ventas') {
+    sv('ventas', null, true);
+  } else if (section === 'reportes') {
+    sv('reportes', null, true);
+  } else if (section === 'configuracion') {
+    sv('config', null, true);
+    showCfg(cfgSubs.includes(sub) ? sub : 'general', null, true);
+  }
+}
+
+window.addEventListener('popstate', routeFromURL);
+routeFromURL();
 
 // Cargar booking slug desde Supabase al iniciar
 (async function() {
