@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attempo — Accesos</title>
+<script>(function(){if(!sessionStorage.getItem('attempo_user'))window.location.replace('/login.html');}());</script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --a:#6C5CE4;--a2:#7C3AED;--a3:#4F46E5;
+  --bg:#F8FAFC;--bg2:#FFFFFF;
+  --t1:#0F172A;--t2:#334155;--t3:#64748B;--t4:#94A3B8;
+  --b1:#E2E8F0;--b2:#CBD5E1;
+  --r:10px;--red:#DC2626;
+  --font:'Geist',-apple-system,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--t1);font-size:13px;min-height:100vh}
+
+/* NAV */
+.nav{height:52px;background:#fff;border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:16px;position:sticky;top:0;z-index:100}
+.nav-mark{width:27px;height:27px;border-radius:7px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:monospace;flex-shrink:0}
+.nav-name{font-size:15px;font-weight:700;color:#000;letter-spacing:-0.3px}
+.nav-divider{width:1px;height:20px;background:var(--b1)}
+.nav-title{font-size:13px;font-weight:600;color:var(--t2)}
+.nav-back{margin-left:auto;font-size:12px;color:var(--t3);text-decoration:none;display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--b1);border-radius:var(--r);transition:all .15s}
+.nav-back:hover{border-color:var(--a);color:var(--a)}
+
+/* LAYOUT */
+.page{max-width:820px;margin:0 auto;padding:28px 20px}
+.page-header{margin-bottom:24px}
+.page-title{font-size:20px;font-weight:700;color:var(--t1)}
+.page-sub{font-size:13px;color:var(--t3);margin-top:4px}
+
+/* CARD NEGOCIO */
+.neg-card{background:#fff;border:1px solid var(--b1);border-radius:14px;overflow:hidden;margin-bottom:16px}
+.neg-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--b1)}
+.neg-info-name{font-size:14px;font-weight:600;color:var(--t1)}
+.neg-info-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.neg-body{padding:0 18px 8px}
+
+/* FILA USUARIO */
+.u-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--b1)}
+.u-row:last-child{border-bottom:none}
+.u-avatar{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:monospace;flex-shrink:0}
+.u-name{font-size:13px;font-weight:500;color:var(--t1)}
+.u-sub{font-size:11px;color:var(--t3)}
+.u-actions{display:flex;gap:8px;flex-shrink:0}
+.u-empty{padding:16px 0;color:var(--t3);font-size:13px}
+
+/* BOTONES */
+.btn-a{background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-family:var(--font);font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn-a:hover:not(:disabled){opacity:.88}
+.btn-a:disabled{opacity:.55;cursor:not-allowed}
+.btn-g{background:#fff;color:var(--t2);border:1px solid var(--b1);border-radius:var(--r);font-family:var(--font);font-weight:500;cursor:pointer;transition:all .15s}
+.btn-g:hover:not(:disabled){border-color:var(--b2);background:#F8FAFC}
+.btn-del{background:#fff;color:var(--red);border:1px solid rgba(220,38,38,0.2);border-radius:var(--r);font-family:var(--font);font-weight:500;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.btn-del:hover{background:#FEF2F2}
+
+/* OVERLAY / MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;padding:16px}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:440px;box-shadow:0 24px 48px rgba(0,0,0,0.2);overflow:hidden}
+.mhead{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--b1)}
+.mtitle{font-size:15px;font-weight:700;color:var(--t1)}
+.mclose{background:none;border:none;font-size:20px;color:var(--t3);cursor:pointer;line-height:1;padding:2px 6px}
+.mclose:hover{color:var(--t1)}
+.mbody{padding:20px;display:flex;flex-direction:column;gap:14px}
+.mfoot{padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--b1)}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fl{font-size:12px;font-weight:500;color:var(--t2)}
+.fi{padding:9px 12px;border-radius:var(--r);border:1px solid var(--b1);background:#FAFAFE;color:var(--t1);font-size:13px;font-family:var(--font);outline:none;transition:all .14s;width:100%}
+.fi:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(108,92,228,0.1);background:#fff}
+.input-rel{position:relative}
+.input-rel .fi{padding-right:38px}
+.fi-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t4);display:flex;padding:4px}
+.fi-eye:hover{color:var(--t2)}
+.m-info{font-size:12px;color:var(--t3);padding:8px 12px;background:var(--bg);border-radius:var(--r)}
+.m-err{display:none;color:var(--red);font-size:12px;padding:8px 12px;background:#FEF2F2;border-radius:var(--r)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1E293B;color:#fff;padding:10px 20px;border-radius:40px;font-size:13px;font-weight:500;z-index:9999;transition:transform .3s,opacity .3s;opacity:0;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* LOADING */
+.skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:sk 1.2s infinite;border-radius:var(--r);height:14px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-mark" id="nav-mark">tt</div>
+  <span class="nav-name">attempo</span>
+  <div class="nav-divider"></div>
+  <span class="nav-title">Accesos por negocio</span>
+  <a href="/admin.html" class="nav-back">← Volver al panel</a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">Gestión de accesos</div>
+    <div class="page-sub">Crea, visualiza y administra los usuarios de cada negocio</div>
+  </div>
+  <div id="accesos-list">
+    <div class="neg-card"><div class="neg-body" style="padding:24px;text-align:center;color:var(--t3)">Cargando...</div></div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO USUARIO -->
+<div class="overlay" id="nu-ov" onclick="if(event.target===this)cerrarNu()">
+  <div class="modal">
+    <div class="mhead">
+      <span class="mtitle">Nuevo acceso</span>
+      <button class="mclose" onclick="cerrarNu()">×</button>
+    </div>
+    <div class="mbody">
+      <div class="m-info" id="nu-negocio-label">—</div>
+      <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="nu-nombre" placeholder="Ej: María González"></div>
+      <div class="fg"><label class="fl">Usuario <span style="color:var(--red)">*</span></label><input class="fi" id="nu-username" placeholder="Ej: maria.gonzalez" autocomplete="off"></div>
+      <div class="fg"><label class="fl">Email (opcional)</label><input class="fi" id="nu-email" type="email" placeholder="correo@ejemplo.com"></div>
+      <div class="fg">
+        <label class="fl">Contraseña <span style="color:var(--red)">*</span></label>
+        <div class="input-rel">
+          <input class="fi" id="nu-password" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+          <button type="button" class="fi-eye" onclick="togglePw('nu-password')">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Rol</label>
+        <select class="fi" id="nu-rol"><option value="admin">Admin</option><option value="recepcionista">Recepcionista</option></select>
+      </div>
+      <div class="m-err" id="nu-err"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" style="padding:9px 18px;font-size:13px" onclick="cerrarNu()">Cancelar</button>
+      <button class="btn-a" style="padding:9px 18px;font-size:13px" id="nu-btn" onclick="crearUsuario()">Crear acceso</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div class="overlay" id="cpw-ov" onclick="if(event.target===this)cerrarCpw()">
+  <div class="modal">
+    <div class="mhead">
+      <span class="mtitle">Cambiar contraseña</span>
+      <button class="mclose" onclick="cerrarCpw()">×</button>
+    </div>
+    <div class="mbody">
+      <div style="font-size:13px;color:var(--t2)">Usuario: <strong id="cpw-label"></strong></div>
+      <div class="fg">
+        <label class="fl">Nueva contraseña</label>
+        <div class="input-rel">
+          <input class="fi" id="cpw-pw" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+          <button type="button" class="fi-eye" onclick="togglePw('cpw-pw')">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="m-err" id="cpw-err"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" style="padding:9px 18px;font-size:13px" onclick="cerrarCpw()">Cancelar</button>
+      <button class="btn-a" style="padding:9px 18px;font-size:13px" id="cpw-btn" onclick="guardarPw()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let _nuClienteId = null;
+let _cpwUsername = null;
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function togglePw(id) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function cargarAccesos() {
+  const list = document.getElementById('accesos-list');
+  try {
+    const [rC, rU] = await Promise.all([
+      fetch('/api/usuarios-admin?action=clientes'),
+      fetch('/api/usuarios-admin?action=usuarios')
+    ]);
+    const clientes = await rC.json();
+    const usuarios = await rU.json();
+
+    if (!Array.isArray(clientes) || !clientes.length) {
+      list.innerHTML = '<div class="neg-card"><div class="neg-body" style="padding:24px;text-align:center;color:var(--t3)">No hay negocios registrados</div></div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    clientes.forEach(c => {
+      const usrs = Array.isArray(usuarios) ? usuarios.filter(u => u.cliente_id === c.id) : [];
+      list.appendChild(buildCard(c, usrs));
+    });
+  } catch(e) {
+    list.innerHTML = '<div class="neg-card"><div class="neg-body" style="padding:24px;text-align:center;color:var(--red)">Error al cargar. Recarga la página.</div></div>';
+  }
+}
+
+function buildCard(c, usrs) {
+  const div = document.createElement('div');
+  div.className = 'neg-card';
+  div.id = 'card-' + c.id;
+
+  const rows = usrs.length
+    ? usrs.map(u => buildUserRow(u)).join('')
+    : '<div class="u-empty">Sin accesos creados aún</div>';
+
+  div.innerHTML = `
+    <div class="neg-head">
+      <div>
+        <div class="neg-info-name">${esc(c.nombre_negocio)}</div>
+        <div class="neg-info-sub">${esc(c.email||'—')} · Plan: ${esc(c.plan||'—')} · ${usrs.length} acceso${usrs.length!==1?'s':''}</div>
+      </div>
+      <button class="btn-a" style="padding:8px 16px;font-size:12px" onclick="abrirNu('${esc(c.id)}','${esc(c.nombre_negocio)}')">+ Nuevo acceso</button>
+    </div>
+    <div class="neg-body" id="body-${c.id}">${rows}</div>
+  `;
+  return div;
+}
+
+function buildUserRow(u) {
+  const initials = (u.nombre||u.username).slice(0,2).toUpperCase();
+  const nombre   = esc(u.nombre||u.username);
+  const username = esc(u.username);
+  const rol      = esc(u.rol||'admin');
+  return `
+    <div class="u-row" id="urow-${username}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="u-avatar">${initials}</div>
+        <div>
+          <div class="u-name">${nombre}</div>
+          <div class="u-sub">@${username} · ${rol}</div>
+        </div>
+      </div>
+      <div class="u-actions">
+        <button class="btn-g" style="padding:6px 12px;font-size:12px" onclick="abrirCpw('${username}')">Cambiar contraseña</button>
+        <button class="btn-del" style="padding:6px 10px;font-size:14px" onclick="eliminar('${username}','${nombre}')" title="Eliminar">×</button>
+      </div>
+    </div>`;
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* NUEVO USUARIO */
+function abrirNu(clienteId, clienteNombre) {
+  _nuClienteId = clienteId;
+  document.getElementById('nu-negocio-label').textContent = 'Negocio: ' + clienteNombre;
+  ['nu-nombre','nu-username','nu-email','nu-password'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nu-rol').value = 'admin';
+  document.getElementById('nu-err').style.display = 'none';
+  document.getElementById('nu-btn').disabled = false;
+  document.getElementById('nu-btn').textContent = 'Crear acceso';
+  document.getElementById('nu-ov').classList.add('open');
+  setTimeout(() => document.getElementById('nu-nombre').focus(), 100);
+}
+function cerrarNu() { document.getElementById('nu-ov').classList.remove('open'); }
+
+async function crearUsuario() {
+  const nombre   = document.getElementById('nu-nombre').value.trim();
+  const username = document.getElementById('nu-username').value.trim().toLowerCase();
+  const email    = document.getElementById('nu-email').value.trim();
+  const password = document.getElementById('nu-password').value;
+  const rol      = document.getElementById('nu-rol').value;
+  const errEl    = document.getElementById('nu-err');
+
+  if (!username)         { showErr(errEl, 'El usuario es obligatorio'); return; }
+  if (!password)         { showErr(errEl, 'La contraseña es obligatoria'); return; }
+  if (password.length<8) { showErr(errEl, 'La contraseña debe tener al menos 8 caracteres'); return; }
+
+  const btn = document.getElementById('nu-btn');
+  btn.disabled = true; btn.textContent = 'Creando...';
+  errEl.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/usuarios-admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'crear', username, password, email:email||null, nombre:nombre||username, rol, cliente_id:_nuClienteId })
+    });
+    const d = await r.json();
+    if (r.ok) { cerrarNu(); toast('✓ Acceso creado para @' + username); cargarAccesos(); }
+    else { showErr(errEl, d.error||'Error al crear'); btn.disabled=false; btn.textContent='Crear acceso'; }
+  } catch { showErr(errEl,'Error de conexión'); btn.disabled=false; btn.textContent='Crear acceso'; }
+}
+
+/* CAMBIAR CONTRASEÑA */
+function abrirCpw(username) {
+  _cpwUsername = username;
+  document.getElementById('cpw-label').textContent = username;
+  document.getElementById('cpw-pw').value = '';
+  document.getElementById('cpw-err').style.display = 'none';
+  document.getElementById('cpw-btn').disabled = false;
+  document.getElementById('cpw-btn').textContent = 'Guardar';
+  document.getElementById('cpw-ov').classList.add('open');
+  setTimeout(() => document.getElementById('cpw-pw').focus(), 100);
+}
+function cerrarCpw() { document.getElementById('cpw-ov').classList.remove('open'); }
+
+async function guardarPw() {
+  const password = document.getElementById('cpw-pw').value;
+  const errEl    = document.getElementById('cpw-err');
+  if (password.length < 8) { showErr(errEl,'Mínimo 8 caracteres'); return; }
+
+  const btn = document.getElementById('cpw-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  errEl.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/usuarios-admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'cambiar-password', username:_cpwUsername, password })
+    });
+    const d = await r.json();
+    if (r.ok) { cerrarCpw(); toast('✓ Contraseña actualizada para @' + _cpwUsername); }
+    else { showErr(errEl, d.error||'Error al guardar'); btn.disabled=false; btn.textContent='Guardar'; }
+  } catch { showErr(errEl,'Error de conexión'); btn.disabled=false; btn.textContent='Guardar'; }
+}
+
+/* ELIMINAR */
+async function eliminar(username, nombre) {
+  if (!confirm(`¿Eliminar el acceso de "${nombre}" (@${username})?\nEsta acción no se puede deshacer.`)) return;
+  try {
+    const r = await fetch('/api/usuarios-admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'eliminar', username })
+    });
+    const d = await r.json();
+    if (r.ok) { toast('✓ Acceso eliminado'); cargarAccesos(); }
+    else toast('Error: ' + (d.error||'No se pudo eliminar'));
+  } catch { toast('Error de conexión'); }
+}
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+// Init
+(function(){
+  try {
+    const u = JSON.parse(sessionStorage.getItem('attempo_user')||'{}');
+    if (u.rol !== 'superadmin') window.location.replace('/admin.html');
+    const mark = document.getElementById('nav-mark');
+    if (mark) mark.textContent = (u.nombre||'tt').slice(0,2).toLowerCase();
+  } catch(e) {}
+})();
+
+cargarAccesos();
+</script>
+</body>
+</html>

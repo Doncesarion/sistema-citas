@@ -858,7 +858,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ntab"     onclick="sv('ventas',this)">Ventas</button>
       <button class="ntab"     onclick="sv('reportes',this)">Reportes</button>
       <button class="ntab"     onclick="sv('config',this)">Configuración</button>
-      <button class="ntab" id="tab-accesos" style="display:none" onclick="sv('accesos',this)">Accesos</button>
     </div>
   </div>
   <div class="nav-r">
@@ -1654,21 +1653,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
 </div>
 
-<!-- ═══ ACCESOS ═══ -->
-<div id="v-accesos" style="display:none">
-  <div class="vp">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-      <div>
-        <div style="font-size:18px;font-weight:700;color:var(--t1)">Accesos por negocio</div>
-        <div style="font-size:13px;color:var(--t3);margin-top:2px">Gestiona los usuarios de cada cliente</div>
-      </div>
-    </div>
-    <div id="accesos-list" style="display:flex;flex-direction:column;gap:16px">
-      <div style="color:var(--t3);font-size:13px;padding:24px;text-align:center">Cargando...</div>
-    </div>
-  </div>
-</div><!-- end accesos -->
-
 </div><!-- end main -->
 </div><!-- end layout -->
 
@@ -2107,7 +2091,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <script>
 /* ════ VIEW SWITCHING ════ */
 function sv(v, btn, skipPush) {
-  const views = ['agenda','clientes','ventas','reportes','config','accesos'];
+  const views = ['agenda','clientes','ventas','reportes','config'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
     if (!el) return;
@@ -2125,7 +2109,6 @@ function sv(v, btn, skipPush) {
   const activeTab = document.querySelector(`.ntab[onclick*="'${v}'"]`);
   if (activeTab) activeTab.classList.add('on');
   if (v === 'ventas') cargarVentas();
-  if (v === 'accesos') cargarAccesos();
   if (!skipPush) {
     const slug = v === 'config' ? 'configuracion' : v;
     history.pushState({ section: v }, '', '/' + slug);
@@ -4334,8 +4317,6 @@ function routeFromURL() {
   } else if (section === 'configuracion') {
     sv('config', null, true);
     showCfg(cfgSubs.includes(sub) ? sub : 'general', null, true);
-  } else if (section === 'accesos') {
-    sv('accesos', null, true);
   }
 }
 
@@ -4478,270 +4459,6 @@ routeFromURL();
 }());
 </script>
 
-<!-- ═══ MODAL NUEVO USUARIO ═══ -->
-<div class="overlay" id="nuevo-usuario-ov" onclick="if(event.target===this)cerrarNuevoUsuario()">
-  <div class="modal" style="width:460px">
-    <div class="modal-head">
-      <span class="modal-title">Nuevo acceso</span>
-      <button class="mclose" onclick="cerrarNuevoUsuario()">×</button>
-    </div>
-    <div class="mbody" style="gap:14px">
-      <div style="font-size:12px;color:var(--t3);padding:8px 12px;background:var(--bg2);border-radius:var(--r)" id="nu-negocio-label">—</div>
-      <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="nu-nombre" placeholder="Ej: María González"></div>
-      <div class="fg"><label class="fl">Usuario</label><input class="fi" id="nu-username" placeholder="Ej: maria.gonzalez" autocomplete="off"></div>
-      <div class="fg"><label class="fl">Email (opcional)</label><input class="fi" id="nu-email" type="email" placeholder="correo@ejemplo.com"></div>
-      <div class="fg">
-        <label class="fl">Contraseña</label>
-        <div class="input-rel">
-          <input class="fi" id="nu-password" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
-          <button type="button" class="fi-eye" onclick="toggleFiPw('nu-password',this)">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </div>
-      <div class="fg">
-        <label class="fl">Rol</label>
-        <select class="fi" id="nu-rol">
-          <option value="admin">Admin</option>
-          <option value="recepcionista">Recepcionista</option>
-        </select>
-      </div>
-      <div id="nu-error" style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:#FEF2F2;border-radius:var(--r)"></div>
-    </div>
-    <div class="mfoot">
-      <button class="btn-g" onclick="cerrarNuevoUsuario()">Cancelar</button>
-      <button class="btn-a" id="nu-btn" onclick="crearUsuario()">Crear acceso</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ MODAL CAMBIAR CONTRASEÑA USUARIO ═══ -->
-<div class="overlay" id="cambiar-pw-ov" onclick="if(event.target===this)cerrarCambiarPw()">
-  <div class="modal" style="width:400px">
-    <div class="modal-head">
-      <span class="modal-title">Cambiar contraseña</span>
-      <button class="mclose" onclick="cerrarCambiarPw()">×</button>
-    </div>
-    <div class="mbody" style="gap:14px">
-      <div style="font-size:13px;color:var(--t2)">Usuario: <strong id="cpw-username-label"></strong></div>
-      <div class="fg">
-        <label class="fl">Nueva contraseña</label>
-        <div class="input-rel">
-          <input class="fi" id="cpw-password" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
-          <button type="button" class="fi-eye" onclick="toggleFiPw('cpw-password',this)">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </div>
-      <div id="cpw-error" style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:#FEF2F2;border-radius:var(--r)"></div>
-    </div>
-    <div class="mfoot">
-      <button class="btn-g" onclick="cerrarCambiarPw()">Cancelar</button>
-      <button class="btn-a" id="cpw-btn" onclick="guardarCambioPassword()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ════ ACCESOS — GESTIÓN DE USUARIOS ════ */
-let _accesoClienteId   = null;
-let _accesoClienteNombre = null;
-let _accesoUsernameActual = null;
-
-function toggleFiPw(id, btn) {
-  const inp = document.getElementById(id);
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
-
-async function cargarAccesos() {
-  const list = document.getElementById('accesos-list');
-  list.innerHTML = '<div style="color:var(--t3);font-size:13px;padding:24px;text-align:center">Cargando...</div>';
-
-  try {
-    const [rClientes, rUsuarios] = await Promise.all([
-      fetch('/api/usuarios-admin?action=clientes'),
-      fetch('/api/usuarios-admin?action=usuarios')
-    ]);
-    const clientes = await rClientes.json();
-    const usuarios = await rUsuarios.json();
-
-    if (!Array.isArray(clientes) || clientes.length === 0) {
-      list.innerHTML = '<div style="color:var(--t3);font-size:13px;padding:24px;text-align:center">No hay negocios registrados</div>';
-      return;
-    }
-
-    list.innerHTML = '';
-    clientes.forEach(c => {
-      const usrs = usuarios.filter(u => u.cliente_id === c.id);
-      list.appendChild(renderNegocioCard(c, usrs));
-    });
-  } catch(err) {
-    list.innerHTML = '<div style="color:var(--red);font-size:13px;padding:24px;text-align:center">Error al cargar datos</div>';
-  }
-}
-
-function renderNegocioCard(cliente, usuarios) {
-  const card = document.createElement('div');
-  card.style.cssText = 'background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden';
-  card.id = 'acc-card-' + cliente.id;
-
-  const usrRows = usuarios.length
-    ? usuarios.map(u => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--b1)" id="urow-${u.username}">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:var(--mono)">
-              ${(u.nombre||u.username).slice(0,2).toUpperCase()}
-            </div>
-            <div>
-              <div style="font-size:13px;font-weight:500;color:var(--t1)">${u.nombre||u.username}</div>
-              <div style="font-size:11px;color:var(--t3)">@${u.username} · ${u.rol||'admin'}</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn-g" style="font-size:11px;padding:5px 10px" onclick="abrirCambiarPw('${u.username}')">Cambiar contraseña</button>
-            <button class="btn-g" style="font-size:11px;padding:5px 10px;color:var(--red);border-color:rgba(220,38,38,0.2)" onclick="confirmarEliminarUsuario('${u.username}','${(u.nombre||u.username).replace(/'/g,'\\\'')}')">&times;</button>
-          </div>
-        </div>`).join('')
-    : '<div style="padding:16px 0;color:var(--t3);font-size:13px">Sin accesos creados</div>';
-
-  card.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--b1)">
-      <div>
-        <div style="font-size:14px;font-weight:600;color:var(--t1)">${cliente.nombre_negocio}</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">${cliente.email||'—'} · Plan: ${cliente.plan||'—'} · ${usuarios.length} acceso${usuarios.length!==1?'s':''}</div>
-      </div>
-      <button class="btn-a" style="font-size:12px;padding:7px 14px" onclick="abrirNuevoUsuario('${cliente.id}','${cliente.nombre_negocio.replace(/'/g,'\\\'') }')">+ Nuevo acceso</button>
-    </div>
-    <div style="padding:0 16px 4px">${usrRows}</div>
-  `;
-  return card;
-}
-
-function abrirNuevoUsuario(clienteId, clienteNombre) {
-  _accesoClienteId = clienteId;
-  _accesoClienteNombre = clienteNombre;
-  document.getElementById('nu-negocio-label').textContent = 'Negocio: ' + clienteNombre;
-  document.getElementById('nu-nombre').value = '';
-  document.getElementById('nu-username').value = '';
-  document.getElementById('nu-email').value = '';
-  document.getElementById('nu-password').value = '';
-  document.getElementById('nu-rol').value = 'admin';
-  document.getElementById('nu-error').style.display = 'none';
-  document.getElementById('nu-btn').disabled = false;
-  document.getElementById('nu-btn').textContent = 'Crear acceso';
-  document.getElementById('nuevo-usuario-ov').classList.add('open');
-}
-
-function cerrarNuevoUsuario() {
-  document.getElementById('nuevo-usuario-ov').classList.remove('open');
-}
-
-async function crearUsuario() {
-  const nombre   = document.getElementById('nu-nombre').value.trim();
-  const username = document.getElementById('nu-username').value.trim().toLowerCase();
-  const email    = document.getElementById('nu-email').value.trim();
-  const password = document.getElementById('nu-password').value;
-  const rol      = document.getElementById('nu-rol').value;
-  const errEl    = document.getElementById('nu-error');
-
-  if (!username || !password) { errEl.textContent = 'Usuario y contraseña son obligatorios'; errEl.style.display = 'block'; return; }
-  if (password.length < 8) { errEl.textContent = 'La contraseña debe tener al menos 8 caracteres'; errEl.style.display = 'block'; return; }
-
-  const btn = document.getElementById('nu-btn');
-  btn.disabled = true; btn.textContent = 'Creando...';
-  errEl.style.display = 'none';
-
-  try {
-    const r = await fetch('/api/usuarios-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'crear', username, password, email: email||null, nombre: nombre||username, rol, cliente_id: _accesoClienteId })
-    });
-    const data = await r.json();
-    if (r.ok) {
-      cerrarNuevoUsuario();
-      toast('✓ Acceso creado para ' + username);
-      cargarAccesos();
-    } else {
-      errEl.textContent = data.error || 'Error al crear';
-      errEl.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Crear acceso';
-    }
-  } catch { errEl.textContent = 'Error de conexión'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Crear acceso'; }
-}
-
-function abrirCambiarPw(username) {
-  _accesoUsernameActual = username;
-  document.getElementById('cpw-username-label').textContent = username;
-  document.getElementById('cpw-password').value = '';
-  document.getElementById('cpw-error').style.display = 'none';
-  document.getElementById('cpw-btn').disabled = false;
-  document.getElementById('cpw-btn').textContent = 'Guardar';
-  document.getElementById('cambiar-pw-ov').classList.add('open');
-}
-
-function cerrarCambiarPw() {
-  document.getElementById('cambiar-pw-ov').classList.remove('open');
-}
-
-async function guardarCambioPassword() {
-  const password = document.getElementById('cpw-password').value;
-  const errEl = document.getElementById('cpw-error');
-  if (password.length < 8) { errEl.textContent = 'Mínimo 8 caracteres'; errEl.style.display = 'block'; return; }
-
-  const btn = document.getElementById('cpw-btn');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-  errEl.style.display = 'none';
-
-  try {
-    const r = await fetch('/api/usuarios-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'cambiar-password', username: _accesoUsernameActual, password })
-    });
-    const data = await r.json();
-    if (r.ok) {
-      cerrarCambiarPw();
-      toast('✓ Contraseña actualizada para ' + _accesoUsernameActual);
-    } else {
-      errEl.textContent = data.error || 'Error al guardar';
-      errEl.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Guardar';
-    }
-  } catch { errEl.textContent = 'Error de conexión'; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Guardar'; }
-}
-
-async function confirmarEliminarUsuario(username, nombre) {
-  if (!confirm(`¿Eliminar el acceso de "${nombre}" (@${username})? Esta acción no se puede deshacer.`)) return;
-  try {
-    const r = await fetch('/api/usuarios-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'eliminar', username })
-    });
-    const data = await r.json();
-    if (r.ok) {
-      toast('✓ Acceso eliminado');
-      const row = document.getElementById('urow-' + username);
-      if (row) row.remove();
-      cargarAccesos();
-    } else {
-      toast('Error: ' + (data.error || 'No se pudo eliminar'));
-    }
-  } catch { toast('Error de conexión'); }
-}
-
-// Mostrar tab Accesos solo para superadmin
-(function() {
-  try {
-    const u = JSON.parse(sessionStorage.getItem('attempo_user') || '{}');
-    if (u.rol === 'superadmin') {
-      const tab = document.getElementById('tab-accesos');
-      if (tab) tab.style.display = '';
-    }
-  } catch(e) {}
-}());
-</script>
 
 </body>
 </html>
