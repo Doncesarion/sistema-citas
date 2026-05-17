@@ -99,12 +99,43 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);font-size:13px
 </nav>
 
 <div class="page">
-  <div class="page-header">
-    <div class="page-title">Gestión de accesos</div>
-    <div class="page-sub">Crea, visualiza y administra los usuarios de cada negocio</div>
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div>
+      <div class="page-title">Gestión de accesos</div>
+      <div class="page-sub">Crea, visualiza y administra los usuarios de cada negocio</div>
+    </div>
+    <button class="btn-a" style="padding:10px 18px;font-size:13px;white-space:nowrap" onclick="abrirNuevoNegocio()">+ Nuevo negocio</button>
+  </div>
   </div>
   <div id="accesos-list">
     <div class="neg-card"><div class="neg-body" style="padding:24px;text-align:center;color:var(--t3)">Cargando...</div></div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO NEGOCIO -->
+<div class="overlay" id="nn-ov" onclick="if(event.target===this)cerrarNn()">
+  <div class="modal">
+    <div class="mhead">
+      <span class="mtitle">Nuevo negocio</span>
+      <button class="mclose" onclick="cerrarNn()">×</button>
+    </div>
+    <div class="mbody">
+      <div class="fg"><label class="fl">Nombre del negocio <span style="color:var(--red)">*</span></label><input class="fi" id="nn-nombre" placeholder="Ej: Clínica Los Andes"></div>
+      <div class="fg"><label class="fl">Email de contacto</label><input class="fi" id="nn-email" type="email" placeholder="contacto@clinica.cl"></div>
+      <div class="fg">
+        <label class="fl">Plan</label>
+        <select class="fi" id="nn-plan">
+          <option value="basic">Basic</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="m-err" id="nn-err"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" style="padding:9px 18px;font-size:13px" onclick="cerrarNn()">Cancelar</button>
+      <button class="btn-a" style="padding:9px 18px;font-size:13px" id="nn-btn" onclick="crearNegocio()">Crear negocio</button>
+    </div>
   </div>
 </div>
 
@@ -227,7 +258,10 @@ function buildCard(c, usrs) {
         <div class="neg-info-name">${esc(c.nombre_negocio)}</div>
         <div class="neg-info-sub">${esc(c.email||'—')} · Plan: ${esc(c.plan||'—')} · ${usrs.length} acceso${usrs.length!==1?'s':''}</div>
       </div>
-      <button class="btn-a" style="padding:8px 16px;font-size:12px" onclick="abrirNu('${esc(c.id)}','${esc(c.nombre_negocio)}')">+ Nuevo acceso</button>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="btn-g" style="padding:8px 14px;font-size:12px" onclick="entrarPanel('${esc(c.id)}','${esc(c.nombre_negocio)}')">Entrar al panel →</button>
+        <button class="btn-a" style="padding:8px 14px;font-size:12px" onclick="abrirNu('${esc(c.id)}','${esc(c.nombre_negocio)}')">+ Nuevo acceso</button>
+      </div>
     </div>
     <div class="neg-body" id="body-${c.id}">${rows}</div>
   `;
@@ -257,6 +291,53 @@ function buildUserRow(u) {
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* NUEVO NEGOCIO */
+function abrirNuevoNegocio() {
+  ['nn-nombre','nn-email'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nn-plan').value = 'basic';
+  document.getElementById('nn-err').style.display = 'none';
+  document.getElementById('nn-btn').disabled = false;
+  document.getElementById('nn-btn').textContent = 'Crear negocio';
+  document.getElementById('nn-ov').classList.add('open');
+  setTimeout(() => document.getElementById('nn-nombre').focus(), 100);
+}
+function cerrarNn() { document.getElementById('nn-ov').classList.remove('open'); }
+
+async function crearNegocio() {
+  const nombre = document.getElementById('nn-nombre').value.trim();
+  const email  = document.getElementById('nn-email').value.trim();
+  const plan   = document.getElementById('nn-plan').value;
+  const errEl  = document.getElementById('nn-err');
+
+  if (!nombre) { showErr(errEl, 'El nombre del negocio es obligatorio'); return; }
+
+  const btn = document.getElementById('nn-btn');
+  btn.disabled = true; btn.textContent = 'Creando...';
+  errEl.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/usuarios-admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'crear-negocio', nombre_negocio:nombre, email:email||null, plan })
+    });
+    const d = await r.json();
+    if (r.ok) { cerrarNn(); toast('✓ Negocio "' + nombre + '" creado'); cargarAccesos(); }
+    else { showErr(errEl, d.error||'Error al crear'); btn.disabled=false; btn.textContent='Crear negocio'; }
+  } catch { showErr(errEl,'Error de conexión'); btn.disabled=false; btn.textContent='Crear negocio'; }
+}
+
+/* ENTRAR AL PANEL (impersonación) */
+function entrarPanel(clienteId, clienteNombre) {
+  const original = localStorage.getItem('attempo_user');
+  if (original) localStorage.setItem('attempo_original_user', original);
+  const current = JSON.parse(original || '{}');
+  current.cliente_id    = clienteId;
+  current.nombre_negocio = clienteNombre;
+  current._impersonando  = true;
+  localStorage.setItem('attempo_user', JSON.stringify(current));
+  window.location.href = '/admin.html';
 }
 
 /* NUEVO USUARIO */

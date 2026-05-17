@@ -62,6 +62,31 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
+      if (action === 'crear-negocio') {
+        const { nombre_negocio, email, plan } = body;
+        if (!nombre_negocio) return res.status(400).json({ error: 'El nombre del negocio es obligatorio' });
+
+        const today    = new Date().toISOString().split('T')[0];
+        const nextYear = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0];
+
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema`, {
+          method: 'POST',
+          headers: { ...sh, Prefer: 'return=representation' },
+          body: JSON.stringify({
+            nombre_negocio,
+            email: email || null,
+            plan: plan || 'basic',
+            fecha_inicio: today,
+            fecha_expiracion: nextYear,
+            password_hash: ''
+          })
+        });
+
+        if (!r.ok) return res.status(400).json({ error: 'Error al crear negocio' });
+        const rows = await r.json();
+        return res.status(200).json({ ok: true, cliente: rows[0] });
+      }
+
       if (action === 'cambiar-password') {
         const { username, password } = body;
         if (!username || !password) return res.status(400).json({ error: 'Datos incompletos' });

@@ -840,6 +840,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 </head>
 <body>
 
+<!-- ═══ BANNER IMPERSONACIÓN ═══ -->
+<div id="impersonation-banner" style="display:none;background:#7C3AED;color:#fff;font-size:12px;font-weight:500;padding:8px 16px;text-align:center;position:sticky;top:0;z-index:200;align-items:center;justify-content:center;gap:12px">
+  <span>👁 Estás viendo el panel de <strong id="impersonation-name"></strong></span>
+  <button onclick="salirImpersonacion()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">Salir → Volver a mis accesos</button>
+</div>
+
 <!-- ═══ TOP NAV ═══ -->
 <nav class="nav">
   <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden">
@@ -3922,8 +3928,32 @@ if (window.innerWidth <= 768) {
 
 function logout() {
   localStorage.removeItem('attempo_user');
+  localStorage.removeItem('attempo_original_user');
   window.location.replace('/login.html');
 }
+
+/* ════ IMPERSONACIÓN ════ */
+function salirImpersonacion() {
+  const original = localStorage.getItem('attempo_original_user');
+  if (original) {
+    localStorage.setItem('attempo_user', original);
+    localStorage.removeItem('attempo_original_user');
+  }
+  window.location.href = '/accesos';
+}
+
+(function() {
+  try {
+    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    if (u._impersonando) {
+      const banner = document.getElementById('impersonation-banner');
+      if (banner) {
+        document.getElementById('impersonation-name').textContent = u.nombre_negocio || 'negocio';
+        banner.style.display = 'flex';
+      }
+    }
+  } catch(e) {}
+}());
 
 </script>
 <!-- ═══ PERFIL / CUENTA ═══ -->
