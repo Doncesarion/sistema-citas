@@ -4189,12 +4189,12 @@ async function cargarCitasSupabase() {
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
+/* ════ VENTAS: carga y registrar pago ════ */
+let _ventasCid = null;
+
 // Carga inicial y refresco cada 30 segundos
 cargarCitasSupabase();
 setInterval(cargarCitasSupabase, 30000);
-
-/* ════ VENTAS: carga y registrar pago ════ */
-let _ventasCid = null;
 
 async function getClienteId() {
   if (_ventasCid) return _ventasCid;
