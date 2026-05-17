@@ -279,9 +279,13 @@ function agregarMensaje(rol, texto, cita, chips) {
     const chipsDiv = document.createElement('div');
     chipsDiv.className = 'chips-wrap';
     chipsDiv.id = 'chips-activos';
-    chipsDiv.innerHTML = chips.map(c =>
-      `<button class="chip" onclick="clickChip(${JSON.stringify(c)})">${esc(c)}</button>`
-    ).join('');
+    chips.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.textContent = c;
+      btn.addEventListener('click', () => clickChip(c));
+      chipsDiv.appendChild(btn);
+    });
     wrap.appendChild(chipsDiv);
   }
 
