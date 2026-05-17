@@ -3395,15 +3395,22 @@ function handleLogoUpload(input) {
 }
 
 function applyLogo(src) {
-  const img = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover">';
+  // Preview en el modal
   const preview = document.getElementById('logo-preview');
-  if (preview) preview.innerHTML = img;
+  if (preview) {
+    preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:contain">';
+    preview.style.background = '#fff';
+  }
+  // Logo en la barra de navegación
   const navMark = document.querySelector('.nav-mark');
   if (navMark) {
-    navMark.innerHTML = img;
-    navMark.style.background = 'none';
-    navMark.style.padding = '0';
-    navMark.style.overflow = 'hidden';
+    navMark.innerHTML = '';
+    navMark.style.backgroundImage = 'url(' + src + ')';
+    navMark.style.backgroundSize = 'contain';
+    navMark.style.backgroundPosition = 'center';
+    navMark.style.backgroundRepeat = 'no-repeat';
+    navMark.style.backgroundColor = '#fff';
+    navMark.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
   }
 }
 
