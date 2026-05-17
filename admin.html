@@ -3387,59 +3387,32 @@ function handleLogoUpload(input) {
   input.value = '';
   const reader = new FileReader();
   reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      // Recortar el centro del logo (elimina bordes blancos) y comprimir a 120x120
-      const size = Math.min(img.width, img.height);
-      const ox = (img.width  - size) / 2;
-      const oy = (img.height - size) / 2;
-      const canvas = document.createElement('canvas');
-      canvas.width = 120; canvas.height = 120;
-      canvas.getContext('2d').drawImage(img, ox, oy, size, size, 0, 0, 120, 120);
-      const src = canvas.toDataURL('image/png');
-      applyLogo(src);
-      try { localStorage.setItem('attempo_logo', src); } catch(err) { console.warn('Logo: localStorage lleno'); }
-      toast('✓ Logo actualizado');
-    };
-    img.src = e.target.result;
+    const src = e.target.result;
+    // Preview en modal
+    const preview = document.getElementById('logo-preview');
+    if (preview) {
+      preview.style.cssText = 'width:44px;height:44px;border-radius:10px;overflow:hidden;flex-shrink:0;padding:0';
+      preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+    }
+    // Nav mark
+    const navMark = document.querySelector('.nav-mark');
+    if (navMark) {
+      navMark.textContent = '';
+      navMark.style.cssText = 'width:27px;height:27px;border-radius:7px;overflow:hidden;flex-shrink:0;padding:0;box-shadow:0 2px 8px rgba(0,0,0,0.3)';
+      navMark.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+    }
+    toast('✓ Logo actualizado');
   };
   reader.onerror = function() { toast('Error al leer la imagen'); };
   reader.readAsDataURL(file);
 }
 
-function applyLogo(src) {
-  const makeImg = function(extra) {
-    return '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block' + (extra||'') + '">';
-  };
-  const preview = document.getElementById('logo-preview');
-  if (preview) {
-    preview.innerHTML = makeImg();
-    preview.style.background = 'none';
-    preview.style.padding = '0';
-  }
-  const navMark = document.querySelector('.nav-mark');
-  if (navMark) {
-    navMark.innerHTML = makeImg();
-    navMark.style.padding = '0';
-    navMark.style.overflow = 'hidden';
-    navMark.style.background = 'none';
-  }
-}
-
-// Cargar logo guardado al iniciar
+// Vincular input de logo al cargar
 document.addEventListener('DOMContentLoaded', function() {
-  try {
-    const saved = localStorage.getItem('attempo_logo');
-    if (saved) applyLogo(saved);
-  } catch(err) {}
-});
-
-// Asegurar que el input de logo dispare aunque se elija el mismo archivo
-document.addEventListener('DOMContentLoaded', function() {
+  // Limpiar cualquier logo corrupto de versiones anteriores
+  try { localStorage.removeItem('attempo_logo'); } catch(e) {}
   const logoInput = document.getElementById('logo-input');
-  if (logoInput) {
-    logoInput.addEventListener('change', function() { handleLogoUpload(this); });
-  }
+  if (logoInput) logoInput.addEventListener('change', function() { handleLogoUpload(this); });
 });
 
 /* ════ COPY LINK ════ */
