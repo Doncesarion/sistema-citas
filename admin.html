@@ -707,23 +707,23 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   /* LAYOUT */
   .layout{position:relative}
 
-  /* AG-BAR: línea 1 = flechas + período, línea 2 = sync + tabs */
+  /* AG-BAR: flechas + período siempre visibles en su propia fila */
   .ag-bar{flex-wrap:wrap;padding:8px 12px;gap:0;row-gap:0}
-  .ag-nav{flex:1;min-width:0;order:1}
-  .ag-right{width:100%;order:2;justify-content:space-between;padding-top:6px;margin-top:6px;border-top:1px solid var(--b1)}
+  .ag-nav{width:100%;order:1;display:flex;align-items:center;gap:7px;padding-bottom:6px}
+  .ag-right{width:100%;order:2;justify-content:space-between;padding-top:6px;margin-top:0;border-top:1px solid var(--b1)}
   .ag-period{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ag-sync{font-size:11px}
 
   /* SEMANA: .rp se oculta, cal-wrap scrollea en X sin romper scroll Y */
   .rp{display:none!important}
-  #cv-semana{display:flex;flex:1;overflow:hidden;flex-direction:column}
-  #cv-semana .cal-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  #cv-semana{display:flex;flex:1;overflow:hidden;flex-direction:column;min-height:0}
+  #cv-semana .cal-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
   /* El header y body son scrollables juntos horizontalmente */
   #cv-semana .cal-wrap > .cal-head,
   #cv-semana .cal-wrap > .cal-body{min-width:620px}
   #cv-semana .cal-wrap{overflow-x:auto}
-  .cal-head{grid-template-columns:44px repeat(7,1fr)!important}
-  .cal-body{grid-template-columns:44px repeat(7,1fr)!important;flex:1;overflow-y:auto}
+  .cal-head{grid-template-columns:44px repeat(7,1fr)!important;flex-shrink:0}
+  .cal-body{grid-template-columns:44px repeat(7,1fr)!important;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .tslot{font-size:10px;width:44px}
 
   /* VISTAS vp */
