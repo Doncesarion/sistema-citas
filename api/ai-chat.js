@@ -7,53 +7,69 @@ export default async function handler(req, res) {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;
   const SUPABASE_URL  = 'https://xztqawulvrtjvtfixofy.supabase.co';
+  const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key no configurada' });
+
+  // Pre-cargar especialistas para incluirlos en el sistema (evita una llamada a Claude por turno)
+  let espLista = [];
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&estado=eq.activo&select=id,nombre,cargo&order=nombre.asc`,
+      { headers: sh }
+    );
+    espLista = await r.json();
+    if (!Array.isArray(espLista)) espLista = [];
+  } catch(_) { espLista = []; }
+
+  const espTexto = espLista.length
+    ? espLista.map(e => `• ${e.nombre} — ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
+    : 'No hay profesionales activos en este momento.';
 
   const hoy = new Date().toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago'
   });
 
-  const systemPrompt = `Eres Attia, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. Hablas como una persona real: cálida, cercana y natural. No suenas a robot ni a asistente de IA.
+  const systemPrompt = `Eres Attia, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. Hablas como una persona real: cálida, cercana y natural.
+
+PROFESIONALES DISPONIBLES (usa el id exacto al llamar las herramientas):
+${espTexto}
 
 CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden sin saltarte pasos:
-1. Pregunta el nombre con entusiasmo genuino. Ej: "¡Genial! ¿Me puedes dar tu nombre para la reserva?"
-2. Pregunta el motivo de la consulta de forma casual. Ej: "¿Y qué te trae por aquí, [nombre]?"
-3. Llama a listar_especialistas. Si hay uno solo, díselo directamente: "Perfecto, te atendería [nombre del profesional], [cargo]." Si hay varios, preséntaselos y pregunta con quién prefiere.
+1. Pregunta el nombre con calidez. Ej: "¡Genial! ¿Me das tu nombre para la reserva?"
+2. Pregunta el motivo de forma casual. Ej: "¿Y qué te trae por aquí, [nombre]?"
+3. Si hay un solo profesional, infórmalo directamente: "Te atendería [nombre], [cargo]." Si hay varios, preséntaselos y pregunta con quién prefiere. NO llames a ninguna herramienta para esto — ya tienes la lista arriba.
 4. Pregunta la fecha. Ej: "¿Tienes algún día en mente?"
-5. Llama a verificar_disponibilidad. Comparte los horarios de forma natural. Ej: "En esa fecha hay horas disponibles a las 9:30, 10:00, 11:00... ¿Cuál te acomoda más?"
-6. Confirma la hora elegida.
-7. Pide el teléfono de forma amigable. Ej: "¿Me das un número de contacto por si necesitamos avisarte algo?" El email es opcional.
-8. Haz un resumen breve y pregunta si está todo bien. Ej: "A ver si lo tengo bien: [nombre], con [profesional], el [fecha] a las [hora] por [motivo]. ¿Perfecto así?"
-9. Cuando confirme, llama a crear_cita inmediatamente.
-10. Cierra con calidez. Ej: "¡Listo, [nombre]! Tu hora quedó reservada. Te esperamos el [fecha] a las [hora]. ¡Hasta pronto!"
+5. Llama a verificar_disponibilidad con el id del profesional y la fecha. Muestra los horarios de forma natural: "Tengo disponible las 9:30, 10:00 y 11:00. ¿Cuál te viene mejor?"
+6. Confirma la hora.
+7. Pide el teléfono. Ej: "¿Me das un número de contacto?" El email es opcional.
+8. Resume todo y pregunta si está correcto. Ej: "A ver: [nombre], con [profesional], el [fecha] a las [hora] por [motivo]. ¿Todo bien?"
+9. Cuando confirme, llama a crear_cita.
+10. Cierra con calidez: "¡Listo, [nombre]! Te esperamos el [fecha] a las [hora]. ¡Hasta pronto!"
 
 CUANDO PREGUNTAN OTRA COSA:
-- Horarios: di que los horarios dependen de la disponibilidad del profesional y ofrece buscar una hora.
-- Servicios: llama a listar_especialistas y cuéntalos de forma natural.
-- Ubicación u otros datos del negocio: di que no tienes esa info y sugiere llamar directo.
+- Horarios generales: ofrece buscar una hora concreta con verificar_disponibilidad.
+- Servicios: presenta los profesionales que ya tienes arriba.
+- Ubicación u otros datos: indica que no tienes esa info y sugiere llamar al negocio.
 
-TONO Y ESTILO:
-- Español chileno, conversacional. Nada de "Lamentablemente" ni "Te recomiendo que te comuniques directamente".
+TONO:
+- Español chileno, conversacional y cálido. Puedes usar emojis con moderación.
+- Sin markdown ni asteriscos para negritas.
 - Una sola pregunta por mensaje, respuestas cortas.
-- Usa el nombre del paciente cuando ya lo sabes, crea cercanía.
-- Si algo sale mal (sin disponibilidad, sin especialistas), exprésalo con naturalidad: "Mmm, ese día no hay horas disponibles. ¿Te acomoda el [día siguiente]?"
+- Usa el nombre del paciente cuando ya lo sabes.
+- Si no hay disponibilidad: "Mmm, ese día no hay horas. ¿Te acomoda el [día siguiente]?"
+- Si no hay profesionales activos: díselo con naturalidad y sugiere intentar más tarde.
 - Hoy es ${hoy}. Convierte "mañana", "el lunes", etc. a YYYY-MM-DD.
 - El cliente_id para crear_cita es siempre: ${cliente_id}`;
 
   const tools = [
     {
-      name: 'listar_especialistas',
-      description: 'Lista los especialistas activos del negocio',
-      input_schema: { type: 'object', properties: {}, required: [] }
-    },
-    {
       name: 'verificar_disponibilidad',
-      description: 'Retorna los horarios disponibles de un especialista en una fecha específica',
+      description: 'Retorna los horarios disponibles de un profesional en una fecha específica',
       input_schema: {
         type: 'object',
         properties: {
-          especialista_id: { type: 'string', description: 'ID del especialista' },
+          especialista_id: { type: 'string', description: 'ID del profesional (está en el listado del sistema)' },
           fecha: { type: 'string', description: 'Fecha en formato YYYY-MM-DD' }
         },
         required: ['especialista_id', 'fecha']
@@ -61,7 +77,7 @@ TONO Y ESTILO:
     },
     {
       name: 'crear_cita',
-      description: 'Crea la cita en el sistema una vez que el paciente confirmó',
+      description: 'Crea la cita una vez que el paciente confirmó todos los datos',
       input_schema: {
         type: 'object',
         properties: {
@@ -92,18 +108,6 @@ TONO Y ESTILO:
   }
 
   async function ejecutarHerramienta(nombre, params) {
-    const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
-
-    if (nombre === 'listar_especialistas') {
-      const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&estado=eq.activo&select=id,nombre,cargo&order=nombre.asc`,
-        { headers: sh }
-      );
-      const data = await r.json();
-      if (!Array.isArray(data) || !data.length) return { error: 'No hay especialistas activos' };
-      return data.map(e => ({ id: e.id, nombre: e.nombre, cargo: e.cargo || 'Profesional' }));
-    }
-
     if (nombre === 'verificar_disponibilidad') {
       const { especialista_id, fecha } = params;
       const r1 = await fetch(
@@ -111,13 +115,12 @@ TONO Y ESTILO:
         { headers: sh }
       );
       const [esp] = await r1.json();
-      if (!esp) return { error: 'Especialista no encontrado' };
+      if (!esp) return { error: 'Profesional no encontrado' };
 
       const horario = esp.horario || {};
       const fechaObj = new Date(fecha + 'T12:00:00');
       const diasKey = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab'];
-      const diaKey = diasKey[fechaObj.getDay()];
-      const diaHorario = horario[diaKey];
+      const diaHorario = horario[diasKey[fechaObj.getDay()]];
 
       if (!diaHorario?.activo || !diaHorario.bloques?.length) {
         return { disponible: false, mensaje: 'El profesional no trabaja ese día' };
@@ -143,9 +146,9 @@ TONO Y ESTILO:
         cliente_id,
         especialista_id: params.especialista_id,
         nombre_paciente: params.nombre_paciente,
-        tel_paciente:    params.tel_paciente  || null,
-        email_paciente:  params.email_paciente || null,
-        servicio:        params.servicio       || 'Consulta',
+        tel_paciente:    params.tel_paciente   || null,
+        email_paciente:  params.email_paciente  || null,
+        servicio:        params.servicio        || 'Consulta',
         fecha:           params.fecha,
         hora:            params.hora,
         estado:          'reservada',
@@ -168,7 +171,7 @@ TONO Y ESTILO:
     let msgs = [...messages];
     let cita_creada = null;
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -213,7 +216,7 @@ TONO Y ESTILO:
       ];
     }
 
-    return res.status(500).json({ error: 'Demasiados pasos internos, intenta de nuevo' });
+    return res.status(500).json({ error: 'Intenta de nuevo' });
 
   } catch (err) {
     console.error('ai-chat error:', err);

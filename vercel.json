@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/ai-chat.js": { "maxDuration": 30 }
+  },
   "rewrites": [
     { "source": "/agenda",                      "destination": "/admin.html" },
     { "source": "/agenda/:sub",                 "destination": "/admin.html" },
