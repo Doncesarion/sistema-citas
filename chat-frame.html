@@ -320,7 +320,7 @@ async function llamarIA() {
     if (!r.ok) throw new Error(d.error);
     return d;
   } catch(e) {
-    agregarMsg('ai', 'Ups, hubo un problema. ¿Puedes intentar de nuevo?');
+    agregarMsg('ai', 'Error: ' + e.message);
     return null;
   }
 }
