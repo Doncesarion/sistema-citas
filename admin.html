@@ -3381,38 +3381,49 @@ document.addEventListener('click', e => {
 });
 
 /* ════ LOGO UPLOAD ════ */
+function applyLogo(src) {
+  const preview = document.getElementById('logo-preview');
+  if (preview) {
+    preview.style.cssText = 'width:44px;height:44px;border-radius:10px;overflow:hidden;flex-shrink:0;padding:0';
+    preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+  }
+  const navMark = document.querySelector('.nav-mark');
+  if (navMark) {
+    navMark.style.cssText = 'width:27px;height:27px;border-radius:7px;overflow:hidden;flex-shrink:0;padding:0;background:none;font-size:0';
+    navMark.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block">';
+  }
+}
+
 function handleLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  input.value = '';
   const reader = new FileReader();
   reader.onload = function(e) {
-    const src = e.target.result;
-    // Preview en modal
-    const preview = document.getElementById('logo-preview');
-    if (preview) {
-      preview.style.cssText = 'width:44px;height:44px;border-radius:10px;overflow:hidden;flex-shrink:0;padding:0';
-      preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block">';
-    }
-    // Nav mark
-    const navMark = document.querySelector('.nav-mark');
-    if (navMark) {
-      navMark.textContent = '';
-      navMark.style.cssText = 'width:27px;height:27px;border-radius:7px;overflow:hidden;flex-shrink:0;padding:0;box-shadow:0 2px 8px rgba(0,0,0,0.3)';
-      navMark.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block">';
-    }
-    toast('✓ Logo actualizado');
+    const img = new Image();
+    img.onload = function() {
+      const SIZE = 128;
+      const canvas = document.createElement('canvas');
+      canvas.width = SIZE; canvas.height = SIZE;
+      const ctx = canvas.getContext('2d');
+      const scale = Math.max(SIZE / img.width, SIZE / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.8);
+      try { localStorage.setItem('attempo_logo', compressed); } catch(err) {}
+      applyLogo(compressed);
+      toast('✓ Logo actualizado');
+    };
+    img.src = e.target.result;
   };
   reader.onerror = function() { toast('Error al leer la imagen'); };
   reader.readAsDataURL(file);
 }
 
-// Vincular input de logo al cargar
 document.addEventListener('DOMContentLoaded', function() {
-  // Limpiar cualquier logo corrupto de versiones anteriores
-  try { localStorage.removeItem('attempo_logo'); } catch(e) {}
-  const logoInput = document.getElementById('logo-input');
-  if (logoInput) logoInput.addEventListener('change', function() { handleLogoUpload(this); });
+  try {
+    const saved = localStorage.getItem('attempo_logo');
+    if (saved) applyLogo(saved);
+  } catch(e) {}
 });
 
 /* ════ COPY LINK ════ */
@@ -3440,9 +3451,9 @@ function saveNegocio() {
     // Actualiza nombre en nav
     const navName = document.querySelector('.nav-name');
     if (navName) navName.textContent = nombre.toLowerCase();
-    // Actualiza mark (iniciales)
+    // Actualiza mark (iniciales) solo si no hay logo
     const navMark = document.querySelector('.nav-mark');
-    if (navMark) navMark.textContent = nombre.slice(0,2).toLowerCase();
+    if (navMark && !navMark.querySelector('img')) navMark.textContent = nombre.slice(0,2).toLowerCase();
   }
   closeCfgModal('negocio');
   toast('✓ Datos del negocio actualizados');
@@ -3990,7 +4001,7 @@ function logout() {
       <div class="fg"><label class="fl">Logo del negocio</label>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--b1);border-radius:var(--r);background:#fafafe">
           <div id="logo-preview" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;font-family:var(--mono);overflow:hidden;flex-shrink:0">tt</div>
-          <input type="file" id="logo-input" accept="image/*" style="display:none">
+          <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
           <button class="btn-g" style="font-size:12px" onclick="document.getElementById('logo-input').click()">Cambiar logo</button>
           <span style="font-size:11px;color:var(--t4)">PNG, JPG o SVG. Recomendado: 512×512px</span>
         </div>
