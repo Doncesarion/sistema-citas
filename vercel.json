@@ -7,6 +7,7 @@
     { "source": "/reportes",                    "destination": "/admin.html" },
     { "source": "/configuracion",               "destination": "/admin.html" },
     { "source": "/configuracion/:sub",          "destination": "/admin.html" },
-    { "source": "/accesos",                     "destination": "/accesos.html" }
+    { "source": "/accesos",                     "destination": "/accesos.html" },
+    { "source": "/reservar/:slug",              "destination": "/booking.html" }
   ]
 }
