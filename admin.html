@@ -714,16 +714,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   .ag-period{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ag-sync{font-size:11px}
 
-  /* SEMANA: .rp se oculta, cal-wrap scrollea en X sin romper scroll Y */
+  /* SEMANA: un solo contenedor scroll (X+Y), header sticky */
   .rp{display:none!important}
   #cv-semana{display:flex;flex:1;overflow:hidden;flex-direction:column;min-height:0}
-  #cv-semana .cal-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
-  /* El header y body son scrollables juntos horizontalmente */
-  #cv-semana .cal-wrap > .cal-head,
-  #cv-semana .cal-wrap > .cal-body{min-width:620px}
-  #cv-semana .cal-wrap{overflow-x:auto}
+  #cv-semana .cal-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;min-height:0;display:block}
+  #cv-semana .cal-wrap > .cal-head{min-width:620px;position:sticky;top:0;z-index:10;background:var(--surface)}
+  #cv-semana .cal-wrap > .cal-body{min-width:620px;overflow:visible;display:grid}
   .cal-head{grid-template-columns:44px repeat(7,1fr)!important;flex-shrink:0}
-  .cal-body{grid-template-columns:44px repeat(7,1fr)!important;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .cal-body{grid-template-columns:44px repeat(7,1fr)!important;overflow:visible}
   .tslot{font-size:10px;width:44px}
 
   /* VISTAS vp */
