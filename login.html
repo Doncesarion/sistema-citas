@@ -284,7 +284,7 @@ function loginSubmit() {
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (data.ok) {
-      sessionStorage.setItem('attempo_user', JSON.stringify({
+      localStorage.setItem('attempo_user', JSON.stringify({
         nombre: data.nombre, rol: data.rol,
         email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
       }));
@@ -389,7 +389,7 @@ function enviarRecuperacion() {
 // ── SESIÓN ACTIVA ──
 document.getElementById('usuario').focus();
 try {
-  var sesion = sessionStorage.getItem('attempo_user');
+  var sesion = localStorage.getItem('attempo_user');
   if (sesion) {
     var data = JSON.parse(sesion);
     if (Date.now() - data.ts < 8 * 60 * 60 * 1000) {
