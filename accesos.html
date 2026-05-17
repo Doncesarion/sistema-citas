@@ -279,6 +279,7 @@ function buildCard(c, usrs) {
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn-g" style="padding:8px 14px;font-size:12px" onclick="entrarPanel('${esc(c.id)}','${esc(c.nombre_negocio)}')">Entrar al panel →</button>
         <button class="btn-a" style="padding:8px 14px;font-size:12px" onclick="abrirNu('${esc(c.id)}','${esc(c.nombre_negocio)}')">+ Nuevo acceso</button>
+        <button class="btn-del" style="padding:8px 10px;font-size:14px" onclick="eliminarNegocio('${esc(c.id)}','${esc(c.nombre_negocio)}')" title="Eliminar negocio">×</button>
       </div>
     </div>
     <div class="neg-body" id="body-${c.id}">${rows}</div>
@@ -435,7 +436,21 @@ async function guardarPw() {
   } catch { showErr(errEl,'Error de conexión'); btn.disabled=false; btn.textContent='Guardar'; }
 }
 
-/* ELIMINAR */
+/* ELIMINAR NEGOCIO */
+async function eliminarNegocio(clienteId, nombre) {
+  if (!confirm(`¿Eliminar el negocio "${nombre}"?\n\nEsto borrará también todos sus usuarios, citas y especialistas.\nEsta acción no se puede deshacer.`)) return;
+  try {
+    const r = await fetch('/api/usuarios-admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'eliminar-negocio', cliente_id: clienteId })
+    });
+    const d = await r.json();
+    if (r.ok) { toast('✓ Negocio eliminado'); cargarAccesos(); }
+    else toast('Error: ' + (d.error||'No se pudo eliminar'));
+  } catch { toast('Error de conexión'); }
+}
+
+/* ELIMINAR USUARIO */
 async function eliminar(username, nombre) {
   if (!confirm(`¿Eliminar el acceso de "${nombre}" (@${username})?\nEsta acción no se puede deshacer.`)) return;
   try {

@@ -122,6 +122,23 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
+      if (action === 'eliminar-negocio') {
+        const { cliente_id } = body;
+        if (!cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
+
+        // Eliminar en cascada: citas, especialistas, usuarios, luego el negocio
+        await fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}`,        { method: 'DELETE', headers: { ...sh, Prefer: 'return=minimal' } });
+        await fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}`, { method: 'DELETE', headers: { ...sh, Prefer: 'return=minimal' } });
+        await fetch(`${SUPABASE_URL}/rest/v1/usuarios?cliente_id=eq.${cliente_id}`,     { method: 'DELETE', headers: { ...sh, Prefer: 'return=minimal' } });
+
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`,
+          { method: 'DELETE', headers: { ...sh, Prefer: 'return=minimal' } }
+        );
+        if (!r.ok) return res.status(500).json({ error: 'Error al eliminar negocio' });
+        return res.status(200).json({ ok: true });
+      }
+
       return res.status(400).json({ error: 'Acción no válida' });
     }
 
