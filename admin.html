@@ -966,7 +966,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <div style="flex:1"></div>
   <div class="sb-link">
     <div class="sb-link-label">Tu link de reservas</div>
-    <div class="sb-link-url">attempo.cl/studio-norte</div>
+    <a class="sb-link-url" id="sb-link-url" href="https://www.attempo.cl/studio-norte" target="_blank" style="text-decoration:none;color:inherit">attempo.cl/studio-norte</a>
     <div class="sb-copy" onclick="copyLink()">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="3" y="3" width="6.5" height="6.5" rx="1"/><path d="M1.5 7V1.5H7"/></svg>
       Copiar
@@ -3415,16 +3415,25 @@ function saveNegocio() {
 }
 
 /* ════ GUARDAR SITIO ════ */
-function saveSitio() {
+async function saveSitio() {
   const slug = document.getElementById('sitio-url')?.value.trim().replace(/[^a-z0-9-]/gi,'').toLowerCase();
   if (slug) {
     currentBookingUrl = slug;
-    // Actualiza sidebar
-    const urlEl = document.querySelector('.sb-link-url');
-    if (urlEl) urlEl.textContent = 'attempo.cl/' + slug;
-    // Actualiza hint en modal
+    const urlEl = document.getElementById('sb-link-url');
+    if (urlEl) { urlEl.textContent = 'attempo.cl/' + slug; urlEl.href = 'https://www.attempo.cl/' + slug; }
     const hint = document.querySelector('#cfg-sitio-ov .fg div[style*="color:var(--t3)"]');
     if (hint) hint.textContent = 'Tus clientes acceden en: attempo.cl/' + slug;
+    // Guardar en Supabase
+    try {
+      const cid = await getClienteId();
+      if (cid) {
+        await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+          method: 'PATCH',
+          headers: {..._SH, 'Content-Type':'application/json', Prefer:'return=minimal'},
+          body: JSON.stringify({ booking_slug: slug })
+        });
+      }
+    } catch(e) { console.error('Error guardando slug', e); }
   }
   closeCfgModal('sitio');
   toast('✓ URL de reservas actualizada');
@@ -4236,6 +4245,26 @@ async function saveRegistrarPago() {
 
 // Cargar ventas al iniciar y cuando se entra a la tab
 cargarVentas();
+
+// Cargar booking slug desde Supabase al iniciar
+(async function() {
+  try {
+    const cid = await getClienteId();
+    if (!cid) return;
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=booking_slug`, { headers: _SH });
+    const rows = await r.json();
+    if (Array.isArray(rows) && rows.length && rows[0].booking_slug) {
+      const slug = rows[0].booking_slug;
+      currentBookingUrl = slug;
+      const urlEl = document.getElementById('sb-link-url');
+      if (urlEl) { urlEl.textContent = 'attempo.cl/' + slug; urlEl.href = 'https://www.attempo.cl/' + slug; }
+      const input = document.getElementById('sitio-url');
+      if (input) input.value = slug;
+      const hint = document.querySelector('#cfg-sitio-ov .fg div[style*="color:var(--t3)"]');
+      if (hint) hint.textContent = 'Tus clientes acceden en: attempo.cl/' + slug;
+    }
+  } catch(e) { console.error('Error cargando slug', e); }
+})();
 </script>
 
 <!-- ═══ MODAL REGISTRAR PAGO ═══ -->
