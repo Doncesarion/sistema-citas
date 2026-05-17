@@ -256,12 +256,6 @@
 </div>
 
 <script>
-var USUARIOS = [
-  { usuario:'admin',      email:'admin@attempo.cl',  password:'attempo2026',      rol:'admin',      nombre:'Administrador', cliente_id:'99604035-4bc4-4d73-8136-dbaf06827747', destino:'admin.html' },
-  { usuario:'cesar',      email:'cesar@attempo.cl',  password:'cesar2026',        rol:'admin',      nombre:'César Salinas', cliente_id:'99604035-4bc4-4d73-8136-dbaf06827747', destino:'admin.html' },
-  { usuario:'superadmin', email:'super@attempo.cl',  password:'superattempo2026', rol:'superadmin', nombre:'Super Admin',   destino:'superadmin.html' }
-];
-
 // ── ENTER KEY ──
 document.getElementById('usuario').addEventListener('keydown', function(e){ if(e.key==='Enter') loginSubmit(); });
 document.getElementById('password').addEventListener('keydown', function(e){ if(e.key==='Enter') loginSubmit(); });
@@ -275,37 +269,40 @@ function loginSubmit() {
 
   if (!user || !pass) { mostrarError('Completa usuario y contraseña'); return; }
 
-  // Loading
   document.getElementById('btn-text').style.display = 'none';
   document.getElementById('spinner').style.display  = 'block';
   document.getElementById('btn-login').disabled = true;
 
-  setTimeout(function() {
-    var found = null;
-    for (var i = 0; i < USUARIOS.length; i++) {
-      var u = USUARIOS[i];
-      if ((u.usuario === user || u.email === user) && u.password === pass) {
-        found = u; break;
-      }
-    }
-
-    if (found) {
+  fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario: user, password: pass })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
       sessionStorage.setItem('attempo_user', JSON.stringify({
-        nombre: found.nombre, rol: found.rol,
-        email: found.email, cliente_id: found.cliente_id || null, ts: Date.now()
+        nombre: data.nombre, rol: data.rol,
+        email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
       }));
-      window.location.href = found.destino;
+      window.location.href = data.destino;
     } else {
       document.getElementById('btn-text').style.display = 'block';
       document.getElementById('spinner').style.display  = 'none';
       document.getElementById('btn-login').disabled = false;
-      mostrarError('Usuario o contraseña incorrectos');
+      mostrarError(data.error || 'Usuario o contraseña incorrectos');
       document.getElementById('card').classList.add('shake');
       setTimeout(function(){ document.getElementById('card').classList.remove('shake'); }, 400);
       document.getElementById('password').value = '';
       document.getElementById('password').focus();
     }
-  }, 800);
+  })
+  .catch(function() {
+    document.getElementById('btn-text').style.display = 'block';
+    document.getElementById('spinner').style.display  = 'none';
+    document.getElementById('btn-login').disabled = false;
+    mostrarError('Error de conexión. Intenta de nuevo.');
+  });
 }
 
 function mostrarError(msg) {
