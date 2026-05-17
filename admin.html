@@ -3397,18 +3397,17 @@ function handleLogoUpload(input) {
 }
 
 function applyLogo(src) {
-  const imgTag = '<img src="' + src + '" style="width:100%;height:100%;object-fit:contain;border-radius:7px;display:block">';
-  // Preview en el modal
+  // Preview en el modal (fondo blanco, logo completo)
   const preview = document.getElementById('logo-preview');
   if (preview) {
-    preview.innerHTML = imgTag;
-    preview.style.cssText += ';background:#fff;padding:0';
+    preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:contain;display:block">';
+    preview.style.background = '#fff';
+    preview.style.padding = '0';
   }
-  // Logo en la barra de navegación
+  // Logo en la barra de navegación (mantiene gradiente morado, blend elimina el blanco del logo)
   const navMark = document.querySelector('.nav-mark');
   if (navMark) {
-    navMark.innerHTML = imgTag;
-    navMark.style.background = '#fff';
+    navMark.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply">';
     navMark.style.padding = '0';
     navMark.style.overflow = 'hidden';
   }
