@@ -6,6 +6,7 @@
     { "source": "/ventas",                      "destination": "/admin.html" },
     { "source": "/reportes",                    "destination": "/admin.html" },
     { "source": "/configuracion",               "destination": "/admin.html" },
-    { "source": "/configuracion/:sub",          "destination": "/admin.html" }
+    { "source": "/configuracion/:sub",          "destination": "/admin.html" },
+    { "source": "/accesos",                     "destination": "/admin.html" }
   ]
 }
