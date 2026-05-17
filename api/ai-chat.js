@@ -40,8 +40,8 @@ CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden sin saltarte pasos:
 2. Pregunta el motivo de forma casual. Ej: "¿Y qué te trae por aquí, [nombre]?"
 3. Si hay un solo profesional, infórmalo directamente: "Te atendería [nombre], [cargo]." Si hay varios, preséntaselos y pregunta con quién prefiere. NO llames a ninguna herramienta para esto — ya tienes la lista arriba.
 4. Pregunta la fecha. Ej: "¿Tienes algún día en mente?"
-5. Llama a verificar_disponibilidad con el id del profesional y la fecha. Muestra los horarios de forma natural: "Tengo disponible las 9:30, 10:00 y 11:00. ¿Cuál te viene mejor?"
-6. Confirma la hora.
+5. Llama a verificar_disponibilidad con el id del profesional y la fecha. Si hay disponibilidad, NO listes las horas en tu respuesta — el sistema las mostrará automáticamente como botones. Solo di algo como: "¡Hay disponibilidad ese día! ¿Cuál hora te acomoda mejor?" Si no hay disponibilidad, ofrece el día siguiente.
+6. Cuando el paciente elija una hora, confírmala: "Perfecto, las [hora]."
 7. Pide el teléfono. Ej: "¿Me das un número de contacto?" El email es opcional.
 8. Resume todo y pregunta si está correcto. Ej: "A ver: [nombre], con [profesional], el [fecha] a las [hora] por [motivo]. ¿Todo bien?"
 9. Cuando confirme, llama a crear_cita.
@@ -170,6 +170,7 @@ TONO:
   try {
     let msgs = [...messages];
     let cita_creada = null;
+    let slots_disponibles = null;
 
     for (let i = 0; i < 5; i++) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -193,7 +194,7 @@ TONO:
 
       if (data.stop_reason !== 'tool_use') {
         const text = data.content.find(b => b.type === 'text')?.text || '';
-        return res.status(200).json({ mensaje: text, cita_creada });
+        return res.status(200).json({ mensaje: text, cita_creada, slots_disponibles });
       }
 
       const toolBlocks = data.content.filter(b => b.type === 'tool_use');
@@ -202,6 +203,7 @@ TONO:
       for (const block of toolBlocks) {
         const result = await ejecutarHerramienta(block.name, block.input);
         if (block.name === 'crear_cita' && result.ok) cita_creada = result.cita;
+        if (block.name === 'verificar_disponibilidad' && result.disponible) slots_disponibles = result.slots;
         toolResults.push({
           type:        'tool_result',
           tool_use_id: block.id,

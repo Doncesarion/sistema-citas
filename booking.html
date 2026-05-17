@@ -52,7 +52,7 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .msg.ai  .msg-bubble{background:#fff;border:1px solid var(--b1);color:var(--t1);border-radius:4px 14px 14px 14px;box-shadow:var(--sh1)}
 .msg.user .msg-bubble{background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border-radius:14px 4px 14px 14px;box-shadow:0 2px 8px rgba(108,92,228,0.3)}
 
-/* CHIPS */
+/* CHIPS generales */
 .chips-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;padding-left:42px;animation:fadeUp .25s ease}
 .chip{
   padding:7px 14px;background:#fff;border:1.5px solid var(--b2);border-radius:100px;
@@ -61,6 +61,20 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 }
 .chip:hover{background:var(--adim);border-color:var(--a);transform:translateY(-1px)}
 .chip:active{transform:translateY(0)}
+
+/* SLOTS de hora */
+.slots-wrap{margin-top:10px;padding-left:42px;animation:fadeUp .25s ease}
+.slots-section{margin-bottom:12px}
+.slots-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:6px}
+.slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:320px}
+.slot-btn{
+  padding:9px 6px;background:#fff;border:1.5px solid var(--b1);border-radius:var(--r);
+  font-size:13px;font-family:var(--mono);font-weight:500;color:var(--t2);
+  cursor:pointer;transition:all .15s;text-align:center;
+}
+.slot-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim);transform:translateY(-1px)}
+.slot-btn:active{transform:translateY(0)}
+@media(max-width:600px){.slots-grid{grid-template-columns:repeat(3,1fr)}}
 
 /* TYPING */
 .typing .msg-bubble{padding:13px 16px}
@@ -228,8 +242,12 @@ async function enviar(textoDirecto) {
 
   if (respuesta) {
     historial.push({ role: 'assistant', content: respuesta.mensaje });
-    const chips = respuesta.cita_creada ? [] : getChips(respuesta.mensaje);
-    agregarMensaje('ai', respuesta.mensaje, respuesta.cita_creada, chips);
+    if (respuesta.slots_disponibles?.length) {
+      agregarMensaje('ai', respuesta.mensaje, null, null, respuesta.slots_disponibles);
+    } else {
+      const chips = respuesta.cita_creada ? [] : getChips(respuesta.mensaje);
+      agregarMensaje('ai', respuesta.mensaje, respuesta.cita_creada, chips);
+    }
   }
 }
 
@@ -256,7 +274,7 @@ async function llamarIA() {
 }
 
 /* ─ UI ─ */
-function agregarMensaje(rol, texto, cita, chips) {
+function agregarMensaje(rol, texto, cita, chips, slots) {
   const wrap = document.getElementById('messages');
 
   const div = document.createElement('div');
@@ -275,7 +293,9 @@ function agregarMensaje(rol, texto, cita, chips) {
 
   wrap.appendChild(div);
 
-  if (chips && chips.length) {
+  if (slots && slots.length) {
+    wrap.appendChild(renderSlots(slots));
+  } else if (chips && chips.length) {
     const chipsDiv = document.createElement('div');
     chipsDiv.className = 'chips-wrap';
     chipsDiv.id = 'chips-activos';
@@ -290,6 +310,40 @@ function agregarMensaje(rol, texto, cita, chips) {
   }
 
   wrap.scrollTop = wrap.scrollHeight;
+}
+
+function renderSlots(slots) {
+  const manana = slots.filter(s => parseInt(s) < 13);
+  const tarde  = slots.filter(s => parseInt(s) >= 13);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'slots-wrap';
+  wrap.id = 'chips-activos';
+
+  function seccion(label, lista) {
+    if (!lista.length) return;
+    const sec = document.createElement('div');
+    sec.className = 'slots-section';
+    const lbl = document.createElement('div');
+    lbl.className = 'slots-label';
+    lbl.textContent = label;
+    sec.appendChild(lbl);
+    const grid = document.createElement('div');
+    grid.className = 'slots-grid';
+    lista.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'slot-btn';
+      btn.textContent = s;
+      btn.addEventListener('click', () => clickChip(s));
+      grid.appendChild(btn);
+    });
+    sec.appendChild(grid);
+    wrap.appendChild(sec);
+  }
+
+  seccion('Mañana', manana);
+  seccion('Tarde', tarde);
+  return wrap;
 }
 
 function quitarChips() {
