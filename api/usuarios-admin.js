@@ -63,26 +63,35 @@ export default async function handler(req, res) {
       }
 
       if (action === 'crear-negocio') {
-        const { nombre_negocio, email, plan } = body;
+        const { nombre_negocio, email, plan, contacto_nombre, contacto_tel, rubro } = body;
         if (!nombre_negocio) return res.status(400).json({ error: 'El nombre del negocio es obligatorio' });
 
         const today    = new Date().toISOString().split('T')[0];
         const nextYear = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0];
+        const slug     = nombre_negocio.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
         const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema`, {
           method: 'POST',
           headers: { ...sh, Prefer: 'return=representation' },
           body: JSON.stringify({
             nombre_negocio,
-            email: email || null,
-            plan: plan || 'basic',
-            fecha_inicio: today,
+            email:           email || null,
+            plan:            plan || 'basic',
+            fecha_inicio:    today,
             fecha_expiracion: nextYear,
-            password_hash: ''
+            password_hash:   '',
+            activo:          true,
+            booking_slug:    slug,
+            contacto_nombre: contacto_nombre || null,
+            contacto_tel:    contacto_tel || null,
+            rubro:           rubro || null
           })
         });
 
-        if (!r.ok) return res.status(400).json({ error: 'Error al crear negocio' });
+        if (!r.ok) {
+          const txt = await r.text();
+          return res.status(400).json({ error: 'Error al crear negocio: ' + txt });
+        }
         const rows = await r.json();
         return res.status(200).json({ ok: true, cliente: rows[0] });
       }

@@ -122,13 +122,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);font-size:13px
     <div class="mbody">
       <div class="fg"><label class="fl">Nombre del negocio <span style="color:var(--red)">*</span></label><input class="fi" id="nn-nombre" placeholder="Ej: Clínica Los Andes"></div>
       <div class="fg"><label class="fl">Email de contacto</label><input class="fi" id="nn-email" type="email" placeholder="contacto@clinica.cl"></div>
-      <div class="fg">
-        <label class="fl">Plan</label>
-        <select class="fi" id="nn-plan">
-          <option value="basic">Basic</option>
-          <option value="pro">Pro</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
+      <div class="fg"><label class="fl">Nombre del contacto</label><input class="fi" id="nn-contacto" placeholder="Ej: Ana García"></div>
+      <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="nn-tel" type="tel" placeholder="+56 9 9999 9999"></div>
+      <div style="display:flex;gap:12px">
+        <div class="fg" style="flex:1">
+          <label class="fl">Rubro</label>
+          <select class="fi" id="nn-rubro">
+            <option value="">— Seleccionar —</option>
+            <option value="clinica">Clínica / Salud</option>
+            <option value="dental">Dental</option>
+            <option value="psicologia">Psicología</option>
+            <option value="nutricion">Nutrición</option>
+            <option value="kinesiologia">Kinesiología</option>
+            <option value="estetica">Estética</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="fg" style="flex:1">
+          <label class="fl">Plan</label>
+          <select class="fi" id="nn-plan">
+            <option value="basic">Basic</option>
+            <option value="pro">Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
       </div>
       <div class="m-err" id="nn-err"></div>
     </div>
@@ -295,7 +312,7 @@ function esc(s) {
 
 /* NUEVO NEGOCIO */
 function abrirNuevoNegocio() {
-  ['nn-nombre','nn-email'].forEach(id => document.getElementById(id).value = '');
+  ['nn-nombre','nn-email','nn-contacto','nn-tel'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('nn-plan').value = 'basic';
   document.getElementById('nn-err').style.display = 'none';
   document.getElementById('nn-btn').disabled = false;
@@ -306,9 +323,12 @@ function abrirNuevoNegocio() {
 function cerrarNn() { document.getElementById('nn-ov').classList.remove('open'); }
 
 async function crearNegocio() {
-  const nombre = document.getElementById('nn-nombre').value.trim();
-  const email  = document.getElementById('nn-email').value.trim();
-  const plan   = document.getElementById('nn-plan').value;
+  const nombre   = document.getElementById('nn-nombre').value.trim();
+  const email    = document.getElementById('nn-email').value.trim();
+  const contacto = document.getElementById('nn-contacto').value.trim();
+  const tel      = document.getElementById('nn-tel').value.trim();
+  const rubro    = document.getElementById('nn-rubro').value;
+  const plan     = document.getElementById('nn-plan').value;
   const errEl  = document.getElementById('nn-err');
 
   if (!nombre) { showErr(errEl, 'El nombre del negocio es obligatorio'); return; }
@@ -320,7 +340,7 @@ async function crearNegocio() {
   try {
     const r = await fetch('/api/usuarios-admin', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'crear-negocio', nombre_negocio:nombre, email:email||null, plan })
+      body: JSON.stringify({ action:'crear-negocio', nombre_negocio:nombre, email:email||null, plan, contacto_nombre:contacto||null, contacto_tel:tel||null, rubro:rubro||null })
     });
     const d = await r.json();
     if (r.ok) { cerrarNn(); toast('✓ Negocio "' + nombre + '" creado'); cargarAccesos(); }
