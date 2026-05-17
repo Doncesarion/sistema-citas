@@ -1,10 +1,44 @@
+import crypto from 'crypto';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: 'Email requerido' });
 
+  const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
   try {
+    // Verificar que el email existe en usuarios
+    const userCheck = await fetch(
+      `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=email`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    const users = await userCheck.json();
+
+    // Responder OK aunque no exista (seguridad: no revelar si el email está registrado)
+    if (!users.length) return res.status(200).json({ ok: true });
+
+    // Generar token seguro
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hora
+
+    // Guardar token en Supabase
+    await fetch(`${SUPABASE_URL}/rest/v1/password_resets`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify({ email, token, expires_at: expiresAt })
+    });
+
+    const resetLink = `https://sistema-citas-mu.vercel.app/reset-password.html?token=${token}`;
+
+    // Enviar email con link real
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -23,10 +57,15 @@ export default async function handler(req, res) {
               Recibimos una solicitud para restablecer la contraseña de tu cuenta en Attempo.<br>
               Si no fuiste tú, puedes ignorar este mensaje.
             </p>
-            <p style="margin:0 0 20px;color:#555;font-size:14px">
-              Para recuperar el acceso, responde este correo o contáctanos directamente en
-              <a href="mailto:soporte@attempo.cl" style="color:#6C5CE4">soporte@attempo.cl</a>
-              y te ayudaremos de inmediato.
+            <a href="${resetLink}" style="display:inline-block;background:#4F46E5;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">
+              Restablecer contraseña
+            </a>
+            <p style="margin:0 0 8px;color:#888;font-size:12px">
+              Este enlace es válido por <strong>1 hora</strong>. Después deberás solicitar uno nuevo.
+            </p>
+            <p style="margin:0 0 20px;color:#888;font-size:12px">
+              O copia este enlace en tu navegador:<br>
+              <span style="color:#4F46E5">${resetLink}</span>
             </p>
             <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
             <p style="margin:0;font-size:12px;color:#999">Attempo · Todo a tu tiempo · <a href="https://attempo.cl" style="color:#999">attempo.cl</a></p>
@@ -34,8 +73,10 @@ export default async function handler(req, res) {
         `
       })
     });
+
     return res.status(200).json({ ok: true });
   } catch (err) {
-    return res.status(500).json({ error: 'Error al enviar email' });
+    console.error(err);
+    return res.status(500).json({ error: 'Error interno' });
   }
 }
