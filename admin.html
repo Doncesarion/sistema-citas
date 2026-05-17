@@ -3383,42 +3383,44 @@ document.addEventListener('click', e => {
 /* ════ LOGO UPLOAD ════ */
 function handleLogoUpload(input) {
   const file = input.files[0];
+  input.value = ''; // permite volver a seleccionar el mismo archivo
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
     const src = e.target.result;
     applyLogo(src);
-    localStorage.setItem('attempo_logo', src);
+    try { localStorage.setItem('attempo_logo', src); } catch(err) {}
     toast('✓ Logo actualizado');
   };
+  reader.onerror = function() { toast('Error al leer la imagen'); };
   reader.readAsDataURL(file);
 }
 
 function applyLogo(src) {
+  const imgTag = '<img src="' + src + '" style="width:100%;height:100%;object-fit:contain;border-radius:7px;display:block">';
   // Preview en el modal
   const preview = document.getElementById('logo-preview');
   if (preview) {
-    preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:contain">';
-    preview.style.background = '#fff';
+    preview.innerHTML = imgTag;
+    preview.style.cssText += ';background:#fff;padding:0';
   }
   // Logo en la barra de navegación
   const navMark = document.querySelector('.nav-mark');
   if (navMark) {
-    navMark.innerHTML = '';
-    navMark.style.backgroundImage = 'url(' + src + ')';
-    navMark.style.backgroundSize = 'contain';
-    navMark.style.backgroundPosition = 'center';
-    navMark.style.backgroundRepeat = 'no-repeat';
-    navMark.style.backgroundColor = '#fff';
-    navMark.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    navMark.innerHTML = imgTag;
+    navMark.style.background = '#fff';
+    navMark.style.padding = '0';
+    navMark.style.overflow = 'hidden';
   }
 }
 
-// Cargar logo guardado al iniciar
-(function() {
-  const saved = localStorage.getItem('attempo_logo');
-  if (saved) applyLogo(saved);
-})();
+// Cargar logo guardado al iniciar (esperar a que el DOM esté listo)
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    const saved = localStorage.getItem('attempo_logo');
+    if (saved) applyLogo(saved);
+  } catch(err) {}
+});
 
 /* ════ COPY LINK ════ */
 let currentBookingUrl = 'studio-norte';
