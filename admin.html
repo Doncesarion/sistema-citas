@@ -3383,42 +3383,63 @@ document.addEventListener('click', e => {
 /* ════ LOGO UPLOAD ════ */
 function handleLogoUpload(input) {
   const file = input.files[0];
-  input.value = ''; // permite volver a seleccionar el mismo archivo
   if (!file) return;
+  input.value = '';
   const reader = new FileReader();
   reader.onload = function(e) {
-    const src = e.target.result;
-    applyLogo(src);
-    try { localStorage.setItem('attempo_logo', src); } catch(err) {}
-    toast('✓ Logo actualizado');
+    const img = new Image();
+    img.onload = function() {
+      // Recortar el centro del logo (elimina bordes blancos) y comprimir a 120x120
+      const size = Math.min(img.width, img.height);
+      const ox = (img.width  - size) / 2;
+      const oy = (img.height - size) / 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = 120; canvas.height = 120;
+      canvas.getContext('2d').drawImage(img, ox, oy, size, size, 0, 0, 120, 120);
+      const src = canvas.toDataURL('image/png');
+      applyLogo(src);
+      try { localStorage.setItem('attempo_logo', src); } catch(err) { console.warn('Logo: localStorage lleno'); }
+      toast('✓ Logo actualizado');
+    };
+    img.src = e.target.result;
   };
   reader.onerror = function() { toast('Error al leer la imagen'); };
   reader.readAsDataURL(file);
 }
 
 function applyLogo(src) {
-  // Preview en el modal (fondo blanco, logo completo)
+  const makeImg = function(extra) {
+    return '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block' + (extra||'') + '">';
+  };
   const preview = document.getElementById('logo-preview');
   if (preview) {
-    preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:contain;display:block">';
-    preview.style.background = '#fff';
+    preview.innerHTML = makeImg();
+    preview.style.background = 'none';
     preview.style.padding = '0';
   }
-  // Logo en la barra de navegación (mantiene gradiente morado, blend elimina el blanco del logo)
   const navMark = document.querySelector('.nav-mark');
   if (navMark) {
-    navMark.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:multiply">';
+    navMark.innerHTML = makeImg();
     navMark.style.padding = '0';
     navMark.style.overflow = 'hidden';
+    navMark.style.background = 'none';
   }
 }
 
-// Cargar logo guardado al iniciar (esperar a que el DOM esté listo)
+// Cargar logo guardado al iniciar
 document.addEventListener('DOMContentLoaded', function() {
   try {
     const saved = localStorage.getItem('attempo_logo');
     if (saved) applyLogo(saved);
   } catch(err) {}
+});
+
+// Asegurar que el input de logo dispare aunque se elija el mismo archivo
+document.addEventListener('DOMContentLoaded', function() {
+  const logoInput = document.getElementById('logo-input');
+  if (logoInput) {
+    logoInput.addEventListener('change', function() { handleLogoUpload(this); });
+  }
 });
 
 /* ════ COPY LINK ════ */
@@ -3996,7 +4017,7 @@ function logout() {
       <div class="fg"><label class="fl">Logo del negocio</label>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--b1);border-radius:var(--r);background:#fafafe">
           <div id="logo-preview" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;font-family:var(--mono);overflow:hidden;flex-shrink:0">tt</div>
-          <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+          <input type="file" id="logo-input" accept="image/*" style="display:none">
           <button class="btn-g" style="font-size:12px" onclick="document.getElementById('logo-input').click()">Cambiar logo</button>
           <span style="font-size:11px;color:var(--t4)">PNG, JPG o SVG. Recomendado: 512×512px</span>
         </div>
