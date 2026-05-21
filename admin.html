@@ -1934,10 +1934,29 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <div class="r2">
         <div class="fg"><label class="fl">Rol en el sistema</label>
-          <select class="fs" id="ep-rol"><option value="admin">Administrador general</option><option value="staff" selected>Staff / Profesional</option><option value="recep">Recepcionista</option></select>
+          <select class="fs" id="ep-rol">
+            <option value="admin">Administrador general</option>
+            <option value="staff" selected>Staff / Profesional</option>
+            <option value="recep">Recepcionista</option>
+            <option value="finanzas">Finanzas</option>
+            <option value="viewer">Solo lectura</option>
+          </select>
         </div>
         <div class="fg"><label class="fl">Estado</label>
           <select class="fs" id="ep-estado"><option value="activo" selected>Activo</option><option value="inactivo">Inactivo</option><option value="vacaciones">De vacaciones</option></select>
+        </div>
+      </div>
+      <!-- Acceso al sistema -->
+      <div id="ep-acceso-box" style="border:1px solid var(--b1);border-radius:var(--r);padding:14px;background:#fafafe">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="ep-dar-acceso" style="accent-color:var(--a);cursor:pointer;margin-top:2px;flex-shrink:0">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--t1)">Dar acceso al sistema</div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">El profesional recibirá un email con sus credenciales de acceso según el rol seleccionado</div>
+          </div>
+        </label>
+        <div id="ep-acceso-ya" style="display:none;margin-top:10px;padding:8px 10px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:6px;font-size:12px;color:#166534">
+          ✓ Este profesional ya tiene acceso al sistema
         </div>
       </div>
       <!-- Horario -->
@@ -2943,7 +2962,7 @@ const PROF_COLORS = [
   'linear-gradient(135deg,#14B8A6,#2DD4BF)',
   'linear-gradient(135deg,#EF4444,#F87171)'
 ];
-const ROL_LABELS  = {admin:'Administrador general', staff:'Staff / Profesional', recep:'Recepcionista'};
+const ROL_LABELS  = {admin:'Administrador general', staff:'Staff / Profesional', recep:'Recepcionista', finanzas:'Finanzas', viewer:'Solo lectura'};
 const ESTADO_TAGS = {activo:'<span class="tag tg">Activo</span>', inactivo:'<span class="tag ta">Inactivo</span>', vacaciones:'<span class="tag tn">Vacaciones</span>'};
 
 function horarioResumen(h) {
@@ -2989,6 +3008,7 @@ function renderProfCards(profs) {
         <div style="display:flex;align-items:center;gap:8px">
           ${estadoTag}
           <button class="btn-sm" onclick="event.stopPropagation();openEditProf('${p.id}')">Editar</button>
+          <button class="btn-sm" onclick="event.stopPropagation();deleteProfDirect('${p.id}')" style="color:var(--red);border-color:rgba(220,38,38,0.25)">Eliminar</button>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--t4);transition:transform .2s" id="arr-${p.id}"><path d="M2 4l4 4 4-4"/></svg>
         </div>
       </div>
@@ -3021,6 +3041,29 @@ function openEditProf(idOrNuevo) {
   renderHorarioEdit(p.horario || {});
   document.getElementById('btn-delete-prof').style.display = p.id ? 'inline-flex' : 'none';
   document.getElementById('btn-save-prof').textContent = 'Guardar cambios';
+  // Resetear sección acceso
+  document.getElementById('ep-dar-acceso').checked = false;
+  document.getElementById('ep-acceso-ya').style.display = 'none';
+  // Verificar si ya tiene acceso (si tiene email y es edición)
+  if (p.id && p.email) {
+    getClienteId().then(cid => {
+      fetch(`${_SURL}/rest/v1/usuarios?email=eq.${encodeURIComponent(p.email)}&cliente_id=eq.${cid}&select=id`, { headers: _SH })
+        .then(r => r.json())
+        .then(rows => {
+          if (rows.length > 0) {
+            document.getElementById('ep-acceso-ya').style.display = 'block';
+            document.getElementById('ep-dar-acceso').closest('label').style.opacity = '0.4';
+            document.getElementById('ep-dar-acceso').disabled = true;
+          } else {
+            document.getElementById('ep-dar-acceso').closest('label').style.opacity = '1';
+            document.getElementById('ep-dar-acceso').disabled = false;
+          }
+        }).catch(() => {});
+    });
+  } else {
+    document.getElementById('ep-dar-acceso').closest('label').style.opacity = '1';
+    document.getElementById('ep-dar-acceso').disabled = false;
+  }
   document.getElementById('edit-prof-ov').classList.add('open');
 }
 
@@ -3104,7 +3147,30 @@ async function saveEditProf() {
       });
     }
     closeEditProf();
-    toast('✓ ' + nombre + ' guardado correctamente');
+    // Invitar al sistema si el toggle está activo
+    const darAcceso = document.getElementById('ep-dar-acceso').checked;
+    const emailProf = data.email;
+    if (darAcceso && emailProf) {
+      try {
+        const inv = await fetch('/api/invitar-profesional', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailProf, nombre, rol: data.rol, cliente_id: cid })
+        });
+        const invData = await inv.json();
+        if (invData.ya_tiene_acceso) {
+          toast('✓ ' + nombre + ' guardado · Ya tenía acceso al sistema');
+        } else if (invData.ok) {
+          toast('✓ ' + nombre + ' guardado · Invitación enviada a ' + emailProf);
+        } else {
+          toast('✓ ' + nombre + ' guardado · Error al enviar invitación');
+        }
+      } catch(_) {
+        toast('✓ ' + nombre + ' guardado · Error al enviar invitación');
+      }
+    } else {
+      toast('✓ ' + nombre + ' guardado correctamente');
+    }
     cargarProfesionales();
   } catch(e) { toast('Error al guardar profesional'); }
   finally { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
@@ -3120,6 +3186,19 @@ async function deleteProf() {
       method: 'DELETE', headers: {..._SH, Prefer:'return=minimal'}
     });
     closeEditProf();
+    toast('Profesional eliminado');
+    cargarProfesionales();
+  } catch(e) { toast('Error al eliminar profesional'); }
+}
+
+async function deleteProfDirect(id) {
+  const prof = _profList.find(p => p.id === id);
+  if (!confirm(`¿Eliminar a ${prof?.nombre||'este profesional'}? Esta acción no se puede deshacer.`)) return;
+  try {
+    const cid = await getClienteId();
+    await fetch(`${_SURL}/rest/v1/especialistas?id=eq.${id}&cliente_id=eq.${cid}`, {
+      method: 'DELETE', headers: {..._SH, Prefer:'return=minimal'}
+    });
     toast('Profesional eliminado');
     cargarProfesionales();
   } catch(e) { toast('Error al eliminar profesional'); }
