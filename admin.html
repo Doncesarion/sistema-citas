@@ -836,6 +836,35 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   .card{padding:14px!important}
   .sg .sc{padding:12px!important}
 }
+
+/* ── SIDEBAR CONTEXTS ── */
+.sb-ctx{display:none;flex-direction:column;height:100%;width:100%}
+
+/* ── REP MODULES ── */
+.rep-module{background:var(--surface);border:1px solid var(--b1);border-radius:var(--rl);margin-bottom:12px;overflow:hidden;transition:box-shadow .15s,opacity .15s}
+.rep-module.dragging{opacity:.45;box-shadow:var(--sh3)}
+.rep-module.drag-over{border-color:var(--a);box-shadow:0 0 0 2px rgba(108,92,228,.15)}
+.mod-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}
+.mod-handle{cursor:grab;display:flex;align-items:center;gap:7px;user-select:none;font-size:13px;font-weight:600;color:var(--t1)}
+.mod-handle:active{cursor:grabbing}
+.mod-handle .grip{opacity:.25;flex-shrink:0}
+.mod-body{padding:0 16px 16px}
+
+/* ── HEATMAP ── */
+.heatmap-grid{display:grid;grid-template-columns:32px repeat(7,1fr);gap:3px}
+.hm-label{display:flex;align-items:center;justify-content:flex-end;padding-right:6px;color:var(--t3);font-size:9px;height:20px}
+.hm-day-lbl{text-align:center;font-size:9px;color:var(--t3);font-weight:500;padding-bottom:3px;height:16px;display:flex;align-items:center;justify-content:center}
+.hm-cell{height:20px;border-radius:3px;background:var(--adim);transition:background .3s;position:relative}
+
+/* ── TABLA DIA NAV ── */
+.dia-nav{display:flex;align-items:center;gap:8px}
+.dia-nav button{width:26px;height:26px;border:1px solid var(--b2);border-radius:var(--r);background:none;cursor:pointer;color:var(--t2);font-size:13px;display:flex;align-items:center;justify-content:center}
+.dia-nav button:hover{background:var(--adim)}
+.dia-date{font-size:12px;font-weight:500;color:var(--t2);min-width:160px;text-align:center}
+
+/* ── PROF BAR ── */
+.pct-bar{height:4px;background:var(--adim);border-radius:2px;min-width:60px;flex:1}
+.pct-bar-fill{height:4px;background:linear-gradient(90deg,var(--a),var(--a3));border-radius:2px;transition:width .5s}
 </style>
 </head>
 <body>
@@ -888,6 +917,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ─── SIDEBAR ─── -->
 <aside class="sb">
 
+<!-- ── AGENDA CONTEXT ── -->
+<div id="sb-agenda" class="sb-ctx" style="display:flex">
   <div class="sb-section">
     <div class="sb-label">Vista</div>
     <button class="sbi on" id="sv-semana" onclick="setCalView('semana',this)">
@@ -980,6 +1011,90 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       Copiar
     </div>
   </div>
+</div><!-- end sb-agenda -->
+
+<!-- ── VENTAS CONTEXT ── -->
+<div id="sb-ventas" class="sb-ctx">
+  <div class="sb-section">
+    <div class="sb-label">Período</div>
+    <button class="sbi" id="vsb-hoy"  onclick="filterVentas('hoy',this)">Hoy</button>
+    <button class="sbi" id="vsb-ayer" onclick="filterVentas('ayer',this)">Ayer</button>
+    <button class="sbi" id="vsb-sem"  onclick="filterVentas('sem',this)">Esta semana</button>
+    <button class="sbi on" id="vsb-mes" onclick="filterVentas('mes',this)">Este mes</button>
+    <button class="sbi" id="vsb-3m"  onclick="filterVentas('3m',this)">3 meses</button>
+    <button class="sbi" id="vsb-1y"  onclick="filterVentas('1y',this)">Este año</button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Profesional</div>
+    <div id="vsb-profs"><button class="sbi on" onclick="filtrarVentasProf('',this)">Todos</button></div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Estado pago</div>
+    <button class="sbi on" id="vest-todos" onclick="filtrarVentasEstadoPago('',this)">Todos</button>
+    <button class="sbi" id="vest-pag"  onclick="filtrarVentasEstadoPago('pagado',this)">
+      <span class="sbi-dot" style="background:var(--green)"></span>Pagados
+    </button>
+    <button class="sbi" id="vest-pend" onclick="filtrarVentasEstadoPago('pendiente',this)">
+      <span class="sbi-dot" style="background:var(--amber)"></span>Pendientes
+    </button>
+  </div>
+  <div style="flex:1"></div>
+  <div class="sb-section">
+    <div class="sb-label">Exportar</div>
+    <button class="sbi" onclick="exportarVentasCSV()">
+      <svg class="sbi-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2v9M4 8l4 4 4-4"/><path d="M2 14h12"/></svg>
+      Transacciones CSV
+    </button>
+    <button class="sbi" onclick="exportarHonorarios()">
+      <svg class="sbi-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M6 6h4M6 9h4M6 12h2"/></svg>
+      Boletas honorarios
+    </button>
+  </div>
+</div><!-- end sb-ventas -->
+
+<!-- ── REPORTES CONTEXT ── -->
+<div id="sb-reportes" class="sb-ctx">
+  <div class="sb-section">
+    <div class="sb-label">Período</div>
+    <button class="sbi" id="rsb-hoy" onclick="filterReportes('hoy',this)">Hoy</button>
+    <button class="sbi" id="rsb-sem" onclick="filterReportes('sem',this)">Esta semana</button>
+    <button class="sbi on" id="rsb-mes" onclick="filterReportes('mes',this)">Este mes</button>
+    <button class="sbi" id="rsb-3m"  onclick="filterReportes('3m',this)">3 meses</button>
+    <button class="sbi" id="rsb-1y"  onclick="filterReportes('1y',this)">Este año</button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Módulos visibles</div>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-kpis" checked onchange="toggleModulo('kpis',this)"> KPI generales</label>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-evolucion" checked onchange="toggleModulo('evolucion',this)"> Evolución reservas</label>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-ingresos" checked onchange="toggleModulo('ingresos',this)"> Ingresos por día</label>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-servicios" checked onchange="toggleModulo('servicios',this)"> Top servicios</label>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-estado" checked onchange="toggleModulo('estado',this)"> Estado de citas</label>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-profesionales" checked onchange="toggleModulo('profesionales',this)"> Por profesional</label>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-tabladia" checked onchange="toggleModulo('tabladia',this)"> Citas del día</label>
+    <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-heatmap" onchange="toggleModulo('heatmap',this)"> Mapa de calor</label>
+  </div>
+  <div style="flex:1"></div>
+  <div class="sb-section">
+    <button class="sbi" onclick="cargarReportes(true)">
+      <svg class="sbi-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13.5 8A5.5 5.5 0 113 5.5M13.5 2v3.5H10"/></svg>
+      Actualizar datos
+    </button>
+  </div>
+</div><!-- end sb-reportes -->
+
+<!-- ── CLIENTES CONTEXT ── -->
+<div id="sb-clientes" class="sb-ctx">
+  <div class="sb-section">
+    <div class="sb-label">Búsqueda</div>
+    <div style="margin:0 10px 4px">
+      <input type="text" placeholder="Buscar cliente..." oninput="filtrarClientes(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+    </div>
+  </div>
+</div><!-- end sb-clientes -->
+
+<!-- ── CONFIG CONTEXT ── -->
+<div id="sb-config" class="sb-ctx"></div>
+
 </aside>
 
 <!-- ─── MAIN ─── -->
@@ -1207,28 +1322,56 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ═══ VENTAS ═══ -->
 <div id="v-ventas" style="display:none">
   <div class="vp">
-    <div class="vh">Ventas<button class="btn-new" onclick="openRegistrarPago()">+ Registrar pago</button></div>
-    <!-- Filtro de período igual que reportes -->
-    <div class="period-sel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
-      <button class="ptab" onclick="filterVentas('hoy',this)">Hoy</button>
-      <button class="ptab" onclick="filterVentas('ayer',this)">Ayer</button>
-      <button class="ptab" onclick="filterVentas('sem',this)">Esta semana</button>
-      <button class="ptab on" onclick="filterVentas('mes',this)">Este mes</button>
-      <button class="ptab" onclick="filterVentas('3m',this)">3 meses</button>
-      <button class="ptab" onclick="filterVentas('1y',this)">Este año</button>
+    <div class="vh">Ventas
+      <button class="btn-new" onclick="openRegistrarPago()">+ Registrar pago</button>
     </div>
+
+    <!-- KPIs -->
     <div class="sg">
-      <div class="sc"><div class="sc-lbl" id="vkpi-lbl1">Ingresado</div><div class="sc-val">$<span class="hi" id="vkpi-ing">—</span></div><div class="sc-delta" id="vkpi-d1">Cargando...</div><div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div></div></div>
-      <div class="sc"><div class="sc-lbl">Citas cobradas</div><div class="sc-val"><span class="hi" id="vkpi-cobradas">—</span></div><div class="sc-delta" id="vkpi-d2">—</div><div class="minibars"><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div></div></div>
-      <div class="sc"><div class="sc-lbl">Pendiente cobrar</div><div class="sc-val">$<span class="hi" id="vkpi-pend">—</span></div><div class="sc-delta dd" id="vkpi-d3">—</div></div>
-      <div class="sc"><div class="sc-lbl">Total citas período</div><div class="sc-val"><span class="hi" id="vkpi-total">—</span></div><div class="sc-delta dn" id="vkpi-d4">—</div></div>
+      <div class="sc">
+        <div class="sc-lbl" id="vkpi-lbl1">Ingresado</div>
+        <div class="sc-val">$<span class="hi" id="vkpi-ing">—</span></div>
+        <div class="sc-delta" id="vkpi-d1">Cargando...</div>
+        <div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div></div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">Ticket promedio</div>
+        <div class="sc-val">$<span class="hi" id="vkpi-ticket">—</span></div>
+        <div class="sc-delta" id="vkpi-d-ticket">Por cita cobrada</div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">Por cobrar</div>
+        <div class="sc-val">$<span class="hi" id="vkpi-pend">—</span></div>
+        <div class="sc-delta dd" id="vkpi-d3">—</div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">Tasa de cobro</div>
+        <div class="sc-val"><span class="hi" id="vkpi-tasa">—</span>%</div>
+        <div class="sc-delta" id="vkpi-d-tasa">—</div>
+      </div>
     </div>
+
+    <!-- Resumen por profesional -->
+    <div class="tw" style="margin-bottom:16px">
+      <div class="thb">
+        <span class="tt">Por profesional</span>
+        <span style="font-size:12px;color:var(--t3)" id="v-periodo-lbl">Este mes</span>
+      </div>
+      <table>
+        <thead><tr><th>Profesional</th><th style="text-align:center">Citas</th><th>Cobrado</th><th>Pendiente</th><th>Ticket prom.</th><th style="min-width:100px">Participación</th></tr></thead>
+        <tbody id="v-prof-tbody">
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Transacciones -->
     <div class="tw">
       <div class="thb">
         <span class="tt">Transacciones</span>
         <div style="display:flex;gap:6px">
-          <button class="btn-sm" id="vbtn-metodo" onclick="toggleMetodoDropdown(event)">Filtros ▾</button>
-          <button class="btn-sm" onclick="exportarVentasCSV()">↓ Exportar</button>
+          <button class="btn-sm" id="vbtn-metodo" onclick="toggleMetodoDropdown(event)">Método ▾</button>
+          <button class="btn-sm" onclick="exportarVentasCSV()">↓ CSV</button>
         </div>
       </div>
       <table>
@@ -1263,7 +1406,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div id="vchart-tip-citas" style="color:var(--t3);margin-top:2px"></div>
         </div>
       </div>
-      <!-- Totales rápidos -->
       <div style="display:flex;gap:24px;margin-top:10px;padding-top:12px;border-top:1px solid var(--b1)">
         <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Total período</div><div id="vchart-total" style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
         <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Día promedio</div><div id="vchart-prom" style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
@@ -1278,181 +1420,149 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <div id="v-reportes" style="display:none">
   <div class="vp">
     <div class="vh">
-      Reportes en tiempo real
+      Reportes
       <div style="display:flex;gap:8px;align-items:center">
-        <span class="ag-sync"><span class="ldot"></span>&nbsp;Actualizado ahora</span>
+        <span id="rep-loading" style="display:none;font-size:12px;color:var(--t3)">Actualizando...</span>
+        <span class="ag-sync"><span class="ldot"></span>&nbsp;Datos reales</span>
       </div>
     </div>
 
-    <!-- Period selector -->
-    <div class="period-sel" style="flex-wrap:wrap;gap:2px">
-      <button class="ptab"     onclick="updateReport('hoy',this)">Hoy</button>
-      <button class="ptab"     onclick="updateReport('ayer',this)">Ayer</button>
-      <button class="ptab"     onclick="updateReport('sem',this)">Esta semana</button>
-      <button class="ptab on"  onclick="updateReport('4w',this)">4 semanas</button>
-      <button class="ptab"     onclick="updateReport('3m',this)">3 meses</button>
-      <button class="ptab"     onclick="updateReport('1y',this)">Este año</button>
-      <button class="ptab"     onclick="openCustomPeriod()">Personalizado ▾</button>
-    </div>
-    <!-- Custom period picker (hidden) -->
-    <div id="custom-period" style="display:none;background:#fff;border:1px solid var(--b2);border-radius:var(--rl);padding:16px 20px;margin-bottom:14px;box-shadow:var(--sh2);flex-direction:row;gap:16px;align-items:flex-end;max-width:560px;flex-wrap:wrap">
-      <div class="fg" style="flex:1;min-width:140px"><label class="fl">Desde</label><input class="fi" type="date" value="2026-04-01"></div>
-      <div class="fg" style="flex:1;min-width:140px"><label class="fl">Hasta</label><input class="fi" type="date" value="2026-05-03"></div>
-      <button class="btn-a" style="padding:9px 22px;flex-shrink:0" onclick="applyCustomPeriod()">Aplicar</button>
-    </div>
+    <div id="rep-modules">
 
-    <!-- KPI cards -->
-    <div class="sg">
-      <div class="sc">
-        <div class="sc-lbl">Reservas totales</div>
-        <div class="sc-val"><span class="hi" id="kpi-r">24</span></div>
-        <div class="sc-delta du" id="kpi-rd">↑ 100% vs período anterior</div>
-        <div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div></div>
-      </div>
-      <div class="sc">
-        <div class="sc-lbl">Ocupación promedio</div>
-        <div class="sc-val"><span class="hi" id="kpi-o">42</span>%</div>
-        <div class="sc-delta du" id="kpi-od">↑ 28% vs período anterior</div>
-        <div class="minibars"><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div></div>
-      </div>
-      <div class="sc">
-        <div class="sc-lbl">Nuevos clientes</div>
-        <div class="sc-val"><span class="hi" id="kpi-c">8</span></div>
-        <div class="sc-delta du" id="kpi-cd">↑ 60% vs período anterior</div>
-        <div class="minibars"><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div></div>
-      </div>
-      <div class="sc">
-        <div class="sc-lbl">Ingresos estimados</div>
-        <div class="sc-val">$<span class="hi" id="kpi-i">284.000</span></div>
-        <div class="sc-delta du" id="kpi-id">↑ 34% vs período anterior</div>
-        <div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div></div>
-      </div>
-    </div>
-
-    <!-- Charts row 1 -->
-    <div class="rep-grid" style="margin-bottom:12px">
-      <!-- Line chart - evolución -->
-      <div class="rc">
-        <div class="rc-title">Evolución de reservas</div>
-        <div class="rc-sub" id="chart-sub">Últimas 4 semanas · actualizado en tiempo real</div>
-        <div class="lc-wrap">
-          <svg class="lc-svg" id="lc" viewBox="0 0 380 130" preserveAspectRatio="none" style="height:130px">
-            <defs>
-              <linearGradient id="lgr" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#6C5CE4" stop-opacity=".18"/>
-                <stop offset="100%" stop-color="#6C5CE4" stop-opacity=".01"/>
-              </linearGradient>
-              <linearGradient id="lgrl" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#8B7CF8"/>
-                <stop offset="100%" stop-color="#4F3EE0"/>
-              </linearGradient>
-            </defs>
-            <!-- Grid -->
-            <line class="lc-grid" x1="32" y1="20" x2="380" y2="20"/>
-            <line class="lc-grid" x1="32" y1="50" x2="380" y2="50"/>
-            <line class="lc-grid" x1="32" y1="80" x2="380" y2="80"/>
-            <line class="lc-grid" x1="32" y1="110" x2="380" y2="110"/>
-            <!-- Y labels -->
-            <text class="lc-ylabel" x="28" y="23">8</text>
-            <text class="lc-ylabel" x="28" y="53">6</text>
-            <text class="lc-ylabel" x="28" y="83">3</text>
-            <text class="lc-ylabel" x="28" y="113">0</text>
-            <!-- Area -->
-            <path id="lc-area" class="lc-area" fill="url(#lgr)" d="M32,95 C80,80 110,60 155,50 C190,40 220,30 265,25 C300,20 340,15 378,10 L378,110 L32,110 Z"/>
-            <!-- Line -->
-            <path id="lc-line" class="lc-line" stroke="url(#lgrl)" d="M32,95 C80,80 110,60 155,50 C190,40 220,30 265,25 C300,20 340,15 378,10"/>
-            <!-- Dots -->
-            <circle class="lc-dot" id="lc-d0" cx="32"  cy="95" r="3.5" stroke="var(--a)" stroke-width="2"/>
-            <circle class="lc-dot" id="lc-d1" cx="87"  cy="78" r="3.5" stroke="var(--a)" stroke-width="2"/>
-            <circle class="lc-dot" id="lc-d2" cx="142" cy="60" r="3.5" stroke="var(--a)" stroke-width="2"/>
-            <circle class="lc-dot" id="lc-d3" cx="197" cy="45" r="3.5" stroke="var(--a)" stroke-width="2"/>
-            <circle class="lc-dot" id="lc-d4" cx="252" cy="32" r="3.5" stroke="var(--a)" stroke-width="2"/>
-            <circle class="lc-dot" id="lc-d5" cx="307" cy="22" r="3.5" stroke="var(--a)" stroke-width="2"/>
-            <circle class="lc-dot" id="lc-d6" cx="362" cy="14" r="3.5" stroke="var(--a)" stroke-width="2"/>
-            <!-- X labels -->
-            <text class="lc-xlabel" id="lx0" x="32"  y="125">S1</text>
-            <text class="lc-xlabel" id="lx1" x="87"  y="125">S2</text>
-            <text class="lc-xlabel" id="lx2" x="142" y="125">S3</text>
-            <text class="lc-xlabel" id="lx3" x="197" y="125">S4</text>
-            <text class="lc-xlabel" id="lx4" x="252" y="125">S5</text>
-            <text class="lc-xlabel" id="lx5" x="307" y="125">S6</text>
-            <text class="lc-xlabel" id="lx6" x="362" y="125">S7</text>
-          </svg>
+      <!-- ─ MÓDULO: KPI Generales ─ -->
+      <div class="rep-module" data-mod="kpis" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+        <div class="mod-header">
+          <div class="mod-handle">
+            <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+            KPI generales
+          </div>
+        </div>
+        <div class="mod-body">
+          <div class="sg" style="margin:0">
+            <div class="sc"><div class="sc-lbl">Reservas totales</div><div class="sc-val"><span class="hi" id="rkpi-total">—</span></div><div class="sc-delta" id="rkpi-total-d">—</div><div class="minibars" id="rkpi-total-bars"></div></div>
+            <div class="sc"><div class="sc-lbl">Ingresos período</div><div class="sc-val">$<span class="hi" id="rkpi-ing">—</span></div><div class="sc-delta" id="rkpi-ing-d">—</div><div class="minibars" id="rkpi-ing-bars"></div></div>
+            <div class="sc"><div class="sc-lbl">Cancelaciones</div><div class="sc-val"><span class="hi" id="rkpi-cancel">—</span>%</div><div class="sc-delta dd" id="rkpi-cancel-d">—</div></div>
+            <div class="sc"><div class="sc-lbl">Pacientes únicos</div><div class="sc-val"><span class="hi" id="rkpi-nuevos">—</span></div><div class="sc-delta" id="rkpi-nuevos-d">—</div></div>
+          </div>
         </div>
       </div>
 
-      <!-- Donut origen -->
-      <div class="rc">
-        <div class="rc-title">Origen de reservas</div>
-        <div class="rc-sub">¿Cómo llegan tus clientes?</div>
-        <div class="donut-c">
-          <svg width="88" height="88" viewBox="0 0 88 88">
-            <defs>
-              <linearGradient id="dg1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#8B7CF8"/>
-                <stop offset="100%" stop-color="#4F3EE0"/>
-              </linearGradient>
-            </defs>
-            <circle cx="44" cy="44" r="32" fill="none" stroke="rgba(108,92,228,0.08)" stroke-width="14"/>
-            <circle id="d-arc1" cx="44" cy="44" r="32" fill="none" stroke="url(#dg1)" stroke-width="14"
-              stroke-dasharray="60.3 140.8" stroke-dashoffset="0" stroke-linecap="round"
-              transform="rotate(-90 44 44)" style="transition:stroke-dasharray .7s cubic-bezier(.4,0,.2,1)"/>
-            <circle id="d-arc2" cx="44" cy="44" r="32" fill="none" stroke="#16A34A" stroke-width="14"
-              stroke-dasharray="140.8 60.3" stroke-dashoffset="-60.3" stroke-linecap="round"
-              transform="rotate(-90 44 44)" opacity=".75"
-              style="transition:stroke-dasharray .7s cubic-bezier(.4,0,.2,1),stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/>
-          </svg>
-          <div class="dleg">
-            <div class="ditem">
-              <div class="ddot" style="background:linear-gradient(135deg,var(--a2),var(--a3))"></div>
-              Agenda manual
-              <span class="dval" id="d-p1">30%</span>
-            </div>
-            <div class="ditem">
-              <div class="ddot" style="background:var(--green)"></div>
-              Online (link)
-              <span class="dval" id="d-p2">70%</span>
+      <!-- ─ MÓDULO: Evolución de reservas ─ -->
+      <div class="rep-module" data-mod="evolucion" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+        <div class="mod-header">
+          <div class="mod-handle">
+            <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+            Evolución de reservas
+          </div>
+          <span id="rep-evol-sub" style="font-size:11px;color:var(--t3)">—</span>
+        </div>
+        <div class="mod-body">
+          <svg id="rep-lc" viewBox="0 0 760 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible"></svg>
+        </div>
+      </div>
+
+      <!-- ─ MÓDULO: Ingresos por día ─ -->
+      <div class="rep-module" data-mod="ingresos" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+        <div class="mod-header">
+          <div class="mod-handle">
+            <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+            Ingresos por día
+          </div>
+          <span id="rep-ing-sub" style="font-size:11px;color:var(--t3)">—</span>
+        </div>
+        <div class="mod-body">
+          <svg id="rep-ing-chart" viewBox="0 0 760 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible"></svg>
+          <div style="display:flex;gap:24px;margin-top:10px;padding-top:10px;border-top:1px solid var(--b1)">
+            <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Total</div><div id="ring-total" style="font-size:15px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
+            <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Promedio/día</div><div id="ring-prom" style="font-size:15px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
+            <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Mejor día</div><div id="ring-best" style="font-size:15px;font-weight:600;color:var(--a);font-family:var(--mono);margin-top:2px">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ MÓDULO: Top servicios + Estado ─ -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px" id="rep-row-2">
+        <div class="rep-module" data-mod="servicios" style="margin-bottom:0" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+          <div class="mod-header">
+            <div class="mod-handle">
+              <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+              Top servicios
             </div>
           </div>
+          <div class="mod-body"><div class="hbars" id="rep-hb-svcs"><div style="color:var(--t3);font-size:12px">Cargando...</div></div></div>
         </div>
-      </div>
-    </div>
-
-    <!-- Charts row 2 -->
-    <div class="rep-grid2">
-      <!-- Top servicios -->
-      <div class="rc">
-        <div class="rc-title">Top servicios</div>
-        <div class="rc-sub">Por número de reservas en el período</div>
-        <div class="hbars" id="hb-svcs">
-          <div class="hb-item"><div class="hb-hd"><span class="hb-name">Consulta</span><span class="hb-val">14 citas</span></div><div class="hb-track"><div class="hb-fill hb-purple" style="width:100%"></div></div></div>
-          <div class="hb-item"><div class="hb-hd"><span class="hb-name">Terapia / Seguimiento</span><span class="hb-val">6 citas</span></div><div class="hb-track"><div class="hb-fill hb-purple" style="width:43%"></div></div></div>
-          <div class="hb-item"><div class="hb-hd"><span class="hb-name">Evaluación inicial</span><span class="hb-val">3 citas</span></div><div class="hb-track"><div class="hb-fill hb-purple" style="width:21%"></div></div></div>
-          <div class="hb-item"><div class="hb-hd"><span class="hb-name">Corte + barba</span><span class="hb-val">1 cita</span></div><div class="hb-track"><div class="hb-fill hb-purple" style="width:7%"></div></div></div>
+        <div class="rep-module" data-mod="estado" style="margin-bottom:0" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+          <div class="mod-header">
+            <div class="mod-handle">
+              <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+              Estado de citas
+            </div>
+          </div>
+          <div class="mod-body"><div class="hbars" id="rep-hb-estado"><div style="color:var(--t3);font-size:12px">Cargando...</div></div></div>
         </div>
       </div>
 
-      <!-- Estado reservas -->
-      <div class="rc">
-        <div class="rc-title">Estado de reservas</div>
-        <div class="rc-sub">Distribución en el período seleccionado</div>
-        <div class="hbars">
-          <div class="hb-item">
-            <div class="hb-hd"><span class="hb-name">✓ Confirmadas &amp; asistidas</span><span class="hb-val" id="h-ok">18 (75%)</span></div>
-            <div class="hb-track"><div class="hb-fill hb-green" id="hf-ok" style="width:75%"></div></div>
+      <!-- ─ MÓDULO: Por profesional ─ -->
+      <div class="rep-module" data-mod="profesionales" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+        <div class="mod-header">
+          <div class="mod-handle">
+            <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+            Por profesional
           </div>
-          <div class="hb-item">
-            <div class="hb-hd"><span class="hb-name">Pendientes</span><span class="hb-val" id="h-pn">4 (17%)</span></div>
-            <div class="hb-track"><div class="hb-fill hb-amber" id="hf-pn" style="width:17%"></div></div>
+        </div>
+        <div class="mod-body">
+          <table>
+            <thead><tr><th>Profesional</th><th style="text-align:center">Citas</th><th>Cobrado</th><th>Pendiente</th><th style="min-width:100px">Participación</th></tr></thead>
+            <tbody id="rep-prof-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t3)">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ─ MÓDULO: Citas del día ─ -->
+      <div class="rep-module" data-mod="tabladia" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+        <div class="mod-header">
+          <div class="mod-handle">
+            <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+            Citas del día
           </div>
-          <div class="hb-item">
-            <div class="hb-hd"><span class="hb-name">✗ Inasistencias</span><span class="hb-val" id="h-ns">2 (8%)</span></div>
-            <div class="hb-track"><div class="hb-fill hb-red" id="hf-ns" style="width:8%"></div></div>
+          <div class="dia-nav">
+            <button onclick="navRepDia(-1)">‹</button>
+            <span class="dia-date" id="rep-dia-label">—</span>
+            <button onclick="navRepDia(1)">›</button>
+          </div>
+        </div>
+        <div class="mod-body">
+          <table>
+            <thead><tr><th>Hora</th><th>Paciente</th><th>Servicio</th><th>Profesional</th><th>Estado</th></tr></thead>
+            <tbody id="rep-dia-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t3)">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ─ MÓDULO: Mapa de calor (oculto por defecto) ─ -->
+      <div class="rep-module" data-mod="heatmap" style="display:none" draggable="true" ondragstart="modDragStart(event)" ondragover="modDragOver(event)" ondrop="modDrop(event)" ondragleave="modDragLeave(event)" ondragend="modDragEnd(event)">
+        <div class="mod-header">
+          <div class="mod-handle">
+            <svg class="grip" width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.2"/><circle cx="2.5" cy="7" r="1.2"/><circle cx="2.5" cy="11.5" r="1.2"/><circle cx="7.5" cy="2.5" r="1.2"/><circle cx="7.5" cy="7" r="1.2"/><circle cx="7.5" cy="11.5" r="1.2"/></svg>
+            Mapa de calor — horarios más demandados
+          </div>
+        </div>
+        <div class="mod-body">
+          <div class="heatmap-grid" id="rep-heatmap"></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:10px;color:var(--t3)">
+            <span>Menos</span>
+            <div style="display:flex;gap:2px">
+              <div style="width:12px;height:12px;border-radius:2px;background:var(--adim)"></div>
+              <div style="width:12px;height:12px;border-radius:2px;background:rgba(108,92,228,.25)"></div>
+              <div style="width:12px;height:12px;border-radius:2px;background:rgba(108,92,228,.55)"></div>
+              <div style="width:12px;height:12px;border-radius:2px;background:rgba(108,92,228,.85)"></div>
+            </div>
+            <span>Más</span>
           </div>
         </div>
       </div>
-    </div>
 
+    </div><!-- end rep-modules -->
   </div>
 </div><!-- end reportes -->
 
@@ -2227,7 +2337,14 @@ function sv(v, btn, skipPush) {
   document.querySelectorAll('.ntab').forEach(t => t.classList.remove('on'));
   const activeTab = document.querySelector(`.ntab[onclick*="'${v}'"]`);
   if (activeTab) activeTab.classList.add('on');
+
+  // Sidebar context switch
+  document.querySelectorAll('.sb-ctx').forEach(el => { el.style.display = 'none'; });
+  const sbCtx = document.getElementById('sb-' + v);
+  if (sbCtx) { sbCtx.style.display = 'flex'; sbCtx.style.flexDirection = 'column'; sbCtx.style.height = '100%'; }
+
   if (v === 'ventas') cargarVentas();
+  if (v === 'reportes') cargarReportes();
   if (!skipPush) {
     const slug = v === 'config' ? 'configuracion' : v;
     history.pushState({ section: v }, '', '/' + slug);
@@ -3880,6 +3997,8 @@ function _ventasFechaRange(periodo) {
   }
 }
 
+let _ventasProf = '';
+
 function _ventasFiltradas() {
   const [desde, hasta] = _ventasFechaRange(_ventasPeriodo);
   return _allVentas.filter(c => {
@@ -3888,28 +4007,54 @@ function _ventasFiltradas() {
     if (f < desde || f > hasta) return false;
     if (_ventasMetodo && c.metodo_pago !== _ventasMetodo) return false;
     if (_ventasEstado && c.estado_pago !== _ventasEstado) return false;
+    if (_ventasProf && (c.especialistas?.nombre || '') !== _ventasProf) return false;
     return true;
   });
 }
 
+function filtrarVentasProf(prof, btn) {
+  document.querySelectorAll('#vsb-profs .sbi').forEach(t => t.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  _ventasProf = prof;
+  _ventasPage = 0;
+  renderVentasKPIs();
+  renderVentasProfesionales();
+  renderVentasTable();
+  renderVentasChart();
+}
+
+function filtrarVentasEstadoPago(estado, btn) {
+  document.querySelectorAll('#sb-ventas .sb-section:nth-child(3) .sbi').forEach(t => t.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  _ventasEstado = estado;
+  _ventasPage = 0;
+  renderVentasKPIs();
+  renderVentasProfesionales();
+  renderVentasTable();
+  renderVentasChart();
+}
+
 function renderVentasKPIs() {
   const lista = _ventasFiltradas();
-  const pagadas   = lista.filter(c => c.estado_pago === 'pagado');
+  const pagadas    = lista.filter(c => c.estado_pago === 'pagado');
   const pendientes = lista.filter(c => c.estado_pago !== 'pagado');
-  const ing  = pagadas.reduce((s,c)   => s + (Number(c.precio)||0), 0);
-  const pend = pendientes.reduce((s,c) => s + (Number(c.precio)||0), 0);
-  const label = PERIODO_LABELS[_ventasPeriodo] || 'Período';
+  const ing    = pagadas.reduce((s,c) => s + (Number(c.precio)||0), 0);
+  const pend   = pendientes.reduce((s,c) => s + (Number(c.precio)||0), 0);
+  const ticket = pagadas.length > 0 ? Math.round(ing / pagadas.length) : 0;
+  const tasa   = lista.length > 0 ? Math.round(pagadas.length / lista.length * 100) : 0;
+  const label  = PERIODO_LABELS[_ventasPeriodo] || 'Período';
 
-  const el = id => document.getElementById(id);
-  if (el('vkpi-lbl1'))     el('vkpi-lbl1').textContent   = 'Ingresado · ' + label;
-  if (el('vkpi-ing'))      el('vkpi-ing').textContent    = ing.toLocaleString('es-CL');
-  if (el('vkpi-cobradas')) el('vkpi-cobradas').textContent = pagadas.length;
-  if (el('vkpi-pend'))     el('vkpi-pend').textContent   = pend.toLocaleString('es-CL');
-  if (el('vkpi-total'))    el('vkpi-total').textContent  = lista.length;
-  if (el('vkpi-d1'))       el('vkpi-d1').textContent     = ing > 0 ? pagadas.length + ' citas pagadas' : 'Sin ingresos en este período';
-  if (el('vkpi-d2'))       el('vkpi-d2').textContent     = pagadas.length + ' de ' + lista.length + ' citas';
-  if (el('vkpi-d3'))       el('vkpi-d3').textContent     = pendientes.length ? pendientes.length + ' cita(s) sin cobrar' : 'Sin pendientes ✓';
-  if (el('vkpi-d4'))       el('vkpi-d4').textContent     = label;
+  const $ = id => document.getElementById(id);
+  if ($('vkpi-lbl1'))    $('vkpi-lbl1').textContent    = 'Ingresado · ' + label;
+  if ($('vkpi-ing'))     $('vkpi-ing').textContent     = ing.toLocaleString('es-CL');
+  if ($('vkpi-ticket'))  $('vkpi-ticket').textContent  = ticket.toLocaleString('es-CL');
+  if ($('vkpi-pend'))    $('vkpi-pend').textContent    = pend.toLocaleString('es-CL');
+  if ($('vkpi-tasa'))    $('vkpi-tasa').textContent    = tasa;
+  if ($('vkpi-d1'))      $('vkpi-d1').textContent      = pagadas.length + ' citas cobradas';
+  if ($('vkpi-d-ticket'))$('vkpi-d-ticket').textContent= 'Promedio por cita pagada';
+  if ($('vkpi-d3'))      $('vkpi-d3').textContent      = pendientes.length ? pendientes.length + ' sin cobrar' : 'Sin pendientes ✓';
+  if ($('vkpi-d-tasa'))  $('vkpi-d-tasa').textContent  = pagadas.length + ' de ' + lista.length + ' citas';
+  if ($('v-periodo-lbl'))$('v-periodo-lbl').textContent = label;
 }
 
 function renderVentasTable() {
@@ -3972,13 +4117,49 @@ function ventasVerMas() {
 }
 
 function filterVentas(p, btn) {
-  document.querySelectorAll('#v-ventas .period-sel .ptab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('#sb-ventas .sb-section:first-child .sbi').forEach(t => t.classList.remove('on'));
   if (btn) btn.classList.add('on');
   _ventasPeriodo = p;
   _ventasPage    = 0;
   renderVentasKPIs();
+  renderVentasProfesionales();
   renderVentasTable();
   renderVentasChart();
+}
+
+function renderVentasProfesionales() {
+  const tbody = document.getElementById('v-prof-tbody');
+  if (!tbody) return;
+  const lista = _ventasFiltradas();
+  const profs = {};
+  lista.forEach(c => {
+    const nom = c.especialistas?.nombre || 'Sin asignar';
+    if (!profs[nom]) profs[nom] = { citas:0, cobrado:0, pendiente:0 };
+    profs[nom].citas++;
+    if (c.estado_pago === 'pagado') profs[nom].cobrado += Number(c.precio)||0;
+    else profs[nom].pendiente += Number(c.precio)||0;
+  });
+  const totalCobrado = Object.values(profs).reduce((s,p) => s+p.cobrado, 0) || 1;
+  const sorted = Object.entries(profs).sort((a,b) => b[1].cobrado - a[1].cobrado);
+  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--t3)">Sin datos en este período</td></tr>'; return; }
+  tbody.innerHTML = sorted.map(([nom, d]) => {
+    const ticket = d.citas > 0 ? Math.round((d.cobrado + d.pendiente) / d.citas) : 0;
+    const pct    = Math.round(d.cobrado / totalCobrado * 100);
+    const ini    = nom.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0">${ini}</div>
+        <span>${nom}</span></div></td>
+      <td style="text-align:center;font-weight:500">${d.citas}</td>
+      <td style="font-family:var(--mono);font-weight:500;color:var(--green)">$${d.cobrado.toLocaleString('es-CL')}</td>
+      <td style="font-family:var(--mono);color:var(--amber)">$${d.pendiente.toLocaleString('es-CL')}</td>
+      <td style="font-family:var(--mono)">$${ticket.toLocaleString('es-CL')}</td>
+      <td><div style="display:flex;align-items:center;gap:6px">
+        <div class="pct-bar"><div class="pct-bar-fill" style="width:${pct}%"></div></div>
+        <span style="font-size:11px;color:var(--t3);min-width:28px">${pct}%</span>
+      </div></td>
+    </tr>`;
+  }).join('');
 }
 
 let _ventasEstado = '';
@@ -4569,9 +4750,58 @@ async function cargarVentas() {
   if (!Array.isArray(citas)) return;
   _allVentas  = citas;
   _ventasPage = 0;
+  _renderVentasSidebarProfs();
   renderVentasKPIs();
+  renderVentasProfesionales();
   renderVentasTable();
   renderVentasChart();
+}
+
+function _renderVentasSidebarProfs() {
+  const container = document.getElementById('vsb-profs');
+  if (!container) return;
+  const profs = [...new Set(_allVentas.map(c => c.especialistas?.nombre).filter(Boolean))].sort();
+  container.innerHTML = `<button class="sbi${_ventasProf==='' ? ' on':''}" onclick="filtrarVentasProf('',this)">Todos</button>` +
+    profs.map(p => {
+      const ini = p.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
+      return `<button class="sbi${_ventasProf===p?' on':''}" onclick="filtrarVentasProf(${JSON.stringify(p)},this)">
+        <span style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:inline-flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0">${ini}</span>
+        ${p}
+      </button>`;
+    }).join('');
+}
+
+function exportarHonorarios() {
+  const lista = _ventasFiltradas();
+  if (!lista.length) { alert('Sin datos para exportar en el período seleccionado'); return; }
+  const label = PERIODO_LABELS[_ventasPeriodo] || _ventasPeriodo;
+  const profs = {};
+  lista.forEach(c => {
+    const nom = c.especialistas?.nombre || 'Sin asignar';
+    if (!profs[nom]) profs[nom] = [];
+    profs[nom].push(c);
+  });
+  const rows = ['﻿Profesional,Fecha,Hora,Paciente,Servicio,Monto,Estado Pago,Método Pago'];
+  Object.entries(profs).sort().forEach(([prof, citas]) => {
+    citas.sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora)).forEach(c => {
+      rows.push([prof, c.fecha||'', (c.hora||'').slice(0,5),
+        (c.nombre_paciente||'').replace(/,/g,';'),
+        (c.servicio||'').replace(/,/g,';'),
+        c.precio ? Number(c.precio).toLocaleString('es-CL') : '',
+        c.estado_pago === 'pagado' ? 'Pagado' : 'Pendiente',
+        c.metodo_pago || ''
+      ].join(','));
+    });
+    const cobrado = citas.filter(c => c.estado_pago==='pagado').reduce((s,c)=>s+(Number(c.precio)||0),0);
+    const total   = citas.reduce((s,c)=>s+(Number(c.precio)||0),0);
+    rows.push(`${prof} — SUBTOTAL,,,,, Cobrado: $${cobrado.toLocaleString('es-CL')} | Total: $${total.toLocaleString('es-CL')},,`);
+    rows.push('');
+  });
+  const blob = new Blob([rows.join('\n')], { type:'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `honorarios-${label.toLowerCase().replace(/ /g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 /* ── Modal registrar pago ── */
@@ -4816,6 +5046,321 @@ routeFromURL();
   st.textContent = '@keyframes ptr-spin{to{transform:rotate(360deg)}}';
   document.head.appendChild(st);
 }());
+
+/* ════ REPORTES ════ */
+let _allReportes    = [];
+let _reportesPeriodo = 'mes';
+let _repDiaOffset   = 0;
+let _repDragSrc     = null;
+
+async function cargarReportes(force) {
+  if (!force && _allReportes.length) { renderReportes(); return; }
+  const loading = document.getElementById('rep-loading');
+  if (loading) loading.style.display = 'inline';
+  const cid = await getClienteId();
+  if (!cid) { if (loading) loading.style.display = 'none'; return; }
+  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _SH });
+  const citas = await r.json();
+  if (!Array.isArray(citas)) { if (loading) loading.style.display = 'none'; return; }
+  _allReportes = citas;
+  if (loading) loading.style.display = 'none';
+  renderReportes();
+}
+
+function _reportesFiltradas() {
+  const [desde, hasta] = _ventasFechaRange(_reportesPeriodo);
+  return _allReportes.filter(c => {
+    if (!c.fecha) return false;
+    const f = new Date(c.fecha + 'T00:00:00');
+    return f >= desde && f <= hasta;
+  });
+}
+
+function filterReportes(p, btn) {
+  document.querySelectorAll('#sb-reportes .sb-section:first-child .sbi').forEach(t => t.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  _reportesPeriodo = p;
+  renderReportes();
+}
+
+function renderReportes() {
+  const lista = _reportesFiltradas();
+  renderRepKPIs(lista);
+  renderRepEvolucion(lista);
+  renderRepIngresos(lista);
+  renderRepServicios(lista);
+  renderRepEstado(lista);
+  renderRepProfesionales(lista);
+  renderRepTablaDia();
+  renderRepHeatmap(lista);
+  restoreModuleOrder();
+  restoreModuleVisibility();
+}
+
+function renderRepKPIs(lista) {
+  const total    = lista.length;
+  const pagadas  = lista.filter(c => c.estado_pago === 'pagado');
+  const ing      = pagadas.reduce((s,c) => s+(Number(c.precio)||0), 0);
+  const canceladas = lista.filter(c => c.estado === 'cancelada' || c.estado === 'inasistencia');
+  const tasaCancel = total > 0 ? Math.round(canceladas.length / total * 100) : 0;
+  const pacientes  = new Set(lista.map(c => c.email_paciente || c.nombre_paciente).filter(Boolean));
+  const $ = id => document.getElementById(id);
+  if ($('rkpi-total'))       $('rkpi-total').textContent      = total;
+  if ($('rkpi-total-d'))     $('rkpi-total-d').textContent    = total > 0 ? total + ' citas en el período' : 'Sin citas';
+  if ($('rkpi-ing'))         $('rkpi-ing').textContent        = ing.toLocaleString('es-CL');
+  if ($('rkpi-ing-d'))       $('rkpi-ing-d').textContent      = pagadas.length + ' citas cobradas';
+  if ($('rkpi-cancel'))      $('rkpi-cancel').textContent     = tasaCancel;
+  if ($('rkpi-cancel-d'))    $('rkpi-cancel-d').textContent   = canceladas.length + ' canceladas/inasistencias';
+  if ($('rkpi-nuevos'))      $('rkpi-nuevos').textContent     = pacientes.size;
+  if ($('rkpi-nuevos-d'))    $('rkpi-nuevos-d').textContent   = 'Pacientes únicos';
+  const bars = $('rkpi-total-bars');
+  if (bars && total > 0) {
+    const byDate = {};
+    lista.forEach(c => { byDate[c.fecha] = (byDate[c.fecha]||0)+1; });
+    const vals = Object.values(byDate).slice(-7);
+    const mx = Math.max(...vals, 1);
+    bars.innerHTML = vals.map(v => `<div class="mb${v/mx > 0.3?' on':''}"></div>`).join('');
+  }
+}
+
+function _repBuildTimeSeries(lista, mode) {
+  const byDate = {};
+  lista.forEach(c => { if(c.fecha) byDate[c.fecha] = (byDate[c.fecha]||0)+1; });
+  const [desde, hasta] = _ventasFechaRange(_reportesPeriodo);
+  const dates = [];
+  const d = new Date(desde);
+  while (d <= hasta) { dates.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  if (dates.length > 60) {
+    const weeks = {};
+    dates.forEach(dt => {
+      const wd = new Date(dt+'T00:00:00');
+      const wk = wd.toLocaleDateString('es-CL',{month:'short',day:'numeric'});
+      const wn = dt.slice(0,7) + '-W' + Math.floor((wd.getDate()-1)/7);
+      if (!weeks[wn]) weeks[wn] = {label:wk,count:0,ing:0};
+      weeks[wn].count += byDate[dt]||0;
+      lista.filter(c=>c.fecha===dt && c.estado_pago==='pagado').forEach(c => weeks[wn].ing += Number(c.precio)||0);
+    });
+    return { labels: Object.values(weeks).map(w=>w.label), values: Object.values(weeks).map(w=>mode==='ing'?w.ing:w.count) };
+  }
+  const ingByDate = {};
+  lista.filter(c=>c.estado_pago==='pagado').forEach(c => { if(c.fecha) ingByDate[c.fecha]=(ingByDate[c.fecha]||0)+(Number(c.precio)||0); });
+  return {
+    labels: dates.map(dt => { const d=new Date(dt+'T00:00:00'); return d.toLocaleDateString('es-CL',{month:'short',day:'numeric'}); }),
+    values: dates.map(dt => mode==='ing' ? (ingByDate[dt]||0) : (byDate[dt]||0))
+  };
+}
+
+function _drawLineSVG(svgId, labels, values, color, subId, subText) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const sub = document.getElementById(subId);
+  if (sub) sub.textContent = subText;
+  const W=760,H=160,pL=36,pR=20,pT=18,pB=28;
+  const n = values.length;
+  if (n < 2) { svg.innerHTML = '<text x="380" y="80" text-anchor="middle" fill="var(--t3)" font-size="13">Sin datos suficientes para el período</text>'; return; }
+  const mx = Math.max(...values, 1);
+  const pts = values.map((v,i) => [pL + i/(n-1)*(W-pL-pR), pT + (1-v/mx)*(H-pT-pB)]);
+  const pathD = pts.map((p,i) => (i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const areaD = pathD + ` L${pts[n-1][0].toFixed(1)},${H-pB} L${pL},${H-pB} Z`;
+  const step  = Math.max(1, Math.ceil(n/8));
+  const xlabels = labels.map((l,i) => i%step===0 ? `<text x="${pts[i][0].toFixed(1)}" y="${H}" text-anchor="middle" fill="var(--t3)" font-size="9">${l}</text>` : '').join('');
+  const gid = svgId + '-gr';
+  svg.innerHTML = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".14"/><stop offset="100%" stop-color="${color}" stop-opacity=".01"/></linearGradient></defs>
+    <line x1="${pL}" y1="${pT}" x2="${W-pR}" y2="${pT}" stroke="var(--b1)" stroke-width="1"/>
+    <line x1="${pL}" y1="${pT+(H-pT-pB)/2}" x2="${W-pR}" y2="${pT+(H-pT-pB)/2}" stroke="var(--b1)" stroke-width="1"/>
+    <line x1="${pL}" y1="${H-pB}" x2="${W-pR}" y2="${H-pB}" stroke="var(--b1)" stroke-width="1"/>
+    <text x="${pL-4}" y="${pT+4}" text-anchor="end" fill="var(--t3)" font-size="9">${mx}</text>
+    <text x="${pL-4}" y="${pT+(H-pT-pB)/2+4}" text-anchor="end" fill="var(--t3)" font-size="9">${Math.round(mx/2)}</text>
+    <text x="${pL-4}" y="${H-pB+4}" text-anchor="end" fill="var(--t3)" font-size="9">0</text>
+    <path d="${areaD}" fill="url(#${gid})"/>
+    <path d="${pathD}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts.filter((_,i)=>i%step===0||i===n-1).map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="#fff" stroke="${color}" stroke-width="1.5"/>`).join('')}
+    ${xlabels}`;
+}
+
+function renderRepEvolucion(lista) {
+  const {labels, values} = _repBuildTimeSeries(lista, 'citas');
+  const total = values.reduce((s,v)=>s+v,0);
+  _drawLineSVG('rep-lc', labels, values, '#6C5CE4', 'rep-evol-sub', `${total} reservas en el período`);
+}
+
+function renderRepIngresos(lista) {
+  const {labels, values} = _repBuildTimeSeries(lista, 'ing');
+  const total = values.reduce((s,v)=>s+v,0);
+  const prom  = values.filter(v=>v>0).length > 0 ? Math.round(total/values.filter(v=>v>0).length) : 0;
+  const best  = Math.max(...values, 0);
+  const $ = id => document.getElementById(id);
+  _drawLineSVG('rep-ing-chart', labels, values, '#16A34A', 'rep-ing-sub', `$${total.toLocaleString('es-CL')} total cobrado`);
+  if ($('ring-total')) $('ring-total').textContent = '$'+total.toLocaleString('es-CL');
+  if ($('ring-prom'))  $('ring-prom').textContent  = '$'+prom.toLocaleString('es-CL');
+  if ($('ring-best'))  $('ring-best').textContent  = '$'+best.toLocaleString('es-CL');
+}
+
+function renderRepServicios(lista) {
+  const el = document.getElementById('rep-hb-svcs');
+  if (!el) return;
+  const counts = {};
+  lista.forEach(c => { if(c.servicio) counts[c.servicio]=(counts[c.servicio]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (!sorted.length) { el.innerHTML='<div style="color:var(--t3);font-size:12px;padding:4px 0">Sin datos</div>'; return; }
+  const mx = sorted[0][1];
+  el.innerHTML = sorted.map(([name,cnt]) => `<div class="hb-item"><div class="hb-hd"><span class="hb-name">${name}</span><span class="hb-val">${cnt} citas</span></div><div class="hb-track"><div class="hb-fill hb-purple" style="width:${Math.round(cnt/mx*100)}%"></div></div></div>`).join('');
+}
+
+function renderRepEstado(lista) {
+  const el = document.getElementById('rep-hb-estado');
+  if (!el) return;
+  const total    = lista.length || 1;
+  const conf     = lista.filter(c=>c.estado==='confirmada'||c.estado==='completada').length;
+  const pend     = lista.filter(c=>!c.estado||c.estado==='pendiente').length;
+  const cancel   = lista.filter(c=>c.estado==='cancelada').length;
+  const inas     = lista.filter(c=>c.estado==='inasistencia').length;
+  const pct = v => Math.round(v/total*100);
+  el.innerHTML = `
+    <div class="hb-item"><div class="hb-hd"><span class="hb-name">✓ Confirmadas</span><span class="hb-val">${conf} (${pct(conf)}%)</span></div><div class="hb-track"><div class="hb-fill hb-green" style="width:${pct(conf)}%"></div></div></div>
+    <div class="hb-item"><div class="hb-hd"><span class="hb-name">Pendientes</span><span class="hb-val">${pend} (${pct(pend)}%)</span></div><div class="hb-track"><div class="hb-fill hb-amber" style="width:${pct(pend)}%"></div></div></div>
+    <div class="hb-item"><div class="hb-hd"><span class="hb-name">✗ Canceladas</span><span class="hb-val">${cancel} (${pct(cancel)}%)</span></div><div class="hb-track"><div class="hb-fill hb-red" style="width:${pct(cancel)}%"></div></div></div>
+    <div class="hb-item"><div class="hb-hd"><span class="hb-name">Inasistencias</span><span class="hb-val">${inas} (${pct(inas)}%)</span></div><div class="hb-track"><div class="hb-fill hb-red" style="width:${pct(inas)}%"></div></div></div>`;
+}
+
+function renderRepProfesionales(lista) {
+  const tbody = document.getElementById('rep-prof-tbody');
+  if (!tbody) return;
+  const profs = {};
+  lista.forEach(c => {
+    const nom = c.especialistas?.nombre || 'Sin asignar';
+    if (!profs[nom]) profs[nom] = {citas:0,cobrado:0,pendiente:0};
+    profs[nom].citas++;
+    if (c.estado_pago==='pagado') profs[nom].cobrado += Number(c.precio)||0;
+    else profs[nom].pendiente += Number(c.precio)||0;
+  });
+  const totalCobrado = Object.values(profs).reduce((s,p)=>s+p.cobrado,0) || 1;
+  const sorted = Object.entries(profs).sort((a,b)=>b[1].citas-a[1].citas);
+  if (!sorted.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--t3)">Sin datos</td></tr>'; return; }
+  tbody.innerHTML = sorted.map(([nom,d]) => {
+    const pct = Math.round(d.cobrado/totalCobrado*100);
+    const ini = nom.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0">${ini}</div>${nom}</div></td>
+      <td style="text-align:center;font-weight:500">${d.citas}</td>
+      <td style="font-family:var(--mono);color:var(--green)">$${d.cobrado.toLocaleString('es-CL')}</td>
+      <td style="font-family:var(--mono);color:var(--amber)">$${d.pendiente.toLocaleString('es-CL')}</td>
+      <td><div style="display:flex;align-items:center;gap:6px"><div class="pct-bar"><div class="pct-bar-fill" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--t3);min-width:28px">${pct}%</span></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRepTablaDia() {
+  const tbody = document.getElementById('rep-dia-tbody');
+  const label = document.getElementById('rep-dia-label');
+  if (!tbody) return;
+  const hoy = new Date();
+  hoy.setDate(hoy.getDate() + _repDiaOffset);
+  const fechaStr = hoy.toISOString().slice(0,10);
+  if (label) label.textContent = hoy.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/, c=>c.toUpperCase());
+  const citas = _allReportes.filter(c=>c.fecha===fechaStr).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+  if (!citas.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Sin citas este día</td></tr>'; return; }
+  const ETAG = { confirmada:'<span class="tag tg">Confirmada</span>', pendiente:'<span class="tag ta">Pendiente</span>', cancelada:'<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Cancelada</span>', inasistencia:'<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Inasistencia</span>' };
+  tbody.innerHTML = citas.map(c => `<tr>
+    <td style="font-family:var(--mono);font-size:12px;font-weight:600">${(c.hora||'—').slice(0,5)}</td>
+    <td>${c.nombre_paciente||'—'}</td>
+    <td style="color:var(--t2)">${c.servicio||'—'}</td>
+    <td style="color:var(--t3)">${c.especialistas?.nombre||'—'}</td>
+    <td>${ETAG[c.estado]||ETAG.pendiente}</td>
+  </tr>`).join('');
+}
+
+function navRepDia(dir) { _repDiaOffset += dir; renderRepTablaDia(); }
+
+function renderRepHeatmap(lista) {
+  const grid = document.getElementById('rep-heatmap');
+  if (!grid) return;
+  const DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const horas = Array.from({length:11},(_,i)=>i+8);
+  const counts = {};
+  lista.forEach(c => {
+    if (!c.hora||!c.fecha) return;
+    const d = new Date(c.fecha+'T00:00:00');
+    const di = (d.getDay()+6)%7;
+    const hi = parseInt(c.hora.slice(0,2));
+    counts[`${hi}-${di}`] = (counts[`${hi}-${di}`]||0)+1;
+  });
+  const mx = Math.max(...Object.values(counts), 1);
+  let html = '<div class="hm-label"></div>' + DIAS.map(d=>`<div class="hm-day-lbl">${d}</div>`).join('');
+  horas.forEach(h => {
+    html += `<div class="hm-label">${h}h</div>`;
+    DIAS.forEach((_,di) => {
+      const cnt = counts[`${h}-${di}`]||0;
+      const bg  = cnt===0 ? 'var(--adim)' : `rgba(108,92,228,${(0.1+cnt/mx*0.85).toFixed(2)})`;
+      html += `<div class="hm-cell" style="background:${bg}" title="${cnt} cita${cnt!==1?'s':''}"></div>`;
+    });
+  });
+  grid.innerHTML = html;
+}
+
+/* ── Drag & drop modules ── */
+function modDragStart(e) {
+  _repDragSrc = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { if (_repDragSrc) _repDragSrc.classList.add('dragging'); }, 0);
+}
+function modDragOver(e) {
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  const t = e.currentTarget;
+  if (t !== _repDragSrc) t.classList.add('drag-over');
+}
+function modDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function modDrop(e) {
+  e.preventDefault();
+  const tgt = e.currentTarget;
+  tgt.classList.remove('drag-over');
+  if (_repDragSrc && _repDragSrc !== tgt) {
+    const grid = document.getElementById('rep-modules');
+    const nodes = [...grid.querySelectorAll(':scope > .rep-module')];
+    if (nodes.indexOf(_repDragSrc) < nodes.indexOf(tgt)) grid.insertBefore(_repDragSrc, tgt.nextSibling);
+    else grid.insertBefore(_repDragSrc, tgt);
+    saveModuleOrder();
+  }
+}
+function modDragEnd(e) {
+  if (_repDragSrc) _repDragSrc.classList.remove('dragging');
+  document.querySelectorAll('.rep-module').forEach(el => el.classList.remove('drag-over'));
+  _repDragSrc = null;
+}
+function saveModuleOrder() {
+  const order = [...document.querySelectorAll('#rep-modules > .rep-module')].map(el => el.dataset.mod);
+  localStorage.setItem('attempo_rep_order', JSON.stringify(order));
+}
+function restoreModuleOrder() {
+  const saved = localStorage.getItem('attempo_rep_order');
+  if (!saved) return;
+  const order = JSON.parse(saved);
+  const grid  = document.getElementById('rep-modules');
+  order.forEach(modId => {
+    const el = document.querySelector(`#rep-modules > [data-mod="${modId}"]`);
+    if (el) grid.appendChild(el);
+  });
+}
+function toggleModulo(mod, chk) {
+  const el = document.querySelector(`[data-mod="${mod}"]`);
+  if (el) el.style.display = chk.checked ? '' : 'none';
+  saveModuleVisibility();
+}
+function saveModuleVisibility() {
+  const vis = {};
+  document.querySelectorAll('.rep-module[data-mod]').forEach(el => { vis[el.dataset.mod] = el.style.display !== 'none'; });
+  localStorage.setItem('attempo_rep_vis', JSON.stringify(vis));
+}
+function restoreModuleVisibility() {
+  const saved = localStorage.getItem('attempo_rep_vis');
+  if (!saved) return;
+  JSON.parse(saved) && Object.entries(JSON.parse(saved)).forEach(([mod, vis]) => {
+    const el  = document.querySelector(`[data-mod="${mod}"]`);
+    const chk = document.getElementById(`mod-chk-${mod}`);
+    if (el)  el.style.display = vis ? '' : 'none';
+    if (chk) chk.checked = vis;
+  });
+}
 </script>
 
 
