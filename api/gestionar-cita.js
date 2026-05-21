@@ -110,6 +110,10 @@ export default async function handler(req, res) {
                 from: 'Attempo <contacto@attempo.cl>',
                 to: cita.email_paciente,
                 subject: `Tu cita en ${cliente?.nombre_negocio || 'la clínica'} fue reagendada ✓`,
+                headers: {
+                  'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+                  'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                },
                 html: emailReagendadoHtml({
                   nombre_paciente:    cita.nombre_paciente,
                   nombre_especialista,

@@ -80,6 +80,10 @@ export default async function handler(req, res) {
           from: 'Attempo <contacto@attempo.cl>',
           to: email,
           subject: 'Tu acceso a Attempo está listo',
+          headers: {
+            'List-Unsubscribe': `<mailto:contacto@attempo.cl?subject=unsubscribe>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+          },
           html: inviteHtml({ nombre, username, tempPassword, rolLabel, loginUrl: `${BASE_URL}/login` })
         })
       }).then(async r => { if (!r.ok) console.error('invite email error:', await r.text()); })

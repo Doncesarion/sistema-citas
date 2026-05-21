@@ -77,6 +77,10 @@ export default async function handler(req, res) {
           from: 'Attempo <contacto@attempo.cl>',
           to: email_paciente,
           subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada ✓`,
+          headers: {
+            'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+          },
           html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco })
         })
       }).then(async er => { if (!er.ok) console.error('email error:', await er.text()); })
