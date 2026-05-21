@@ -1,13 +1,25 @@
 {
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/agenda",                      "destination": "/admin.html" },
-    { "source": "/agenda/:sub",                 "destination": "/admin.html" },
-    { "source": "/clientes",                    "destination": "/admin.html" },
-    { "source": "/ventas",                      "destination": "/admin.html" },
-    { "source": "/reportes",                    "destination": "/admin.html" },
-    { "source": "/configuracion",               "destination": "/admin.html" },
-    { "source": "/configuracion/:sub",          "destination": "/admin.html" },
-    { "source": "/accesos",                     "destination": "/accesos.html" },
-    { "source": "/reservar/:slug",              "destination": "/booking.html" }
+    { "source": "/login",                          "destination": "/login.html" },
+    { "source": "/admin",                          "destination": "/admin.html" },
+    { "source": "/reset-password",                 "destination": "/reset-password.html" },
+    { "source": "/superadmin",                     "destination": "/superadmin.html" },
+    { "source": "/editor",                         "destination": "/editor.html" },
+    { "source": "/landing",                        "destination": "/landing.html" },
+    { "source": "/chat-frame",                     "destination": "/chat-frame.html" },
+    { "source": "/attempo-booking",                "destination": "/attempo-booking.html" },
+    { "source": "/attempo-dashboard",              "destination": "/attempo-dashboard.html" },
+    { "source": "/agenda",                         "destination": "/admin.html" },
+    { "source": "/agenda/:sub",                    "destination": "/admin.html" },
+    { "source": "/clientes",                       "destination": "/admin.html" },
+    { "source": "/ventas",                         "destination": "/admin.html" },
+    { "source": "/reportes",                       "destination": "/admin.html" },
+    { "source": "/configuracion",                  "destination": "/admin.html" },
+    { "source": "/configuracion/:sub",             "destination": "/admin.html" },
+    { "source": "/gestionar-cita",                 "destination": "/gestionar-cita.html" },
+    { "source": "/accesos",                        "destination": "/accesos.html" },
+    { "source": "/reservar/:slug",                 "destination": "/booking.html" },
+    { "source": "/:slug",                          "destination": "/booking.html" }
   ]
 }
