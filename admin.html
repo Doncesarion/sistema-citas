@@ -1023,6 +1023,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <button class="sbi on" id="vsb-mes" onclick="filterVentas('mes',this)">Este mes</button>
     <button class="sbi" id="vsb-3m"  onclick="filterVentas('3m',this)">3 meses</button>
     <button class="sbi" id="vsb-1y"  onclick="filterVentas('1y',this)">Este año</button>
+    <button class="sbi" id="vsb-custom" onclick="filterVentas('custom',this)">Personalizado</button>
+    <div id="vsb-custom-dates" style="display:none;flex-direction:column;gap:6px;padding:4px 10px 2px">
+      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Desde</div><input type="date" id="vsb-desde" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
+      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Hasta</div><input type="date" id="vsb-hasta" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
+      <button class="btn-a" style="margin-top:2px;padding:6px 0;width:100%" onclick="applyVentasCustom()">Aplicar</button>
+    </div>
   </div>
   <div class="sb-section">
     <div class="sb-label">Profesional</div>
@@ -1062,9 +1068,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <button class="sbi" id="rsb-3m"  onclick="filterReportes('3m',this)">3 meses</button>
     <button class="sbi" id="rsb-1y"  onclick="filterReportes('1y',this)">Este año</button>
     <button class="sbi" id="rsb-custom" onclick="filterReportes('custom',this)">Personalizado</button>
-    <div id="rsb-custom-dates" style="display:none;padding:6px 10px;display:none;flex-direction:column;gap:6px">
-      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Desde</div><input type="date" id="rsb-desde" onchange="applyRepCustom()" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
-      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Hasta</div><input type="date" id="rsb-hasta" onchange="applyRepCustom()" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
+    <div id="rsb-custom-dates" style="display:none;flex-direction:column;gap:6px;padding:4px 10px 2px">
+      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Desde</div><input type="date" id="rsb-desde" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
+      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Hasta</div><input type="date" id="rsb-hasta" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
+      <button class="btn-a" style="margin-top:2px;padding:6px 0;width:100%" onclick="applyRepCustom()">Aplicar</button>
     </div>
   </div>
   <div class="sb-section">
@@ -1100,10 +1107,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ── CLIENTES CONTEXT ── -->
 <div id="sb-clientes" class="sb-ctx">
   <div class="sb-section">
-    <div class="sb-label">Búsqueda</div>
+    <div class="sb-label">Buscar cliente</div>
     <div style="margin:0 10px 4px">
-      <input type="text" placeholder="Buscar cliente..." oninput="filterClientes(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+      <input type="text" id="sb-clientes-q" placeholder="Nombre, email o teléfono..." oninput="sbFilterClientes(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
     </div>
+  </div>
+  <div class="sb-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div class="sb-label" id="sb-clientes-count" style="font-size:10px">Todos los clientes</div>
+    <div id="sb-clientes-list" style="overflow-y:auto;flex:1"></div>
   </div>
 </div><!-- end sb-clientes -->
 
@@ -2354,12 +2365,15 @@ function sv(v, btn, skipPush) {
   if (activeTab) activeTab.classList.add('on');
 
   // Sidebar context switch
+  const sidebar = document.querySelector('aside.sb');
+  if (sidebar) sidebar.style.display = v === 'config' ? 'none' : '';
   document.querySelectorAll('.sb-ctx').forEach(el => { el.style.display = 'none'; });
   const sbCtx = document.getElementById('sb-' + v);
   if (sbCtx) { sbCtx.style.display = 'flex'; sbCtx.style.flexDirection = 'column'; sbCtx.style.height = '100%'; }
 
-  if (v === 'ventas') cargarVentas();
+  if (v === 'ventas')   cargarVentas();
   if (v === 'reportes') cargarReportes();
+  if (v === 'clientes') sbBuildClientesList('');
   if (!skipPush) {
     const slug = v === 'config' ? 'configuracion' : v;
     history.pushState({ section: v }, '', '/' + slug);
@@ -4012,10 +4026,18 @@ function _ventasFechaRange(periodo) {
   }
 }
 
-let _ventasProf = '';
+let _ventasProf  = '';
+let _ventasDesde = null;
+let _ventasHasta = null;
 
 function _ventasFiltradas() {
-  const [desde, hasta] = _ventasFechaRange(_ventasPeriodo);
+  let desde, hasta;
+  if (_ventasPeriodo === 'custom' && _ventasDesde && _ventasHasta) {
+    desde = new Date(_ventasDesde + 'T00:00:00');
+    hasta = new Date(_ventasHasta + 'T00:00:00');
+  } else {
+    [desde, hasta] = _ventasFechaRange(_ventasPeriodo);
+  }
   return _allVentas.filter(c => {
     if (!c.fecha) return false;
     const f = new Date(c.fecha + 'T00:00:00');
@@ -4025,6 +4047,19 @@ function _ventasFiltradas() {
     if (_ventasProf && (c.especialistas?.nombre || '') !== _ventasProf) return false;
     return true;
   });
+}
+
+function applyVentasCustom() {
+  const d = document.getElementById('vsb-desde')?.value;
+  const h = document.getElementById('vsb-hasta')?.value;
+  if (!d || !h) return;
+  if (d > h) { alert('La fecha "Desde" debe ser anterior a "Hasta"'); return; }
+  _ventasDesde = d; _ventasHasta = h;
+  _ventasPage  = 0;
+  renderVentasKPIs();
+  renderVentasProfesionales();
+  renderVentasTable();
+  renderVentasChart();
 }
 
 function filtrarVentasProf(prof, btn) {
@@ -4136,10 +4171,14 @@ function filterVentas(p, btn) {
   if (btn) btn.classList.add('on');
   _ventasPeriodo = p;
   _ventasPage    = 0;
-  renderVentasKPIs();
-  renderVentasProfesionales();
-  renderVentasTable();
-  renderVentasChart();
+  const picker = document.getElementById('vsb-custom-dates');
+  if (picker) picker.style.display = p === 'custom' ? 'flex' : 'none';
+  if (p !== 'custom') {
+    renderVentasKPIs();
+    renderVentasProfesionales();
+    renderVentasTable();
+    renderVentasChart();
+  }
 }
 
 function renderVentasProfesionales() {
@@ -5318,13 +5357,20 @@ function renderRepProfesionales(lista) {
   }).join('');
 }
 
+function _localDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
 function renderRepTablaDia() {
   const tbody = document.getElementById('rep-dia-tbody');
   const label = document.getElementById('rep-dia-label');
   if (!tbody) return;
   const hoy = new Date();
   hoy.setDate(hoy.getDate() + _repDiaOffset);
-  const fechaStr = hoy.toISOString().slice(0,10);
+  const fechaStr = _localDateStr(hoy);
   if (label) label.textContent = hoy.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/, c=>c.toUpperCase());
   const citas = _allReportes.filter(c=>c.fecha===fechaStr).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
   if (!citas.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Sin citas este día</td></tr>'; return; }
@@ -5428,6 +5474,41 @@ function restoreModuleVisibility() {
     if (el)  el.style.display = vis ? '' : 'none';
     if (chk) chk.checked = vis;
   });
+}
+
+/* ── Sidebar clientes ── */
+function sbBuildClientesList(q) {
+  const list  = document.getElementById('sb-clientes-list');
+  const count = document.getElementById('sb-clientes-count');
+  if (!list) return;
+  const rows  = [...document.querySelectorAll('#v-clientes tbody tr')];
+  const term  = q.toLowerCase().trim();
+  const matching = rows.filter(r => !term || r.textContent.toLowerCase().includes(term));
+  if (count) count.textContent = term ? `${matching.length} resultado${matching.length!==1?'s':''}` : `${rows.length} cliente${rows.length!==1?'s':''}`;
+  list.innerHTML = matching.slice(0,30).map(r => {
+    const cells = r.querySelectorAll('td');
+    const av    = r.querySelector('.tav')?.textContent || '?';
+    const name  = cells[0]?.querySelector('.tdn')?.textContent?.trim() || cells[0]?.textContent?.trim() || '—';
+    const email = cells[1]?.textContent?.trim() || '';
+    return `<div onclick="sbSelectCliente(this)" data-name="${name.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-radius:var(--r);transition:background .1s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
+      <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0">${av}</div>
+      <div style="min-width:0"><div style="font-size:12px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>${email?`<div style="font-size:10px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${email}</div>`:''}</div>
+    </div>`;
+  }).join('') || `<div style="padding:12px 10px;font-size:12px;color:var(--t3)">Sin resultados</div>`;
+}
+
+function sbFilterClientes(q) {
+  filterClientes(q);
+  sbBuildClientesList(q);
+}
+
+function sbSelectCliente(el) {
+  const name = el.dataset.name;
+  filterClientes(name);
+  document.getElementById('sb-clientes-q').value = name;
+  sbBuildClientesList(name);
+  const row = [...document.querySelectorAll('#v-clientes tbody tr')].find(r => r.textContent.includes(name));
+  if (row) row.scrollIntoView({behavior:'smooth', block:'center'});
 }
 </script>
 
