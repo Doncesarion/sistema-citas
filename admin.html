@@ -1061,9 +1061,24 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <button class="sbi on" id="rsb-mes" onclick="filterReportes('mes',this)">Este mes</button>
     <button class="sbi" id="rsb-3m"  onclick="filterReportes('3m',this)">3 meses</button>
     <button class="sbi" id="rsb-1y"  onclick="filterReportes('1y',this)">Este año</button>
+    <button class="sbi" id="rsb-custom" onclick="filterReportes('custom',this)">Personalizado</button>
+    <div id="rsb-custom-dates" style="display:none;padding:6px 10px;display:none;flex-direction:column;gap:6px">
+      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Desde</div><input type="date" id="rsb-desde" onchange="applyRepCustom()" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
+      <div><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Hasta</div><input type="date" id="rsb-hasta" onchange="applyRepCustom()" style="width:100%;padding:5px 8px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box"></div>
+    </div>
   </div>
   <div class="sb-section">
-    <div class="sb-label">Módulos visibles</div>
+    <div class="sb-label">Profesional</div>
+    <div id="rsb-profs"><button class="sbi on" onclick="filtrarRepProf('',this)">Todos</button></div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Paciente</div>
+    <div style="margin:0 10px 4px">
+      <input type="text" id="rsb-paciente" placeholder="Buscar paciente..." oninput="filtrarRepPaciente(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+    </div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Módulos</div>
     <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-kpis" checked onchange="toggleModulo('kpis',this)"> KPI generales</label>
     <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-evolucion" checked onchange="toggleModulo('evolucion',this)"> Evolución reservas</label>
     <label class="sbi" style="cursor:pointer;gap:7px"><input type="checkbox" id="mod-chk-ingresos" checked onchange="toggleModulo('ingresos',this)"> Ingresos por día</label>
@@ -1087,7 +1102,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <div class="sb-section">
     <div class="sb-label">Búsqueda</div>
     <div style="margin:0 10px 4px">
-      <input type="text" placeholder="Buscar cliente..." oninput="filtrarClientes(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+      <input type="text" placeholder="Buscar cliente..." oninput="filterClientes(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
     </div>
   </div>
 </div><!-- end sb-clientes -->
@@ -4764,7 +4779,8 @@ function _renderVentasSidebarProfs() {
   container.innerHTML = `<button class="sbi${_ventasProf==='' ? ' on':''}" onclick="filtrarVentasProf('',this)">Todos</button>` +
     profs.map(p => {
       const ini = p.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
-      return `<button class="sbi${_ventasProf===p?' on':''}" onclick="filtrarVentasProf(${JSON.stringify(p)},this)">
+      const safe = p.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+      return `<button class="sbi${_ventasProf===p?' on':''}" data-prof="${safe}" onclick="filtrarVentasProf(this.dataset.prof,this)">
         <span style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:inline-flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0">${ini}</span>
         ${p}
       </button>`;
@@ -5048,10 +5064,14 @@ routeFromURL();
 }());
 
 /* ════ REPORTES ════ */
-let _allReportes    = [];
+let _allReportes     = [];
 let _reportesPeriodo = 'mes';
-let _repDiaOffset   = 0;
-let _repDragSrc     = null;
+let _repDesde        = null;
+let _repHasta        = null;
+let _repDiaOffset    = 0;
+let _repDragSrc      = null;
+let _repProf         = '';
+let _repPaciente     = '';
 
 async function cargarReportes(force) {
   if (!force && _allReportes.length) { renderReportes(); return; }
@@ -5064,15 +5084,55 @@ async function cargarReportes(force) {
   if (!Array.isArray(citas)) { if (loading) loading.style.display = 'none'; return; }
   _allReportes = citas;
   if (loading) loading.style.display = 'none';
+  _renderRepSidebarProfs();
+  renderReportes();
+}
+
+function _renderRepSidebarProfs() {
+  const container = document.getElementById('rsb-profs');
+  if (!container) return;
+  const profs = [...new Set(_allReportes.map(c => c.especialistas?.nombre).filter(Boolean))].sort();
+  container.innerHTML = `<button class="sbi${_repProf==='' ? ' on':''}" onclick="filtrarRepProf('',this)">Todos</button>` +
+    profs.map(p => {
+      const ini  = p.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
+      const safe = p.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+      return `<button class="sbi${_repProf===p?' on':''}" data-prof="${safe}" onclick="filtrarRepProf(this.dataset.prof,this)">
+        <span style="width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:inline-flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0">${ini}</span>
+        ${p}
+      </button>`;
+    }).join('');
+}
+
+function filtrarRepProf(prof, btn) {
+  document.querySelectorAll('#rsb-profs .sbi').forEach(t => t.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  _repProf = prof;
+  renderReportes();
+}
+
+function filtrarRepPaciente(val) {
+  _repPaciente = val.toLowerCase().trim();
   renderReportes();
 }
 
 function _reportesFiltradas() {
-  const [desde, hasta] = _ventasFechaRange(_reportesPeriodo);
+  let desde, hasta;
+  if (_reportesPeriodo === 'custom' && _repDesde && _repHasta) {
+    desde = new Date(_repDesde + 'T00:00:00');
+    hasta = new Date(_repHasta + 'T00:00:00');
+  } else {
+    [desde, hasta] = _ventasFechaRange(_reportesPeriodo);
+  }
   return _allReportes.filter(c => {
     if (!c.fecha) return false;
     const f = new Date(c.fecha + 'T00:00:00');
-    return f >= desde && f <= hasta;
+    if (f < desde || f > hasta) return false;
+    if (_repProf && (c.especialistas?.nombre || '') !== _repProf) return false;
+    if (_repPaciente) {
+      const texto = ((c.nombre_paciente||'') + ' ' + (c.email_paciente||'')).toLowerCase();
+      if (!texto.includes(_repPaciente)) return false;
+    }
+    return true;
   });
 }
 
@@ -5080,7 +5140,15 @@ function filterReportes(p, btn) {
   document.querySelectorAll('#sb-reportes .sb-section:first-child .sbi').forEach(t => t.classList.remove('on'));
   if (btn) btn.classList.add('on');
   _reportesPeriodo = p;
-  renderReportes();
+  const picker = document.getElementById('rsb-custom-dates');
+  if (picker) picker.style.display = p === 'custom' ? 'flex' : 'none';
+  if (p !== 'custom') renderReportes();
+}
+
+function applyRepCustom() {
+  const d = document.getElementById('rsb-desde')?.value;
+  const h = document.getElementById('rsb-hasta')?.value;
+  if (d && h && d <= h) { _repDesde = d; _repHasta = h; renderReportes(); }
 }
 
 function renderReportes() {
