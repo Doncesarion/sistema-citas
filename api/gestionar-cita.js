@@ -1,3 +1,15 @@
+const BASE_URL = process.env.BASE_URL || 'https://app.attempo.cl';
+
+function htmlEscape(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export default async function handler(req, res) {
   const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -222,41 +234,46 @@ function buildPagoHtml(metodos_pago, datos_banco) {
   if (metodos_pago.transferencia && datos_banco && Object.keys(datos_banco).length) {
     const d = datos_banco;
     const filas = [];
-    if (d.banco)  filas.push(`Banco: ${d.banco}`);
-    if (d.tipo)   filas.push(`Tipo: ${d.tipo}`);
-    if (d.cuenta) filas.push(`N° cuenta: ${d.cuenta}`);
-    if (d.rut)    filas.push(`RUT: ${d.rut}`);
-    if (d.nombre) filas.push(`A nombre de: ${d.nombre}`);
-    if (d.email)  filas.push(`Email: ${d.email}`);
+    if (d.banco)  filas.push(`Banco: ${htmlEscape(d.banco)}`);
+    if (d.tipo)   filas.push(`Tipo: ${htmlEscape(d.tipo)}`);
+    if (d.cuenta) filas.push(`N° cuenta: ${htmlEscape(d.cuenta)}`);
+    if (d.rut)    filas.push(`RUT: ${htmlEscape(d.rut)}`);
+    if (d.nombre) filas.push(`A nombre de: ${htmlEscape(d.nombre)}`);
+    if (d.email)  filas.push(`Email: ${htmlEscape(d.email)}`);
     if (filas.length) bancoRows = `<tr><td style="padding:2px 0 10px;text-align:center;font-size:12px;color:#6b7280;line-height:1.8">${filas.join('<br>')}</td></tr>`;
   }
   return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
 }
 
 function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, metodos_pago, datos_banco, cita_id }) {
+  const np  = htmlEscape(nombre_paciente);
+  const ne  = htmlEscape(nombre_especialista || 'Profesional');
+  const sv  = htmlEscape(servicio || 'Consulta');
+  const dir = htmlEscape(direccion);
+  const en  = htmlEscape(email_negocio);
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
 <tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
-  <img src="https://attempo.cl/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
+  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Cita reagendada ✓</h2>
-  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${nombre_paciente}</strong>, tu cita fue reagendada exitosamente.</p>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, tu cita fue reagendada exitosamente.</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
-    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${nombre_especialista || 'Profesional'}</span></td></tr>
-    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Nueva fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${fechaFmt}</span></td></tr>
-    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Nueva hora</span><br><span style="color:#2d2d2d;font-size:15px;">${hora}</span></td></tr>
-    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Motivo</span><br><span style="color:#2d2d2d;font-size:15px;">${servicio || 'Consulta'}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${ne}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Nueva fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${htmlEscape(fechaFmt)}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Nueva hora</span><br><span style="color:#2d2d2d;font-size:15px;">${htmlEscape(hora)}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Motivo</span><br><span style="color:#2d2d2d;font-size:15px;">${sv}</span></td></tr>
     ${buildPagoHtml(metodos_pago, datos_banco)}
   </table>
-  ${direccion ? `
+  ${dir ? `
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
     <tr><td style="text-align:center;">
-      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">📍 ${direccion}</p>
+      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">📍 ${dir}</p>
       <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}" target="_blank"
          style="display:inline-block;padding:10px 22px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">
         Ver en Google Maps
@@ -264,9 +281,9 @@ function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
     </td></tr>
   </table>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">
-    ¿Necesitas más cambios? <a href="https://attempo.cl/gestionar-cita?id=${cita_id}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
+    ¿Necesitas más cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
   </p>
-  ${email_negocio ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${email_negocio}" style="color:#6C5CE4;text-decoration:none;">${email_negocio}</a></p>` : ''}
+  ${en ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${en}" style="color:#6C5CE4;text-decoration:none;">${en}</a></p>` : ''}
 </td></tr>
 <tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
   <p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">Attempo</a> — Todo a tu tiempo</p>

@@ -1,3 +1,5 @@
+const BASE_URL = process.env.BASE_URL || 'https://app.attempo.cl';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -216,7 +218,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
 <tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
 <tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
-  <img src="https://attempo.cl/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
+  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
@@ -242,7 +244,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     </td></tr>
   </table>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">
-    ¿Necesitas cambios? <a href="https://attempo.cl/gestionar-cita?id=${htmlEscape(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
+    ¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
   </p>
   ${en ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${en}" style="color:#6C5CE4;text-decoration:none;">${en}</a></p>` : ''}
 </td></tr>
