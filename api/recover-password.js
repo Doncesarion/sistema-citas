@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 
+const BASE_URL = process.env.BASE_URL || 'https://attempo.cl';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -10,7 +12,6 @@ export default async function handler(req, res) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
   try {
-    // Verificar que el email existe en usuarios
     const userCheck = await fetch(
       `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=email`,
       { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
@@ -20,11 +21,9 @@ export default async function handler(req, res) {
     // Responder OK aunque no exista (seguridad: no revelar si el email está registrado)
     if (!users.length) return res.status(200).json({ ok: true });
 
-    // Generar token seguro
     const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hora
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    // Guardar token en Supabase
     await fetch(`${SUPABASE_URL}/rest/v1/password_resets`, {
       method: 'POST',
       headers: {
@@ -36,9 +35,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({ email, token, expires_at: expiresAt })
     });
 
-    const resetLink = `https://sistema-citas-mu.vercel.app/reset-password.html?token=${token}`;
+    const resetLink = `${BASE_URL}/reset-password?token=${token}`;
 
-    // Enviar email con link real
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -51,7 +49,7 @@ export default async function handler(req, res) {
         subject: 'Recuperación de contraseña — Attempo',
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#1a1a2e">
-            <img src="https://sistema-citas-mu.vercel.app/logo_attempo.png" width="48" style="border-radius:12px;margin-bottom:20px" alt="Attempo">
+            <img src="${BASE_URL}/logo_attempo.png" width="48" style="border-radius:12px;margin-bottom:20px" alt="Attempo">
             <h2 style="margin:0 0 8px;font-size:20px;font-weight:700">Recuperación de contraseña</h2>
             <p style="margin:0 0 20px;color:#555;font-size:14px">
               Recibimos una solicitud para restablecer la contraseña de tu cuenta en Attempo.<br>
@@ -76,7 +74,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error('recover-password error');
     return res.status(500).json({ error: 'Error interno' });
   }
 }
