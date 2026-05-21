@@ -288,7 +288,7 @@ function loginSubmit() {
         nombre: data.nombre, rol: data.rol,
         email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
       }));
-      window.location.href = data.destino;
+      window.location.href = '/admin';
     } else {
       document.getElementById('btn-text').style.display = 'block';
       document.getElementById('spinner').style.display  = 'none';
@@ -386,17 +386,7 @@ function enviarRecuperacion() {
   });
 }
 
-// ── SESIÓN ACTIVA ──
 document.getElementById('usuario').focus();
-try {
-  var sesion = localStorage.getItem('attempo_user');
-  if (sesion) {
-    var data = JSON.parse(sesion);
-    if (Date.now() - data.ts < 8 * 60 * 60 * 1000) {
-      window.location.href = data.rol === 'superadmin' ? 'superadmin.html' : 'admin.html';
-    }
-  }
-} catch(e) {}
 </script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Attempo — Dashboard</title>
-<script>(function(){if(!localStorage.getItem('attempo_user'))window.location.replace('/login.html');}());</script>
+<script>(function(){if(!localStorage.getItem('attempo_user'))window.location.replace('/login');}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1467,6 +1467,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="ptab"    id="ctab-profesionales"  onclick="showCfg('profesionales',this)">Profesionales</button>
         <button class="ptab"    id="ctab-horarios"       onclick="showCfg('horarios',this)">Horarios</button>
         <button class="ptab"    id="ctab-notificaciones" onclick="showCfg('notificaciones',this)">Notificaciones</button>
+        <button class="ptab"    id="ctab-servicios"      onclick="showCfg('servicios',this)">Servicios</button>
+        <button class="ptab"    id="ctab-pagos"          onclick="showCfg('pagos',this)">Pagos</button>
       </div>
     </div>
 
@@ -1653,6 +1655,117 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
       <div style="display:flex;justify-content:flex-end;padding-top:4px">
         <button class="btn-a" onclick="toast('Notificaciones guardadas')">Guardar cambios</button>
+      </div>
+    </div>
+
+    <!-- Panel: Servicios -->
+    <div id="cfg-servicios" style="display:none">
+      <div class="vh" style="margin-bottom:16px">
+        <span>Catálogo de servicios</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Servicios ofrecidos</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">El asistente AI usará esta lista para informar precios y duración al agendar.</div>
+        <div id="srv-list" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden;margin-bottom:14px">
+          <div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando servicios...</div>
+        </div>
+        <!-- Formulario agregar servicio -->
+        <div style="border:1px dashed var(--b2);border-radius:var(--rl);padding:14px;background:var(--adim)">
+          <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:10px">Agregar servicio</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <input id="srv-nombre" type="text" placeholder="Nombre del servicio (ej: Consulta general)" class="fi" style="width:100%">
+            <div style="display:flex;gap:8px">
+              <input id="srv-duracion" type="number" placeholder="Duración (min)" class="fi" style="flex:1" min="5" step="5">
+              <input id="srv-precio"   type="number" placeholder="Precio ($)" class="fi" style="flex:1" min="0">
+            </div>
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn-a" onclick="agregarServicio()">+ Agregar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+        <button class="btn-a" onclick="guardarServicios()">Guardar catálogo</button>
+      </div>
+    </div>
+
+    <!-- Panel: Pagos -->
+    <div id="cfg-pagos" style="display:none">
+      <div class="vh" style="margin-bottom:16px">
+        <span>Métodos de pago</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">¿Cómo aceptas pagos?</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Esta información se muestra en los correos de confirmación de cita.</div>
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Webpay / Transbank</div>
+              <div style="font-size:12px;color:var(--t3)">Pago online con tarjeta de crédito o débito</div>
+            </div>
+            <input type="checkbox" id="pago-webpay" style="accent-color:var(--a);width:16px;height:16px">
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)" onclick="toggleBancoDatos()">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Transferencia bancaria</div>
+              <div style="font-size:12px;color:var(--t3)">El cliente transfiere antes de la cita</div>
+            </div>
+            <input type="checkbox" id="pago-transferencia" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleBancoDatos()">
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Efectivo en el local</div>
+              <div style="font-size:12px;color:var(--t3)">El cliente paga al llegar a la consulta</div>
+            </div>
+            <input type="checkbox" id="pago-efectivo" style="accent-color:var(--a);width:16px;height:16px">
+          </label>
+        </div>
+      </div>
+
+      <!-- Datos bancarios (se muestra si transferencia activa) -->
+      <div id="banco-datos" style="display:none">
+        <div class="card" style="padding:20px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Datos para transferencia</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Estos datos aparecerán en el correo para que el cliente transfiera.</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:8px">
+              <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Banco</label>
+                <select id="banco-banco" class="fs" style="width:100%">
+                  <option value="">Seleccionar banco...</option>
+                  <option>BancoEstado</option>
+                  <option>Banco de Chile</option>
+                  <option>Banco Santander Chile</option>
+                  <option>BCI</option>
+                  <option>Banco BICE</option>
+                  <option>Scotiabank Chile</option>
+                  <option>Banco Itaú Chile</option>
+                  <option>Banco Security</option>
+                  <option>Banco Consorcio</option>
+                  <option>Banco Falabella</option>
+                  <option>Banco Ripley</option>
+                  <option>Banco Internacional</option>
+                  <option>COOPEUCH</option>
+                  <option>Tenpo Prepago</option>
+                  <option>MACH</option>
+                  <option>Mercado Pago</option>
+                </select>
+              </div>
+              <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Tipo de cuenta</label><select id="banco-tipo" class="fs" style="width:100%"><option value="">Seleccionar...</option><option value="Cuenta corriente">Cuenta corriente</option><option value="Cuenta vista">Cuenta vista</option><option value="Cuenta RUT">Cuenta RUT</option><option value="Cuenta de ahorro">Cuenta de ahorro</option></select></div>
+            </div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Número de cuenta</label><input id="banco-cuenta" type="text" placeholder="Ej: 1234567890" class="fi" style="width:100%"></div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">RUT titular</label><input id="banco-rut" type="text" placeholder="Ej: 18.741.085-9" class="fi" style="width:100%" oninput="formatRutInput(this)" maxlength="13"></div>
+              <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre titular</label><input id="banco-nombre" type="text" placeholder="Ej: Clínica Ejemplo" class="fi" style="width:100%"></div>
+            </div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Email para comprobante (opcional)</label><input id="banco-email" type="email" placeholder="pagos@clinica.cl" class="fi" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+        <button class="btn-a" onclick="guardarPagos()">Guardar métodos de pago</button>
       </div>
     </div>
 
@@ -2418,16 +2531,211 @@ function updateReport(p, btn) {
 
 /* ════ CONFIG PANEL SWITCHING ════ */
 function showCfg(panel, btn, skipPush) {
-  ['general','profesionales','horarios','notificaciones'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos'].forEach(p => {
     const el = document.getElementById('cfg-' + p);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
-  ['general','profesionales','horarios','notificaciones'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos'].forEach(p => {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
   if (panel === 'profesionales') cargarProfesionales();
+  if (panel === 'servicios')     cargarServicios();
+  if (panel === 'pagos')         cargarPagos();
   if (!skipPush) history.pushState({ section:'config', sub: panel }, '', '/configuracion/' + panel);
+}
+
+/* ════ SERVICIOS ════ */
+let _serviciosCache = [];
+
+async function cargarServicios() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios&limit=1`, { headers: _SH });
+    const [cli] = await r.json();
+    _serviciosCache = Array.isArray(cli?.servicios) ? cli.servicios : [];
+    renderServicios();
+  } catch(e) { console.error('cargarServicios:', e); }
+}
+
+function renderServicios() {
+  const el = document.getElementById('srv-list');
+  if (!el) return;
+  if (!_serviciosCache.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin servicios. Agrega el primero abajo.</div>';
+    return;
+  }
+  el.innerHTML = _serviciosCache.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;${i < _serviciosCache.length-1 ? 'border-bottom:1px solid var(--b1)' : ''}">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--t1)">${s.nombre}</div>
+        <div style="font-size:11px;color:var(--t3)">
+          ${s.duracion ? s.duracion + ' min' : ''}
+          ${s.duracion && s.precio ? ' · ' : ''}
+          ${s.precio ? '$' + Number(s.precio).toLocaleString('es-CL') : ''}
+        </div>
+      </div>
+      <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px" title="Eliminar">×</button>
+    </div>
+  `).join('');
+}
+
+function agregarServicio() {
+  const nombre  = document.getElementById('srv-nombre')?.value.trim();
+  const duracion = parseInt(document.getElementById('srv-duracion')?.value) || null;
+  const precio   = parseInt(document.getElementById('srv-precio')?.value)   || null;
+  if (!nombre) { toast('Ingresa un nombre para el servicio'); return; }
+  _serviciosCache.push({ nombre, duracion, precio });
+  renderServicios();
+  document.getElementById('srv-nombre').value  = '';
+  document.getElementById('srv-duracion').value = '';
+  document.getElementById('srv-precio').value   = '';
+}
+
+function eliminarServicio(idx) {
+  _serviciosCache.splice(idx, 1);
+  renderServicios();
+}
+
+async function guardarServicios() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ servicios: _serviciosCache })
+    });
+    if (!r.ok) throw new Error('Error al guardar');
+    toast('✓ Catálogo guardado');
+  } catch(e) { toast('Error al guardar: ' + e.message); }
+}
+
+/* ════ PAGOS ════ */
+async function cargarPagos() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago,datos_banco&limit=1`, { headers: _SH });
+    const [cli] = await r.json();
+    const mp = cli?.metodos_pago || {};
+    const db = cli?.datos_banco  || {};
+    const el = id => document.getElementById(id);
+    if (el('pago-webpay'))        el('pago-webpay').checked        = !!mp.webpay;
+    if (el('pago-transferencia')) el('pago-transferencia').checked = !!mp.transferencia;
+    if (el('pago-efectivo'))      el('pago-efectivo').checked      = !!mp.efectivo;
+    if (el('banco-banco'))  el('banco-banco').value  = db.banco  || '';
+    if (el('banco-tipo'))   el('banco-tipo').value   = db.tipo   || '';
+    if (el('banco-cuenta')) el('banco-cuenta').value = db.cuenta || '';
+    if (el('banco-rut'))    el('banco-rut').value    = db.rut    || '';
+    if (el('banco-nombre')) el('banco-nombre').value = db.nombre || '';
+    if (el('banco-email'))  el('banco-email').value  = db.email  || '';
+    toggleBancoDatos();
+  } catch(e) { console.error('cargarPagos:', e); }
+}
+
+function toggleBancoDatos() {
+  const checked = document.getElementById('pago-transferencia')?.checked;
+  const bd = document.getElementById('banco-datos');
+  if (bd) bd.style.display = checked ? 'block' : 'none';
+}
+
+async function guardarPagos() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  const el = id => document.getElementById(id);
+  const metodos_pago = {
+    webpay:        el('pago-webpay')?.checked        || false,
+    transferencia: el('pago-transferencia')?.checked || false,
+    efectivo:      el('pago-efectivo')?.checked      || false
+  };
+  const datos_banco = {
+    banco:  el('banco-banco')?.value.trim()  || '',
+    tipo:   el('banco-tipo')?.value          || '',
+    cuenta: el('banco-cuenta')?.value.trim() || '',
+    rut:    el('banco-rut')?.value.trim()    || '',
+    nombre: el('banco-nombre')?.value.trim() || '',
+    email:  el('banco-email')?.value.trim()  || ''
+  };
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ metodos_pago, datos_banco })
+    });
+    if (!r.ok) throw new Error('Error al guardar');
+    toast('✓ Métodos de pago guardados');
+  } catch(e) { toast('Error al guardar: ' + e.message); }
+}
+
+/* ════ FORMATO RUT ════ */
+function formatRutInput(input) {
+  let val = input.value.replace(/\./g, '').replace(/-/g, '').replace(/[^0-9kK]/g, '').toUpperCase();
+  if (!val) { input.value = ''; return; }
+  const dv   = val.slice(-1);
+  const body = val.slice(0, -1);
+  if (!body) { input.value = dv; return; }
+  input.value = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
+}
+
+/* ════ GOOGLE CALENDAR ════ */
+async function iniciarGoogleCalendar() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  window.location.href = `/api/google-auth?cliente_id=${cid}`;
+}
+
+async function desconectarGoogleCalendar() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  if (!confirm('¿Desconectar Google Calendar? Las citas existentes no se eliminarán de tu calendario.')) return;
+  try {
+    const r = await fetch('/api/google-auth', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: cid })
+    });
+    if ((await r.json()).ok) {
+      toast('Google Calendar desconectado');
+      actualizarUiGoogleCalendar(false);
+    }
+  } catch(e) { toast('Error al desconectar'); }
+}
+
+async function cargarEstadoGoogleCalendar() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  document.getElementById('gc-btn-conectar')?.style && (document.getElementById('gc-btn-conectar').style.display = 'none');
+  document.getElementById('gc-conectado')?.style  && (document.getElementById('gc-conectado').style.display  = 'none');
+  document.getElementById('gc-cargando')  && (document.getElementById('gc-cargando').style.display  = 'inline');
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=google_refresh_token&limit=1`, { headers: _SH });
+    const [cli] = await r.json();
+    actualizarUiGoogleCalendar(!!cli?.google_refresh_token);
+  } catch(_) { actualizarUiGoogleCalendar(false); }
+}
+
+function actualizarUiGoogleCalendar(conectado) {
+  const btnConectar  = document.getElementById('gc-btn-conectar');
+  const divConectado = document.getElementById('gc-conectado');
+  const divCargando  = document.getElementById('gc-cargando');
+  if (divCargando)  divCargando.style.display  = 'none';
+  if (btnConectar)  btnConectar.style.display  = conectado ? 'none'         : 'inline-flex';
+  if (divConectado) divConectado.style.display  = conectado ? 'flex'         : 'none';
+}
+
+/* ════ API KEY ════ */
+async function copiarApiKey() {
+  const txt = document.getElementById('api-key-display')?.textContent;
+  if (!txt || txt === 'Cargando...') return;
+  try { await navigator.clipboard.writeText(txt); toast('Clave API copiada'); } catch(_) {}
+}
+
+async function cargarApiKey() {
+  const cid = await getClienteId();
+  const el = document.getElementById('api-key-display');
+  if (el && cid) el.textContent = 'ak_' + cid;
 }
 
 /* ════ PERFIL ════ */
@@ -3335,6 +3643,7 @@ function toast(msg) {
 function openCfgModal(key) {
   const ov = document.getElementById('cfg-' + key + '-ov');
   if (ov) ov.classList.add('open');
+  if (key === 'integraciones') { cargarApiKey(); cargarEstadoGoogleCalendar(); }
 }
 function closeCfgModal(key) {
   const ov = document.getElementById('cfg-' + key + '-ov');
@@ -3436,6 +3745,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const saved = localStorage.getItem('attempo_logo');
     if (saved) applyLogo(saved);
   } catch(e) {}
+
+  // Manejar callback de Google Calendar OAuth
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('gc_ok') === '1') {
+    history.replaceState({}, '', window.location.pathname);
+    setTimeout(() => {
+      sv('config', null, true);
+      showCfg('general', null, true);
+      openCfgModal('integraciones');
+      toast('✓ Google Calendar conectado correctamente');
+    }, 600);
+  } else if (urlParams.get('gc_error') === '1') {
+    history.replaceState({}, '', window.location.pathname);
+    setTimeout(() => {
+      sv('config', null, true);
+      showCfg('general', null, true);
+      openCfgModal('integraciones');
+      toast('Error al conectar Google Calendar. Intenta de nuevo.');
+    }, 600);
+  }
 });
 
 /* ════ COPY LINK ════ */
@@ -4116,32 +4445,32 @@ function salirImpersonacion() {
     <div class="modal-head"><span class="modal-title">Integraciones</span><button class="mclose" onclick="closeCfgModal('integraciones')">×</button></div>
     <div class="mbody" style="gap:14px">
       <!-- Google Calendar -->
-      <div style="padding:14px;border:1px solid var(--b1);border-radius:var(--rl);display:flex;align-items:center;gap:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#EA4335,#FBBC04);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📅</div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:500;color:var(--t1)">Google Calendar</div>
-          <div style="font-size:12px;color:var(--t3)">Sincroniza tus citas con Google Calendar automáticamente</div>
+      <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+        <div style="padding:14px;display:flex;align-items:center;gap:14px">
+          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#EA4335,#FBBC04);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📅</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--t1)">Google Calendar</div>
+            <div style="font-size:12px;color:var(--t3)">Cada cita confirmada se agrega automáticamente a tu calendario</div>
+          </div>
+          <button id="gc-btn-conectar" class="btn-a" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="iniciarGoogleCalendar()">Conectar</button>
+          <div id="gc-conectado" style="display:none;align-items:center;gap:8px">
+            <span class="tag tg">Conectado</span>
+            <button onclick="desconectarGoogleCalendar()" style="font-size:11px;color:var(--red);border:none;background:none;cursor:pointer;padding:2px 0;font-family:var(--font)">Desconectar</button>
+          </div>
+          <div id="gc-cargando" style="font-size:12px;color:var(--t3)">...</div>
         </div>
-        <button class="btn-a" style="font-size:12px;padding:6px 14px" onclick="toast('Conectando con Google Calendar...')">Conectar</button>
+        <div style="padding:12px 14px;background:var(--adim);border-top:1px solid var(--b1)">
+          <div style="font-size:12px;color:var(--t3);line-height:1.6">Al conectar tu cuenta de Google, cada nueva cita creará automáticamente un evento en tu Google Calendar con los datos del paciente, profesional y hora. Si la cita se cancela o reagenda, el evento se actualiza solo.</div>
+        </div>
       </div>
       <!-- WhatsApp Business -->
       <div style="padding:14px;border:1px solid var(--b1);border-radius:var(--rl);display:flex;align-items:center;gap:14px">
         <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#25D366,#128C7E);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💬</div>
         <div style="flex:1">
           <div style="font-size:13px;font-weight:500;color:var(--t1)">WhatsApp Business API</div>
-          <div style="font-size:12px;color:var(--t3)">Envío masivo de recordatorios y confirmaciones</div>
+          <div style="font-size:12px;color:var(--t3)">Envío automático de recordatorios y confirmaciones por WhatsApp</div>
         </div>
-        <span class="tag tg">Activo</span>
-      </div>
-      <!-- API -->
-      <div style="padding:14px;border:1px solid var(--b1);border-radius:var(--rl);background:rgba(248,247,255,0.6)">
-        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:6px">API pública</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:10px">Conecta Attempo con tus propias herramientas y sistemas</div>
-        <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--b1);border-radius:var(--r);padding:8px 12px">
-          <span style="font-family:var(--mono);font-size:12px;color:var(--t2);flex:1">ak_live_••••••••••••••••••••</span>
-          <button class="btn-sm" onclick="toast('Clave API copiada')">Copiar</button>
-          <button class="btn-sm" onclick="toast('Nueva clave generada')">Regenerar</button>
-        </div>
+        <span class="tag ta">Próximamente</span>
       </div>
     </div>
     <div class="mfoot">
@@ -4333,7 +4662,7 @@ function routeFromURL() {
   const section = parts[0];
   const sub     = parts[1] || null;
   const calSubs = ['semana','dia','mes','lista'];
-  const cfgSubs = ['general','profesionales','horarios','notificaciones'];
+  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos'];
 
   if (!section || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);
