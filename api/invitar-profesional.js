@@ -21,7 +21,7 @@ const ROL_LABELS = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { email, nombre, rol, cliente_id } = req.body || {};
+  const { email, nombre, rol, cliente_id, reenviar } = req.body || {};
   if (!email || !nombre || !cliente_id) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
   }
@@ -41,16 +41,38 @@ export default async function handler(req, res) {
     );
     const existing = await check.json();
 
-    if (existing.length > 0) {
-      return res.json({ ok: true, ya_tiene_acceso: true });
-    }
-
-    // Generar contraseña temporal
-    const tempPassword = crypto.randomBytes(5).toString('hex'); // 10 chars
+    // Generar nueva clave temporal
+    const tempPassword   = crypto.randomBytes(5).toString('hex');
     const hashedPassword = await hashPassword(tempPassword);
+    const username       = email.toLowerCase();
+    const rolLabel       = ROL_LABELS[rol] || 'Staff / Profesional';
 
-    // Username = email (único y fácil de recordar)
-    const username = email.toLowerCase();
+    if (existing.length > 0) {
+      if (!reenviar) return res.json({ ok: true, ya_tiene_acceso: true });
+      // Modo reenvío: actualizar clave y reenviar email
+      await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${existing[0].id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ password: hashedPassword })
+      });
+      if (process.env.RESEND_API_KEY) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Attempo <contacto@attempo.cl>',
+            to: email,
+            subject: 'Tu acceso a Attempo — nueva clave',
+            headers: {
+              'List-Unsubscribe': `<mailto:contacto@attempo.cl?subject=unsubscribe>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+            },
+            html: inviteHtml({ nombre, username, tempPassword, rolLabel, loginUrl: `${BASE_URL}/login` })
+          })
+        }).catch(() => {});
+      }
+      return res.json({ ok: true, reenviado: true });
+    }
 
     const createR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
       method: 'POST',
@@ -72,7 +94,6 @@ export default async function handler(req, res) {
 
     // Enviar email de invitación
     if (process.env.RESEND_API_KEY) {
-      const rolLabel = ROL_LABELS[rol] || 'Staff / Profesional';
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
