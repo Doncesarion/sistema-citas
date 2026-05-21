@@ -1,4 +1,4 @@
-const BASE_URL = process.env.BASE_URL || 'https://app.attempo.cl';
+const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
 function htmlEscape(str) {
   if (!str && str !== 0) return '';

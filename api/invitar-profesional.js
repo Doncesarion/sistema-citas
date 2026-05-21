@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { promisify } from 'util';
 
 const scryptAsync = promisify(crypto.scrypt);
-const BASE_URL = process.env.BASE_URL || 'https://app.attempo.cl';
+const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');

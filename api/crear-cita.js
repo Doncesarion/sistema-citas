@@ -1,4 +1,4 @@
-const BASE_URL = process.env.BASE_URL || 'https://app.attempo.cl';
+const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
