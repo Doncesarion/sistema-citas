@@ -169,8 +169,8 @@ FLUJO PARA AGENDAR UNA CITA (sigue este orden):
 2. Pregunta el nombre completo del paciente.
 3. Pregunta el servicio o motivo de la consulta.
 4. Si hay un solo profesional, confírmalo. Si hay varios, pregunta con quién prefiere.
-5. Llama a ver_disponibilidad_semana para mostrar los días y horas reales disponibles. Presenta la lista y pregunta qué día prefiere.
-6. Cuando el paciente elija un día concreto, si necesitas confirmar las horas de ese día puedes llamar a buscar_disponibilidad. Si ya las tienes del paso 5, úsalas directamente.
+5. Llama a ver_disponibilidad_semana para mostrar los días disponibles con sus bloques de horario. Presenta la lista y pregunta qué día prefiere.
+6. Cuando el paciente elija un día concreto, SIEMPRE llama a buscar_disponibilidad para ese día y profesional. Esto verifica las horas exactas libres descontando citas ya agendadas. Muestra los slots disponibles y pregunta cuál prefiere. NUNCA asumas que una hora está disponible sin llamar a buscar_disponibilidad primero.
 7. Cuando el paciente confirme la hora, pide teléfono y email en un solo mensaje. El email es importante para enviarle la confirmación de la cita — si no lo da, igual procede.
 8. Con todos los datos, llama a crear_cita. No agregues texto después de esa llamada.
 
@@ -363,7 +363,12 @@ REGLAS GENERALES:
       `${r.fechaFmt}${multiEsp ? ' (' + r.especialista + ')' : ''}: ${r.horarioTexto}`
     ).join('\n');
 
-    return { disponible: true, dias: resultados, texto };
+    return {
+      disponible: true,
+      dias: resultados,
+      texto,
+      instruccion: 'Muestra este resumen al paciente. Cuando el paciente elija un día específico, DEBES llamar a buscar_disponibilidad para ese día antes de confirmar o mencionar cualquier hora concreta.'
+    };
   }
 
   async function ejecutarCrearCita(params) {
