@@ -3435,38 +3435,52 @@ function closeEditProf() {
   document.getElementById('edit-prof-ov').classList.remove('open');
 }
 
+function _horOpts(selected) {
+  const HORAS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'];
+  return HORAS.map(t => `<option value="${t}"${t===selected?' selected':''}>${t}</option>`).join('');
+}
+
+function _bloqueRow(desde, hasta) {
+  return `<div class="hp-bloque" style="display:flex;align-items:center;gap:6px;margin-top:5px;padding-left:92px">
+    <select class="fs" style="padding:4px 8px;font-size:12px;width:76px">${_horOpts(desde||'09:00')}</select>
+    <span style="font-size:12px;color:var(--t3)">–</span>
+    <select class="fs" style="padding:4px 8px;font-size:12px;width:76px">${_horOpts(hasta||'18:00')}</select>
+    <button onclick="if(this.closest('#hblk-'+this.closest('[data-dia]').dataset.dia).querySelectorAll('.hp-bloque').length>1)this.closest('.hp-bloque').remove()" style="color:var(--t4);border:none;background:none;font-size:18px;cursor:pointer;line-height:1;padding:0 3px" title="Eliminar bloque">×</button>
+  </div>`;
+}
+
 function renderHorarioEdit(h) {
   const dias = [{k:'lun',l:'Lunes'},{k:'mar',l:'Martes'},{k:'mie',l:'Miércoles'},{k:'jue',l:'Jueves'},{k:'vie',l:'Viernes'},{k:'sab',l:'Sábado'},{k:'dom',l:'Domingo'}];
-  const HORAS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'];
-  const opts = HORAS.map(t => `<option value="${t}">${t}</option>`).join('');
   document.getElementById('ep-horario').innerHTML = dias.map(({k,l}) => {
     const d = h[k] || {activo:false, bloques:[]};
     const activo = d.activo;
-    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--b1)">
-      <input type="checkbox" id="hd-${k}" ${activo?'checked':''} onchange="toggleHorarioDia('${k}',this.checked)" style="accent-color:var(--a);cursor:pointer;flex-shrink:0">
-      <span style="width:82px;font-size:13px;color:var(--t2);flex-shrink:0">${l}</span>
-      <div id="hblk-${k}" style="display:flex;align-items:center;gap:6px;flex:1;${activo?'':'opacity:.35;pointer-events:none'}">
-        <select class="fs" id="hd-${k}-desde" style="padding:4px 8px;font-size:12px;width:76px">${opts}</select>
-        <span style="font-size:12px;color:var(--t3)">–</span>
-        <select class="fs" id="hd-${k}-hasta" style="padding:4px 8px;font-size:12px;width:76px">${opts}</select>
+    const bloques = (d.bloques?.length ? d.bloques : [{desde:'09:00',hasta:'18:00'}]);
+    const bloquesHtml = bloques.map(b => _bloqueRow(b.desde, b.hasta)).join('');
+    return `<div data-dia="${k}" style="padding:7px 0;${k!=='dom'?'border-bottom:1px solid var(--b1)':''}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="hd-${k}" ${activo?'checked':''} onchange="toggleHorarioDia('${k}',this.checked)" style="accent-color:var(--a);cursor:pointer;flex-shrink:0">
+        <span style="width:82px;font-size:13px;color:var(--t2);flex-shrink:0">${l}</span>
+        <span id="hcerrado-${k}" style="font-size:12px;color:var(--t4)${activo?';display:none':''}">Cerrado</span>
+        <button id="hbtn-${k}" onclick="addBloqueProf('${k}')" style="font-size:11px;color:var(--a);border:1px dashed rgba(108,92,228,0.35);background:none;padding:2px 8px;border-radius:5px;cursor:pointer;margin-left:auto${activo?'':';display:none'}">+ Bloque</button>
       </div>
-      <span id="hcerrado-${k}" style="font-size:12px;color:var(--t4);${activo?'display:none':''}">Cerrado</span>
+      <div id="hblk-${k}" style="${activo?'':'opacity:.35;pointer-events:none'}">${bloquesHtml}</div>
     </div>`;
   }).join('');
-  dias.forEach(({k}) => {
-    const blq = (h[k]?.bloques||[])[0] || {};
-    const de = document.getElementById(`hd-${k}-desde`);
-    const ha = document.getElementById(`hd-${k}-hasta`);
-    if (de) de.value = blq.desde || '09:00';
-    if (ha) ha.value = blq.hasta || '18:00';
-  });
+}
+
+function addBloqueProf(dia) {
+  const container = document.getElementById('hblk-' + dia);
+  if (!container) return;
+  container.insertAdjacentHTML('beforeend', _bloqueRow('09:00','18:00'));
 }
 
 function toggleHorarioDia(dia, activo) {
   const blk = document.getElementById('hblk-' + dia);
   const cer = document.getElementById('hcerrado-' + dia);
+  const btn = document.getElementById('hbtn-' + dia);
   if (blk) { blk.style.opacity = activo?'1':'.35'; blk.style.pointerEvents = activo?'':'none'; }
   if (cer) cer.style.display = activo ? 'none' : '';
+  if (btn) btn.style.display = activo ? '' : 'none';
 }
 
 function getHorarioFromModal() {
@@ -3474,9 +3488,14 @@ function getHorarioFromModal() {
   const h = {};
   dias.forEach(d => {
     const activo = document.getElementById('hd-'+d)?.checked || false;
-    const desde  = document.getElementById('hd-'+d+'-desde')?.value || '09:00';
-    const hasta  = document.getElementById('hd-'+d+'-hasta')?.value || '18:00';
-    h[d] = {activo, bloques: activo ? [{desde, hasta}] : []};
+    const bloques = [];
+    if (activo) {
+      document.querySelectorAll(`#hblk-${d} .hp-bloque`).forEach(row => {
+        const sels = row.querySelectorAll('select');
+        if (sels.length >= 2) bloques.push({ desde: sels[0].value, hasta: sels[1].value });
+      });
+    }
+    h[d] = { activo, bloques };
   });
   return h;
 }
