@@ -894,42 +894,40 @@ function updateResumen() {
 }
 
 /* ════ CONFIRMAR ════ */
-function confirmar() {
-  // Fill confirmation card
-  document.getElementById('cf-svc').textContent   = st.svc   ? `${st.svc.nom} · ${st.svc.dur}` : '—';
-  document.getElementById('cf-prof').textContent  = st.prof  ? st.prof.nom : '—';
-  document.getElementById('cf-hora').textContent  = st.hora  || '—';
-  document.getElementById('cf-precio').textContent = st.svc  ? '$' + st.svc.precio.toLocaleString('es-CL') : '—';
+async function confirmar() {
+  const btn = document.getElementById('btn4');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  const emailPaciente  = document.getElementById('d-em').value.trim();
+  const nombreCompleto = document.getElementById('d-nom').value.trim() + ' ' + document.getElementById('d-ap').value.trim();
+  const telPaciente    = document.getElementById('d-tel').value.trim();
+  const notaPaciente   = document.getElementById('d-nota').value.trim();
+
   let fechaTexto = '—';
   if (st.fecha) {
     const d = new Date(st.fecha.y, st.fecha.m, st.fecha.d);
     const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     fechaTexto = `${dias[d.getDay()]} ${st.fecha.d} de ${MESES[st.fecha.m].toLowerCase()} ${st.fecha.y}`;
-    document.getElementById('cf-fecha').textContent = fechaTexto;
   }
-  // Enviar email de confirmación y guardar en Supabase
-  const emailPaciente = document.getElementById('d-em').value.trim();
-  const nombreCompleto = document.getElementById('d-nom').value.trim() + ' ' + document.getElementById('d-ap').value.trim();
-  const telPaciente    = document.getElementById('d-tel').value.trim();
-  const notaPaciente   = document.getElementById('d-nota').value.trim();
-  if (emailPaciente) {
-    fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to:          emailPaciente,
-        cliente:     nombreCompleto,
-        negocio:     'Attempo',
-        fecha:       fechaTexto,
-        hora:        (st.hora || '—') + ' hrs',
-        especialista: st.prof ? st.prof.nom : '—',
-        servicio:    st.svc ? st.svc.nom : '—',
-        duracion:    st.svc ? st.svc.dur : '—',
-        total:       st.svc ? '$' + st.svc.precio.toLocaleString('es-CL') : '—'
-      })
-    }).catch(e => console.warn('Email error:', e));
+
+  const result = await guardarCitaSupabase(nombreCompleto, emailPaciente, telPaciente, notaPaciente);
+
+  btn.disabled = false;
+  btn.textContent = 'Confirmar reserva →';
+
+  if (!result.ok) {
+    showToast('Error al guardar la reserva: ' + result.error, '#DC2626');
+    return;
   }
-  guardarCitaSupabase(nombreCompleto, emailPaciente, telPaciente, notaPaciente);
+
+  // Fill confirmation card
+  document.getElementById('cf-svc').textContent    = st.svc  ? `${st.svc.nom} · ${st.svc.dur}` : '—';
+  document.getElementById('cf-prof').textContent   = st.prof ? st.prof.nom : '—';
+  document.getElementById('cf-hora').textContent   = st.hora || '—';
+  document.getElementById('cf-precio').textContent = st.svc  ? '$' + st.svc.precio.toLocaleString('es-CL') : '—';
+  document.getElementById('cf-fecha').textContent  = fechaTexto;
+
   // Hide accordions, show confirmation
   [1,2,3,4].forEach(i => document.getElementById('acc'+i).style.display = 'none');
   document.getElementById('sbar').style.display = 'none';
@@ -937,7 +935,6 @@ function confirmar() {
   const c = document.getElementById('acc5');
   c.style.display = 'block';
   c.scrollIntoView({behavior:'smooth', block:'start'});
-  // Update step bar
   for (let i = 1; i <= 5; i++) {
     const sb = document.getElementById('sb'+i);
     sb.classList.remove('active','done');
@@ -971,11 +968,12 @@ async function guardarCitaSupabase(nombre, email, tel, nota) {
   try {
     // 1. Obtener cliente_id
     const r1 = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio&order=created_at.desc&limit=10`, { headers: SH });
-    if (!r1.ok) { console.error('clientes_sistema error:', r1.status); return; }
     const cls = await r1.json();
-    if (!Array.isArray(cls) || !cls.length) { console.error('Sin clientes en BD'); return; }
+    if (!r1.ok || !Array.isArray(cls) || !cls.length) {
+      return { ok: false, error: 'No se encontró el negocio (status ' + r1.status + ')' };
+    }
     const real = cls.find(c => !/demo|prueba|ejemplo|test/i.test(c.nombre_negocio||'')) || cls[0];
-    const cid = real.id;
+    const cid  = real.id;
 
     // 2. Buscar especialista_id
     let eid = null, espNombre = null;
@@ -989,61 +987,44 @@ async function guardarCitaSupabase(nombre, email, tel, nota) {
 
     const fecha = `${st.fecha.y}-${String(st.fecha.m + 1).padStart(2,'0')}-${String(st.fecha.d).padStart(2,'0')}`;
 
-    // 3. Llamar a /api/crear-cita (email + Google Calendar + insert)
-    let apiOk = false;
-    try {
-      const resp = await fetch('/api/crear-cita', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cliente_id:          cid,
-          especialista_id:     eid,
-          nombre_especialista: espNombre,
-          nombre_paciente:     nombre,
-          email_paciente:      email || null,
-          tel_paciente:        tel   || null,
-          servicio:            st.svc.nom,
-          precio:              st.svc.precio,
-          fecha,
-          hora:                st.hora,
-          negocio_nombre:      real.nombre_negocio,
-          duracion:            st.svc.dur || null,
-          nota:                nota || ''
-        })
-      });
-      if (resp.ok) { apiOk = true; }
-      else { console.warn('crear-cita devolvió error:', resp.status, await resp.text()); }
-    } catch(e) { console.warn('crear-cita fetch excepción:', e.message); }
-
-    // 4. Fallback: insertar directamente si la API falló
-    if (!apiOk) {
-      console.log('Usando fallback directo a Supabase');
-      const rf = await fetch(`${SUPA_URL}/rest/v1/citas`, {
-        method: 'POST',
-        headers: { ...SH, Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          cliente_id:      cid,
-          especialista_id: eid,
-          nombre_paciente: nombre,
-          email_paciente:  email || null,
-          tel_paciente:    tel   || null,
-          servicio:        st.svc.nom,
-          fecha,
-          hora:            st.hora,
-          estado:          'pending'
-        })
-      });
-      if (!rf.ok) {
-        const errTxt = await rf.text();
-        console.error('Fallback falló:', rf.status, errTxt);
-        showToast('Hubo un problema al guardar tu reserva. Por favor contáctanos.', '#DC2626');
-      } else {
-        console.log('Reserva guardada vía fallback');
-      }
+    // 3. Insert directo en Supabase (confiable)
+    const ri = await fetch(`${SUPA_URL}/rest/v1/citas`, {
+      method: 'POST',
+      headers: { ...SH, Prefer: 'return=representation' },
+      body: JSON.stringify({
+        cliente_id:      cid,
+        especialista_id: eid,
+        nombre_paciente: nombre,
+        email_paciente:  email || null,
+        tel_paciente:    tel   || null,
+        servicio:        st.svc.nom,
+        fecha,
+        hora:            st.hora,
+        estado:          'pending'
+      })
+    });
+    const riBody = await ri.json();
+    if (!ri.ok) {
+      return { ok: false, error: 'DB ' + ri.status + ': ' + (riBody?.message || JSON.stringify(riBody)) };
     }
+    const citaId = riBody[0]?.id;
+
+    // 4. Email + Google Calendar en background (no bloquea)
+    fetch('/api/crear-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cliente_id: cid, especialista_id: eid, nombre_especialista: espNombre,
+        nombre_paciente: nombre, email_paciente: email || null, tel_paciente: tel || null,
+        servicio: st.svc.nom, precio: st.svc.precio, fecha, hora: st.hora,
+        negocio_nombre: real.nombre_negocio, duracion: st.svc.dur || null,
+        nota: nota || '', _cita_id_ya_creada: citaId
+      })
+    }).catch(() => {});
+
+    return { ok: true };
   } catch(e) {
-    console.error('Error al guardar cita:', e);
-    showToast('Hubo un problema al guardar tu reserva. Por favor contáctanos.', '#DC2626');
+    return { ok: false, error: e.message };
   }
 }
 
