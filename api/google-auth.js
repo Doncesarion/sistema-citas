@@ -34,8 +34,9 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && req.query.code) {
     const { code, state: cliente_id, error } = req.query;
 
+    console.log('GC_AUTH callback: code present:', !!code, '| cliente_id from state:', cliente_id, '| error:', error);
     if (error || !code || !cliente_id) {
-      console.error('Google OAuth error:', error);
+      console.error('GC_AUTH: OAuth error or missing params:', { error, hasCode: !!code, cliente_id });
       return res.redirect(302, '/configuracion?gc_error=1');
     }
 
@@ -54,20 +55,26 @@ export default async function handler(req, res) {
       });
       const tokens = await tokenRes.json();
 
+      console.log('GC_AUTH token exchange: status:', tokenRes.status, '| has refresh_token:', !!tokens.refresh_token, '| has access_token:', !!tokens.access_token);
       if (!tokenRes.ok || !tokens.refresh_token) {
-        console.error('Google token exchange failed:', tokens);
+        console.error('GC_AUTH: token exchange failed:', JSON.stringify(tokens));
         return res.redirect(302, '/configuracion?gc_error=1');
       }
 
       // Guardar refresh_token en Supabase (con service key — nunca expuesto al cliente)
-      const patch = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+      console.log('GC_AUTH: saving token for cliente_id:', cliente_id, '| has refresh_token:', !!tokens.refresh_token);
+      const patch = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=id`, {
         method: 'PATCH',
-        headers: { ...sh, Prefer: 'return=minimal' },
+        headers: { ...sh, Prefer: 'return=representation' },
         body: JSON.stringify({ google_refresh_token: tokens.refresh_token })
       });
 
-      if (!patch.ok) {
-        console.error('Failed to save Google refresh token');
+      let patchBody;
+      try { patchBody = await patch.json(); } catch(_) { patchBody = null; }
+      console.log('GC_AUTH: patch status:', patch.status, '| rows updated:', Array.isArray(patchBody) ? patchBody.length : 'error', '| body:', JSON.stringify(patchBody));
+
+      if (!patch.ok || !Array.isArray(patchBody) || patchBody.length === 0) {
+        console.error('GC_AUTH: token save failed — 0 rows matched or DB error. cliente_id:', cliente_id);
         return res.redirect(302, '/configuracion?gc_error=1');
       }
 

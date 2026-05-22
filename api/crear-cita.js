@@ -58,13 +58,15 @@ export default async function handler(req, res) {
         `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token&limit=1`,
         { headers: sh }
       );
-      const [cli] = await rc.json();
+      const rcBody = await rc.json();
+      if (!rc.ok) { console.error('crear-cita: clientes_sistema fetch error:', JSON.stringify(rcBody)); }
+      const [cli] = Array.isArray(rcBody) ? rcBody : [];
       direccion            = cli?.direccion            || null;
       email_negocio        = cli?.email                || null;
       metodos_pago         = cli?.metodos_pago         || null;
       datos_banco          = cli?.datos_banco          || null;
       google_refresh_token = cli?.google_refresh_token || null;
-    } catch(_) {}
+    } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
 
     if (email_paciente && process.env.RESEND_API_KEY) {
       const fechaFmt = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', {
@@ -97,7 +99,8 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.json({ ok: true, cita });
+    console.log('crear-cita gc_debug:', JSON.stringify(gc_debug));
+    return res.json({ ok: true, cita, gc_debug });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: e.message });
