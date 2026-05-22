@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     console.log('GC_AUTH callback: code present:', !!code, '| cliente_id from state:', cliente_id, '| error:', error);
     if (error || !code || !cliente_id) {
       console.error('GC_AUTH: OAuth error or missing params:', { error, hasCode: !!code, cliente_id });
-      return res.redirect(302, '/configuracion?gc_error=1');
+      return res.redirect(302, '/gc-callback?status=error');
     }
 
     try {
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       console.log('GC_AUTH token exchange: status:', tokenRes.status, '| has refresh_token:', !!tokens.refresh_token, '| has access_token:', !!tokens.access_token);
       if (!tokenRes.ok || !tokens.refresh_token) {
         console.error('GC_AUTH: token exchange failed:', JSON.stringify(tokens));
-        return res.redirect(302, '/configuracion?gc_error=1');
+        return res.redirect(302, '/gc-callback?status=error');
       }
 
       // Guardar refresh_token en Supabase (con service key — nunca expuesto al cliente)
@@ -75,13 +75,13 @@ export default async function handler(req, res) {
 
       if (!patch.ok || !Array.isArray(patchBody) || patchBody.length === 0) {
         console.error('GC_AUTH: token save failed — 0 rows matched or DB error. cliente_id:', cliente_id);
-        return res.redirect(302, '/configuracion?gc_error=1');
+        return res.redirect(302, '/gc-callback?status=error');
       }
 
-      return res.redirect(302, '/configuracion?gc_ok=1');
+      return res.redirect(302, '/gc-callback?status=ok');
     } catch(e) {
       console.error('google-auth callback error:', e.message);
-      return res.redirect(302, '/configuracion?gc_error=1');
+      return res.redirect(302, '/gc-callback?status=error');
     }
   }
 

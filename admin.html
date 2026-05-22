@@ -2941,8 +2941,24 @@ function formatRutInput(input) {
 async function iniciarGoogleCalendar() {
   const cid = await getClienteId();
   if (!cid) return;
-  window.location.href = `/api/google-auth?cliente_id=${cid}`;
+  const url = `/api/google-auth?cliente_id=${cid}`;
+  const popup = window.open(url, 'gc_oauth', 'width=520,height=680,left=200,top=100,noopener=no');
+  if (!popup) {
+    // Fallback si el navegador bloquea popups
+    window.location.href = url;
+  }
 }
+
+window.addEventListener('message', function(e) {
+  if (e.data?.type !== 'gc_oauth') return;
+  if (e.data.ok) {
+    toast('✓ Google Calendar conectado correctamente');
+    actualizarUiGoogleCalendar(true);
+    cargarEstadoGoogleCalendar();
+  } else {
+    toast('Error al conectar Google Calendar. Intenta de nuevo.');
+  }
+});
 
 async function syncCitasGoogleCalendar() {
   const btn = document.getElementById('gc-sync-btn');

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Conectando Google Calendar...</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f3ff; }
+    .box { text-align: center; padding: 32px; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(108,92,228,.12); max-width: 320px; }
+    .icon { font-size: 40px; margin-bottom: 12px; }
+    p { color: #6b7280; font-size: 14px; margin: 0; }
+  </style>
+</head>
+<body>
+<div class="box">
+  <div class="icon" id="icon">⏳</div>
+  <p id="msg">Conectando Google Calendar...</p>
+</div>
+<script>
+  const p   = new URLSearchParams(location.search);
+  const ok  = p.get('status') === 'ok';
+  document.getElementById('icon').textContent = ok ? '✓' : '✗';
+  document.getElementById('msg').textContent  = ok ? 'Conectado correctamente. Cerrando...' : 'Error al conectar. Cerrando...';
+  if (window.opener) {
+    window.opener.postMessage({ type: 'gc_oauth', ok }, '*');
+    setTimeout(() => window.close(), 800);
+  } else {
+    // Fallback si no es popup
+    setTimeout(() => window.location.replace('/configuracion?' + (ok ? 'gc_ok=1' : 'gc_error=1')), 1000);
+  }
+</script>
+</body>
+</html>
