@@ -158,7 +158,7 @@ ${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.
 - Si preguntan por precios Y no hay catálogo: di que el valor lo coordina el profesional al reservar, y ofrece agendar.
-- Si preguntan por horario, disponibilidad o qué días atienden: llama SIEMPRE a ver_disponibilidad_semana para mostrar días y horas reales disponibles (con citas ya descontadas). Presenta el resultado así: "Contamos con disponibilidad en los siguientes horarios: [lista de días y horas]. ¿Cuál día te acomoda mejor?"
+- Si preguntan por horario, disponibilidad o qué días atienden: llama SIEMPRE a ver_disponibilidad_semana. Usa el campo `texto` del resultado tal cual, copiándolo con sus saltos de línea. Responde así: "Contamos con disponibilidad en los siguientes horarios:" + salto de línea + [campo texto del resultado, cada día en su propia línea] + salto de línea + "¿Cuál día te acomoda mejor?"
 - Si preguntan por teléfono, dirección u otra información que no tengas: respóndelo brevemente y ofrece agendar.
 - Si hay PREGUNTAS FRECUENTES configuradas, úsalas primero.
 - NUNCA digas "no tengo esa información" y te quedes ahí. Siempre conecta con lo que puedes hacer.
@@ -359,15 +359,50 @@ REGLAS GENERALES:
     if (!resultados.length) return { disponible: false, mensaje: 'No hay disponibilidad en los próximos días.' };
 
     const multiEsp = esps.length > 1;
-    const texto = resultados.map(r =>
-      `${r.fechaFmt}${multiEsp ? ' (' + r.especialista + ')' : ''}: ${r.horarioTexto}`
-    ).join('\n');
+
+    // Agrupar días consecutivos con el mismo horario y mismo profesional
+    const grupos = [];
+    let grupo = [resultados[0]];
+    for (let i = 1; i < resultados.length; i++) {
+      const prev = resultados[i - 1];
+      const curr = resultados[i];
+      const diffDias = Math.round((new Date(curr.fecha + 'T12:00:00') - new Date(prev.fecha + 'T12:00:00')) / 86400000);
+      if (diffDias === 1 && curr.horarioTexto === prev.horarioTexto && curr.especialista_id === prev.especialista_id) {
+        grupo.push(curr);
+      } else {
+        grupos.push(grupo);
+        grupo = [curr];
+      }
+    }
+    grupos.push(grupo);
+
+    const texto = grupos.map(g => {
+      const first = g[0];
+      const last  = g[g.length - 1];
+      const espSuffix = multiEsp ? ` (${first.especialista})` : '';
+      if (g.length === 1) {
+        return `${first.fechaFmt}${espSuffix}: ${first.horarioTexto}`;
+      }
+      // rango: "Martes 26 a Viernes 29 de mayo"
+      const dF = new Date(first.fecha + 'T12:00:00');
+      const dL = new Date(last.fecha + 'T12:00:00');
+      const dkF = ['dom','lun','mar','mie','jue','vie','sab'][dF.getDay()];
+      const dkL = ['dom','lun','mar','mie','jue','vie','sab'][dL.getDay()];
+      const dnF = diasFmt[dkF];
+      const dnL = diasFmt[dkL];
+      const mnF = messFmt[dF.getMonth()];
+      const mnL = messFmt[dL.getMonth()];
+      const rango = mnF === mnL
+        ? `${dnF} ${dF.getDate()} a ${dnL} ${dL.getDate()} de ${mnL}`
+        : `${dnF} ${dF.getDate()} de ${mnF} a ${dnL} ${dL.getDate()} de ${mnL}`;
+      return `${rango}${espSuffix}: ${first.horarioTexto}`;
+    }).join('\n');
 
     return {
       disponible: true,
       dias: resultados,
       texto,
-      instruccion: 'Muestra este resumen al paciente. Cuando el paciente elija un día específico, DEBES llamar a buscar_disponibilidad para ese día antes de confirmar o mencionar cualquier hora concreta.'
+      instruccion: 'Copia el campo texto tal como está, con cada línea en su propia línea. Cuando el paciente elija un día, llama SIEMPRE a buscar_disponibilidad para ese día antes de mencionar horas concretas.'
     };
   }
 
