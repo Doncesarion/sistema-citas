@@ -18,6 +18,7 @@
     { "source": "/configuracion",                  "destination": "/admin.html" },
     { "source": "/configuracion/:sub",             "destination": "/admin.html" },
     { "source": "/gc-callback",                     "destination": "/gc-callback.html" },
+    { "source": "/privacidad",                      "destination": "/privacidad.html" },
     { "source": "/gestionar-cita",                 "destination": "/gestionar-cita.html" },
     { "source": "/accesos",                        "destination": "/accesos.html" },
     { "source": "/reservar/:slug",                 "destination": "/booking.html" },

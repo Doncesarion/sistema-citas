@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Política de Privacidad — Attempo</title>
+  <meta name="description" content="Política de privacidad de Attempo, sistema de agendamiento de citas para profesionales de la salud y bienestar.">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',system-ui,sans-serif;background:#faf9ff;color:#1e1b3a;line-height:1.7}
+    a{color:#6C5CE4;text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* NAV */
+    nav{background:#16143A;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:18px;text-decoration:none}
+    .nav-logo img{height:32px}
+    .nav-back{font-size:13px;color:rgba(255,255,255,.65);text-decoration:none;transition:color .15s}
+    .nav-back:hover{color:#fff;text-decoration:none}
+
+    /* HERO */
+    .hero{background:linear-gradient(135deg,#1E1B3A 0%,#16143A 60%,#1A1642 100%);padding:56px 24px 48px;text-align:center}
+    .hero h1{color:#fff;font-size:clamp(22px,4vw,36px);font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+    .hero p{color:rgba(255,255,255,.6);font-size:14px}
+
+    /* CONTENT */
+    .container{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+    .section{margin-bottom:40px}
+    h2{font-size:18px;font-weight:600;color:#1e1b3a;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #ede9fe}
+    h3{font-size:15px;font-weight:600;color:#1e1b3a;margin:18px 0 8px}
+    p{font-size:14px;color:#374151;margin-bottom:10px}
+    ul{font-size:14px;color:#374151;padding-left:20px;margin-bottom:10px}
+    ul li{margin-bottom:6px}
+    .highlight{background:#f5f3ff;border-left:3px solid #6C5CE4;border-radius:0 8px 8px 0;padding:14px 18px;margin:16px 0;font-size:14px;color:#374151}
+    .badge{display:inline-block;background:#ede9fe;color:#6C5CE4;font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+
+    /* FOOTER */
+    footer{background:#16143A;padding:24px;text-align:center;font-size:12px;color:rgba(255,255,255,.4)}
+    footer a{color:rgba(255,255,255,.6)}
+
+    @media(max-width:600px){.container{padding:32px 16px 60px}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/">
+    <img src="/logo_attempo.png" alt="Attempo" onerror="this.style.display='none'">
+    Attempo
+  </a>
+  <a class="nav-back" href="/">← Volver al inicio</a>
+</nav>
+
+<div class="hero">
+  <h1>Política de Privacidad</h1>
+  <p>Última actualización: mayo 2026 · Versión 1.0</p>
+</div>
+
+<div class="container">
+
+  <div class="section">
+    <p>En <strong>Attempo</strong> nos tomamos muy en serio la privacidad de nuestros usuarios y de los pacientes cuyos datos se gestionan a través de nuestra plataforma. Esta política explica qué información recopilamos, cómo la usamos y qué derechos tienes sobre ella.</p>
+    <div class="highlight">Attempo es un sistema de agendamiento de citas para profesionales de la salud y bienestar, desarrollado y operado por <strong>Attempo SpA</strong>, con domicilio en Santiago de Chile. Contacto: <a href="mailto:contacto@attempo.cl">contacto@attempo.cl</a></div>
+  </div>
+
+  <div class="section">
+    <h2>1. Información que recopilamos</h2>
+
+    <h3>1.1 Datos de los profesionales (clientes de Attempo)</h3>
+    <ul>
+      <li>Nombre del negocio y datos de contacto</li>
+      <li>Correo electrónico y contraseña (almacenada con hash bcrypt)</li>
+      <li>Información de configuración del negocio: dirección, horario, servicios</li>
+      <li>Datos de facturación y plan contratado</li>
+    </ul>
+
+    <h3>1.2 Datos de los pacientes/clientes del negocio</h3>
+    <ul>
+      <li>Nombre completo</li>
+      <li>Correo electrónico (opcional)</li>
+      <li>Número de teléfono (opcional)</li>
+      <li>Historial de citas: fecha, hora, servicio, profesional y estado</li>
+    </ul>
+
+    <h3>1.3 Datos de uso</h3>
+    <ul>
+      <li>Registros de acceso e inicio de sesión</li>
+      <li>Acciones realizadas dentro de la plataforma (reservas, cancelaciones, reagendamientos)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>2. Integración con Google Calendar</h2>
+    <div class="badge">Scope: calendar</div>
+    <p>Attempo ofrece integración opcional con Google Calendar. Cuando el profesional activa esta función, solicitamos acceso a su cuenta de Google con el siguiente alcance:</p>
+    <div class="highlight">
+      <strong>https://www.googleapis.com/auth/calendar</strong><br>
+      Este permiso nos permite <strong>crear, actualizar y eliminar eventos</strong> en el Google Calendar del profesional, específicamente en un calendario dedicado llamado <strong>"Attempo"</strong> que se crea automáticamente.
+    </div>
+
+    <h3>¿Para qué usamos el acceso al calendario?</h3>
+    <ul>
+      <li>Crear un evento en Google Calendar cada vez que se confirma una cita nueva</li>
+      <li>Actualizar el evento si la cita se reagenda</li>
+      <li>Eliminar el evento si la cita se cancela</li>
+    </ul>
+
+    <h3>¿Qué NO hacemos con el acceso al calendario?</h3>
+    <ul>
+      <li>No leemos eventos existentes en tu Google Calendar personal</li>
+      <li>No compartimos tu token de Google con terceros</li>
+      <li>No accedemos a calendarios distintos al calendario "Attempo" que creamos</li>
+      <li>No usamos el acceso para ningún fin distinto al agendamiento de citas</li>
+    </ul>
+
+    <h3>¿Cómo revoco el acceso?</h3>
+    <p>Puedes desconectar Google Calendar en cualquier momento desde <strong>Configuración → Integraciones → Google Calendar → Desconectar</strong>. También puedes revocar el acceso directamente desde <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</p>
+    <p>Al desconectar, eliminamos el token de acceso de nuestra base de datos y revocamos los permisos en Google. Los eventos ya creados en tu calendario <strong>no se eliminan automáticamente</strong>.</p>
+  </div>
+
+  <div class="section">
+    <h2>3. Cómo usamos tu información</h2>
+    <ul>
+      <li>Prestar el servicio de agendamiento de citas</li>
+      <li>Enviar confirmaciones y recordatorios por correo electrónico</li>
+      <li>Sincronizar citas con Google Calendar (solo si el usuario lo activa)</li>
+      <li>Mejorar y mantener la plataforma</li>
+      <li>Atender solicitudes de soporte</li>
+      <li>Cumplir con obligaciones legales</li>
+    </ul>
+    <p><strong>No vendemos ni cedemos tus datos personales a terceros con fines comerciales.</strong></p>
+  </div>
+
+  <div class="section">
+    <h2>4. Proveedores de servicios</h2>
+    <p>Para operar Attempo utilizamos los siguientes servicios de terceros, con los que compartimos solo los datos estrictamente necesarios:</p>
+    <ul>
+      <li><strong>Supabase</strong> (supabase.com) — Base de datos y autenticación</li>
+      <li><strong>Vercel</strong> (vercel.com) — Infraestructura y despliegue de la aplicación</li>
+      <li><strong>Resend</strong> (resend.com) — Envío de correos electrónicos transaccionales</li>
+      <li><strong>Google LLC</strong> — Integración opcional con Google Calendar</li>
+    </ul>
+    <p>Todos estos proveedores cuentan con sus propias políticas de privacidad y estándares de seguridad.</p>
+  </div>
+
+  <div class="section">
+    <h2>5. Seguridad de los datos</h2>
+    <ul>
+      <li>Las contraseñas se almacenan como hash bcrypt — nunca en texto plano</li>
+      <li>Los tokens de Google Calendar se guardan de forma segura y solo se usan desde el servidor (nunca expuestos al navegador)</li>
+      <li>La comunicación entre el navegador y nuestros servidores ocurre siempre por HTTPS</li>
+      <li>El acceso a la base de datos está restringido mediante claves de servicio</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>6. Retención de datos</h2>
+    <p>Conservamos los datos mientras la cuenta esté activa. Si solicitas la eliminación de tu cuenta, borraremos todos tus datos en un plazo máximo de <strong>30 días</strong>, salvo que exista una obligación legal de conservarlos.</p>
+    <p>Los datos de pacientes son responsabilidad del profesional que los ingresa. Attempo actúa como encargado de tratamiento en relación a dichos datos.</p>
+  </div>
+
+  <div class="section">
+    <h2>7. Tus derechos</h2>
+    <p>De acuerdo a la legislación chilena (Ley 19.628 sobre Protección de la Vida Privada) y, en lo aplicable, al Reglamento General de Protección de Datos (RGPD), tienes derecho a:</p>
+    <ul>
+      <li><strong>Acceso:</strong> solicitar una copia de los datos que tenemos sobre ti</li>
+      <li><strong>Rectificación:</strong> corregir datos incorrectos o incompletos</li>
+      <li><strong>Eliminación:</strong> solicitar la eliminación de tus datos personales</li>
+      <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado (CSV)</li>
+      <li><strong>Oposición:</strong> oponerte al tratamiento de tus datos en determinadas circunstancias</li>
+    </ul>
+    <p>Para ejercer cualquiera de estos derechos, escríbenos a <a href="mailto:contacto@attempo.cl">contacto@attempo.cl</a>.</p>
+  </div>
+
+  <div class="section">
+    <h2>8. Cookies</h2>
+    <p>Attempo usa <strong>localStorage</strong> del navegador para mantener la sesión activa del profesional. No utilizamos cookies de seguimiento ni publicidad.</p>
+  </div>
+
+  <div class="section">
+    <h2>9. Cambios a esta política</h2>
+    <p>Podemos actualizar esta política ocasionalmente. Cuando lo hagamos, actualizaremos la fecha de "Última actualización" al inicio de esta página. Los cambios significativos serán comunicados por correo electrónico.</p>
+  </div>
+
+  <div class="section">
+    <h2>10. Contacto</h2>
+    <p>Si tienes preguntas sobre esta política o sobre el tratamiento de tus datos, contáctanos:</p>
+    <div class="highlight">
+      📧 <a href="mailto:contacto@attempo.cl">contacto@attempo.cl</a><br>
+      🌐 <a href="https://attempo.cl">attempo.cl</a><br>
+      📍 Santiago de Chile
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>© 2026 Attempo · <a href="/">Inicio</a> · <a href="/privacidad">Privacidad</a> · contacto@attempo.cl</p>
+</footer>
+
+</body>
+</html>
