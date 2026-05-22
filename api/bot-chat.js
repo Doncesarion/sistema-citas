@@ -157,20 +157,20 @@ ${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}
 
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.
-- Si preguntan por precios Y no hay catálogo: di que el valor lo coordina el profesional al momento de reservar, y pasa al flujo de agendar.
-- Si preguntan por horario o disponibilidad: ${horarioResumen ? `di el horario del negocio (${horarioResumen}) y luego presenta los profesionales disponibles` : 'di que la disponibilidad depende del profesional y presenta la lista de profesionales para que elijan'}. Siempre termina esta respuesta mencionando los profesionales disponibles y preguntando con quién desean agendar.
-- Si preguntan por teléfono, dirección u otra información que no tengas: respóndelo brevemente y luego presenta los profesionales y ofrece agendar.
+- Si preguntan por precios Y no hay catálogo: di que el valor lo coordina el profesional al reservar, y ofrece agendar.
+- Si preguntan por horario, disponibilidad o qué días atienden: llama SIEMPRE a ver_disponibilidad_semana para mostrar días y horas reales disponibles (con citas ya descontadas). Presenta el resultado así: "Contamos con disponibilidad en los siguientes horarios: [lista de días y horas]. ¿Cuál día te acomoda mejor?"
+- Si preguntan por teléfono, dirección u otra información que no tengas: respóndelo brevemente y ofrece agendar.
 - Si hay PREGUNTAS FRECUENTES configuradas, úsalas primero.
-- NUNCA termines una respuesta con solo "no tengo esa información". Siempre conecta con lo que sí puedes hacer (agendar una cita) y menciona los profesionales disponibles.
-- Habla con naturalidad. Nada de frases técnicas como "no está configurado en el sistema".
+- NUNCA digas "no tengo esa información" y te quedes ahí. Siempre conecta con lo que puedes hacer.
+- Habla con naturalidad. Nada de frases técnicas.
 
 FLUJO PARA AGENDAR UNA CITA (sigue este orden):
-1. Saluda con calidez si es el primer mensaje. Menciona los profesionales disponibles de forma breve.
+1. Saluda con calidez si es el primer mensaje. Menciona brevemente los profesionales disponibles.
 2. Pregunta el nombre completo del paciente.
-3. Pregunta el servicio o motivo de la consulta. Si hay catálogo, menciona opciones.
-4. Si hay un solo profesional, confírmalo directamente. Si hay varios, pregunta con quién prefiere y lista sus nombres.
-5. Sugiere 3 días hábiles próximos disponibles y pregunta cuál prefiere. Convierte referencias como "mañana" o "el viernes" a YYYY-MM-DD.
-6. Llama a buscar_disponibilidad con el especialista_id y la fecha elegida. Presenta las horas disponibles como lista simple. Ej: "Hay horas a las 9:00, 10:00 y 11:30. ¿Cuál te acomoda?"
+3. Pregunta el servicio o motivo de la consulta.
+4. Si hay un solo profesional, confírmalo. Si hay varios, pregunta con quién prefiere.
+5. Llama a ver_disponibilidad_semana para mostrar los días y horas reales disponibles. Presenta la lista y pregunta qué día prefiere.
+6. Cuando el paciente elija un día concreto, si necesitas confirmar las horas de ese día puedes llamar a buscar_disponibilidad. Si ya las tienes del paso 5, úsalas directamente.
 7. Cuando el paciente confirme la hora, pide teléfono y email en un solo mensaje. El email es opcional.
 8. Con todos los datos, llama a crear_cita. No agregues texto después de esa llamada.
 
@@ -184,8 +184,19 @@ REGLAS GENERALES:
   // ── 6. Herramientas ───────────────────────────────────────────────────────
   const tools = [
     {
+      name: 'ver_disponibilidad_semana',
+      description: 'Muestra los días y horas disponibles de los próximos 8 días, descontando citas ya agendadas. Úsala cuando pregunten por horarios de atención, disponibilidad general, qué días hay horas, o antes de preguntar qué día prefiere el paciente.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          especialista_id: { type: 'string', description: 'ID del profesional. Si no se especifica, revisa todos los profesionales activos.' }
+        },
+        required: []
+      }
+    },
+    {
       name: 'buscar_disponibilidad',
-      description: 'Retorna los horarios disponibles de un profesional en una fecha específica como lista de texto. Úsala cuando el paciente haya elegido un día.',
+      description: 'Retorna los horarios disponibles de un profesional en una fecha específica. Úsala cuando el paciente ya eligió un día concreto.',
       input_schema: {
         type: 'object',
         properties: {
@@ -248,8 +259,7 @@ REGLAS GENERALES:
       return { disponible: false, mensaje: 'El profesional no trabaja ese día.' };
     }
 
-    const bloque = diaHorario.bloques[0];
-    const slots = generarSlots(bloque.desde, bloque.hasta, 30);
+    const slots = diaHorario.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
 
     const r2 = await fetch(
       `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
@@ -263,6 +273,67 @@ REGLAS GENERALES:
       return { disponible: false, mensaje: 'No hay horas disponibles ese día.' };
     }
     return { disponible: true, horas: disponibles, texto: `Horas disponibles: ${disponibles.join(', ')}.` };
+  }
+
+  async function ejecutarVerDisponibilidadSemana(especialista_id_param) {
+    const diasKey   = ['dom','lun','mar','mie','jue','vie','sab'];
+    const diasFmt   = { dom:'Domingo', lun:'Lunes', mar:'Martes', mie:'Miércoles', jue:'Jueves', vie:'Viernes', sab:'Sábado' };
+    const messFmt   = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+    const esps = especialista_id_param
+      ? espLista.filter(e => e.id === especialista_id_param)
+      : espLista;
+    if (!esps.length) return { disponible: false, mensaje: 'No hay profesionales activos.' };
+
+    // Fecha de hoy en Santiago
+    const hoyISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+    const hoy = new Date(hoyISO + 'T12:00:00');
+
+    // Recopilar todas las fechas a consultar (próximos 8 días, incluyendo hoy)
+    const fechas = Array.from({ length: 8 }, (_, i) => {
+      const d = new Date(hoy); d.setDate(hoy.getDate() + i);
+      return d.toISOString().split('T')[0];
+    });
+
+    // Traer todas las citas existentes en ese rango de una sola vez por especialista
+    const resultados = [];
+    for (const esp of esps) {
+      const horario = esp.horario || {};
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${esp.id}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&estado=neq.canceled&select=fecha,hora`,
+        { headers: sh }
+      );
+      const citas = await r.json();
+      const ocupadasMap = {};
+      (Array.isArray(citas) ? citas : []).forEach(c => {
+        const f = c.fecha; if (!ocupadasMap[f]) ocupadasMap[f] = new Set();
+        ocupadasMap[f].add(c.hora?.slice(0, 5));
+      });
+
+      for (const fecha of fechas) {
+        const d = new Date(fecha + 'T12:00:00');
+        const diaKey = diasKey[d.getDay()];
+        const diaH   = horario[diaKey];
+        if (!diaH?.activo || !diaH.bloques?.length) continue;
+
+        const slots      = diaH.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
+        const ocupadas   = ocupadasMap[fecha] || new Set();
+        const disponibles = slots.filter(s => !ocupadas.has(s));
+        if (!disponibles.length) continue;
+
+        const fechaFmt = `${diasFmt[diaKey]} ${d.getDate()} de ${messFmt[d.getMonth()]}`;
+        resultados.push({ fecha, fechaFmt, especialista: esp.nombre, especialista_id: esp.id, horas: disponibles });
+      }
+    }
+
+    if (!resultados.length) return { disponible: false, mensaje: 'No hay disponibilidad en los próximos días.' };
+
+    const multiEsp = esps.length > 1;
+    const texto = resultados.map(r =>
+      `${r.fechaFmt}${multiEsp ? ' — ' + r.especialista : ''}: ${r.horas.join(', ')}`
+    ).join('\n');
+
+    return { disponible: true, dias: resultados, texto };
   }
 
   async function ejecutarCrearCita(params) {
@@ -339,6 +410,9 @@ REGLAS GENERALES:
   }
 
   async function ejecutarHerramienta(nombre, params) {
+    if (nombre === 'ver_disponibilidad_semana') {
+      return await ejecutarVerDisponibilidadSemana(params.especialista_id || null);
+    }
     if (nombre === 'buscar_disponibilidad') {
       return await ejecutarBuscarDisponibilidad(params.especialista_id, params.fecha);
     }
