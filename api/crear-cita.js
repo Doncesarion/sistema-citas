@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     servicio, fecha, hora, negocio_nombre, duracion, precio
   } = req.body || {};
 
-  if (!cliente_id || !especialista_id || !nombre_paciente || !fecha || !hora) {
+  if (!cliente_id || !nombre_paciente || !fecha || !hora) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
