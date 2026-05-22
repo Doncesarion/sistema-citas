@@ -209,6 +209,10 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 .ag-btn:hover{border-color:var(--b2);color:var(--t1)}
 .ag-right{display:flex;align-items:center;gap:8px}
 .ag-sync{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t3)}
+.btn-refresh{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid var(--b2);background:var(--surface);font-size:11px;color:var(--t2);cursor:pointer;transition:all .15s;font-family:inherit}
+.btn-refresh:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.btn-refresh.spinning svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .view-tabs{display:flex;gap:1px;background:var(--adim);border-radius:var(--r);padding:2px}
 .vtab{padding:4px 10px;border-radius:4px;font-size:12px;color:var(--t3);cursor:pointer;border:none;background:none;font-family:var(--font);transition:all .12s}
 .vtab.on{background:var(--surface-hi);color:var(--a);font-weight:500;box-shadow:var(--sh1)}
@@ -1141,6 +1145,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
     <div class="ag-right">
       <span class="ag-sync"><span class="ldot"></span>&nbsp;Actualizado ahora</span>
+      <button class="btn-refresh" id="btn-refresh" onclick="manualRefresh()" title="Actualizar reservas">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Actualizar
+      </button>
       <div class="view-tabs">
         <button class="vtab on" id="vtab-semana" onclick="setCalView('semana',this)">Semana</button>
         <button class="vtab"    id="vtab-dia"    onclick="setCalView('dia',this)">Día</button>
@@ -4978,9 +4986,20 @@ async function cargarCitasSupabase() {
 /* ════ VENTAS: carga y registrar pago ════ */
 let _ventasCid = null;
 
-// Carga inicial y refresco cada 30 segundos
+// Carga inicial y refresco cada 10 segundos
 cargarCitasSupabase();
 setInterval(cargarCitasSupabase, 10000);
+
+async function manualRefresh() {
+  const btn = document.getElementById('btn-refresh');
+  if (!btn) return;
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  mesEvents = {};
+  await cargarCitasSupabase();
+  btn.classList.remove('spinning');
+  btn.disabled = false;
+}
 
 async function getClienteId() {
   if (_ventasCid) return _ventasCid;
