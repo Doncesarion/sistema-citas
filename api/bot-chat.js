@@ -87,7 +87,7 @@ export default async function handler(req, res) {
   let espLista = [];
   try {
     const re = await fetch(
-      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,cargo&order=nombre.asc`,
+      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad&order=nombre.asc`,
       { headers: sh }
     );
     espLista = await re.json();
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
   }
 
   const espTexto = espLista.length
-    ? espLista.map(e => `- ${e.nombre}, ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
+    ? espLista.map(e => `- ${e.nombre}, ${e.especialidad || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
 
   const srvTexto = serviciosCatalogo.length
