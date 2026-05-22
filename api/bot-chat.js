@@ -307,9 +307,15 @@ REGLAS GENERALES:
 
     const hoy = new Date(hoyISOStgo + 'T12:00:00');
 
-    // Recopilar todas las fechas a consultar (próximos 8 días, incluyendo hoy)
+    // Si hoy es sábado (6) o domingo (0), arrancar desde el lunes siguiente
+    const diaSemana = hoy.getDay(); // 0=dom, 6=sab
+    const diasHastaLunes = diaSemana === 6 ? 2 : diaSemana === 0 ? 1 : 0;
+    const inicio = new Date(hoy);
+    inicio.setDate(hoy.getDate() + diasHastaLunes);
+
+    // Próximos 8 días desde el inicio calculado
     const fechas = Array.from({ length: 8 }, (_, i) => {
-      const d = new Date(hoy); d.setDate(hoy.getDate() + i);
+      const d = new Date(inicio); d.setDate(inicio.getDate() + i);
       return d.toISOString().split('T')[0];
     });
 
