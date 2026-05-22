@@ -171,7 +171,7 @@ FLUJO PARA AGENDAR UNA CITA (sigue este orden):
 4. Si hay un solo profesional, confírmalo. Si hay varios, pregunta con quién prefiere.
 5. Llama a ver_disponibilidad_semana para mostrar los días y horas reales disponibles. Presenta la lista y pregunta qué día prefiere.
 6. Cuando el paciente elija un día concreto, si necesitas confirmar las horas de ese día puedes llamar a buscar_disponibilidad. Si ya las tienes del paso 5, úsalas directamente.
-7. Cuando el paciente confirme la hora, pide teléfono y email en un solo mensaje. El email es opcional.
+7. Cuando el paciente confirme la hora, pide teléfono y email en un solo mensaje. El email es importante para enviarle la confirmación de la cita — si no lo da, igual procede.
 8. Con todos los datos, llama a crear_cita. No agregues texto después de esa llamada.
 
 RESPUESTA TRAS CREAR CITA: "¡Listo [nombre]! Tu cita quedó confirmada para el [fecha formateada] a las [hora] con [profesional]. 📅"
@@ -179,6 +179,8 @@ RESPUESTA TRAS CREAR CITA: "¡Listo [nombre]! Tu cita quedó confirmada para el 
 REGLAS GENERALES:
 - Una sola pregunta por mensaje.
 - Si no hay disponibilidad un día, sugiere el día hábil siguiente.
+- FECHAS RELATIVAS: "esta semana" = semana actual. "la otra semana" o "la próxima semana" = la semana siguiente. "este lunes/martes/etc." = el más próximo dentro de los próximos 7 días. Ante cualquier duda, confirma la fecha exacta antes de continuar.
+- Cuando muestres horarios, un salto de línea por cada día. Nunca en un párrafo continuo.
 - El cliente_id para crear_cita es siempre: ${cliente_id}`;
 
   // ── 6. Herramientas ───────────────────────────────────────────────────────
@@ -332,14 +334,25 @@ REGLAS GENERALES:
         const diaH   = horario[diaKey];
         if (!diaH?.activo || !diaH.bloques?.length) continue;
 
-        const slotsBase   = diaH.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
-        const slotsFilt   = filtrarSlotsPasados(slotsBase, fecha);
-        const ocupadas    = ocupadasMap[fecha] || new Set();
-        const disponibles = slotsFilt.filter(s => !ocupadas.has(s));
-        if (!disponibles.length) continue;
+        const ocupadas = ocupadasMap[fecha] || new Set();
+
+        // Determinar qué bloques tienen al menos un slot libre
+        const bloquesConDisponibilidad = diaH.bloques.filter(b => {
+          const bSlots = filtrarSlotsPasados(generarSlots(b.desde, b.hasta, 30), fecha);
+          return bSlots.some(s => !ocupadas.has(s));
+        });
+        if (!bloquesConDisponibilidad.length) continue;
+
+        // Texto de horario legible: "09:00 a 13:00 y 14:00 a 18:00"
+        const horarioTexto = bloquesConDisponibilidad.map(b => `${b.desde} a ${b.hasta}`).join(' y ');
+
+        // Slots individuales (para el bot cuando el paciente elija este día)
+        const slotsDisponibles = bloquesConDisponibilidad.flatMap(b =>
+          filtrarSlotsPasados(generarSlots(b.desde, b.hasta, 30), fecha).filter(s => !ocupadas.has(s))
+        );
 
         const fechaFmt = `${diasFmt[diaKey]} ${d.getDate()} de ${messFmt[d.getMonth()]}`;
-        resultados.push({ fecha, fechaFmt, especialista: esp.nombre, especialista_id: esp.id, horas: disponibles });
+        resultados.push({ fecha, fechaFmt, especialista: esp.nombre, especialista_id: esp.id, horarioTexto, horas: slotsDisponibles });
       }
     }
 
@@ -347,7 +360,7 @@ REGLAS GENERALES:
 
     const multiEsp = esps.length > 1;
     const texto = resultados.map(r =>
-      `${r.fechaFmt}${multiEsp ? ' — ' + r.especialista : ''}: ${r.horas.join(', ')}`
+      `${r.fechaFmt}${multiEsp ? ' (' + r.especialista + ')' : ''}: ${r.horarioTexto}`
     ).join('\n');
 
     return { disponible: true, dias: resultados, texto };
