@@ -905,7 +905,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <div class="nav-r">
     <div class="live-pill">
       <span class="ldot"></span>
-      <span>En línea · 3 citas hoy</span>
+      <span id="nav-citas-hoy">En línea</span>
     </div>
     <button class="btn-new" onclick="openModal()">
       <span class="btn-new-txt">+ Nueva reserva</span>
@@ -4939,7 +4939,7 @@ async function cargarCitasSupabase() {
 
     // 6. Actualizar contador en nav
     const hoy = citasHoy.length;
-    const navSpan = document.querySelector('.nav-center span');
+    const navSpan = document.getElementById('nav-citas-hoy');
     if (navSpan) navSpan.textContent = hoy > 0 ? `En línea · ${hoy} cita${hoy!==1?'s':''} hoy` : 'En línea';
   } catch(e) { console.warn('Supabase load error:', e); }
 }
