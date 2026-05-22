@@ -1288,9 +1288,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
     <!-- Quick stats -->
     <div class="sg" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
-      <div class="sc"><div class="sc-lbl">Total clientes</div><div class="sc-val"><span class="hi">48</span></div><div class="sc-delta du">↑ 8 este mes</div></div>
-      <div class="sc"><div class="sc-lbl">Recurrentes</div><div class="sc-val"><span class="hi">31</span></div><div class="sc-delta du">65% del total</div></div>
-      <div class="sc"><div class="sc-lbl">Sin contacto</div><div class="sc-val"><span style="color:var(--amber);font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.05em">3</span></div><div class="sc-delta" style="color:var(--amber)">⚠ Sin tel/email</div></div>
+      <div class="sc"><div class="sc-lbl">Total clientes</div><div class="sc-val"><span class="hi" id="cli-stat-total">—</span></div><div class="sc-delta du" id="cli-stat-nuevos">—</div></div>
+      <div class="sc"><div class="sc-lbl">Recurrentes</div><div class="sc-val"><span class="hi" id="cli-stat-rec">—</span></div><div class="sc-delta du" id="cli-stat-rec-pct">—</div></div>
+      <div class="sc"><div class="sc-lbl">Sin contacto</div><div class="sc-val"><span style="color:var(--amber);font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.05em" id="cli-stat-sc">—</span></div><div class="sc-delta" style="color:var(--amber)">⚠ Sin tel/email</div></div>
     </div>
 
     <div class="tw">
@@ -1308,47 +1308,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <thead>
           <tr><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Última cita</th><th>Citas</th><th>Gasto total</th><th>Estado</th><th></th></tr>
         </thead>
-        <tbody>
-          <tr onclick="openFicha('Juana Pérez','JP','Psicóloga')">
-            <td><div class="tdn"><div class="tav">JP</div>Juana Pérez</div></td>
-            <td>juana.perez@email.com</td>
-            <td style="font-family:var(--mono);font-size:12px">+56 9 9999 9999</td>
-            <td style="font-family:var(--mono);font-size:12px">03/05/2026</td>
-            <td><span class="tag tg">3 citas</span></td>
-            <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$45.000</td>
-            <td><span class="tag tg">Recurrente</span></td>
-            <td style="text-align:right"><button class="btn-sm" onclick="event.stopPropagation();openFicha('Juana Pérez','JP','Psicóloga')">Ver ficha</button></td>
-          </tr>
-          <tr onclick="openFicha('Juan Pérez','JP','Barbería')">
-            <td><div class="tdn"><div class="tav">JP</div>Juan Pérez</div></td>
-            <td>juan.perez@email.com</td>
-            <td style="font-family:var(--mono);font-size:12px">+56 9 9999 9990</td>
-            <td style="font-family:var(--mono);font-size:12px">03/05/2026</td>
-            <td><span class="tag tp">1 cita</span></td>
-            <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$12.000</td>
-            <td><span class="tag tp">Nuevo</span></td>
-            <td style="text-align:right"><button class="btn-sm" onclick="event.stopPropagation();openFicha('Juan Pérez','JP','Barbería')">Ver ficha</button></td>
-          </tr>
-          <tr onclick="openFicha('Camila González','CG','Psicóloga')">
-            <td><div class="tdn"><div class="tav">CG</div>Camila González</div></td>
-            <td>camila.g@email.com</td>
-            <td style="font-family:var(--mono);font-size:12px">+56 9 8765 4321</td>
-            <td style="font-family:var(--mono);font-size:12px">27/04/2026</td>
-            <td><span class="tag tg">5 citas</span></td>
-            <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$75.000</td>
-            <td><span class="tag tg">Recurrente</span></td>
-            <td style="text-align:right"><button class="btn-sm" onclick="event.stopPropagation();openFicha('Camila González','CG','Psicóloga')">Ver ficha</button></td>
-          </tr>
-          <tr onclick="openFicha('prueba prueba','PP',null)">
-            <td><div class="tdn"><div class="tav" style="background:var(--t3)">PP</div>prueba prueba</div></td>
-            <td><span style="color:var(--t4);font-style:italic">Sin email</span></td>
-            <td><span style="color:var(--t4);font-style:italic">Sin teléfono</span></td>
-            <td style="font-family:var(--mono);font-size:12px">29/04/2026</td>
-            <td><span class="tag tp">1 cita</span></td>
-            <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">$15.000</td>
-            <td><span class="tag ta">Sin contacto</span></td>
-            <td style="text-align:right"><button class="btn-sm" onclick="event.stopPropagation();openFicha('prueba prueba','PP',null)">Ver ficha</button></td>
-          </tr>
+        <tbody id="clientes-tbody">
+          <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando clientes...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2389,7 +2350,7 @@ function sv(v, btn, skipPush) {
 
   if (v === 'ventas')   cargarVentas();
   if (v === 'reportes') cargarReportes();
-  if (v === 'clientes') sbBuildClientesList('');
+  if (v === 'clientes') loadClientesView();
   if (!skipPush) {
     const slug = v === 'config' ? 'configuracion' : v;
     history.pushState({ section: v }, '', '/' + slug);
@@ -3492,11 +3453,11 @@ function renderDiaView(date) {
     const evByHour = {};
     events.forEach(ev => {
       const t = (ev.lbl.match(/\d{2}:\d{2}/) || [''])[0];
-      if (t) { evByHour[t] = evByHour[t] || []; evByHour[t].push(ev); }
+      if (t) { const h = parseInt(t.split(':')[0]); evByHour[h] = evByHour[h] || []; evByHour[h].push(ev); }
     });
     let html = `<div class="slot" style="height:52px;position:relative">${isToday?'<div class="now-line" style="top:34px"><div class="now-dot"></div><div class="now-track"></div></div>':''}</div>`;
     SLOTS.forEach(slotTime => {
-      const slotEvs = evByHour[slotTime] || [];
+      const slotEvs = evByHour[parseInt(slotTime)] || [];
       const evHtml = slotEvs.map(ev => {
         const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
         const full  = evNombreFull(abrev);
@@ -3589,11 +3550,11 @@ function renderWeekBody() {
     var byHour = {};
     for (var e = 0; e < dayEvs.length; e++) {
       var t = (dayEvs[e].lbl.match(/\d{2}:\d{2}/) || [''])[0];
-      if (t) { byHour[t] = byHour[t] || []; byHour[t].push(dayEvs[e]); }
+      if (t) { var h = parseInt(t.split(':')[0]); byHour[h] = byHour[h] || []; byHour[h].push(dayEvs[e]); }
     }
 
     for (var s = 0; s < HOURS.length; s++) {
-      var slotEvs = byHour[HOURS[s]] || [];
+      var slotEvs = byHour[parseInt(HOURS[s])] || [];
       var evHtml = '';
       for (var ev = 0; ev < slotEvs.length; ev++) {
         var cur   = slotEvs[ev];
@@ -5708,6 +5669,79 @@ function restoreModuleVisibility() {
 }
 
 /* ── Sidebar clientes ── */
+async function loadClientesView() {
+  const tbody = document.getElementById('clientes-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando...</td></tr>';
+
+  const cid = await getClienteId();
+  if (!cid) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3)">No se pudo obtener el cliente</td></tr>'; return; }
+
+  try {
+    // Citas con datos de paciente (agrupa por nombre_paciente)
+    const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=nombre_paciente,email_paciente,tel_paciente,fecha,precio,estado&order=fecha.desc`, { headers: _SH });
+    const citas = await r.json();
+    if (!Array.isArray(citas)) throw new Error('respuesta inválida');
+
+    // Agrupar por nombre normalizado
+    const map = {};
+    const hoy = new Date(); const hace30 = new Date(hoy); hace30.setDate(hoy.getDate()-30);
+    citas.forEach(c => {
+      const key = (c.nombre_paciente||'').trim().toLowerCase();
+      if (!key) return;
+      if (!map[key]) map[key] = { nombre: c.nombre_paciente.trim(), email: c.email_paciente||'', tel: c.tel_paciente||'', ultima: c.fecha, citas: 0, gasto: 0 };
+      map[key].citas++;
+      if (c.estado !== 'canceled') map[key].gasto += (c.precio||0);
+      if (c.fecha > map[key].ultima) map[key].ultima = c.fecha;
+    });
+
+    const lista = Object.values(map).sort((a,b) => b.ultima.localeCompare(a.ultima));
+    const total = lista.length;
+    const rec   = lista.filter(p => p.citas >= 2).length;
+    const sc    = lista.filter(p => !p.email && !p.tel).length;
+    const nuevos = lista.filter(p => p.ultima >= hace30.toISOString().slice(0,10)).length;
+
+    // Stats
+    document.getElementById('cli-stat-total').textContent = total;
+    document.getElementById('cli-stat-nuevos').textContent = `↑ ${nuevos} este mes`;
+    document.getElementById('cli-stat-rec').textContent = rec;
+    document.getElementById('cli-stat-rec-pct').textContent = total ? `${Math.round(rec/total*100)}% del total` : '—';
+    document.getElementById('cli-stat-sc').textContent = sc;
+
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3)">Sin clientes aún</td></tr>';
+      sbBuildClientesList(''); return;
+    }
+
+    tbody.innerHTML = lista.map(p => {
+      const ini = p.nombre.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+      const emailTd = p.email ? p.email : '<span style="color:var(--t4);font-style:italic">Sin email</span>';
+      const telTd   = p.tel   ? `<span style="font-family:var(--mono);font-size:12px">${p.tel}</span>` : '<span style="color:var(--t4);font-style:italic">Sin teléfono</span>';
+      const [yy,mm,dd] = p.ultima.split('-');
+      const ultimaFmt = `${dd}/${mm}/${yy}`;
+      const tagCls = (!p.email && !p.tel) ? 'ta' : p.citas >= 2 ? 'tg' : 'tp';
+      const tagLbl = (!p.email && !p.tel) ? 'Sin contacto' : p.citas >= 2 ? 'Recurrente' : 'Nuevo';
+      const gastoFmt = '$' + p.gasto.toLocaleString('es-CL');
+      const safe = p.nombre.replace(/'/g,"\\'");
+      return `<tr onclick="openFicha('${safe}','${ini}','')">
+        <td><div class="tdn"><div class="tav">${ini}</div>${p.nombre}</div></td>
+        <td>${emailTd}</td>
+        <td>${telTd}</td>
+        <td style="font-family:var(--mono);font-size:12px">${ultimaFmt}</td>
+        <td><span class="tag ${p.citas>=2?'tg':'tp'}">${p.citas} cita${p.citas!==1?'s':''}</span></td>
+        <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">${gastoFmt}</td>
+        <td><span class="tag ${tagCls}">${tagLbl}</span></td>
+        <td style="text-align:right"><button class="btn-sm" onclick="event.stopPropagation();openFicha('${safe}','${ini}','')">Ver ficha</button></td>
+      </tr>`;
+    }).join('');
+
+    sbBuildClientesList('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3)">Error al cargar: ${e.message}</td></tr>`;
+    console.error('loadClientesView:', e);
+  }
+}
+
 function sbBuildClientesList(q) {
   const list  = document.getElementById('sb-clientes-list');
   const count = document.getElementById('sb-clientes-count');
