@@ -2944,6 +2944,27 @@ async function iniciarGoogleCalendar() {
   window.location.href = `/api/google-auth?cliente_id=${cid}`;
 }
 
+async function syncCitasGoogleCalendar() {
+  const btn = document.getElementById('gc-sync-btn');
+  const cid = await getClienteId();
+  if (!cid) return;
+  if (btn) { btn.textContent = 'Sincronizando...'; btn.disabled = true; }
+  try {
+    const r = await fetch('/api/sync-citas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: cid })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      toast(`✓ ${data.sincronizadas} cita${data.sincronizadas !== 1 ? 's' : ''} sincronizada${data.sincronizadas !== 1 ? 's' : ''} en el calendario "Attempo"${data.errores ? ` (${data.errores} con error)` : ''}`);
+    } else {
+      toast('Error: ' + (data.error || 'No se pudo sincronizar'));
+    }
+  } catch(e) { toast('Error de conexión: ' + e.message); }
+  finally { if (btn) { btn.textContent = '↺ Sincronizar citas existentes'; btn.disabled = false; } }
+}
+
 async function desconectarGoogleCalendar() {
   const cid = await getClienteId();
   if (!cid) return;
@@ -4826,8 +4847,9 @@ function salirImpersonacion() {
           </div>
           <div id="gc-cargando" style="font-size:12px;color:var(--t3)">...</div>
         </div>
-        <div style="padding:12px 14px;background:var(--adim);border-top:1px solid var(--b1)">
-          <div style="font-size:12px;color:var(--t3);line-height:1.6">Al conectar tu cuenta de Google, cada nueva cita creará automáticamente un evento en tu Google Calendar con los datos del paciente, profesional y hora. Si la cita se cancela o reagenda, el evento se actualiza solo.</div>
+        <div style="padding:12px 14px;background:var(--adim);border-top:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="font-size:12px;color:var(--t3);line-height:1.6;flex:1">Las citas nuevas se agregan automáticamente al calendario <strong>Attempo</strong> en tu Google Calendar.</div>
+          <button id="gc-sync-btn" onclick="syncCitasGoogleCalendar()" style="font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--b2);background:var(--surface);color:var(--t2);cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0">↺ Sincronizar citas existentes</button>
         </div>
       </div>
       <!-- WhatsApp Business -->

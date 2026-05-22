@@ -52,10 +52,10 @@ export default async function handler(req, res) {
     const cita = data[0];
 
     // Obtener datos del negocio
-    let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null;
+    let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null;
     try {
       const rc = await fetch(
-        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token&limit=1`,
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token,google_calendar_id&limit=1`,
         { headers: sh }
       );
       const rcBody = await rc.json();
@@ -66,6 +66,7 @@ export default async function handler(req, res) {
       metodos_pago         = cli?.metodos_pago         || null;
       datos_banco          = cli?.datos_banco          || null;
       google_refresh_token = cli?.google_refresh_token || null;
+      google_calendar_id   = cli?.google_calendar_id   || null;
     } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
 
     if (email_paciente && process.env.RESEND_API_KEY) {
@@ -95,7 +96,7 @@ export default async function handler(req, res) {
       gc_debug.resultado = await gcCrearEvento({
         supabaseUrl: SUPABASE_URL, sh, cita_id: cita.id, cliente_id,
         nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion,
-        refresh_token: google_refresh_token
+        refresh_token: google_refresh_token, google_calendar_id
       });
     }
 
@@ -148,11 +149,37 @@ function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, h
   };
 }
 
-async function gcCrearEvento({ supabaseUrl, sh, cita_id, cliente_id, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, refresh_token }) {
+async function gcGetOrCreateCalendar(access_token, supabaseUrl, sh, cliente_id, existing_calendar_id) {
+  // Verificar si el calendario guardado aún existe
+  if (existing_calendar_id) {
+    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(existing_calendar_id)}`, {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+    if (r.ok) return existing_calendar_id;
+  }
+  // Crear nuevo calendario "Attempo"
+  const r = await fetch('https://www.googleapis.com/calendar/v3/calendars', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary: 'Attempo', description: 'Citas gestionadas con Attempo', timeZone: 'America/Santiago' })
+  });
+  if (!r.ok) throw new Error('No se pudo crear el calendario Attempo: ' + await r.text());
+  const cal = await r.json();
+  // Guardar el ID del calendario en Supabase
+  await fetch(`${supabaseUrl}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+    method: 'PATCH',
+    headers: { ...sh, Prefer: 'return=minimal' },
+    body: JSON.stringify({ google_calendar_id: cal.id })
+  });
+  return cal.id;
+}
+
+async function gcCrearEvento({ supabaseUrl, sh, cita_id, cliente_id, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, refresh_token, google_calendar_id }) {
   try {
     const access_token = await gcGetAccessToken(refresh_token);
+    const calendar_id  = await gcGetOrCreateCalendar(access_token, supabaseUrl, sh, cliente_id, google_calendar_id);
     const event = gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion });
-    const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}/events`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(event)
@@ -165,7 +192,7 @@ async function gcCrearEvento({ supabaseUrl, sh, cita_id, cliente_id, nombre_paci
       headers: { ...sh, Prefer: 'return=minimal' },
       body: JSON.stringify({ google_event_id })
     });
-    return { ok: true, google_event_id };
+    return { ok: true, google_event_id, calendar_id };
   } catch(e) {
     if (e.invalid) {
       await fetch(`${supabaseUrl}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
