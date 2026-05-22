@@ -2385,10 +2385,10 @@ async function _loadModalEspecialistas() {
   const sel = document.getElementById('ms-prof');
   if (!sel) return;
   try {
-    const r = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&estado=eq.activo&select=id,nombre,cargo&order=nombre.asc`, { headers: _SH });
+    const r = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id,nombre,especialidad&order=nombre.asc`, { headers: _SH });
     const esps = await r.json();
     sel.innerHTML = Array.isArray(esps) && esps.length
-      ? esps.map(e => `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre}${e.cargo ? ' — ' + e.cargo : ''}</option>`).join('')
+      ? esps.map(e => `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre}${e.especialidad ? ' — ' + e.especialidad : ''}</option>`).join('')
       : '<option value="">Sin profesionales activos</option>';
   } catch(_) { sel.innerHTML = '<option value="">Error al cargar</option>'; }
 }

@@ -953,40 +953,43 @@ const SH = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Typ
 
 async function guardarCitaSupabase(nombre, email, tel, nota) {
   try {
-    // 1. Obtener cliente_id (mismo criterio que el admin: más reciente, evitar nombres de prueba)
+    // 1. Obtener cliente_id
     const r1 = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio&activo=eq.true&order=created_at.desc&limit=10`, { headers: SH });
     const cls = await r1.json();
     if (!Array.isArray(cls) || !cls.length) return;
     const real = cls.find(c => !/demo|prueba|ejemplo|test/i.test(c.nombre_negocio||'')) || cls[0];
     const cid = real.id;
 
-    // 2. Buscar especialista_id si se eligió uno específico
-    let eid = null;
+    // 2. Buscar especialista_id y nombre
+    let eid = null, espNombre = null;
     if (st.prof && st.prof.key !== 'any') {
-      const r2 = await fetch(`${SUPA_URL}/rest/v1/especialistas?cliente_id=eq.${cid}&nombre=ilike.*${encodeURIComponent(st.prof.nom)}*&select=id&limit=1`, { headers: SH });
+      const r2 = await fetch(`${SUPA_URL}/rest/v1/especialistas?cliente_id=eq.${cid}&nombre=ilike.*${encodeURIComponent(st.prof.nom)}*&select=id,nombre&limit=1`, { headers: SH });
       const esps = await r2.json();
-      if (Array.isArray(esps) && esps.length) eid = esps[0].id;
+      if (Array.isArray(esps) && esps.length) { eid = esps[0].id; espNombre = esps[0].nombre; }
     }
 
-    // 3. Guardar cita
+    // 3. Llamar a /api/crear-cita para guardar y sincronizar Google Calendar
     const fecha = `${st.fecha.y}-${String(st.fecha.m + 1).padStart(2,'0')}-${String(st.fecha.d).padStart(2,'0')}`;
-    await fetch(`${SUPA_URL}/rest/v1/citas`, {
+    await fetch('/api/crear-cita', {
       method: 'POST',
-      headers: { ...SH, Prefer: 'return=minimal' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        cliente_id:      cid,
-        especialista_id: eid,
+        cliente_id:          cid,
+        especialista_id:     eid,
+        nombre_especialista: espNombre,
+        nombre_paciente:     nombre,
+        email_paciente:      email || null,
+        tel_paciente:        tel   || null,
+        servicio:            st.svc.nom,
+        precio:              st.svc.precio,
         fecha,
-        hora:            st.hora,
-        nombre_paciente: nombre,
-        email_paciente:  email,
-        tel_paciente:    tel,
-        servicio:        st.svc.nom,
-        precio:          st.svc.precio,
-        nota:            nota || ''
+        hora:                st.hora,
+        negocio_nombre:      real.nombre_negocio,
+        duracion:            st.svc.dur || null,
+        nota:                nota || ''
       })
     });
-  } catch(e) { console.warn('Supabase error:', e); }
+  } catch(e) { console.warn('Error al guardar cita:', e); }
 }
 
 /* ════ RESET ════ */
