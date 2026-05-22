@@ -2095,14 +2095,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="r2">
         <div class="fg">
           <label class="fl">Fecha</label>
-          <input class="fi" type="text" value="Sábado 3 de mayo de 2026">
+          <input class="fi" type="date" id="ms-fecha">
         </div>
         <div class="fg">
           <label class="fl">Hora inicio</label>
           <div style="display:flex;align-items:center;gap:4px">
-            <select class="fs" id="ms-hora" style="flex:1"><option>09</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option></select>
+            <select class="fs" id="ms-hora" style="flex:1" onchange="_recalcFin()"><option>08</option><option>09</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option></select>
             <span style="color:var(--t4);font-weight:500;font-size:14px">:</span>
-            <select class="fs" id="ms-min" style="flex:1"><option>00</option><option>30</option></select>
+            <select class="fs" id="ms-min" style="flex:1" onchange="_recalcFin()"><option>00</option><option>15</option><option>30</option><option>45</option></select>
           </div>
         </div>
       </div>
@@ -2145,27 +2145,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <input class="fi ico" id="pt-input" placeholder="Nombre, RUT o email..." oninput="filterPt(this.value)" autocomplete="off" onclick="showDrop()">
           </div>
           <div class="pt-drop" id="pt-drop" style="display:none">
-            <div class="pt-row" onclick="selectPt('Juana Pérez','JP','juana.perez@email.com · +56 9 9999 9999')">
-              <div class="tav" style="font-size:9px">JP</div>
-              <div class="pt-row-info"><div class="pt-row-name">Juana Pérez</div><div class="pt-row-sub">juana.perez@email.com · 3 citas · $45.000 gastado</div></div>
-              <span class="tag tg">Recurrente</span>
-            </div>
+            <div id="pt-drop-rows"><div class="pt-row" style="color:var(--t3);font-size:12px;padding:8px 12px">Cargando pacientes...</div></div>
             <div class="pt-drop-sep"></div>
-            <div class="pt-row" onclick="selectPt('Juan Pérez','JP','juan.perez@email.com · +56 9 9999 9990')">
-              <div class="tav" style="font-size:9px">JP</div>
-              <div class="pt-row-info"><div class="pt-row-name">Juan Pérez</div><div class="pt-row-sub">juan.perez@email.com · 1 cita</div></div>
-              <span class="tag tp">Nuevo</span>
-            </div>
-            <div class="pt-drop-sep"></div>
-            <div class="pt-row" onclick="selectPt('Camila González','CG','camila.g@email.com · +56 9 8765 4321')">
-              <div class="tav" style="font-size:9px">CG</div>
-              <div class="pt-row-info"><div class="pt-row-name">Camila González</div><div class="pt-row-sub">camila.g@email.com · 5 citas · $75.000 gastado</div></div>
-              <span class="tag tg">Recurrente</span>
-            </div>
-            <div class="pt-drop-sep"></div>
-            <div class="pt-row" style="color:var(--a)" onclick="openNuevoCliente()">
+            <div class="pt-row" style="color:var(--a)" onclick="selectPtNuevo()">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 1v12M1 7h12"/></svg>
-              <div class="pt-row-info"><div class="pt-row-name">Crear nuevo cliente</div><div class="pt-row-sub" style="color:var(--t3)">Agrega sus datos al sistema</div></div>
+              <div class="pt-row-info"><div class="pt-row-name">Nuevo paciente</div><div class="pt-row-sub" style="color:var(--t3)">Ingresar nombre manualmente</div></div>
             </div>
           </div>
         </div>
@@ -2173,27 +2157,26 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><path d="M7 1L13 12H1L7 1z"/><path d="M7 5v3M7 10v.5"/></svg>
           Este cliente no tiene email ni teléfono registrado. No recibirá recordatorios automáticos.
         </div>
+        <!-- Nuevo paciente: campos manuales -->
+        <div id="pt-nuevo-wrap" style="display:none;flex-direction:column;gap:8px;margin-top:4px">
+          <input class="fi" id="pt-nuevo-nombre" placeholder="Nombre completo del paciente *" autocomplete="off">
+          <input class="fi" id="pt-nuevo-email"  placeholder="Email (opcional)" type="email" autocomplete="off">
+          <input class="fi" id="pt-nuevo-tel"    placeholder="Teléfono (opcional)" type="tel" autocomplete="off">
+        </div>
       </div>
       <div class="fg">
         <label class="fl">Profesional a cargo</label>
-        <select class="fs">
-          <option>cesar salinas — Disponible a las 12:00</option>
-        </select>
+        <select class="fs" id="ms-prof"><option value="">Cargando...</option></select>
       </div>
+      <input type="hidden" id="_pt-email" value="">
+      <input type="hidden" id="_pt-tel" value="">
     </div>
 
     <!-- ── Step 3: Servicio y pago ── -->
     <div class="mbody" id="ms3" style="display:none">
       <div class="fg">
         <label class="fl">Servicio</label>
-        <select class="fs" onchange="updatePrice(this)">
-          <option value="15000">Consulta Médica · 30 min · $15.000</option>
-          <option value="35000">Terapia / Sesión · 60 min · $35.000</option>
-          <option value="30000">Evaluación inicial · 60 min · $30.000</option>
-          <option value="12000">Corte · 30 min · $12.000</option>
-          <option value="22000">Corte + Barba · 60 min · $22.000</option>
-          <option value="1000">prueba · 30 min · $1.000</option>
-        </select>
+        <select class="fs" id="ms-servicio" onchange="updatePrice(this)"><option value="0" data-nombre="Consulta" data-dur="30">Cargando...</option></select>
       </div>
       <div class="fg">
         <label class="fl">Método de pago</label>
@@ -2411,7 +2394,82 @@ let curStep = 1;
 
 function openModal() {
   document.getElementById('modal-ov').classList.add('open');
+  // Fecha de hoy por defecto
+  document.getElementById('ms-fecha').value = new Date().toISOString().split('T')[0];
+  // Resetear paciente
+  removePt();
+  document.getElementById('pt-nuevo-wrap').style.display = 'none';
+  document.getElementById('pt-nuevo-nombre').value = '';
+  document.getElementById('pt-nuevo-email').value = '';
+  document.getElementById('pt-nuevo-tel').value = '';
+  document.getElementById('_pt-email').value = '';
+  document.getElementById('_pt-tel').value = '';
+  // Cargar datos reales
+  _loadModalEspecialistas();
+  _loadModalServicios();
+  _loadModalPacientes();
   goStep(1);
+}
+
+let _modalPacs = [];
+async function _loadModalEspecialistas() {
+  const cid = await getClienteId();
+  const sel = document.getElementById('ms-prof');
+  if (!sel) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&estado=eq.activo&select=id,nombre,cargo&order=nombre.asc`, { headers: _SH });
+    const esps = await r.json();
+    sel.innerHTML = Array.isArray(esps) && esps.length
+      ? esps.map(e => `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre}${e.cargo ? ' — ' + e.cargo : ''}</option>`).join('')
+      : '<option value="">Sin profesionales activos</option>';
+  } catch(_) { sel.innerHTML = '<option value="">Error al cargar</option>'; }
+}
+
+async function _loadModalServicios() {
+  const cid = await getClienteId();
+  const sel = document.getElementById('ms-servicio');
+  if (!sel) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios&limit=1`, { headers: _SH });
+    const [cli] = await r.json();
+    const srvs = Array.isArray(cli?.servicios) ? cli.servicios : [];
+    sel.innerHTML = srvs.length
+      ? srvs.map(s => `<option value="${s.precio||0}" data-nombre="${s.nombre}" data-dur="${s.duracion||30}">${s.nombre}${s.duracion?' · '+s.duracion+' min':''}${s.precio?' · $'+Number(s.precio).toLocaleString('es-CL'):''}</option>`).join('')
+      : '<option value="0" data-nombre="Consulta" data-dur="30">Consulta</option>';
+    updatePrice(sel);
+  } catch(_) {}
+}
+
+async function _loadModalPacientes() {
+  const cid = await getClienteId();
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/pacientes?cliente_id=eq.${cid}&select=nombre,email,tel&order=nombre.asc&limit=200`, { headers: _SH });
+    const pacs = await r.json();
+    _modalPacs = Array.isArray(pacs) ? pacs : [];
+    _renderPtDrop('');
+  } catch(_) { _modalPacs = []; }
+}
+
+function _renderPtDrop(q) {
+  const rows = document.getElementById('pt-drop-rows');
+  if (!rows) return;
+  const term = q.toLowerCase();
+  const filtered = term ? _modalPacs.filter(p => p.nombre?.toLowerCase().includes(term) || p.email?.toLowerCase().includes(term)) : _modalPacs;
+  if (!filtered.length) {
+    rows.innerHTML = `<div style="color:var(--t3);font-size:12px;padding:8px 12px">${_modalPacs.length ? 'Sin resultados' : 'No hay pacientes aún'}</div>`;
+    return;
+  }
+  rows.innerHTML = filtered.slice(0, 8).map(p => {
+    const initials = (p.nombre||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const meta = [p.email, p.tel].filter(Boolean).join(' · ') || 'Sin contacto';
+    const email = (p.email||'').replace(/"/g,'');
+    const tel   = (p.tel||'').replace(/"/g,'');
+    const nombre= (p.nombre||'').replace(/"/g,'');
+    return `<div class="pt-row" onclick="selectPt('${nombre}','${initials}','${meta}','${email}','${tel}')">
+      <div class="tav" style="font-size:9px">${initials}</div>
+      <div class="pt-row-info"><div class="pt-row-name">${p.nombre}</div><div class="pt-row-sub">${meta}</div></div>
+    </div><div class="pt-drop-sep"></div>`;
+  }).join('');
 }
 function closeModal() {
   document.getElementById('modal-ov').classList.remove('open');
@@ -2435,6 +2493,12 @@ function goStep(n) {
 function nextStep() { if (curStep < 3) goStep(curStep + 1); }
 function prevStep() { if (curStep > 1) goStep(curStep - 1); }
 
+function _recalcFin() {
+  const activeDur = document.querySelector('.dur-btn.on');
+  const d = activeDur ? parseInt(activeDur.id.replace('db','')) : 60;
+  if (!isNaN(d)) setDur(d);
+}
+
 /* Duration picker */
 function setDur(d) {
   ['30','60','90','cx'].forEach(x => {
@@ -2445,8 +2509,10 @@ function setDur(d) {
   const b = document.getElementById('db' + key);
   if (b) b.classList.add('on');
   if (d !== 'c') {
-    const m = 12 * 60 + d;
-    document.getElementById('fin-time').value = Math.floor(m/60) + ':' + (m%60===0?'00':'30');
+    const hh = parseInt(document.getElementById('ms-hora')?.value || '12');
+    const mm = parseInt(document.getElementById('ms-min')?.value  || '0');
+    const m  = hh * 60 + mm + d;
+    document.getElementById('fin-time').value = String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
   }
 }
 
@@ -2462,10 +2528,11 @@ function setPay(el) {
 
 /* Price update */
 function updatePrice(sel) {
-  const val = parseInt(sel.value);
-  document.getElementById('s-price').textContent = '$' + val.toLocaleString('es-CL');
-  const opts = sel.options[sel.selectedIndex].text.split('·');
-  document.getElementById('s-srv').textContent = opts[0].trim();
+  const val = parseInt(sel.value) || 0;
+  document.getElementById('s-price').textContent = val ? '$' + val.toLocaleString('es-CL') : 'Gratis';
+  const opt = sel.options[sel.selectedIndex];
+  const nombre = opt?.dataset?.nombre || opt?.text?.split('·')[0]?.trim() || 'Consulta';
+  document.getElementById('s-srv').textContent = nombre;
 }
 
 /* Client search */
@@ -2479,61 +2546,112 @@ function filterClientes(q) {
 }
 
 function filterPt(v) {
-  document.getElementById('pt-drop').style.display = v.length > 0 ? 'block' : 'none';
+  document.getElementById('pt-drop').style.display = 'block';
+  _renderPtDrop(v);
 }
 function showDrop() {
   document.getElementById('pt-drop').style.display = 'block';
+  _renderPtDrop(document.getElementById('pt-input')?.value || '');
 }
-function selectPt(name, initials, meta) {
+function selectPt(name, initials, meta, email, tel) {
   document.getElementById('pt-chip').style.display = 'flex';
   document.getElementById('pt-search-wrap').style.display = 'none';
+  document.getElementById('pt-nuevo-wrap').style.display = 'none';
   document.getElementById('pt-chip-av').textContent = initials;
   document.getElementById('pt-chip-name').textContent = name;
   document.getElementById('pt-chip-meta').textContent = meta;
   document.getElementById('pt-drop').style.display = 'none';
   document.getElementById('pt-input').value = '';
   document.getElementById('s-cli').textContent = name;
-  document.getElementById('pt-warn').style.display = meta.includes('Sin email') ? 'flex' : 'none';
+  document.getElementById('_pt-email').value = email || '';
+  document.getElementById('_pt-tel').value = tel || '';
+  document.getElementById('pt-warn').style.display = (!email && !tel) ? 'flex' : 'none';
+}
+function selectPtNuevo() {
+  document.getElementById('pt-drop').style.display = 'none';
+  document.getElementById('pt-chip').style.display = 'none';
+  document.getElementById('pt-search-wrap').style.display = 'none';
+  document.getElementById('pt-nuevo-wrap').style.display = 'flex';
+  document.getElementById('pt-warn').style.display = 'none';
+  document.getElementById('s-cli').textContent = 'Nuevo paciente';
+  document.getElementById('pt-nuevo-nombre').focus();
 }
 function removePt() {
   document.getElementById('pt-chip').style.display = 'none';
   document.getElementById('pt-search-wrap').style.display = 'block';
+  document.getElementById('pt-nuevo-wrap').style.display = 'none';
   document.getElementById('pt-warn').style.display = 'none';
   document.getElementById('s-cli').textContent = '—';
+  document.getElementById('_pt-email').value = '';
+  document.getElementById('_pt-tel').value = '';
 }
-function saveReservation() {
-  // Leer cliente seleccionado
+async function saveReservation() {
+  const btn = document.getElementById('btn-save');
+
+  // 1. Paciente
   const chip = document.getElementById('pt-chip');
-  const chipName = document.getElementById('pt-chip-name');
-  const fullName = (chip && chip.style.display !== 'none' && chipName) ? chipName.textContent.trim() : null;
-  if (!fullName) { toast('⚠ Selecciona un cliente antes de confirmar'); return; }
+  const nuevoWrap = document.getElementById('pt-nuevo-wrap');
+  let nombre_paciente, email_paciente, tel_paciente;
 
-  // Leer hora y minuto
-  const hora = (document.getElementById('ms-hora') || {}).value || '09';
-  const min  = (document.getElementById('ms-min')  || {}).value || '00';
-  const time = `${hora}:${min}`;
-
-  // Abreviatura del nombre para el label (ej: "Sofía Lagos" → "Sofía L.")
-  const parts = fullName.split(' ');
-  const abrev = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
-
-  // Agregar a mesEvents con la fecha de hoy
-  const d   = new Date();
-  const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-  if (!mesEvents[key]) mesEvents[key] = [];
-  const lbl = `${abrev} ${time}`;
-  if (!mesEvents[key].some(e => e.lbl === lbl)) {
-    mesEvents[key].push({ cls: 'ev-p', lbl, real: true });
+  if (nuevoWrap?.style.display !== 'none') {
+    nombre_paciente = document.getElementById('pt-nuevo-nombre')?.value.trim();
+    email_paciente  = document.getElementById('pt-nuevo-email')?.value.trim() || null;
+    tel_paciente    = document.getElementById('pt-nuevo-tel')?.value.trim()   || null;
+    if (!nombre_paciente) { toast('⚠ Ingresa el nombre del paciente'); return; }
+  } else {
+    const chipName = document.getElementById('pt-chip-name');
+    nombre_paciente = (chip?.style.display !== 'none' && chipName) ? chipName.textContent.trim() : null;
+    if (!nombre_paciente) { toast('⚠ Selecciona o ingresa un paciente'); return; }
+    email_paciente = document.getElementById('_pt-email')?.value || null;
+    tel_paciente   = document.getElementById('_pt-tel')?.value   || null;
   }
 
-  // Re-renderizar vista activa
-  if (currentCalView === 'semana')     { renderWeekHeader(); renderWeekBody(); }
-  else if (currentCalView === 'dia')   renderDiaView(currentDayDate);
-  else if (currentCalView === 'mes')   renderMesGrid();
-  else if (currentCalView === 'lista') renderLista();
+  // 2. Fecha y hora
+  const fecha = document.getElementById('ms-fecha')?.value;
+  if (!fecha) { toast('⚠ Selecciona una fecha'); return; }
+  const hh = document.getElementById('ms-hora')?.value || '09';
+  const mm = document.getElementById('ms-min')?.value  || '00';
+  const hora = `${hh}:${mm}`;
 
-  closeModal();
-  toast('✓ Reserva confirmada · WhatsApp enviado');
+  // 3. Profesional
+  const profSel = document.getElementById('ms-prof');
+  const especialista_id = profSel?.value;
+  const nombre_especialista = profSel?.options[profSel.selectedIndex]?.dataset?.nombre || profSel?.options[profSel.selectedIndex]?.text?.split(' —')[0] || '';
+  if (!especialista_id) { toast('⚠ Selecciona un profesional'); return; }
+
+  // 4. Servicio
+  const srvSel = document.getElementById('ms-servicio');
+  const srvOpt = srvSel?.options[srvSel.selectedIndex];
+  const servicio = srvOpt?.dataset?.nombre || srvOpt?.text?.split(' ·')[0] || 'Consulta';
+  const precio   = parseInt(srvSel?.value) || 0;
+  const duracion = srvOpt?.dataset?.dur ? `${srvOpt.dataset.dur} min` : null;
+
+  // 5. Llamar API
+  const cid = await getClienteId();
+  if (!cid) { toast('⚠ Error interno — recarga e intenta de nuevo'); return; }
+
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = 'Guardando...';
+  try {
+    const r = await fetch('/api/crear-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || 'Error al crear la cita');
+
+    closeModal();
+    toast('✓ Reserva confirmada');
+    // Recargar agenda
+    if (typeof cargarCitasSupabase === 'function') cargarCitasSupabase();
+  } catch(e) {
+    toast('⚠ ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 }
 
 /* ════ FICHA CLIENTE ════ */
