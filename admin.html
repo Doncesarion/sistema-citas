@@ -1576,6 +1576,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="ptab"    id="ctab-notificaciones" onclick="showCfg('notificaciones',this)">Notificaciones</button>
         <button class="ptab"    id="ctab-servicios"      onclick="showCfg('servicios',this)">Servicios</button>
         <button class="ptab"    id="ctab-pagos"          onclick="showCfg('pagos',this)">Pagos</button>
+        <button class="ptab"    id="ctab-chatbot"        onclick="showCfg('chatbot',this)">Chatbot IA</button>
       </div>
     </div>
 
@@ -1594,6 +1595,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="cfg-row" onclick="showCfg('profesionales',document.getElementById('ctab-profesionales'))"><div><div class="cfg-t">Profesionales y roles</div><div class="cfg-s">Gestiona tu equipo, horarios y permisos de acceso</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tp">3 activos</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="openCfgModal('integraciones')"><div><div class="cfg-t">Integraciones</div><div class="cfg-s">Google Calendar, API pública para desarrolladores</div></div><span style="color:var(--t4)">›</span></div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="showCfg('chatbot',document.getElementById('ctab-chatbot'))">
+          <div><div class="cfg-t">Chatbot IA</div><div class="cfg-s">Asistente virtual para WhatsApp, Facebook e Instagram</div></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="tag" id="chatbot-status-tag" style="background:rgba(108,92,228,0.1);color:#6C5CE4;border:1px solid rgba(108,92,228,0.2);font-size:10px;padding:2px 8px;border-radius:100px;font-weight:600">Configurar</span><span style="color:var(--t4)">›</span></div>
+        </div>
       </div>
     </div>
 
@@ -1873,6 +1879,117 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
       <div style="display:flex;justify-content:flex-end;margin-top:4px">
         <button class="btn-a" onclick="guardarPagos()">Guardar métodos de pago</button>
+      </div>
+    </div>
+
+    <!-- Panel: Chatbot IA -->
+    <div id="cfg-chatbot" style="display:none">
+      <div class="vh" style="margin-bottom:16px">
+        <span>Chatbot IA</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
+
+      <!-- Personalidad del bot -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Personalidad del asistente</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Define cómo se presenta y comunica tu asistente virtual.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre del asistente</label>
+            <input class="fi" id="bot-nombre" placeholder="Ej: Valentina" value="Valentina">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Género</label>
+            <select class="fs" id="bot-genero" style="width:100%">
+              <option value="femenino">Femenino (ella)</option>
+              <option value="masculino">Masculino (él)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Tono de comunicación</label>
+          <div style="display:flex;gap:8px">
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer" id="tono-informal-lbl">
+              <input type="radio" name="bot-tono" value="informal" id="bot-tono-informal" checked style="accent-color:var(--a)">
+              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Informal (tú)</div><div style="font-size:11px;color:var(--t3)">Cercano y natural</div></div>
+            </label>
+            <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer" id="tono-formal-lbl">
+              <input type="radio" name="bot-tono" value="formal" id="bot-tono-formal" style="accent-color:var(--a)">
+              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Formal (usted)</div><div style="font-size:11px;color:var(--t3)">Profesional y respetuoso</div></div>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Mensaje de bienvenida</label>
+          <textarea class="fi" id="bot-saludo" rows="2" placeholder="Ej: ¡Hola! 👋 Soy Valentina, la asistente virtual de {negocio}. ¿En qué te puedo ayudar hoy?" style="resize:vertical">¡Hola! 👋 Soy {nombre_bot}, la asistente virtual de {negocio}. ¿En qué te puedo ayudar hoy?</textarea>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">Usa {nombre_bot} y {negocio} como variables dinámicas.</div>
+        </div>
+      </div>
+
+      <!-- Preguntas frecuentes -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">Preguntas frecuentes</div>
+          <button class="btn-sm" onclick="addFaq()" style="font-size:11px">+ Agregar</button>
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">El bot responderá automáticamente estas preguntas sin usar IA.</div>
+        <div id="faqs-list" style="display:flex;flex-direction:column;gap:10px">
+          <!-- rendered by JS -->
+        </div>
+        <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
+      </div>
+
+      <!-- Canales conectados -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Canales de mensajería</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Conecta tu bot a tus canales de atención.</div>
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--b1)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:#25D366;display:flex;align-items:center;justify-content:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </div>
+              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">WhatsApp Business</div><div style="font-size:11px;color:var(--t3)">Número de teléfono dedicado via Meta API</div></div>
+            </div>
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Próximamente</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--b1)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0866FF,#1877F2);display:flex;align-items:center;justify-content:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
+              </div>
+              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Facebook Messenger</div><div style="font-size:11px;color:var(--t3)">Mensajes directos de tu página de Facebook</div></div>
+            </div>
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Próximamente</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF,#515BD4);display:flex;align-items:center;justify-content:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              </div>
+              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Instagram Direct</div><div style="font-size:11px;color:var(--t3)">Mensajes directos de tu cuenta de Instagram</div></div>
+            </div>
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Próximamente</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Probar bot -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Probar el asistente</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Simula una conversación para ver cómo responde antes de activarlo.</div>
+        <div id="bot-test-msgs" style="background:var(--bg);border:1px solid var(--b1);border-radius:var(--r);padding:12px;min-height:120px;max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+          <div style="font-size:12px;color:var(--t4);text-align:center;padding:20px 0">Escribe un mensaje para empezar la conversación</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input class="fi" id="bot-test-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')testBotSend()" style="flex:1">
+          <button class="btn-a" onclick="testBotSend()" id="btn-bot-test-send" style="padding:10px 16px;white-space:nowrap">Enviar</button>
+        </div>
+        <button class="btn-sm" onclick="resetBotTest()" style="margin-top:8px;font-size:11px;color:var(--t3)">Reiniciar conversación</button>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn-a" onclick="saveBotConfig()">Guardar configuración del bot</button>
       </div>
     </div>
 
@@ -2789,17 +2906,18 @@ function updateReport(p, btn) {
 
 /* ════ CONFIG PANEL SWITCHING ════ */
 function showCfg(panel, btn, skipPush) {
-  ['general','profesionales','horarios','notificaciones','servicios','pagos'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot'].forEach(p => {
     const el = document.getElementById('cfg-' + p);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
-  ['general','profesionales','horarios','notificaciones','servicios','pagos'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot'].forEach(p => {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
   if (panel === 'profesionales') cargarProfesionales();
   if (panel === 'servicios')     cargarServicios();
   if (panel === 'pagos')         cargarPagos();
+  if (panel === 'chatbot')       loadBotConfig();
   if (!skipPush) history.pushState({ section:'config', sub: panel }, '', '/configuracion/' + panel);
 }
 
@@ -2925,6 +3043,122 @@ async function guardarPagos() {
     if (!r.ok) throw new Error('Error al guardar');
     toast('✓ Métodos de pago guardados');
   } catch(e) { toast('Error al guardar: ' + e.message); }
+}
+
+/* ═══ BOT CONFIG ═══ */
+let _botFaqs = [];
+let _botTestUserId = 'admin-test-' + Date.now();
+
+async function loadBotConfig() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  const r = await fetch(`${_SURL}/rest/v1/bot_config?cliente_id=eq.${cid}&limit=1`, { headers: _SH });
+  if (!r.ok) return;
+  const [cfg] = await r.json();
+  if (!cfg) return;
+  document.getElementById('bot-nombre').value = cfg.nombre_bot || 'Valentina';
+  document.getElementById('bot-genero').value = cfg.genero || 'femenino';
+  const tono = cfg.tono || 'informal';
+  document.getElementById('bot-tono-' + tono).checked = true;
+  if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
+  _botFaqs = Array.isArray(cfg.faqs) ? cfg.faqs : [];
+  renderFaqs();
+}
+
+function renderFaqs() {
+  const list = document.getElementById('faqs-list');
+  const empty = document.getElementById('faqs-empty');
+  if (!_botFaqs.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = _botFaqs.map((f, i) => `
+    <div style="border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;background:#fafafe">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Pregunta ${i+1}</span>
+        <button onclick="removeFaq(${i})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:16px;padding:0;line-height:1">×</button>
+      </div>
+      <input class="fi" placeholder="¿Cuánto cuesta la consulta?" value="${escHtml(f.pregunta||'')}" oninput="_botFaqs[${i}].pregunta=this.value" style="margin-bottom:8px">
+      <textarea class="fi" rows="2" placeholder="La consulta tiene un valor de $35.000 y dura 60 minutos." style="resize:vertical" oninput="_botFaqs[${i}].respuesta=this.value">${escHtml(f.respuesta||'')}</textarea>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function addFaq() {
+  _botFaqs.push({ pregunta: '', respuesta: '' });
+  renderFaqs();
+  document.getElementById('faqs-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function removeFaq(i) {
+  _botFaqs.splice(i, 1);
+  renderFaqs();
+}
+
+async function saveBotConfig() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  const tono = document.querySelector('input[name="bot-tono"]:checked')?.value || 'informal';
+  const payload = {
+    cliente_id: cid,
+    nombre_bot: document.getElementById('bot-nombre').value.trim() || 'Valentina',
+    genero:     document.getElementById('bot-genero').value,
+    tono,
+    saludo:     document.getElementById('bot-saludo').value.trim(),
+    faqs:       _botFaqs.filter(f => f.pregunta.trim())
+  };
+  const r = await fetch(`${_SURL}/rest/v1/bot_config`, {
+    method: 'POST',
+    headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(payload)
+  });
+  if (r.ok) { toast('✓ Configuración del bot guardada'); }
+  else { toast('Error al guardar la configuración del bot'); }
+}
+
+async function testBotSend() {
+  const input = document.getElementById('bot-test-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const btn = document.getElementById('btn-bot-test-send');
+  btn.disabled = true;
+
+  const msgs = document.getElementById('bot-test-msgs');
+  // Clear placeholder
+  if (msgs.querySelector('[style*="text-align:center"]')) msgs.innerHTML = '';
+
+  // Add user bubble
+  msgs.innerHTML += `<div style="display:flex;justify-content:flex-end"><div style="background:var(--a);color:#fff;padding:8px 12px;border-radius:12px 12px 2px 12px;font-size:13px;max-width:80%">${escHtml(msg)}</div></div>`;
+  msgs.innerHTML += `<div id="bot-typing" style="display:flex;gap:4px;padding:8px 0;align-items:center"><span style="width:6px;height:6px;border-radius:50%;background:var(--t4);animation:dp 1s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--t4);animation:dp 1s .2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--t4);animation:dp 1s .4s infinite"></span></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const cid = await getClienteId();
+    const r = await fetch('/api/bot-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: cid, canal: 'test', canal_user_id: _botTestUserId, canal_user_name: 'Admin Test', mensaje: msg })
+    });
+    const data = await r.json();
+    document.getElementById('bot-typing')?.remove();
+    const respuesta = data.respuesta || data.error || 'Sin respuesta';
+    msgs.innerHTML += `<div style="display:flex;justify-content:flex-start"><div style="background:#fff;border:1px solid var(--b1);padding:8px 12px;border-radius:12px 12px 12px 2px;font-size:13px;max-width:80%;color:var(--t1)">${escHtml(respuesta)}</div></div>`;
+    if (data.cita_creada) {
+      msgs.innerHTML += `<div style="background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.2);padding:10px 12px;border-radius:var(--r);font-size:12px;color:#166534">✓ Cita creada: ${escHtml(data.cita_creada.nombre_paciente)} — ${escHtml(data.cita_creada.fecha)} ${escHtml(data.cita_creada.hora)}</div>`;
+    }
+  } catch(e) {
+    document.getElementById('bot-typing')?.remove();
+    msgs.innerHTML += `<div style="font-size:12px;color:var(--red);padding:4px 0">Error: ${escHtml(e.message)}</div>`;
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+  btn.disabled = false;
+  input.focus();
+}
+
+function resetBotTest() {
+  _botTestUserId = 'admin-test-' + Date.now();
+  document.getElementById('bot-test-msgs').innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:20px 0">Escribe un mensaje para empezar la conversación</div>';
 }
 
 /* ════ FORMATO RUT ════ */
@@ -5177,7 +5411,7 @@ function routeFromURL() {
   const section = parts[0];
   const sub     = parts[1] || null;
   const calSubs = ['semana','dia','mes','lista'];
-  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos'];
+  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot'];
 
   if (!section || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);
