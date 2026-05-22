@@ -199,7 +199,11 @@ async function gcGetOrCreateCalendar(access_token, sh, cliente_id, existing_cale
     headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ summary: 'Attempo', description: 'Citas gestionadas con Attempo', timeZone: 'America/Santiago' })
   });
-  if (!r.ok) throw new Error('No se pudo crear el calendario Attempo');
+  if (!r.ok) {
+    const errBody = await r.text();
+    console.error('gcGetOrCreateCalendar error:', r.status, errBody);
+    throw new Error(`Error ${r.status} al crear calendario: ${errBody}`);
+  }
   const cal = await r.json();
   await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
     method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
