@@ -158,7 +158,7 @@ ${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.
 - Si preguntan por precios Y no hay catálogo: di que el valor lo coordina el profesional al reservar, y ofrece agendar.
-- Si preguntan por horario, disponibilidad o qué días atienden: llama SIEMPRE a ver_disponibilidad_semana. Usa el campo `texto` del resultado tal cual, copiándolo con sus saltos de línea. Responde así: "Contamos con disponibilidad en los siguientes horarios:" + salto de línea + [campo texto del resultado, cada día en su propia línea] + salto de línea + "¿Cuál día te acomoda mejor?"
+- Si preguntan por horario, disponibilidad o qué días atienden: llama SIEMPRE a ver_disponibilidad_semana. Copia el campo "texto" del resultado exactamente como viene, con cada día en su propia línea. Responde: "Contamos con disponibilidad en los siguientes horarios:" + salto de línea + [texto del resultado] + salto de línea + "¿Cuál día te acomoda mejor?"
 - Si preguntan por teléfono, dirección u otra información que no tengas: respóndelo brevemente y ofrece agendar.
 - Si hay PREGUNTAS FRECUENTES configuradas, úsalas primero.
 - NUNCA digas "no tengo esa información" y te quedes ahí. Siempre conecta con lo que puedes hacer.
@@ -408,7 +408,7 @@ REGLAS GENERALES:
       disponible: true,
       dias: resultados,
       texto,
-      instruccion: 'Copia el campo texto tal como está, con cada línea en su propia línea. Cuando el paciente elija un día, llama SIEMPRE a buscar_disponibilidad para ese día antes de mencionar horas concretas.'
+      instruccion: 'Muestra el campo texto con cada dia en su propia linea. Cuando el paciente elija un dia, llama SIEMPRE a buscar_disponibilidad antes de mencionar horas concretas.'
     };
   }
 
