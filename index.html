@@ -953,11 +953,12 @@ const SH = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Typ
 
 async function guardarCitaSupabase(nombre, email, tel, nota) {
   try {
-    // 1. Obtener cliente_id
-    const r1 = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?select=id&activo=eq.true&order=created_at.asc&limit=1`, { headers: SH });
+    // 1. Obtener cliente_id (mismo criterio que el admin: más reciente, evitar nombres de prueba)
+    const r1 = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio&activo=eq.true&order=created_at.desc&limit=10`, { headers: SH });
     const cls = await r1.json();
     if (!Array.isArray(cls) || !cls.length) return;
-    const cid = cls[0].id;
+    const real = cls.find(c => !/demo|prueba|ejemplo|test/i.test(c.nombre_negocio||'')) || cls[0];
+    const cid = real.id;
 
     // 2. Buscar especialista_id si se eligió uno específico
     let eid = null;
@@ -994,7 +995,7 @@ function resetear() {
   calY = 2026; calM = 4;
   document.querySelectorAll('.svc-row,.prof-row').forEach(r => r.classList.remove('sel'));
   document.querySelectorAll('.fi').forEach(i => { if(i.tagName==='TEXTAREA') i.value=''; else if(i.type!=='checkbox') i.value=''; });
-  ['chk-wa','chk-em'].forEach(id => document.getElementById(id).checked = true);
+  ['chk-wa','chk-em'].forEach(id => { const el = document.getElementById(id); if(el) el.checked = true; });
   document.getElementById('chk-t').checked = false;
   document.getElementById('prev1').textContent = '';
   document.getElementById('prev2').textContent = '';

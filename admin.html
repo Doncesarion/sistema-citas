@@ -4980,7 +4980,7 @@ let _ventasCid = null;
 
 // Carga inicial y refresco cada 30 segundos
 cargarCitasSupabase();
-setInterval(cargarCitasSupabase, 30000);
+setInterval(cargarCitasSupabase, 10000);
 
 async function getClienteId() {
   if (_ventasCid) return _ventasCid;
