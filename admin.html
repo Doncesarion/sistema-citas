@@ -1188,10 +1188,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
       <div class="rp-sep"></div>
-      <div class="up-section">
-        <div class="up-title">Citas de hoy — sábado 3</div>
-        <div class="upi" onclick="openFicha('Juana Pérez','JP','Psicóloga')"><div class="upi-bar" style="background:var(--a)"></div><div><div class="upi-name">Juana Pérez</div><div class="upi-meta">11:00 · Consulta · 30 min · cesar salinas</div><span class="upi-badge ub-ok">✓ Confirmada</span></div></div>
-        <div class="upi" onclick="openFicha('Juan Pérez','JP','Barbería')"><div class="upi-bar" style="background:var(--amber)"></div><div><div class="upi-name">Juan Pérez</div><div class="upi-meta">15:00 · Corte · 30 min · juan pablo</div><span class="upi-badge ub-pn">Pendiente</span></div></div>
+      <div class="up-section" id="rp-citas-hoy">
+        <div class="up-title" id="rp-citas-hoy-title">Citas de hoy</div>
+        <div style="color:var(--t3);font-size:12px;padding:6px 0">Cargando...</div>
       </div>
       <div class="rp-sep"></div>
       <div class="wsp-box">
@@ -3742,90 +3741,18 @@ let calIdx = 1;
 
 // Month navigation state (0=abril, 1=mayo, 2=junio 2026)
 const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-let mesIdx = 4; // Mayo 2026 = índice 4 (enero=0)
-const mesBase = [
-  {y:2026,m:0},{y:2026,m:1},{y:2026,m:2},{y:2026,m:3},
-  {y:2026,m:4},{y:2026,m:5},{y:2026,m:6},{y:2026,m:7},
-  {y:2026,m:8},{y:2026,m:9},{y:2026,m:10},{y:2026,m:11},
-]; // month 0-indexed
+// Generar mesBase dinámico: 3 meses atrás hasta 12 meses adelante
+const _now = new Date();
+const _mesBase = [];
+for (let i = -3; i <= 12; i++) {
+  const d = new Date(_now.getFullYear(), _now.getMonth() + i, 1);
+  _mesBase.push({ y: d.getFullYear(), m: d.getMonth() });
+}
+const mesBase = _mesBase;
+let mesIdx = 3; // mes actual = índice 3 (empezamos 3 meses atrás)
 
-// Events per month keyed as "YYYY-M-D" (month 0-indexed)
-let mesEvents = {
-  // Enero 2026 (m=0)
-  '2026-0-5':  [{cls:'ev-p',lbl:'Valentina F. 10:00'}],
-  '2026-0-7':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-b',lbl:'Ana S. 11:00'}],
-  '2026-0-12': [{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-0-14': [{cls:'ev-p',lbl:'Camila G. 10:00'}],
-  '2026-0-19': [{cls:'ev-t',lbl:'Carlos V. 14:00'}],
-  '2026-0-21': [{cls:'ev-b',lbl:'Carla B. 12:00'}],
-  '2026-0-26': [{cls:'ev-p',lbl:'Juana P. 11:00'}],
-  '2026-0-28': [{cls:'ev-a',lbl:'Luis M. 11:00'}],
-  // Febrero 2026 (m=1)
-  '2026-1-2':  [{cls:'ev-p',lbl:'Valentina F. 14:00'},{cls:'ev-g',lbl:'Pedro R. 10:00'}],
-  '2026-1-4':  [{cls:'ev-b',lbl:'Ana S. 09:00'}],
-  '2026-1-9':  [{cls:'ev-p',lbl:'Camila G. 10:00'},{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-1-11': [{cls:'ev-t',lbl:'Carlos V. 14:00'}],
-  '2026-1-16': [{cls:'ev-g',lbl:'Sofía L. 09:00'}],
-  '2026-1-18': [{cls:'ev-p',lbl:'Juana P. 11:00'},{cls:'ev-b',lbl:'Carla B. 12:00'}],
-  '2026-1-23': [{cls:'ev-a',lbl:'Luis M. 11:00'}],
-  '2026-1-25': [{cls:'ev-p',lbl:'Rodrigo V. 15:00'}],
-  // Marzo 2026 (m=2)
-  '2026-2-2':  [{cls:'ev-b',lbl:'Ana S. 09:00'}],
-  '2026-2-4':  [{cls:'ev-p',lbl:'Camila G. 10:00'}],
-  '2026-2-9':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-2-11': [{cls:'ev-t',lbl:'Carlos V. 14:00'},{cls:'ev-p',lbl:'Juana P. 11:00'}],
-  '2026-2-16': [{cls:'ev-p',lbl:'Valentina F. 14:00'}],
-  '2026-2-18': [{cls:'ev-b',lbl:'Carla B. 12:00'}],
-  '2026-2-23': [{cls:'ev-a',lbl:'Luis M. 11:00'},{cls:'ev-r',lbl:'Diego R. 11:00'}],
-  '2026-2-25': [{cls:'ev-p',lbl:'Rodrigo V. 15:00'},{cls:'ev-g',lbl:'Pedro R. 10:00'}],
-  // Abril 2026 (m=3)
-  '2026-3-6':  [{cls:'ev-b',lbl:'Ana S. 09:00'},{cls:'ev-g',lbl:'Carlos V. 11:00'}],
-  '2026-3-9':  [{cls:'ev-p',lbl:'Camila G. 10:00'}],
-  '2026-3-14': [{cls:'ev-g',lbl:'Sofía L. 09:00'}],
-  '2026-3-20': [{cls:'ev-p',lbl:'Valentina F. 14:00'}],
-  '2026-3-22': [{cls:'ev-a',lbl:'Luis M. 11:00'},{cls:'ev-r',lbl:'Diego R. 11:00'}],
-  '2026-3-27': [{cls:'ev-p',lbl:'Camila G. 10:00'},{cls:'ev-b',lbl:'Carla B. 14:00'}],
-  '2026-3-29': [{cls:'ev-t',lbl:'Pedro R. 12:00'}],
-  // Mayo 2026 (m=4)
-  '2026-4-3':  [{cls:'ev-p',lbl:'Juana P. 11:00'},{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-4-5':  [{cls:'ev-b',lbl:'Ana S. 09:00'}],
-  '2026-4-7':  [{cls:'ev-p',lbl:'Camila G. 10:00'}],
-  '2026-4-8':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-t',lbl:'Carlos V. 11:00'},{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-4-9':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-b',lbl:'Carla B. 12:00'}],
-  '2026-4-13': [{cls:'ev-t',lbl:'Carlos V. 14:00'}],
-  '2026-4-15': [{cls:'ev-p',lbl:'Valentina F. 14:00'}],
-  '2026-4-20': [{cls:'ev-g',lbl:'Pedro R. 10:00'}],
-  '2026-4-22': [{cls:'ev-a',lbl:'Luis M. 11:00'}],
-  '2026-4-28': [{cls:'ev-p',lbl:'Camila G. 10:00'}],
-  // Junio 2026 (m=5)
-  '2026-5-1':  [{cls:'ev-p',lbl:'Valentina F. 10:00'}],
-  '2026-5-3':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-b',lbl:'Ana S. 11:00'}],
-  '2026-5-8':  [{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-5-10': [{cls:'ev-p',lbl:'Camila G. 10:00'}],
-  '2026-5-15': [{cls:'ev-t',lbl:'Carlos V. 14:00'},{cls:'ev-g',lbl:'Sofía L. 16:00'}],
-  '2026-5-17': [{cls:'ev-b',lbl:'Carla B. 12:00'}],
-  '2026-5-22': [{cls:'ev-p',lbl:'Juana P. 11:00'}],
-  '2026-5-24': [{cls:'ev-a',lbl:'Luis M. 11:00'}],
-  '2026-5-29': [{cls:'ev-p',lbl:'Valentina F. 14:00'},{cls:'ev-g',lbl:'Pedro R. 10:00'}],
-  // Julio 2026 (m=6)
-  '2026-6-1':  [{cls:'ev-p',lbl:'Juana P. 11:00'}],
-  '2026-6-6':  [{cls:'ev-g',lbl:'Sofía L. 09:00'},{cls:'ev-b',lbl:'Ana S. 14:00'}],
-  '2026-6-8':  [{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-6-13': [{cls:'ev-p',lbl:'Valentina F. 14:00'},{cls:'ev-t',lbl:'Carlos V. 10:00'}],
-  '2026-6-15': [{cls:'ev-b',lbl:'Carla B. 12:00'}],
-  '2026-6-20': [{cls:'ev-p',lbl:'Camila G. 10:00'}],
-  '2026-6-22': [{cls:'ev-g',lbl:'Pedro R. 11:00'},{cls:'ev-a',lbl:'Luis M. 15:00'}],
-  '2026-6-27': [{cls:'ev-p',lbl:'Rodrigo V. 15:00'}],
-  // Agosto 2026 (m=7)
-  '2026-7-3':  [{cls:'ev-b',lbl:'Ana S. 09:00'},{cls:'ev-p',lbl:'Juana P. 11:00'}],
-  '2026-7-5':  [{cls:'ev-g',lbl:'Sofía L. 14:00'}],
-  '2026-7-10': [{cls:'ev-t',lbl:'Carlos V. 10:00'}],
-  '2026-7-12': [{cls:'ev-p',lbl:'Camila G. 10:00'},{cls:'ev-a',lbl:'Juan P. 15:00'}],
-  '2026-7-17': [{cls:'ev-b',lbl:'Carla B. 12:00'}],
-  '2026-7-19': [{cls:'ev-p',lbl:'Valentina F. 14:00'}],
-  '2026-7-24': [{cls:'ev-g',lbl:'Pedro R. 10:00'},{cls:'ev-a',lbl:'Luis M. 11:00'}],
-  '2026-7-26': [{cls:'ev-p',lbl:'Rodrigo V. 15:00'}],
-};
+// Events per month keyed as "YYYY-M-D" (month 0-indexed) — solo datos reales de Supabase
+let mesEvents = {};
 
 function renderMesGrid() {
   const container = document.getElementById('mes-grid-container');
@@ -4998,14 +4925,53 @@ async function cargarCitasSupabase() {
     else if (currentCalView === 'mes')   renderMesGrid();
     else if (currentCalView === 'lista') renderLista();
 
-    // Actualizar contador de citas de hoy en nav
+    // 5. Actualizar "Citas de hoy" en el sidebar
     const today = new Date();
-    const tk = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-    const hoy = (mesEvents[tk] || []).filter(e => e.real).length;
-    if (hoy > 0) {
-      const navSpan = document.querySelector('.nav-center span');
-      if (navSpan) navSpan.textContent = `En línea · ${hoy} cita${hoy!==1?'s':''} hoy`;
+    const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    const citasHoy = citas.filter(c => {
+      const [y, mStr, d] = c.fecha.split('-').map(Number);
+      return y === today.getFullYear() && (mStr - 1) === today.getMonth() && d === today.getDate()
+        && c.estado !== 'canceled';
+    }).sort((a, b) => a.hora.localeCompare(b.hora));
+
+    const rpSec = document.getElementById('rp-citas-hoy');
+    const rpTitle = document.getElementById('rp-citas-hoy-title');
+    if (rpSec && rpTitle) {
+      const dow = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][today.getDay()];
+      rpTitle.textContent = `Citas de hoy — ${dow} ${today.getDate()}`;
+      const items = rpSec.querySelectorAll('.upi');
+      items.forEach(el => el.remove());
+      if (!citasHoy.length) {
+        let noEl = rpSec.querySelector('.rp-sin-citas');
+        if (!noEl) {
+          noEl = document.createElement('div');
+          noEl.className = 'rp-sin-citas';
+          noEl.style.cssText = 'color:var(--t3);font-size:12px;padding:6px 0';
+          rpSec.appendChild(noEl);
+        }
+        noEl.textContent = 'Sin citas hoy';
+      } else {
+        rpSec.querySelector('.rp-sin-citas')?.remove();
+        citasHoy.forEach(c => {
+          const nombre = c.nombre_paciente || '—';
+          const esp    = c.especialistas?.nombre || '';
+          const hora   = (c.hora || '').slice(0, 5);
+          const srv    = c.servicio || 'Consulta';
+          const estado = c.estado === 'done' ? 'ub-ok' : 'ub-pn';
+          const estadoLbl = c.estado === 'done' ? '✓ Realizada' : 'Pendiente';
+          const initials = nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+          const div = document.createElement('div');
+          div.className = 'upi';
+          div.innerHTML = `<div class="upi-bar" style="background:var(--a)"></div><div><div class="upi-name">${nombre}</div><div class="upi-meta">${hora}${srv?' · '+srv:''}${esp?' · '+esp:''}</div><span class="upi-badge ${estado}">${estadoLbl}</span></div>`;
+          rpSec.appendChild(div);
+        });
+      }
     }
+
+    // 6. Actualizar contador en nav
+    const hoy = citasHoy.length;
+    const navSpan = document.querySelector('.nav-center span');
+    if (navSpan) navSpan.textContent = hoy > 0 ? `En línea · ${hoy} cita${hoy!==1?'s':''} hoy` : 'En línea';
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
