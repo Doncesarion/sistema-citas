@@ -121,13 +121,14 @@ export default async function handler(req, res) {
   }
   const horarioResumen = buildHorarioResumen(espLista);
 
-  const srvTexto = serviciosCatalogo.length
+  const tieneCatalogo = serviciosCatalogo.length > 0;
+  const srvTexto = tieneCatalogo
     ? serviciosCatalogo.map(s => {
         const dur = s.duracion ? `, ${s.duracion} min` : '';
         const prx = s.precio  ? `, $${Number(s.precio).toLocaleString('es-CL')}` : '';
         return `- ${s.nombre}${dur}${prx}`;
       }).join('\n')
-    : 'Sin catálogo configurado, usa el motivo que indique el paciente.';
+    : 'No hay catálogo de servicios configurado en el sistema.';
 
   const faqsTexto = botConfig.faqs.length
     ? botConfig.faqs.map(f => `P: ${f.pregunta}\nR: ${f.respuesta}`).join('\n\n')
@@ -155,10 +156,12 @@ ${srvTexto}
 ${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}
 
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
-- Si preguntan por precios o valores: usa directamente el CATÁLOGO DE SERVICIOS de arriba y lista los precios. Nunca digas que no tienes esa información si el catálogo tiene datos.
+- Si preguntan por precios o valores Y el catálogo tiene servicios: lista los precios directamente, no digas que no tienes esa información.
+- Si preguntan por precios Y no hay catálogo configurado: di que los valores los informa el profesional directamente, y ofrece agendar una cita.
 - Si preguntan por horario o días de atención: usa el HORARIO DE ATENCIÓN del negocio indicado arriba.
-- Si preguntan por teléfono, dirección u otra información que realmente no esté en este prompt: indícalo brevemente y ofrece agendar una cita.
+- Si preguntan por teléfono, dirección u otra información que no esté en este prompt: indícalo brevemente y ofrece agendar.
 - Si hay PREGUNTAS FRECUENTES configuradas, úsalas para responder antes de deflectar.
+- Nunca digas "no tengo el listado configurado en el sistema" — eso suena técnico. Habla con naturalidad.
 
 FLUJO PARA AGENDAR UNA CITA (sigue este orden):
 1. Saluda con calidez si es el primer mensaje.
