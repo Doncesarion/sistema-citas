@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Attempo — Dashboard</title>
+<title>Attempo — Agenda</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/logo_attempo.png">
+<link rel="apple-touch-icon" href="/logo_attempo.png">
 <script>(function(){if(!localStorage.getItem('attempo_user'))window.location.replace('/login');}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2390,6 +2393,9 @@ function sv(v, btn, skipPush) {
   document.querySelectorAll('.sb-ctx').forEach(el => { el.style.display = 'none'; });
   const sbCtx = document.getElementById('sb-' + v);
   if (sbCtx) { sbCtx.style.display = 'flex'; sbCtx.style.flexDirection = 'column'; sbCtx.style.height = '100%'; }
+
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',reportes:'Reportes',config:'Configuración'};
+  document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')   cargarVentas();
   if (v === 'reportes') cargarReportes();

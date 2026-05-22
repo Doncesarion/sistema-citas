@@ -3,7 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Attempo — Reserva tu hora</title>
+<title>Reserva tu hora en línea — Attempo | Todo a tu tiempo</title>
+<meta name="description" content="Reserva tu hora de forma rápida y sencilla. Attempo conecta pacientes con médicos, clínicas, psicólogos y especialistas en Chile. Confirmación inmediata y recordatorio automático.">
+<meta name="keywords" content="reserva de horas online, agendar cita médica, citas online Chile, reservar hora médico, agenda online clínica, hora psicólogo online, Attempo">
+<meta name="author" content="Attempo">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.attempo.cl/">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.attempo.cl/">
+<meta property="og:title" content="Reserva tu hora en línea — Attempo">
+<meta property="og:description" content="Agenda tu cita con médicos y especialistas en Chile de forma rápida y sencilla. Confirmación inmediata. Todo a tu tiempo.">
+<meta property="og:image" content="https://www.attempo.cl/logo_attempo.png">
+<meta property="og:locale" content="es_CL">
+<meta property="og:site_name" content="Attempo">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Reserva tu hora en línea — Attempo">
+<meta name="twitter:description" content="Agenda tu cita con médicos y especialistas en Chile. Confirmación inmediata y recordatorio automático.">
+<meta name="twitter:image" content="https://www.attempo.cl/logo_attempo.png">
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="/logo_attempo.png">
+<link rel="apple-touch-icon" href="/logo_attempo.png">
+<!-- Schema.org -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.attempo.cl/#organization",
+      "name": "Attempo",
+      "url": "https://www.attempo.cl",
+      "logo": "https://www.attempo.cl/logo_attempo.png",
+      "description": "Sistema de agendamiento de citas online para profesionales de la salud y servicios en Chile",
+      "slogan": "Todo a tu tiempo",
+      "areaServed": {"@type": "Country", "name": "Chile"},
+      "contactPoint": {"@type": "ContactPoint", "email": "contacto@attempo.cl", "contactType": "customer support"}
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.attempo.cl/#website",
+      "url": "https://www.attempo.cl",
+      "name": "Attempo",
+      "publisher": {"@id": "https://www.attempo.cl/#organization"}
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Attempo",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "url": "https://www.attempo.cl",
+      "description": "Sistema de agendamiento de citas con recordatorios automáticos por WhatsApp y email para médicos, clínicas y profesionales de la salud en Chile",
+      "featureList": ["Reservas online 24/7", "Recordatorios automáticos por WhatsApp", "Confirmación por email", "Gestión de profesionales", "Calendario digital", "Sin necesidad de llamar"],
+      "provider": {"@id": "https://www.attempo.cl/#organization"},
+      "offers": {"@type": "Offer", "priceCurrency": "CLP", "description": "Planes desde 0 CLP al mes"}
+    }
+  ]
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -83,6 +141,7 @@ body::before{
 .acc-head{
   display:flex;align-items:center;gap:14px;padding:18px 22px;cursor:pointer;
   transition:background .12s;user-select:none;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .acc-head:hover{background:rgba(108,92,228,0.02)}
 .acc-num{width:28px;height:28px;border-radius:50%;background:var(--b1);color:var(--t3);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
@@ -102,6 +161,7 @@ body::before{
 .svc-row{
   display:flex;align-items:center;gap:12px;padding:13px 15px;
   border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .svc-row:hover{border-color:var(--b2);background:rgba(108,92,228,0.03)}
 .svc-row.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
@@ -120,6 +180,7 @@ body::before{
 .prof-row{
   display:flex;align-items:center;gap:14px;padding:14px 16px;
   border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .prof-row:hover{border-color:var(--b2);background:rgba(108,92,228,0.03)}
 .prof-row.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
@@ -139,7 +200,7 @@ body::before{
 /* ── CALENDARIO ── */
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .cal-month-lbl{font-size:14px;font-weight:600;color:var(--t1);letter-spacing:-.02em}
-.cal-arr{width:30px;height:30px;border:1px solid var(--b1);border-radius:7px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t2);transition:all .12s}
+.cal-arr{width:30px;height:30px;border:1px solid var(--b1);border-radius:7px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t2);transition:all .12s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .cal-arr:hover{border-color:var(--a);color:var(--a)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:20px}
 .cal-dh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t4);text-align:center;padding:5px 0}
@@ -147,7 +208,7 @@ body::before{
 .cal-day.other{color:var(--t4);font-weight:400}
 .cal-day.past{color:var(--t4)}
 .cal-day.today{background:rgba(108,92,228,0.08);color:var(--a);font-weight:600}
-.cal-day.avail{cursor:pointer;color:var(--t1)}
+.cal-day.avail{cursor:pointer;color:var(--t1);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .cal-day.avail:hover{background:var(--adim);border-color:var(--b2)}
 .cal-day.avail::after{content:'';width:4px;height:4px;border-radius:50%;background:var(--green);position:absolute;bottom:3px;left:50%;transform:translateX(-50%)}
 .cal-day.sel{background:var(--a)!important;color:#fff!important;border-color:var(--a)!important;box-shadow:0 2px 10px rgba(108,92,228,.35);font-weight:600}
@@ -164,6 +225,7 @@ body::before{
   background:#fff;cursor:pointer;font-size:12px;font-family:var(--mono);
   font-weight:500;color:var(--t2);transition:all .12s;text-align:center;
   display:flex;flex-direction:column;align-items:center;gap:1px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .h-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
 .h-btn.sel{background:var(--a);border-color:var(--a);color:#fff;box-shadow:0 2px 8px rgba(108,92,228,.3)}
@@ -184,10 +246,10 @@ body::before{
 .check-lbl{font-size:12px;color:var(--t2);line-height:1.5}
 
 /* ── BTNS ── */
-.btn-a{padding:11px 22px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif;box-shadow:0 2px 8px rgba(108,92,228,.25)}
+.btn-a{padding:11px 22px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif;box-shadow:0 2px 8px rgba(108,92,228,.25);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-a:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(108,92,228,.4)}
 .btn-a:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none}
-.btn-g{padding:11px 20px;background:#fff;color:var(--t2);border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif}
+.btn-g{padding:11px 20px;background:#fff;color:var(--t2);border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-g:hover{border-color:var(--b2);color:var(--t1)}
 .foot{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:18px;border-top:1px solid var(--b1)}
 
@@ -214,9 +276,9 @@ body::before{
 .c-row b{color:var(--t1);font-weight:600;min-width:90px;flex-shrink:0}
 .c-row span{color:var(--t2)}
 .c-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.wa-btn{display:flex;align-items:center;gap:7px;padding:11px 18px;background:#25D366;color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s}
+.wa-btn{display:flex;align-items:center;gap:7px;padding:11px 18px;background:#25D366;color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .wa-btn:hover{background:#1eb85a;transform:translateY(-1px)}
-.ical-btn{display:flex;align-items:center;gap:7px;padding:11px 18px;background:#fff;color:var(--t1);border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s}
+.ical-btn{display:flex;align-items:center;gap:7px;padding:11px 18px;background:#fff;color:var(--t1);border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .ical-btn:hover{border-color:var(--a);color:var(--a)}
 
 /* ── RESPONSIVE ── */

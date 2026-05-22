@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reserva tu hora — Attempo</title>
+<meta name="description" content="Reserva tu cita online de forma rápida. Elige profesional, día y hora disponible. Confirmación inmediata y recordatorio automático. Todo a tu tiempo.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Reserva tu hora — Attempo">
+<meta property="og:description" content="Agenda tu cita en minutos. Elige profesional, día y hora. Confirmación inmediata y recordatorio por WhatsApp.">
+<meta property="og:image" content="https://www.attempo.cl/logo_attempo.png">
+<meta property="og:locale" content="es_CL">
+<meta property="og:site_name" content="Attempo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Reserva tu hora — Attempo">
+<meta name="twitter:image" content="https://www.attempo.cl/logo_attempo.png">
+<link rel="icon" type="image/png" href="/logo_attempo.png">
+<link rel="apple-touch-icon" href="/logo_attempo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -181,7 +194,9 @@ function getChips(texto) {
   const params = new URLSearchParams(window.location.search);
   const cid    = params.get('cid');
   const path   = window.location.pathname;
-  const slug   = path.startsWith('/reservar/') ? path.split('/reservar/')[1] : null;
+  const slug   = path.startsWith('/reservar/')
+    ? path.split('/reservar/')[1]
+    : (path.replace(/^\//, '') || null);
 
   try {
     let rows;
