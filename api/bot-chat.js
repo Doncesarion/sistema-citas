@@ -242,6 +242,23 @@ REGLAS GENERALES:
     return slots;
   }
 
+  // Minutos desde medianoche en Santiago ahora mismo
+  function minutosAhoraStgo() {
+    const t = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit' });
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+  const hoyISOStgo = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+
+  function filtrarSlotsPasados(slots, fecha) {
+    if (fecha !== hoyISOStgo) return slots;
+    const minAhora = minutosAhoraStgo() + 60; // buffer 60 min: solo mostrar horas con al menos 1h de anticipación
+    return slots.filter(s => {
+      const [h, m] = s.split(':').map(Number);
+      return h * 60 + m > minAhora;
+    });
+  }
+
   async function ejecutarBuscarDisponibilidad(especialista_id, fecha) {
     const r1 = await fetch(
       `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
@@ -259,7 +276,8 @@ REGLAS GENERALES:
       return { disponible: false, mensaje: 'El profesional no trabaja ese día.' };
     }
 
-    const slots = diaHorario.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
+    const slotsBase = diaHorario.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
+    const slotsFiltrados = filtrarSlotsPasados(slotsBase, fecha);
 
     const r2 = await fetch(
       `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
@@ -267,7 +285,7 @@ REGLAS GENERALES:
     );
     const citasExistentes = await r2.json();
     const ocupadas = new Set((citasExistentes || []).map(c => c.hora?.slice(0, 5)));
-    const disponibles = slots.filter(s => !ocupadas.has(s));
+    const disponibles = slotsFiltrados.filter(s => !ocupadas.has(s));
 
     if (!disponibles.length) {
       return { disponible: false, mensaje: 'No hay horas disponibles ese día.' };
@@ -285,9 +303,7 @@ REGLAS GENERALES:
       : espLista;
     if (!esps.length) return { disponible: false, mensaje: 'No hay profesionales activos.' };
 
-    // Fecha de hoy en Santiago
-    const hoyISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
-    const hoy = new Date(hoyISO + 'T12:00:00');
+    const hoy = new Date(hoyISOStgo + 'T12:00:00');
 
     // Recopilar todas las fechas a consultar (próximos 8 días, incluyendo hoy)
     const fechas = Array.from({ length: 8 }, (_, i) => {
@@ -316,9 +332,10 @@ REGLAS GENERALES:
         const diaH   = horario[diaKey];
         if (!diaH?.activo || !diaH.bloques?.length) continue;
 
-        const slots      = diaH.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
-        const ocupadas   = ocupadasMap[fecha] || new Set();
-        const disponibles = slots.filter(s => !ocupadas.has(s));
+        const slotsBase   = diaH.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
+        const slotsFilt   = filtrarSlotsPasados(slotsBase, fecha);
+        const ocupadas    = ocupadasMap[fecha] || new Set();
+        const disponibles = slotsFilt.filter(s => !ocupadas.has(s));
         if (!disponibles.length) continue;
 
         const fechaFmt = `${diasFmt[diaKey]} ${d.getDate()} de ${messFmt[d.getMonth()]}`;
