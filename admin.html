@@ -904,13 +904,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <span class="btn-new-txt">+ Nueva reserva</span>
       <span class="btn-new-ico" style="display:none">+</span>
     </button>
-    <button class="help-nav-btn" onclick="toggleHelp()" title="Asistente de ayuda Attia">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
-        <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-      </svg>
-    </button>
     <div class="nav-av" id="nav-av" title="cesar salinas" onclick="openProfile()" style="cursor:pointer">CS</div>
   </div>
 </nav>
@@ -5637,7 +5630,7 @@ let _helpOpen = false;
 function toggleHelp() {
   _helpOpen = !_helpOpen;
   document.getElementById('help-panel').classList.toggle('open', _helpOpen);
-  document.querySelector('.help-nav-btn')?.classList.toggle('on', _helpOpen);
+  document.getElementById('help-btn').classList.toggle('on', _helpOpen);
   if (_helpOpen && _helpMsgs.length === 0) {
     _appendHelp('bot', '¡Hola! Soy **Attia**, tu asistente de ayuda. Puedo explicarte cualquier sección del dashboard: Agenda, Clientes, Ventas, Reportes, Configuración y más. ¿En qué te ayudo?');
     setTimeout(() => document.getElementById('help-input').focus(), 200);
@@ -5708,9 +5701,10 @@ async function sendHelp() {
 
 <!-- ═══ ATTIA — ASISTENTE DE AYUDA ADMIN ═══ -->
 <style>
-.help-nav-btn{width:32px;height:32px;border-radius:var(--r);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);color:rgba(255,255,255,0.65);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0}
-.help-nav-btn:hover,.help-nav-btn.on{background:rgba(108,92,228,0.5);border-color:rgba(108,92,228,0.6);color:#fff}
-#help-panel{position:fixed;top:60px;right:16px;width:340px;height:min(490px,calc(100vh - 76px));background:var(--surface-hi);border-radius:14px;box-shadow:0 20px 60px rgba(108,92,228,0.2),0 4px 16px rgba(0,0,0,0.1);z-index:9000;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--b2);transform:translateY(-10px) scale(0.97);opacity:0;pointer-events:none;transition:transform .2s cubic-bezier(.34,1.26,.64,1),opacity .18s}
+#help-btn{position:fixed;bottom:130px;right:22px;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(108,92,228,0.45),0 2px 6px rgba(0,0,0,0.12);z-index:9001;transition:transform .15s,box-shadow .15s,opacity .15s}
+#help-btn:hover{transform:scale(1.07);box-shadow:0 6px 24px rgba(108,92,228,0.55),0 3px 8px rgba(0,0,0,0.15)}
+#help-btn.on{box-shadow:0 0 0 4px rgba(108,92,228,0.25),0 4px 18px rgba(108,92,228,0.4)}
+#help-panel{position:fixed;bottom:192px;right:22px;width:340px;height:min(490px,calc(100vh - 210px));background:var(--surface-hi);border-radius:14px;box-shadow:0 20px 60px rgba(108,92,228,0.2),0 4px 16px rgba(0,0,0,0.1);z-index:9000;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--b2);transform:translateY(14px) scale(0.96);opacity:0;pointer-events:none;transition:transform .2s cubic-bezier(.34,1.26,.64,1),opacity .18s}
 #help-panel.open{transform:none;opacity:1;pointer-events:all}
 .help-header{background:linear-gradient(135deg,#1E1B3A 0%,#16143A 60%,#1A1642 100%);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
 .help-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(108,92,228,0.5)}
@@ -5734,8 +5728,16 @@ async function sendHelp() {
 #help-input:focus{border-color:var(--a)}
 #help-send-btn{width:33px;height:33px;border-radius:50%;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .12s}
 #help-send-btn:disabled{opacity:.4;cursor:default}
-@media(max-width:600px){#help-panel{width:calc(100vw - 16px);right:8px;top:58px}}
+@media(max-width:600px){#help-panel{width:calc(100vw - 16px);right:8px;bottom:188px}#help-btn{right:16px;bottom:120px}}
 </style>
+
+<button id="help-btn" onclick="toggleHelp()" title="Asistente de ayuda Attia">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+  </svg>
+</button>
 
 <div id="help-panel">
   <div class="help-header">
