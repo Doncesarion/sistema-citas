@@ -87,7 +87,7 @@ export default async function handler(req, res) {
   let espLista = [];
   try {
     const re = await fetch(
-      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad&order=nombre.asc`,
+      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad,horario&order=nombre.asc`,
       { headers: sh }
     );
     espLista = await re.json();
@@ -100,6 +100,26 @@ export default async function handler(req, res) {
   const espTexto = espLista.length
     ? espLista.map(e => `- ${e.nombre}, ${e.especialidad || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
+
+  // Construir resumen de horario de atención del negocio desde los horarios de los especialistas
+  function buildHorarioResumen(lista) {
+    const nombres = { lun: 'Lunes', mar: 'Martes', mie: 'Miércoles', jue: 'Jueves', vie: 'Viernes', sab: 'Sábado', dom: 'Domingo' };
+    const orden = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+    const diasActivos = {};
+    for (const esp of lista) {
+      const h = esp.horario || {};
+      for (const dia of orden) {
+        const cfg = h[dia];
+        if (cfg?.activo && cfg.bloques?.length) {
+          if (!diasActivos[dia]) diasActivos[dia] = new Set();
+          cfg.bloques.forEach(b => diasActivos[dia].add(`${b.desde}–${b.hasta}`));
+        }
+      }
+    }
+    const lines = orden.filter(d => diasActivos[d]).map(d => `${nombres[d]}: ${[...diasActivos[d]].join(' y ')}`);
+    return lines.length ? lines.join(' | ') : null;
+  }
+  const horarioResumen = buildHorarioResumen(espLista);
 
   const srvTexto = serviciosCatalogo.length
     ? serviciosCatalogo.map(s => {
@@ -125,13 +145,20 @@ export default async function handler(req, res) {
 TRATO: Usa "${pronombre}" con el paciente. Sin markdown ni asteriscos. Máximo 2 a 3 líneas por respuesta. Sin emojis excesivos.
 
 HOY ES: ${hoy}
+${horarioResumen ? `\nHORARIO DE ATENCIÓN DEL NEGOCIO:\n${horarioResumen}` : ''}
 
 PROFESIONALES DISPONIBLES:
 ${espTexto}
 
-CATÁLOGO DE SERVICIOS:
+CATÁLOGO DE SERVICIOS (con precios y duración):
 ${srvTexto}
 ${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}
+
+INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
+- Si preguntan por precios o valores: usa directamente el CATÁLOGO DE SERVICIOS de arriba y lista los precios. Nunca digas que no tienes esa información si el catálogo tiene datos.
+- Si preguntan por horario o días de atención: usa el HORARIO DE ATENCIÓN del negocio indicado arriba.
+- Si preguntan por teléfono, dirección u otra información que realmente no esté en este prompt: indícalo brevemente y ofrece agendar una cita.
+- Si hay PREGUNTAS FRECUENTES configuradas, úsalas para responder antes de deflectar.
 
 FLUJO PARA AGENDAR UNA CITA (sigue este orden):
 1. Saluda con calidez si es el primer mensaje.
@@ -148,7 +175,6 @@ RESPUESTA TRAS CREAR CITA: "¡Listo [nombre]! Tu cita quedó confirmada para el 
 REGLAS GENERALES:
 - Una sola pregunta por mensaje.
 - Si no hay disponibilidad un día, sugiere el día hábil siguiente.
-- Si alguien pregunta por ubicación u otros datos que no tienes, indícalo y sugiere llamar al negocio.
 - El cliente_id para crear_cita es siempre: ${cliente_id}`;
 
   // ── 6. Herramientas ───────────────────────────────────────────────────────
