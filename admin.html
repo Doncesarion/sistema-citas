@@ -5690,6 +5690,17 @@ function _nextFolio() {
   return n;
 }
 
+async function _ensureServicios() {
+  if (_serviciosCache.length) return;
+  const cid = await getClienteId();
+  if (!cid) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios&limit=1`, { headers: _SH });
+    const [cli] = await r.json();
+    _serviciosCache = Array.isArray(cli?.servicios) ? cli.servicios : [];
+  } catch(_) {}
+}
+
 function openBoletaModal(cita) {
   if (!cita) return;
   try { _factConfig = JSON.parse(localStorage.getItem('attempo_facturacion') || '{}'); } catch(e) { _factConfig = {}; }
@@ -5699,6 +5710,7 @@ function openBoletaModal(cita) {
   }
   _currentBoletaCita = cita;
   _boletaExtraItems  = [];
+  _ensureServicios().then(() => renderBoletaItems());
   document.getElementById('bol-receptor-nombre').value = cita.nombre_paciente || '';
   document.getElementById('bol-receptor-rut').value    = '';
   renderBoletaItems();
@@ -5726,14 +5738,48 @@ function removeBoletaItem(i) {
 function renderBoletaItems() {
   const list = document.getElementById('bol-items-list');
   if (!list) return;
-  list.innerHTML = _boletaExtraItems.map((item, i) => `
-    <div style="display:grid;grid-template-columns:1fr 100px 28px;gap:6px;margin-bottom:6px;align-items:center">
-      <input class="fi" placeholder="Descripción del ítem" value="${item.desc.replace(/"/g,'&quot;')}"
-        oninput="_boletaExtraItems[${i}].desc=this.value;updateBoletaPreview()" style="width:100%">
-      <input class="fi" type="number" placeholder="Monto" value="${item.monto}"
-        oninput="_boletaExtraItems[${i}].monto=this.value;updateBoletaPreview()" style="width:100%;text-align:right">
-      <button onclick="removeBoletaItem(${i})" style="background:none;border:1px solid var(--b2);border-radius:6px;color:var(--t3);width:28px;height:28px;cursor:pointer;font-size:14px;line-height:1">×</button>
-    </div>`).join('');
+  const srvOpts = _serviciosCache.map((s, idx) => {
+    const precio = s.precio ? ` — $${Number(s.precio).toLocaleString('es-CL')}` : '';
+    return `<option value="${idx}">${s.nombre}${precio}</option>`;
+  }).join('');
+  list.innerHTML = _boletaExtraItems.map((item, i) => {
+    const isCustom = item.serviceIdx == null;
+    const selSrv   = isCustom ? '' : ` value="${item.serviceIdx}"`;
+    return `
+    <div style="margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 100px 28px;gap:6px;align-items:center">
+        <select class="fi" style="width:100%" onchange="boletaItemSelectService(${i},this.value)">
+          <option value="">— Seleccionar servicio —</option>
+          ${srvOpts}
+          <option value="custom"${isCustom ? ' selected' : ''}>✏️ Personalizado</option>
+        </select>
+        <input class="fi" type="number" placeholder="Monto" value="${item.monto||''}"
+          oninput="_boletaExtraItems[${i}].monto=this.value;updateBoletaPreview()" style="width:100%;text-align:right">
+        <button onclick="removeBoletaItem(${i})" style="background:none;border:1px solid var(--b2);border-radius:6px;color:var(--t3);width:28px;height:28px;cursor:pointer;font-size:14px;line-height:1">×</button>
+      </div>
+      ${isCustom ? `<input class="fi" placeholder="Descripción del servicio" value="${(item.desc||'').replace(/"/g,'&quot;')}"
+        oninput="_boletaExtraItems[${i}].desc=this.value;updateBoletaPreview()" style="width:100%;margin-top:4px">` : ''}
+    </div>`;
+  }).join('');
+  // Restaurar select al valor correcto (innerHTML resetea el DOM)
+  _boletaExtraItems.forEach((item, i) => {
+    if (item.serviceIdx != null) {
+      const sel = list.querySelectorAll('select')[i];
+      if (sel) sel.value = String(item.serviceIdx);
+    }
+  });
+}
+function boletaItemSelectService(i, val) {
+  if (val === '') return;
+  if (val === 'custom') {
+    _boletaExtraItems[i] = { desc: '', monto: '', serviceIdx: null };
+  } else {
+    const idx = Number(val);
+    const s   = _serviciosCache[idx];
+    if (s) _boletaExtraItems[i] = { desc: s.nombre, monto: s.precio || '', serviceIdx: idx };
+  }
+  renderBoletaItems();
+  updateBoletaPreview();
 }
 
 function _boletaTotal() {
@@ -5886,9 +5932,21 @@ td{vertical-align:top;padding:2px 0}
 </body></html>`;
 }
 
+function _syncBoletaPrecio() {
+  if (!_boletaExtraItems.length || !_currentBoletaCita?.id) return;
+  const total = _boletaTotal();
+  fetch(`${_SURL}/rest/v1/citas?id=eq.${_currentBoletaCita.id}`, {
+    method: 'PATCH',
+    headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ precio: total })
+  }).catch(() => {});
+  _currentBoletaCita.precio = total;
+}
+
 function emitirBoleta() {
   const folio = _nextFolio();
   const html  = _buildBoletaHtml(folio);
+  _syncBoletaPrecio();
   closeBoleta();
   const w = window.open('', '_blank');
   if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 600); }
@@ -5909,6 +5967,7 @@ async function enviarBoletaEmail() {
 
   const folio = _nextFolio();
   const html  = _buildBoletaHtml(folio);
+  _syncBoletaPrecio();
   const cfg   = _factConfig;
   const total = _boletaTotal();
   const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
