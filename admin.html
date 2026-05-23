@@ -5915,10 +5915,11 @@ async function enviarBoletaEmail() {
   const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
 
   try {
-    const r = await fetch('/api/send-boleta', {
+    const r = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        type:     'boleta',
         to:       email,
         nombre:   rnombre,
         negocio:  cfg.razon || 'tu negocio',
