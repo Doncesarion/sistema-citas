@@ -872,6 +872,110 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 /* ── PROF BAR ── */
 .pct-bar{height:4px;background:var(--adim);border-radius:2px;min-width:60px;flex:1}
 .pct-bar-fill{height:4px;background:linear-gradient(90deg,var(--a),var(--a3));border-radius:2px;transition:width .5s}
+
+/* ══════════════════════════════════════════
+   TUTORIAL DE BIENVENIDA
+══════════════════════════════════════════ */
+#tut-overlay{
+  position:fixed;inset:0;z-index:9000;
+  background:rgba(22,20,58,0.72);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;
+  animation:tut-in .25s ease;
+}
+@keyframes tut-in{from{opacity:0}to{opacity:1}}
+
+#tut-modal{
+  background:var(--surface-hi);
+  border:1px solid var(--b2);
+  border-radius:20px;
+  box-shadow:0 32px 80px rgba(108,92,228,0.22),0 4px 16px rgba(0,0,0,0.08);
+  width:480px;max-width:calc(100vw - 32px);
+  padding:36px 36px 28px;
+  animation:tut-up .35s cubic-bezier(.16,1,.3,1);
+}
+@keyframes tut-up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+.tut-dots{display:flex;gap:6px;justify-content:center;margin-bottom:28px}
+.tut-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--b3);transition:all .25s;flex-shrink:0;
+}
+.tut-dot.on{background:var(--a);width:22px;border-radius:4px}
+
+.tut-icon{
+  width:68px;height:68px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(108,92,228,0.1),rgba(139,124,248,0.05));
+  border:1px solid var(--b2);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;
+}
+.tut-title{font-size:21px;font-weight:700;text-align:center;color:var(--t1);margin-bottom:10px;letter-spacing:-.03em}
+.tut-desc{font-size:14px;color:var(--t2);text-align:center;line-height:1.65;margin-bottom:28px}
+
+.tut-link-box{
+  background:var(--adim);border:1.5px solid var(--b2);border-radius:10px;
+  padding:13px 16px;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:22px;
+}
+.tut-link-text{
+  font-family:var(--mono);font-size:13px;color:var(--a);font-weight:500;
+  word-break:break-all;text-decoration:none;flex:1;
+}
+.tut-link-text:hover{text-decoration:underline}
+.tut-copy-btn{
+  background:linear-gradient(135deg,var(--a2),var(--a));color:#fff;
+  border:none;border-radius:7px;padding:7px 14px;
+  font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);
+  white-space:nowrap;transition:all .15s;flex-shrink:0;
+}
+.tut-copy-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(108,92,228,0.4)}
+
+.tut-btn-row{display:flex;align-items:center;justify-content:space-between}
+.tut-skip-btn{
+  background:none;border:none;color:var(--t3);font-size:12px;
+  cursor:pointer;font-family:var(--font);padding:6px 8px;border-radius:6px;
+  transition:color .12s;
+}
+.tut-skip-btn:hover{color:var(--t2)}
+.tut-next-btn{
+  background:linear-gradient(135deg,var(--a2),var(--a3));color:#fff;
+  border:none;border-radius:10px;padding:11px 26px;
+  font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);
+  box-shadow:0 4px 18px rgba(108,92,228,0.38);transition:all .15s;
+}
+.tut-next-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(108,92,228,0.48)}
+
+/* Tooltip de spotlight (Configuración) */
+#tut-spot-bg{
+  position:fixed;inset:0;z-index:9001;
+  background:rgba(22,20,58,0.58);backdrop-filter:blur(1px);
+  pointer-events:all;
+}
+#tut-spot-tooltip{
+  position:fixed;z-index:9020;
+  background:var(--surface-hi);
+  border:1px solid var(--b2);
+  border-radius:12px;
+  box-shadow:0 16px 48px rgba(108,92,228,0.2),0 2px 8px rgba(0,0,0,0.06);
+  padding:18px 20px 16px;width:290px;
+  pointer-events:all;
+  animation:tut-up .2s ease;
+}
+.tut-spot-chip{
+  display:inline-block;background:var(--adim);border:1px solid var(--b2);
+  color:var(--a);font-size:10px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;border-radius:100px;padding:2px 9px;margin-bottom:8px;
+}
+.tut-spot-title{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:6px}
+.tut-spot-desc{font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:14px}
+.tut-spot-nav{display:flex;align-items:center;justify-content:space-between}
+.tut-spot-counter{font-size:11px;color:var(--t4)}
+.tut-spot-next{
+  background:var(--a);color:#fff;border:none;border-radius:7px;
+  padding:7px 16px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:var(--font);transition:background .12s;
+}
+.tut-spot-next:hover{background:var(--a3)}
 </style>
 </head>
 <body>
@@ -5468,7 +5572,241 @@ routeFromURL();
       if (hint) hint.textContent = 'Tus clientes acceden en: attempo.cl/' + slug;
     }
   } catch(e) { console.error('Error cargando slug', e); }
+  tutInit();
 })();
+
+/* ══════════════════════════════════════════════════
+   TUTORIAL DE BIENVENIDA — 6 pasos
+══════════════════════════════════════════════════ */
+const _TUT_KEY = 'attempo_tutorial_v1';
+
+const _tutSteps = [
+  {
+    icon: `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14" stroke-width="2.5"/><line x1="12" y1="14" x2="12" y2="14" stroke-width="2.5"/><line x1="16" y1="14" x2="16" y2="14" stroke-width="2.5"/></svg>`,
+    title: 'Agenda',
+    desc: 'Aquí viven todas tus reservas. Cambia entre vista semanal, mensual o lista para tener el control total de tu calendario de atención.',
+    tab: 'agenda'
+  },
+  {
+    icon: `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    title: 'Clientes',
+    desc: 'Accede al historial completo de cada paciente — citas anteriores, datos de contacto y notas internas. Todo en un solo lugar.',
+    tab: 'clientes'
+  },
+  {
+    icon: `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    title: 'Ventas',
+    desc: 'Controla tus ingresos filtrados por fecha y profesional. Revisa el estado de pago de cada cita y exporta honorarios cuando lo necesites.',
+    tab: 'ventas'
+  },
+  {
+    icon: `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg>`,
+    title: 'Reportes',
+    desc: 'Analiza el rendimiento de tu consulta con estadísticas de ocupación, servicios más solicitados y evolución mensual de tus atenciones.',
+    tab: 'reportes'
+  },
+  {
+    type: 'spotlight',
+    title: 'Configuración',
+    tab: 'config',
+    subs: [
+      {
+        target: 'ctab-profesionales', section: 'profesionales',
+        chip: 'Configuración · 1 de 4',
+        title: 'Profesionales',
+        desc: 'Agrega a tu equipo de salud, define sus roles y permisos de acceso. Cada profesional tendrá su propia agenda dentro de la plataforma.'
+      },
+      {
+        target: 'ctab-servicios', section: 'servicios',
+        chip: 'Configuración · 2 de 4',
+        title: 'Servicios',
+        desc: 'Crea el catálogo de servicios que ofreces: nombre, duración y precio. El bot Attia los usará para mostrarlos y agendar automáticamente.'
+      },
+      {
+        target: 'ctab-horarios', section: 'horarios',
+        chip: 'Configuración · 3 de 4',
+        title: 'Horarios de atención',
+        desc: 'Define los días y bloques horarios en que recibes pacientes. Puedes configurar múltiples bloques por día, por ejemplo con pausa de almuerzo.'
+      },
+      {
+        target: 'ctab-pagos', section: 'pagos',
+        chip: 'Configuración · 4 de 4',
+        title: 'Métodos de pago',
+        desc: 'Indica cómo aceptas el pago de tus pacientes — transferencia, efectivo u otros. Esta información aparece en el email de confirmación de cada cita.'
+      }
+    ]
+  },
+  {
+    icon: `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+    title: 'Tu link de reservas',
+    desc: 'Este es el link único de tu consulta. Compártelo por WhatsApp, Instagram o donde prefieras. Tus pacientes chatearán con Attia y agendarán solos, en cualquier momento.',
+    tab: null,
+    isLink: true
+  }
+];
+
+let _tutStep    = 0;
+let _tutCfgSub  = 0;
+let _tutSpotEl  = null;
+
+function tutInit() {
+  if (localStorage.getItem(_TUT_KEY)) return;
+  setTimeout(tutShow, 900);
+}
+
+function tutShow() {
+  _tutStep   = 0;
+  _tutCfgSub = 0;
+  tutRenderModal();
+  document.getElementById('tut-overlay').style.display = 'flex';
+}
+
+function tutRenderModal() {
+  const step  = _tutSteps[_tutStep];
+  const total = _tutSteps.length;
+
+  // Dots
+  const dotsEl = document.getElementById('tut-dots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'tut-dot' + (i === _tutStep ? ' on' : '');
+    dotsEl.appendChild(d);
+  }
+
+  // Navegar a la pestaña correspondiente
+  if (step.tab) {
+    const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === _tutTabName(step.tab));
+    sv(step.tab, btn, true);
+  }
+
+  document.getElementById('tut-icon').innerHTML  = step.icon  || '';
+  document.getElementById('tut-title').textContent = step.title;
+  document.getElementById('tut-desc').textContent  = step.desc || '';
+
+  const linkBox = document.getElementById('tut-link-box');
+  if (step.isLink) {
+    const slug = currentBookingUrl || '...';
+    const fullUrl = 'https://www.attempo.cl/' + slug;
+    linkBox.style.display = 'flex';
+    const a = document.getElementById('tut-link-text');
+    a.textContent = 'attempo.cl/' + slug;
+    a.href = fullUrl;
+  } else {
+    linkBox.style.display = 'none';
+  }
+
+  const isLast = _tutStep === total - 1;
+  document.getElementById('tut-next-btn').textContent = isLast ? '¡Comenzar!' : 'Continuar →';
+}
+
+function _tutTabName(tab) {
+  return { agenda:'Agenda', clientes:'Clientes', ventas:'Ventas', reportes:'Reportes', config:'Configuración' }[tab] || tab;
+}
+
+function tutNext() {
+  const step = _tutSteps[_tutStep];
+  if (step.type === 'spotlight') {
+    // Ocultar modal y entrar al spotlight de Configuración
+    document.getElementById('tut-overlay').style.display = 'none';
+    _tutCfgSub = 0;
+    const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === 'Configuración');
+    sv('config', btn, true);
+    setTimeout(tutShowSpot, 350);
+    return;
+  }
+  _tutStep++;
+  if (_tutStep >= _tutSteps.length) { tutDone(); return; }
+  tutRenderModal();
+}
+
+/* ── Spotlight: Configuración ── */
+function tutShowSpot() {
+  const sub = _tutSteps[_tutStep].subs[_tutCfgSub];
+  tutClearSpot();
+
+  const el = document.getElementById(sub.target);
+  if (!el) { tutSpotNext(); return; }
+
+  showCfg(sub.section, el);
+
+  // Efecto spotlight sobre el elemento
+  el.style.cssText += ';position:relative;z-index:9010;box-shadow:0 0 0 4px var(--a),0 0 0 9999px rgba(22,20,58,0.6);border-radius:6px;';
+  _tutSpotEl = el;
+
+  // Fondo semi-transparente que bloquea el resto
+  document.getElementById('tut-spot-bg').style.display = 'block';
+
+  // Posicionar tooltip cerca del elemento destacado
+  const rect = el.getBoundingClientRect();
+  const tip  = document.getElementById('tut-spot-tooltip');
+  tip.style.display = 'block';
+
+  document.getElementById('tut-spot-chip').textContent    = sub.chip;
+  document.getElementById('tut-spot-title').textContent   = sub.title;
+  document.getElementById('tut-spot-desc').textContent    = sub.desc;
+  document.getElementById('tut-spot-counter').textContent = (_tutCfgSub + 1) + ' / ' + _tutSteps[_tutStep].subs.length;
+
+  const isLastSub = _tutCfgSub === _tutSteps[_tutStep].subs.length - 1;
+  document.getElementById('tut-spot-next').textContent = isLastSub ? 'Siguiente sección →' : 'Siguiente →';
+
+  // Posicionar tooltip: debajo del elemento, ajustar si se sale de pantalla
+  const tw = 290, th = 180;
+  let left = rect.left;
+  let top  = rect.bottom + 12;
+  if (left + tw > window.innerWidth - 16) left = window.innerWidth - tw - 16;
+  if (left < 16) left = 16;
+  if (top + th > window.innerHeight - 16) top = rect.top - th - 12;
+  if (top < 16) top = 16;
+  tip.style.left = left + 'px';
+  tip.style.top  = top  + 'px';
+}
+
+function tutSpotNext() {
+  tutClearSpot();
+  _tutCfgSub++;
+  if (_tutCfgSub < _tutSteps[_tutStep].subs.length) {
+    tutShowSpot();
+    return;
+  }
+  // Terminar spotlight, avanzar al siguiente paso principal
+  document.getElementById('tut-spot-bg').style.display      = 'none';
+  document.getElementById('tut-spot-tooltip').style.display = 'none';
+  _tutStep++;
+  if (_tutStep >= _tutSteps.length) { tutDone(); return; }
+  document.getElementById('tut-overlay').style.display = 'flex';
+  tutRenderModal();
+}
+
+function tutClearSpot() {
+  if (!_tutSpotEl) return;
+  // Quitar solo las propiedades que agregamos
+  _tutSpotEl.style.position  = '';
+  _tutSpotEl.style.zIndex    = '';
+  _tutSpotEl.style.boxShadow = '';
+  _tutSpotEl.style.borderRadius = '';
+  _tutSpotEl = null;
+}
+
+function tutSkip() {
+  tutDone();
+}
+
+function tutDone() {
+  localStorage.setItem(_TUT_KEY, '1');
+  tutClearSpot();
+  document.getElementById('tut-spot-bg').style.display      = 'none';
+  document.getElementById('tut-spot-tooltip').style.display = 'none';
+  document.getElementById('tut-overlay').style.display      = 'none';
+  // Volver a agenda al terminar
+  const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === 'Agenda');
+  sv('agenda', btn, true);
+}
+
+function tutCopyLink() {
+  const url = 'https://www.attempo.cl/' + (currentBookingUrl || '');
+  navigator.clipboard.writeText(url).then(() => toast('✓ Link copiado al portapapeles'));
+}
 </script>
 
 <!-- ═══ MODAL REGISTRAR PAGO ═══ -->
@@ -6301,6 +6639,35 @@ async function sendHelp() {
     <button id="help-send-btn" onclick="sendHelp()">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M7 1l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+  </div>
+</div>
+
+<!-- ══ TUTORIAL DE BIENVENIDA ══ -->
+<div id="tut-overlay" style="display:none">
+  <div id="tut-modal">
+    <div class="tut-dots" id="tut-dots"></div>
+    <div class="tut-icon" id="tut-icon"></div>
+    <div class="tut-title" id="tut-title"></div>
+    <div class="tut-desc"  id="tut-desc"></div>
+    <div class="tut-link-box" id="tut-link-box" style="display:none">
+      <a class="tut-link-text" id="tut-link-text" href="#" target="_blank"></a>
+      <button class="tut-copy-btn" onclick="tutCopyLink()">Copiar link</button>
+    </div>
+    <div class="tut-btn-row">
+      <button class="tut-skip-btn" onclick="tutSkip()">Saltar tutorial</button>
+      <button class="tut-next-btn" id="tut-next-btn" onclick="tutNext()">Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<div id="tut-spot-bg"      style="display:none"></div>
+<div id="tut-spot-tooltip" style="display:none">
+  <div class="tut-spot-chip"  id="tut-spot-chip"></div>
+  <div class="tut-spot-title" id="tut-spot-title"></div>
+  <div class="tut-spot-desc"  id="tut-spot-desc"></div>
+  <div class="tut-spot-nav">
+    <span class="tut-spot-counter" id="tut-spot-counter"></span>
+    <button class="tut-spot-next" id="tut-spot-next" onclick="tutSpotNext()">Siguiente →</button>
   </div>
 </div>
 
