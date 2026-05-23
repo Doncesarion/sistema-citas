@@ -141,11 +141,14 @@ export default async function handler(req, res) {
   const pronombre = botConfig.tono === 'formal' ? 'usted' : 'tú';
 
   // ── 5. System prompt ──────────────────────────────────────────────────────
+  const telDesdeCanal = canal === 'whatsapp' ? canal_user_id : null;
+
   const systemPrompt = `Eres ${botConfig.nombre_bot}, la asistente virtual de ${negocioNombre}. Atiendes por ${canal}. Eres chilena, cálida y profesional. Nunca dices que eres una IA.
 
 TRATO: Usa "${pronombre}" con el paciente. Sin markdown ni asteriscos. Máximo 2 a 3 líneas por respuesta. Sin emojis excesivos.
 
 HOY ES: ${hoy}
+${telDesdeCanal ? `\nTELÉFONO DEL PACIENTE: Ya tienes su teléfono desde ${canal}: ${telDesdeCanal}. NO lo pidas. Úsalo directamente como tel_paciente en crear_cita.` : ''}
 ${horarioResumen ? `\nHORARIO DE ATENCIÓN DEL NEGOCIO:\n${horarioResumen}` : ''}
 
 PROFESIONALES DISPONIBLES:
@@ -174,17 +177,15 @@ FLUJO PARA AGENDAR UNA CITA — sigue SIEMPRE este orden exacto, sin saltarte pa
    ¿Cuál necesitas?
 4. Si hay un solo profesional, infórmalo: "Serás atendido/a por [nombre], [especialidad]."
    Si hay varios, lista sus nombres y pregunta con quién prefiere.
-5. Llama a ver_disponibilidad_semana y presenta el resultado línea por línea. Pregunta qué día prefiere.
-6. Cuando el paciente elija un día, llama a buscar_disponibilidad para ese día. Usa el campo "rangos" para presentar compactamente: "Tenemos disponibilidad de [rangos]. ¿Qué hora te acomoda?" NUNCA listes slots individuales.
-7. Cuando el paciente confirme una hora específica, verifica que esté en el campo "horas" de buscar_disponibilidad. Luego pide teléfono y email en un solo mensaje: "Para confirmar necesito tu teléfono y email (el email es para enviarte la confirmación)."
-8. Con nombre, servicio, profesional, fecha, hora y teléfono confirmados, llama a crear_cita.
+5. Llama a ver_disponibilidad_semana y presenta el resultado línea por línea. Pregunta qué día prefiere. IMPORTANTE: el campo "texto" muestra el horario general del profesional, NO las horas reales libres (puede haber citas ya agendadas). Nunca uses esos horarios para decirle al paciente qué horas hay disponibles en un día concreto.
+6. Cuando el paciente elija un día, SIEMPRE llama a buscar_disponibilidad para ese día antes de mencionar horas. Usa el campo "rangos" para presentar compactamente: "Tenemos disponibilidad de [rangos]. ¿Qué hora te acomoda?" NUNCA listes slots individuales. NUNCA uses los horarios de ver_disponibilidad_semana para responder esto.
+7. Cuando el paciente confirme una hora específica, verifica que esté en el campo "horas" de buscar_disponibilidad. ${telDesdeCanal ? `Ya tienes su teléfono (${telDesdeCanal}). Solo pide el email: "¿Tienes email para enviarte la confirmación? (opcional)"` : `Pide teléfono y email en un solo mensaje: "Para confirmar necesito tu teléfono y email (el email es para enviarte la confirmación)."`}
+8. En cuanto ${telDesdeCanal ? 'el paciente responda (aunque no dé email)' : 'el paciente entregue su teléfono (el email es opcional)'}, USA EL TOOL crear_cita DE INMEDIATO. No respondas texto antes de llamar al tool.
 
-IMPORTANTE:
-- NUNCA pidas teléfono/email antes de tener confirmados: profesional, fecha y hora. Si falta alguno, vuelve al paso correspondiente.
-- NUNCA repitas una pregunta ya respondida en esta conversación. Antes de pedir nombre, servicio, fecha u hora, revisa el historial. Si ya lo tienes, continúa con el siguiente paso.
-- Si ya tienes nombre del paciente, NO lo vuelvas a pedir. Úsalo directamente.
+⚠️ REGLA CRÍTICA: NUNCA escribas "confirmada", "listo" ni ningún mensaje de éxito sin haber llamado primero al tool crear_cita y recibido ok:true como respuesta. Si escribes eso sin llamar al tool, estás mintiendo al paciente. La cita solo existe cuando el tool la crea.
 
-RESPUESTA TRAS CREAR CITA: "¡Listo [nombre]! Tu cita quedó confirmada para el [fecha] a las [hora] con [profesional]. 📅"
+RESPUESTA TRAS CREAR CITA (solo después de que crear_cita retorne ok:true):
+"¡Listo [nombre]! Tu cita quedó confirmada para el [fecha] a las [hora] con [profesional]. 📅"
 
 REGLAS GENERALES:
 - Una sola pregunta por mensaje.
@@ -292,11 +293,25 @@ REGLAS GENERALES:
 
     // Incluir citas sin especialista_id asignado (pueden bloquear el slot igual)
     const r2 = await fetch(
-      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=eq.${fecha}&estado=neq.canceled&or=(especialista_id.eq.${especialista_id},especialista_id.is.null)&select=hora`,
+      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=eq.${fecha}&estado=neq.canceled&or=(especialista_id.eq.${especialista_id},especialista_id.is.null)&select=hora,servicio`,
       { headers: sh }
     );
     const citasExistentes = await r2.json();
-    const ocupadas = new Set((citasExistentes || []).map(c => c.hora?.slice(0, 5)));
+
+    // Bloquear todos los slots que caen dentro de la duración de cada cita
+    const ocupadas = new Set();
+    for (const c of (citasExistentes || [])) {
+      const horaStr = c.hora?.slice(0, 5);
+      if (!horaStr) continue;
+      const [ch, cm] = horaStr.split(':').map(Number);
+      const startMin = ch * 60 + cm;
+      const srv = serviciosCatalogo.find(s => s.nombre === c.servicio);
+      const durMin = srv?.duracion ? parseInt(srv.duracion) : 30;
+      for (let s = startMin; s < startMin + durMin; s += 30) {
+        ocupadas.add(`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`);
+      }
+    }
+
     const disponibles = slotsFiltrados.filter(s => !ocupadas.has(s));
 
     if (!disponibles.length) {
@@ -355,14 +370,23 @@ REGLAS GENERALES:
     for (const esp of esps) {
       const horario = esp.horario || {};
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&estado=neq.canceled&or=(especialista_id.eq.${esp.id},especialista_id.is.null)&select=fecha,hora`,
+        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&estado=neq.canceled&or=(especialista_id.eq.${esp.id},especialista_id.is.null)&select=fecha,hora,servicio`,
         { headers: sh }
       );
       const citas = await r.json();
       const ocupadasMap = {};
       (Array.isArray(citas) ? citas : []).forEach(c => {
-        const f = c.fecha; if (!ocupadasMap[f]) ocupadasMap[f] = new Set();
-        ocupadasMap[f].add(c.hora?.slice(0, 5));
+        const f = c.fecha;
+        if (!ocupadasMap[f]) ocupadasMap[f] = new Set();
+        const horaStr = c.hora?.slice(0, 5);
+        if (!horaStr) return;
+        const [ch, cm] = horaStr.split(':').map(Number);
+        const startMin = ch * 60 + cm;
+        const srv = serviciosCatalogo.find(s => s.nombre === c.servicio);
+        const durMin = srv?.duracion ? parseInt(srv.duracion) : 30;
+        for (let slot = startMin; slot < startMin + durMin; slot += 30) {
+          ocupadasMap[f].add(`${String(Math.floor(slot/60)).padStart(2,'0')}:${String(slot%60).padStart(2,'0')}`);
+        }
       });
 
       for (const fecha of fechas) {
@@ -427,7 +451,7 @@ REGLAS GENERALES:
       disponible: true,
       dias: resultados,
       texto,
-      instruccion: 'Muestra el campo texto con cada linea separada. Cuando el paciente elija un dia, llama SIEMPRE a buscar_disponibilidad antes de mencionar horas concretas.'
+      instruccion: 'Muestra el campo texto con cada linea separada. OBLIGATORIO: cuando el paciente elija cualquier dia concreto, llama SIEMPRE a buscar_disponibilidad para ese dia antes de mencionar horas. Los horarios de este resultado son generales y no reflejan citas ya agendadas.'
     };
   }
 
@@ -436,6 +460,34 @@ REGLAS GENERALES:
       especialista_id, nombre_especialista, nombre_paciente, tel_paciente,
       email_paciente, servicio, fecha, hora, duracion, precio
     } = params;
+
+    // Verificar que el slot sigue disponible antes de insertar
+    if (especialista_id) {
+      const chk = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=eq.${fecha}&estado=neq.canceled&or=(especialista_id.eq.${especialista_id},especialista_id.is.null)&select=hora,servicio`,
+        { headers: sh }
+      );
+      const citasActuales = await chk.json();
+      const [hh, hm] = hora.split(':').map(Number);
+      const slotMin = hh * 60 + hm;
+      const conflicto = (citasActuales || []).some(c => {
+        const cs = c.hora?.slice(0, 5); if (!cs) return false;
+        const [ch, cm] = cs.split(':').map(Number);
+        const citaStart = ch * 60 + cm;
+        const srv = serviciosCatalogo.find(s => s.nombre === c.servicio);
+        const citaDur = srv?.duracion ? parseInt(srv.duracion) : 30;
+        // Conflicto si el slot nuevo cae dentro del rango de la cita existente
+        if (slotMin >= citaStart && slotMin < citaStart + citaDur) return true;
+        // Conflicto si la nueva cita (duración propia) solapa con el slot existente
+        const srv2 = serviciosCatalogo.find(s => s.nombre === servicio);
+        const nuevaDur = srv2?.duracion ? parseInt(srv2.duracion) : 30;
+        if (citaStart >= slotMin && citaStart < slotMin + nuevaDur) return true;
+        return false;
+      });
+      if (conflicto) {
+        return { error: 'Ese horario ya fue tomado. Por favor elige otra hora disponible.' };
+      }
+    }
 
     // Insertar en tabla citas
     const rc = await fetch(`${SUPABASE_URL}/rest/v1/citas`, {
@@ -462,35 +514,141 @@ REGLAS GENERALES:
 
     const cita = Array.isArray(citaData) ? citaData[0] : citaData;
 
-    // Llamar a /api/crear-cita para enviar email de confirmación y agregar a Google Calendar
-    if (cita?.id) {
-      try {
-        await fetch(`${BASE_URL}/api/crear-cita`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            _cita_id_ya_creada: cita.id,
-            cliente_id,
-            especialista_id:     especialista_id     || null,
-            nombre_especialista: nombre_especialista || null,
-            nombre_paciente,
-            tel_paciente:        tel_paciente        || null,
-            email_paciente:      email_paciente      || null,
-            servicio:            servicio            || 'Consulta',
-            fecha,
-            hora,
-            duracion:            duracion            || null,
-            precio:              precio              || null
-          })
-        });
-      } catch (e) {
-        console.error('bot-chat: crear-cita email/gc error:', e.message);
-      }
-    }
-
     const fechaFmt = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
+
+    // Traer metodos_pago, datos_banco y email_negocio del negocio
+    let metodos_pago = null, datos_banco = null, email_negocio = null, direccion = null;
+    try {
+      const rn2 = await fetch(
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=metodos_pago,datos_banco,email,direccion&limit=1`,
+        { headers: sh }
+      );
+      const [cli2] = await rn2.json();
+      metodos_pago  = cli2?.metodos_pago  || null;
+      datos_banco   = cli2?.datos_banco   || null;
+      email_negocio = cli2?.email         || null;
+      direccion     = cli2?.direccion     || null;
+    } catch (e) { console.error('bot-chat: error cargando negocio extras:', e.message); }
+
+    // Enviar email de confirmación directamente desde aquí
+    if (email_paciente && process.env.RESEND_API_KEY) {
+      console.log('bot-chat: enviando email confirmación a', email_paciente);
+      try {
+        // Helpers para el template
+        function he(str) {
+          if (!str && str !== 0) return '';
+          return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+        function buildPagoHtml(mp, db) {
+          if (!mp) return '';
+          const activos = [];
+          if (mp.webpay)        activos.push('Webpay / Transbank');
+          if (mp.transferencia) activos.push('Transferencia bancaria');
+          if (mp.efectivo)      activos.push('Efectivo en el local');
+          if (!activos.length) return '';
+          let bancoRows = '';
+          if (mp.transferencia && db && Object.keys(db).length) {
+            const filas = [];
+            if (db.banco)  filas.push(`Banco: ${he(db.banco)}`);
+            if (db.tipo)   filas.push(`Tipo: ${he(db.tipo)}`);
+            if (db.cuenta) filas.push(`N° cuenta: ${he(db.cuenta)}`);
+            if (db.rut)    filas.push(`RUT: ${he(db.rut)}`);
+            if (db.nombre) filas.push(`A nombre de: ${he(db.nombre)}`);
+            if (db.email)  filas.push(`Email: ${he(db.email)}`);
+            if (filas.length) bancoRows = `<tr><td style="padding:2px 0 10px;text-align:center;font-size:12px;color:#6b7280;line-height:1.8">${filas.join('<br>')}</td></tr>`;
+          }
+          return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
+        }
+        const precioStr = precio
+          ? (typeof precio === 'number' ? '$' + precio.toLocaleString('es-CL') : precio)
+          : '';
+        const durStr = duracion ? String(duracion) : '';
+
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Attempo <contacto@attempo.cl>',
+            to: [email_paciente],
+            subject: `Tu cita en ${negocioNombre} está confirmada ✓`,
+            headers: {
+              'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+            },
+            html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
+  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+</td></tr>
+<tr><td style="padding:32px;text-align:center;">
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">¡Cita confirmada! 🎉</h2>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre_paciente)}</strong>, tu hora está reservada.</p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
+    ${nombre_especialista ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${he(nombre_especialista)}</span></td></tr>` : ''}
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${he(fechaFmt)}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hora</span><br><span style="color:#2d2d2d;font-size:15px;">${he(hora)}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Motivo</span><br><span style="color:#2d2d2d;font-size:15px;">${he(servicio || 'Consulta')}</span></td></tr>
+    ${durStr ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Duración</span><br><span style="color:#2d2d2d;font-size:15px;">${he(durStr)}</span></td></tr>` : ''}
+    ${precioStr ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total</span><br><span style="color:#6C5CE4;font-size:16px;font-weight:700;">${he(precioStr)}</span></td></tr>` : ''}
+    ${buildPagoHtml(metodos_pago, datos_banco)}
+  </table>
+  ${direccion ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;"><tr><td style="text-align:center;"><p style="margin:0 0 10px;color:#6b7280;font-size:13px;">📍 ${he(direccion)}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}" target="_blank" style="display:inline-block;padding:10px 22px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Ver en Google Maps</a></td></tr></table>` : ''}
+  <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${he(cita?.id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a></p>
+  ${email_negocio ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${he(email_negocio)}" style="color:#6C5CE4;text-decoration:none;">${he(email_negocio)}</a></p>` : ''}
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
+  <p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">Attempo</a> — Todo a tu tiempo</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+          })
+        });
+        if (!emailRes.ok) {
+          const errTxt = await emailRes.text();
+          console.error('bot-chat: email error', emailRes.status, errTxt);
+        } else {
+          console.log('bot-chat: email enviado OK');
+        }
+      } catch (e) {
+        console.error('bot-chat: email exception:', e.message);
+      }
+    } else {
+      console.log('bot-chat: email omitido — email_paciente:', email_paciente, '| KEY:', !!process.env.RESEND_API_KEY);
+    }
+
+    // Llamar a crear-cita solo para Google Calendar (no email, cita ya creada)
+    if (cita?.id) {
+      fetch(`${BASE_URL}/api/crear-cita`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _cita_id_ya_creada: cita.id,
+          cliente_id,
+          especialista_id:     especialista_id     || null,
+          nombre_especialista: nombre_especialista || null,
+          nombre_paciente,
+          tel_paciente:        tel_paciente        || null,
+          email_paciente:      null,
+          negocio_nombre:      negocioNombre       || null,
+          servicio:            servicio            || 'Consulta',
+          fecha,
+          hora,
+          duracion:            duracion            || null,
+          precio:              precio              || null
+        })
+      }).catch(e => console.error('bot-chat: crear-cita GC error:', e.message));
+    }
 
     return {
       ok: true,
@@ -566,7 +724,16 @@ REGLAS GENERALES:
 
       if (data.stop_reason !== 'tool_use') {
         respuestaFinal = data.content.find(b => b.type === 'text')?.text || '';
-        // Agregar al historial: turno del usuario + respuesta del asistente
+
+        // Salvaguarda: si Claude dice "confirmada/listo" sin haber llamado al tool, forzar tool call
+        const pareceConfirmacion = /listo|confirmad|agendad/i.test(respuestaFinal);
+        if (pareceConfirmacion && !citaCreada && i < 4) {
+          console.log('bot-chat: Claude confirmó sin llamar al tool — forzando crear_cita');
+          msgs.push({ role: 'assistant', content: respuestaFinal });
+          msgs.push({ role: 'user', content: 'SISTEMA: Detecté que confirmaste la cita sin llamar al tool crear_cita. Eso es un error. Llama AHORA al tool crear_cita con los datos que ya tienes del historial. No respondas texto hasta que el tool retorne ok:true.' });
+          continue;
+        }
+
         msgs.push({ role: 'assistant', content: respuestaFinal });
         break;
       }
