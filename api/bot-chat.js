@@ -364,51 +364,39 @@ REGLAS GENERALES:
 
     if (!resultados.length) return { disponible: false, mensaje: 'No hay disponibilidad en los próximos días.' };
 
-    const multiEsp = esps.length > 1;
+    // Construir resumen semanal desde el horario configurado del especialista
+    // (siempre en orden lun→dom, sin fechas específicas)
+    const semanaOrden = ['lun','mar','mie','jue','vie','sab','dom'];
+    const nombresDia  = { lun:'Lunes', mar:'Martes', mie:'Miércoles', jue:'Jueves', vie:'Viernes', sab:'Sábado', dom:'Domingo' };
 
-    // Agrupar días consecutivos con el mismo horario y mismo profesional
-    const grupos = [];
-    let grupo = [resultados[0]];
-    for (let i = 1; i < resultados.length; i++) {
-      const prev = resultados[i - 1];
-      const curr = resultados[i];
-      const diffDias = Math.round((new Date(curr.fecha + 'T12:00:00') - new Date(prev.fecha + 'T12:00:00')) / 86400000);
-      if (diffDias === 1 && curr.horarioTexto === prev.horarioTexto && curr.especialista_id === prev.especialista_id) {
-        grupo.push(curr);
-      } else {
-        grupos.push(grupo);
-        grupo = [curr];
+    function textoSemanalEsp(esp) {
+      const hor = esp.horario || {};
+      const grupos = [];
+      let g = null;
+      for (const dia of semanaOrden) {
+        const dH = hor[dia];
+        if (!dH?.activo || !dH.bloques?.length) { if (g) { grupos.push(g); g = null; } continue; }
+        const ht = dH.bloques.map(b => `${b.desde} a ${b.hasta}`).join(' y ');
+        if (g && g.ht === ht) { g.dias.push(dia); }
+        else { if (g) grupos.push(g); g = { ht, dias: [dia] }; }
       }
+      if (g) grupos.push(g);
+      return grupos.map(gr => {
+        const ns = gr.dias.map(d => nombresDia[d]);
+        const dStr = ns.length === 1 ? ns[0] : ns.length === 2 ? ns.join(' y ') : `${ns[0]} a ${ns[ns.length-1]}`;
+        return `${dStr}: ${gr.ht}`;
+      }).join('\n');
     }
-    grupos.push(grupo);
 
-    const texto = grupos.map(g => {
-      const first = g[0];
-      const last  = g[g.length - 1];
-      const espSuffix = multiEsp ? ` (${first.especialista})` : '';
-      if (g.length === 1) {
-        return `${first.fechaFmt}${espSuffix}: ${first.horarioTexto}`;
-      }
-      // rango: "Martes 26 a Viernes 29 de mayo"
-      const dF = new Date(first.fecha + 'T12:00:00');
-      const dL = new Date(last.fecha + 'T12:00:00');
-      const dkF = ['dom','lun','mar','mie','jue','vie','sab'][dF.getDay()];
-      const dkL = ['dom','lun','mar','mie','jue','vie','sab'][dL.getDay()];
-      const dnF = diasFmt[dkF];
-      const dnL = diasFmt[dkL];
-      const mnF = messFmt[dF.getMonth()];
-      const mnL = messFmt[dL.getMonth()];
-      const rango = mnF === mnL
-        ? `${dnF} ${dF.getDate()} a ${dnL} ${dL.getDate()} de ${mnL}`
-        : `${dnF} ${dF.getDate()} de ${mnF} a ${dnL} ${dL.getDate()} de ${mnL}`;
-      return `${rango}${espSuffix}: ${first.horarioTexto}`;
-    }).join('\n');
+    const texto = esps.length === 1
+      ? textoSemanalEsp(esps[0])
+      : esps.map(e => `${e.nombre}:\n${textoSemanalEsp(e)}`).join('\n\n');
 
     return {
       disponible: true,
       dias: resultados,
       texto,
-      instruccion: 'Muestra el campo texto con cada dia en su propia linea. Cuando el paciente elija un dia, llama SIEMPRE a buscar_disponibilidad antes de mencionar horas concretas.'
+      instruccion: 'Muestra el campo texto con cada linea separada. Cuando el paciente elija un dia, llama SIEMPRE a buscar_disponibilidad antes de mencionar horas concretas.'
     };
   }
 
