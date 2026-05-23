@@ -26,30 +26,37 @@ export default async function handler(req, res) {
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
+  // Si viene del bot, la cita ya fue creada — solo enviamos email y GC
+  const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
+
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/citas`, {
-      method: 'POST',
-      headers: { ...sh, Prefer: 'return=representation' },
-      body: JSON.stringify({
-        cliente_id,
-        especialista_id,
-        nombre_paciente,
-        tel_paciente:   tel_paciente   || null,
-        email_paciente: email_paciente || null,
-        servicio:       servicio       || 'Consulta',
-        fecha,
-        hora,
-        estado: 'pending'
-      })
-    });
+    let cita;
+    if (citaIdYaCreada) {
+      cita = { id: citaIdYaCreada };
+    } else {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/citas`, {
+        method: 'POST',
+        headers: { ...sh, Prefer: 'return=representation' },
+        body: JSON.stringify({
+          cliente_id,
+          especialista_id,
+          nombre_paciente,
+          tel_paciente:   tel_paciente   || null,
+          email_paciente: email_paciente || null,
+          servicio:       servicio       || 'Consulta',
+          fecha,
+          hora,
+          estado: 'pending'
+        })
+      });
 
-    const data = await r.json();
-    if (!r.ok) {
-      console.error('crear-cita error:', r.status, JSON.stringify(data));
-      return res.status(500).json({ error: data?.message || 'Error al crear la cita', detalle: data });
+      const data = await r.json();
+      if (!r.ok) {
+        console.error('crear-cita error:', r.status, JSON.stringify(data));
+        return res.status(500).json({ error: data?.message || 'Error al crear la cita', detalle: data });
+      }
+      cita = data[0];
     }
-
-    const cita = data[0];
 
     // Obtener datos del negocio
     let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null;

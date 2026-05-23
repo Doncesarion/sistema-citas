@@ -458,26 +458,30 @@ REGLAS GENERALES:
 
     const cita = Array.isArray(citaData) ? citaData[0] : citaData;
 
-    // Llamar a /api/crear-cita de forma fire-and-forget para email y Google Calendar
+    // Llamar a /api/crear-cita para enviar email de confirmación y agregar a Google Calendar
     if (cita?.id) {
-      fetch(`${BASE_URL}/api/crear-cita`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          _cita_id_ya_creada: cita.id,
-          cliente_id,
-          especialista_id:  especialista_id  || null,
-          nombre_especialista: nombre_especialista || null,
-          nombre_paciente,
-          tel_paciente:     tel_paciente     || null,
-          email_paciente:   email_paciente   || null,
-          servicio:         servicio         || 'Consulta',
-          fecha,
-          hora,
-          duracion:         duracion         || null,
-          precio:           precio           || null
-        })
-      }).catch(e => console.error('bot-chat: fire-and-forget crear-cita error:', e.message));
+      try {
+        await fetch(`${BASE_URL}/api/crear-cita`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            _cita_id_ya_creada: cita.id,
+            cliente_id,
+            especialista_id:     especialista_id     || null,
+            nombre_especialista: nombre_especialista || null,
+            nombre_paciente,
+            tel_paciente:        tel_paciente        || null,
+            email_paciente:      email_paciente      || null,
+            servicio:            servicio            || 'Consulta',
+            fecha,
+            hora,
+            duracion:            duracion            || null,
+            precio:              precio              || null
+          })
+        });
+      } catch (e) {
+        console.error('bot-chat: crear-cita email/gc error:', e.message);
+      }
     }
 
     const fechaFmt = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', {
