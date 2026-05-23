@@ -5728,12 +5728,8 @@ function updateBoletaPreview() {
       <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>IVA 19%</span><span>$${iva.toLocaleString('es-CL')}</span></div>
       <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-top:4px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${precio.toLocaleString('es-CL')}</span></div></div>`;
   } else {
-    const ret = Math.round(precio * 0.10);
-    const liq = precio - ret;
     montoHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)">
-      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>Monto bruto</span><span>$${precio.toLocaleString('es-CL')}</span></div>
-      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>Retención 10%</span><span>−$${ret.toLocaleString('es-CL')}</span></div>
-      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-top:4px;color:var(--t1)"><span>LÍQUIDO</span><span style="color:var(--a)">$${liq.toLocaleString('es-CL')}</span></div></div>`;
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${precio.toLocaleString('es-CL')}</span></div></div>`;
   }
 
   document.getElementById('bol-preview').innerHTML = `
@@ -5783,11 +5779,7 @@ function emitirBoleta() {
 <tr><td style="color:#666;padding:3px 0">IVA 19%</td><td style="text-align:right;padding:3px 0">$${iva.toLocaleString('es-CL')}</td></tr>
 <tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${precio.toLocaleString('es-CL')}</td></tr>`;
   } else {
-    const ret = Math.round(precio * 0.10);
-    const liq = precio - ret;
-    montoRows = `<tr><td style="color:#666;padding:3px 0">Monto bruto</td><td style="text-align:right;padding:3px 0">$${precio.toLocaleString('es-CL')}</td></tr>
-<tr><td style="color:#666;padding:3px 0">Retención 10%</td><td style="text-align:right;padding:3px 0">−$${ret.toLocaleString('es-CL')}</td></tr>
-<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">LÍQUIDO</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${liq.toLocaleString('es-CL')}</td></tr>`;
+    montoRows = `<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${precio.toLocaleString('es-CL')}</td></tr>`;
   }
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
