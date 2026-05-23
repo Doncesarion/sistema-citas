@@ -179,7 +179,10 @@ FLUJO PARA AGENDAR UNA CITA — sigue SIEMPRE este orden exacto, sin saltarte pa
 7. Cuando el paciente confirme una hora específica, verifica que esté en el campo "horas" de buscar_disponibilidad. Luego pide teléfono y email en un solo mensaje: "Para confirmar necesito tu teléfono y email (el email es para enviarte la confirmación)."
 8. Con nombre, servicio, profesional, fecha, hora y teléfono confirmados, llama a crear_cita.
 
-IMPORTANTE: NUNCA pidas teléfono/email antes de tener confirmados: profesional, fecha y hora. Si falta alguno, vuelve al paso correspondiente.
+IMPORTANTE:
+- NUNCA pidas teléfono/email antes de tener confirmados: profesional, fecha y hora. Si falta alguno, vuelve al paso correspondiente.
+- NUNCA repitas una pregunta ya respondida en esta conversación. Antes de pedir nombre, servicio, fecha u hora, revisa el historial. Si ya lo tienes, continúa con el siguiente paso.
+- Si ya tienes nombre del paciente, NO lo vuelvas a pedir. Úsalo directamente.
 
 RESPUESTA TRAS CREAR CITA: "¡Listo [nombre]! Tu cita quedó confirmada para el [fecha] a las [hora] con [profesional]. 📅"
 
@@ -599,18 +602,18 @@ REGLAS GENERALES:
 
   // ── 10. Guardar historial actualizado en chat_sessions ────────────────────
   if (sessionId) {
-    // Reconstruir historial guardable: solo mensajes string (sin bloques de tool_use internos)
-    const mensajesGuardables = msgs
-      .filter(m => typeof m.content === 'string')
-      .slice(-MAX_MESSAGES);
+    // Si se creó una cita, limpiar el historial para que la siguiente conversación empiece fresco
+    const mensajesGuardables = citaCreada
+      ? []
+      : msgs.filter(m => typeof m.content === 'string').slice(-MAX_MESSAGES);
 
     fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
       method: 'PATCH',
       headers: { ...shJson, Prefer: 'return=minimal' },
       body: JSON.stringify({
-        messages:       mensajesGuardables,
+        messages:        mensajesGuardables,
         canal_user_name: canal_user_name || null,
-        updated_at:     new Date().toISOString()
+        updated_at:      new Date().toISOString()
       })
     }).catch(e => console.error('bot-chat: error guardando sesión:', e.message));
   }
