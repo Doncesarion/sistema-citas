@@ -876,79 +876,57 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 /* ══════════════════════════════════════════
    TUTORIAL DE BIENVENIDA
 ══════════════════════════════════════════ */
-#tut-overlay{
-  position:fixed;inset:0;z-index:9000;
-  background:rgba(22,20,58,0.72);backdrop-filter:blur(3px);
-  display:flex;align-items:center;justify-content:center;
-  animation:tut-in .25s ease;
-}
-@keyframes tut-in{from{opacity:0}to{opacity:1}}
-
-#tut-modal{
+#tut-card{
+  position:fixed;z-index:9000;
+  width:268px;
   background:var(--surface-hi);
   border:1px solid var(--b2);
-  border-radius:20px;
-  box-shadow:0 32px 80px rgba(108,92,228,0.22),0 4px 16px rgba(0,0,0,0.08);
-  width:480px;max-width:calc(100vw - 32px);
-  padding:36px 36px 28px;
-  animation:tut-up .35s cubic-bezier(.16,1,.3,1);
+  border-radius:14px;
+  box-shadow:0 12px 36px rgba(108,92,228,0.22),0 2px 8px rgba(0,0,0,0.1);
+  padding:15px 17px 13px;
 }
-@keyframes tut-up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-
-.tut-dots{display:flex;gap:6px;justify-content:center;margin-bottom:28px}
-.tut-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--b3);transition:all .25s;flex-shrink:0;
+#tut-card::before{
+  content:'';position:absolute;top:-7px;
+  left:var(--tut-arrow,20px);
+  width:12px;height:12px;
+  background:var(--surface-hi);
+  border-top:1px solid var(--b2);
+  border-left:1px solid var(--b2);
+  transform:rotate(45deg);
 }
-.tut-dot.on{background:var(--a);width:22px;border-radius:4px}
-
-.tut-icon{
-  width:68px;height:68px;border-radius:18px;
-  background:linear-gradient(135deg,rgba(108,92,228,0.1),rgba(139,124,248,0.05));
-  border:1px solid var(--b2);
-  display:flex;align-items:center;justify-content:center;
-  margin:0 auto 20px;
-}
-.tut-title{font-size:21px;font-weight:700;text-align:center;color:var(--t1);margin-bottom:10px;letter-spacing:-.03em}
-.tut-desc{font-size:14px;color:var(--t2);text-align:center;line-height:1.65;margin-bottom:28px}
-
+@keyframes tut-up{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.tut-dots{display:flex;gap:5px;margin-bottom:10px}
+.tut-dot{width:6px;height:6px;border-radius:50%;background:var(--b3);transition:all .2s;flex-shrink:0}
+.tut-dot.on{background:var(--a);width:18px;border-radius:3px}
+.tut-card-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.tut-card-desc{font-size:12px;color:var(--t2);line-height:1.55;margin-bottom:12px}
 .tut-link-box{
-  background:var(--adim);border:1.5px solid var(--b2);border-radius:10px;
-  padding:13px 16px;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;margin-bottom:22px;
+  background:var(--adim);border:1px solid var(--b2);border-radius:8px;
+  padding:8px 11px;display:flex;align-items:center;gap:8px;margin-bottom:11px;
 }
-.tut-link-text{
-  font-family:var(--mono);font-size:13px;color:var(--a);font-weight:500;
-  word-break:break-all;text-decoration:none;flex:1;
-}
+.tut-link-text{font-family:var(--mono);font-size:11px;color:var(--a);font-weight:500;word-break:break-all;text-decoration:none;flex:1}
 .tut-link-text:hover{text-decoration:underline}
 .tut-copy-btn{
-  background:linear-gradient(135deg,var(--a2),var(--a));color:#fff;
-  border:none;border-radius:7px;padding:7px 14px;
-  font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);
-  white-space:nowrap;transition:all .15s;flex-shrink:0;
+  background:var(--a);color:#fff;border:none;border-radius:6px;
+  padding:5px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);
+  white-space:nowrap;transition:background .12s;flex-shrink:0;
 }
-.tut-copy-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(108,92,228,0.4)}
-
+.tut-copy-btn:hover{background:var(--a3)}
 .tut-btn-row{display:flex;align-items:center;justify-content:space-between}
-.tut-skip-btn{
-  background:none;border:none;color:var(--t3);font-size:12px;
-  cursor:pointer;font-family:var(--font);padding:6px 8px;border-radius:6px;
-  transition:color .12s;
-}
+.tut-skip-btn{background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;font-family:var(--font);padding:4px 6px;border-radius:5px;transition:color .12s}
 .tut-skip-btn:hover{color:var(--t2)}
 .tut-next-btn{
   background:linear-gradient(135deg,var(--a2),var(--a3));color:#fff;
-  border:none;border-radius:10px;padding:11px 26px;
-  font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);
-  box-shadow:0 4px 18px rgba(108,92,228,0.38);transition:all .15s;
+  border:none;border-radius:7px;padding:7px 16px;
+  font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);
+  box-shadow:0 3px 10px rgba(108,92,228,0.32);transition:all .12s;
 }
-.tut-next-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(108,92,228,0.48)}
+.tut-next-btn:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(108,92,228,0.42)}
 
 /* Tooltip de spotlight (Configuración) */
 #tut-spot-bg{
   position:fixed;inset:0;z-index:9001;
-  background:rgba(22,20,58,0.58);backdrop-filter:blur(1px);
+  background:rgba(22,20,58,0.55);backdrop-filter:blur(1px);
   pointer-events:all;
 }
 #tut-spot-tooltip{
@@ -957,24 +935,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   border:1px solid var(--b2);
   border-radius:12px;
   box-shadow:0 16px 48px rgba(108,92,228,0.2),0 2px 8px rgba(0,0,0,0.06);
-  padding:18px 20px 16px;width:290px;
+  padding:16px 18px 14px;width:265px;
   pointer-events:all;
   animation:tut-up .2s ease;
 }
-.tut-spot-chip{
-  display:inline-block;background:var(--adim);border:1px solid var(--b2);
-  color:var(--a);font-size:10px;font-weight:700;letter-spacing:.07em;
-  text-transform:uppercase;border-radius:100px;padding:2px 9px;margin-bottom:8px;
-}
-.tut-spot-title{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:6px}
-.tut-spot-desc{font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:14px}
+.tut-spot-chip{display:inline-block;background:var(--adim);border:1px solid var(--b2);color:var(--a);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:100px;padding:2px 9px;margin-bottom:8px}
+.tut-spot-title{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:5px}
+.tut-spot-desc{font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:12px}
 .tut-spot-nav{display:flex;align-items:center;justify-content:space-between}
 .tut-spot-counter{font-size:11px;color:var(--t4)}
-.tut-spot-next{
-  background:var(--a);color:#fff;border:none;border-radius:7px;
-  padding:7px 16px;font-size:12px;font-weight:600;
-  cursor:pointer;font-family:var(--font);transition:background .12s;
-}
+.tut-spot-next{background:var(--a);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .12s}
 .tut-spot-next:hover{background:var(--a3)}
 </style>
 </head>
@@ -5651,19 +5621,46 @@ let _tutSpotEl  = null;
 
 function tutInit() {
   if (localStorage.getItem(_TUT_KEY)) return;
-  setTimeout(tutShow, 900);
+  setTimeout(() => { _tutStep = 0; _tutCfgSub = 0; tutRenderCard(); }, 900);
 }
 
-function tutShow() {
-  _tutStep   = 0;
-  _tutCfgSub = 0;
-  tutRenderModal();
-  document.getElementById('tut-overlay').style.display = 'flex';
+function tutPositionCard(tab) {
+  const card = document.getElementById('tut-card');
+  const activeTab = tab
+    ? [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === _tutTabName(tab))
+    : document.querySelector('.ntab.on');
+  if (!activeTab) { card.style.top = '68px'; card.style.left = '16px'; return; }
+  const rect  = activeTab.getBoundingClientRect();
+  const cardW = 268;
+  let left = rect.left;
+  let top  = rect.bottom + 8;
+  if (left + cardW > window.innerWidth - 16) left = window.innerWidth - cardW - 16;
+  if (left < 16) left = 16;
+  const arrowLeft = Math.max(8, Math.min(Math.round(rect.left + rect.width / 2 - left - 6), cardW - 22));
+  card.style.setProperty('--tut-arrow', arrowLeft + 'px');
+  card.style.left = left + 'px';
+  card.style.top  = top  + 'px';
 }
 
-function tutRenderModal() {
+function tutRenderCard() {
   const step  = _tutSteps[_tutStep];
   const total = _tutSteps.length;
+
+  // Paso spotlight → saltar directo al spotlight sin mostrar tarjeta
+  if (step.type === 'spotlight') {
+    document.getElementById('tut-card').style.display = 'none';
+    _tutCfgSub = 0;
+    const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === 'Configuración');
+    sv('config', btn, true);
+    setTimeout(tutShowSpot, 350);
+    return;
+  }
+
+  // Navegar a la pestaña correspondiente
+  if (step.tab) {
+    const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === _tutTabName(step.tab));
+    sv(step.tab, btn, true);
+  }
 
   // Dots
   const dotsEl = document.getElementById('tut-dots');
@@ -5674,30 +5671,28 @@ function tutRenderModal() {
     dotsEl.appendChild(d);
   }
 
-  // Navegar a la pestaña correspondiente
-  if (step.tab) {
-    const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === _tutTabName(step.tab));
-    sv(step.tab, btn, true);
-  }
-
-  document.getElementById('tut-icon').innerHTML  = step.icon  || '';
-  document.getElementById('tut-title').textContent = step.title;
-  document.getElementById('tut-desc').textContent  = step.desc || '';
+  document.getElementById('tut-card-title').textContent = step.title;
+  document.getElementById('tut-card-desc').textContent  = step.desc || '';
 
   const linkBox = document.getElementById('tut-link-box');
   if (step.isLink) {
     const slug = currentBookingUrl || '...';
-    const fullUrl = 'https://www.attempo.cl/' + slug;
     linkBox.style.display = 'flex';
     const a = document.getElementById('tut-link-text');
     a.textContent = 'attempo.cl/' + slug;
-    a.href = fullUrl;
+    a.href = 'https://www.attempo.cl/' + slug;
   } else {
     linkBox.style.display = 'none';
   }
 
   const isLast = _tutStep === total - 1;
   document.getElementById('tut-next-btn').textContent = isLast ? '¡Comenzar!' : 'Continuar →';
+
+  const card = document.getElementById('tut-card');
+  card.style.animation = 'none';
+  card.style.display   = 'block';
+  requestAnimationFrame(() => { card.style.animation = 'tut-up .25s cubic-bezier(.16,1,.3,1)'; });
+  tutPositionCard(step.tab);
 }
 
 function _tutTabName(tab) {
@@ -5705,19 +5700,9 @@ function _tutTabName(tab) {
 }
 
 function tutNext() {
-  const step = _tutSteps[_tutStep];
-  if (step.type === 'spotlight') {
-    // Ocultar modal y entrar al spotlight de Configuración
-    document.getElementById('tut-overlay').style.display = 'none';
-    _tutCfgSub = 0;
-    const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === 'Configuración');
-    sv('config', btn, true);
-    setTimeout(tutShowSpot, 350);
-    return;
-  }
   _tutStep++;
   if (_tutStep >= _tutSteps.length) { tutDone(); return; }
-  tutRenderModal();
+  tutRenderCard();
 }
 
 /* ── Spotlight: Configuración ── */
@@ -5730,14 +5715,11 @@ function tutShowSpot() {
 
   showCfg(sub.section, el);
 
-  // Efecto spotlight sobre el elemento
   el.style.cssText += ';position:relative;z-index:9010;box-shadow:0 0 0 4px var(--a),0 0 0 9999px rgba(22,20,58,0.6);border-radius:6px;';
   _tutSpotEl = el;
 
-  // Fondo semi-transparente que bloquea el resto
   document.getElementById('tut-spot-bg').style.display = 'block';
 
-  // Posicionar tooltip cerca del elemento destacado
   const rect = el.getBoundingClientRect();
   const tip  = document.getElementById('tut-spot-tooltip');
   tip.style.display = 'block';
@@ -5750,8 +5732,7 @@ function tutShowSpot() {
   const isLastSub = _tutCfgSub === _tutSteps[_tutStep].subs.length - 1;
   document.getElementById('tut-spot-next').textContent = isLastSub ? 'Siguiente sección →' : 'Siguiente →';
 
-  // Posicionar tooltip: debajo del elemento, ajustar si se sale de pantalla
-  const tw = 290, th = 180;
+  const tw = 265, th = 175;
   let left = rect.left;
   let top  = rect.bottom + 12;
   if (left + tw > window.innerWidth - 16) left = window.innerWidth - tw - 16;
@@ -5769,36 +5750,30 @@ function tutSpotNext() {
     tutShowSpot();
     return;
   }
-  // Terminar spotlight, avanzar al siguiente paso principal
   document.getElementById('tut-spot-bg').style.display      = 'none';
   document.getElementById('tut-spot-tooltip').style.display = 'none';
   _tutStep++;
   if (_tutStep >= _tutSteps.length) { tutDone(); return; }
-  document.getElementById('tut-overlay').style.display = 'flex';
-  tutRenderModal();
+  tutRenderCard();
 }
 
 function tutClearSpot() {
   if (!_tutSpotEl) return;
-  // Quitar solo las propiedades que agregamos
-  _tutSpotEl.style.position  = '';
-  _tutSpotEl.style.zIndex    = '';
-  _tutSpotEl.style.boxShadow = '';
+  _tutSpotEl.style.position     = '';
+  _tutSpotEl.style.zIndex       = '';
+  _tutSpotEl.style.boxShadow    = '';
   _tutSpotEl.style.borderRadius = '';
   _tutSpotEl = null;
 }
 
-function tutSkip() {
-  tutDone();
-}
+function tutSkip() { tutDone(); }
 
 function tutDone() {
   localStorage.setItem(_TUT_KEY, '1');
   tutClearSpot();
   document.getElementById('tut-spot-bg').style.display      = 'none';
   document.getElementById('tut-spot-tooltip').style.display = 'none';
-  document.getElementById('tut-overlay').style.display      = 'none';
-  // Volver a agenda al terminar
+  document.getElementById('tut-card').style.display         = 'none';
   const btn = [...document.querySelectorAll('.ntab')].find(b => b.textContent.trim() === 'Agenda');
   sv('agenda', btn, true);
 }
@@ -6643,20 +6618,17 @@ async function sendHelp() {
 </div>
 
 <!-- ══ TUTORIAL DE BIENVENIDA ══ -->
-<div id="tut-overlay" style="display:none">
-  <div id="tut-modal">
-    <div class="tut-dots" id="tut-dots"></div>
-    <div class="tut-icon" id="tut-icon"></div>
-    <div class="tut-title" id="tut-title"></div>
-    <div class="tut-desc"  id="tut-desc"></div>
-    <div class="tut-link-box" id="tut-link-box" style="display:none">
-      <a class="tut-link-text" id="tut-link-text" href="#" target="_blank"></a>
-      <button class="tut-copy-btn" onclick="tutCopyLink()">Copiar link</button>
-    </div>
-    <div class="tut-btn-row">
-      <button class="tut-skip-btn" onclick="tutSkip()">Saltar tutorial</button>
-      <button class="tut-next-btn" id="tut-next-btn" onclick="tutNext()">Continuar →</button>
-    </div>
+<div id="tut-card" style="display:none">
+  <div class="tut-dots" id="tut-dots"></div>
+  <div class="tut-card-title" id="tut-card-title"></div>
+  <div class="tut-card-desc"  id="tut-card-desc"></div>
+  <div class="tut-link-box" id="tut-link-box" style="display:none">
+    <a class="tut-link-text" id="tut-link-text" href="#" target="_blank"></a>
+    <button class="tut-copy-btn" onclick="tutCopyLink()">Copiar link</button>
+  </div>
+  <div class="tut-btn-row">
+    <button class="tut-skip-btn" onclick="tutSkip()">Saltar tutorial</button>
+    <button class="tut-next-btn" id="tut-next-btn" onclick="tutNext()">Continuar →</button>
   </div>
 </div>
 
