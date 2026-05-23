@@ -1648,6 +1648,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="ptab"    id="ctab-pagos"          onclick="showCfg('pagos',this)">Pagos</button>
         <button class="ptab"    id="ctab-facturacion"    onclick="showCfg('facturacion',this)">Facturación</button>
         <button class="ptab"    id="ctab-chatbot"        onclick="showCfg('chatbot',this)">Chatbot IA</button>
+        <button class="ptab"    id="ctab-canales"        onclick="showCfg('canales',this)">Canales</button>
       </div>
     </div>
 
@@ -2128,6 +2129,93 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
       <div style="display:flex;justify-content:flex-end">
         <button class="btn-a" onclick="saveBotConfig()">Guardar configuración del bot</button>
+      </div>
+    </div>
+
+    <!-- Panel: Canales -->
+    <div id="cfg-canales" style="display:none">
+      <div class="vh" style="margin-bottom:4px">
+        <span>Canales de mensajería</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
+      <p style="font-size:12px;color:var(--t3);margin-bottom:16px">Conecta tus canales para que el chatbot IA responda y agende desde WhatsApp, Messenger e Instagram.</p>
+
+      <!-- URL del webhook -->
+      <div style="background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">URL del Webhook (configurar en Meta)</div>
+        <code id="canal-webhook-url" style="font-size:12px;color:var(--a);word-break:break-all">https://app.attempo.cl/api/meta-webhook</code>
+        <button class="btn-sm" style="margin-top:8px" onclick="navigator.clipboard.writeText(document.getElementById('canal-webhook-url').textContent);toast('✓ Copiado')">Copiar</button>
+      </div>
+
+      <!-- WhatsApp -->
+      <div style="border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.107.547 4.084 1.504 5.798L0 24l6.333-1.482A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.395l-.371-.22-3.753.878.894-3.656-.242-.382A9.936 9.936 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">WhatsApp Business</div>
+            <div style="font-size:11px;color:var(--t3)" id="wa-status-lbl">Sin conectar</div>
+          </div>
+          <div style="margin-left:auto"><span id="wa-tag" class="tag ta">Sin conectar</span></div>
+        </div>
+        <div style="display:grid;gap:8px">
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Phone Number ID</label>
+            <input id="canal-wa-phone-id" class="fi" placeholder="Ej: 123456789012345" style="width:100%"></div>
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Access Token (permanente)</label>
+            <input id="canal-wa-token" class="fi" type="password" placeholder="EAAx..." style="width:100%"></div>
+        </div>
+        <button class="btn-a" style="margin-top:10px;width:100%" onclick="saveCanal('whatsapp')">Guardar WhatsApp</button>
+      </div>
+
+      <!-- Messenger -->
+      <div style="border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 0C5.373 0 0 5.37 0 12c0 3.679 1.636 6.973 4.234 9.25V24l3.875-2.127A12.24 12.24 0 0012 22c6.627 0 12-4.37 12-12S18.627 0 12 0zm1.193 15.87l-3.06-3.26-5.969 3.26 6.567-6.972 3.134 3.26 5.896-3.26-6.568 6.972z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">Facebook Messenger</div>
+            <div style="font-size:11px;color:var(--t3)" id="fb-status-lbl">Sin conectar</div>
+          </div>
+          <div style="margin-left:auto"><span id="fb-tag" class="tag ta">Sin conectar</span></div>
+        </div>
+        <div style="display:grid;gap:8px">
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Page ID</label>
+            <input id="canal-fb-page-id" class="fi" placeholder="Ej: 123456789012345" style="width:100%"></div>
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Page Access Token</label>
+            <input id="canal-fb-token" class="fi" type="password" placeholder="EAAx..." style="width:100%"></div>
+        </div>
+        <button class="btn-a" style="margin-top:10px;width:100%" onclick="saveCanal('messenger')">Guardar Messenger</button>
+      </div>
+
+      <!-- Instagram -->
+      <div style="border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">Instagram DMs</div>
+            <div style="font-size:11px;color:var(--t3)" id="ig-status-lbl">Sin conectar</div>
+          </div>
+          <div style="margin-left:auto"><span id="ig-tag" class="tag ta">Sin conectar</span></div>
+        </div>
+        <div style="display:grid;gap:8px">
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Instagram Account ID</label>
+            <input id="canal-ig-account-id" class="fi" placeholder="Ej: 123456789012345" style="width:100%"></div>
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Access Token</label>
+            <input id="canal-ig-token" class="fi" type="password" placeholder="EAAx..." style="width:100%"></div>
+        </div>
+        <button class="btn-a" style="margin-top:10px;width:100%" onclick="saveCanal('instagram')">Guardar Instagram</button>
+      </div>
+
+      <div style="background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;font-size:12px;color:var(--t3);line-height:1.6">
+        <strong style="color:var(--t1)">¿Cómo conectar?</strong><br>
+        1. Ve a <strong>developers.facebook.com</strong> → Crea una app → Agrega WhatsApp/Messenger/Instagram<br>
+        2. Copia la URL del webhook y pégala en Meta con el token de verificación: <code style="color:var(--a)">attempo2024</code><br>
+        3. Suscríbete a los eventos: <code style="color:var(--a)">messages</code><br>
+        4. Obtén los tokens permanentes (Graph API) y pégalos aquí
       </div>
     </div>
 
@@ -3051,11 +3139,11 @@ function updateReport(p, btn) {
 
 /* ════ CONFIG PANEL SWITCHING ════ */
 function showCfg(panel, btn, skipPush) {
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales'].forEach(p => {
     const el = document.getElementById('cfg-' + p);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales'].forEach(p => {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
@@ -3064,6 +3152,7 @@ function showCfg(panel, btn, skipPush) {
   if (panel === 'pagos')         cargarPagos();
   if (panel === 'chatbot')       loadBotConfig();
   if (panel === 'facturacion')   cargarFacturacion();
+  if (panel === 'canales')       cargarCanales();
   if (!skipPush) history.pushState({ section:'config', sub: panel }, '', '/configuracion/' + panel);
 }
 
@@ -5611,7 +5700,7 @@ function routeFromURL() {
   const section = parts[0];
   const sub     = parts[1] || null;
   const calSubs = ['semana','dia','mes','lista'];
-  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion'];
+  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales'];
 
   if (!section || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);
@@ -5658,6 +5747,72 @@ routeFromURL();
 let _factConfig        = {};
 let _currentBoletaCita = null;
 let _boletaExtraItems  = [];   // [{desc, monto}]
+
+async function cargarCanales() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: _SH });
+    const [cli] = await r.json();
+    const m = cli?.canales_meta || {};
+    const setField = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    const setStatus = (prefix, connected) => {
+      const tag = document.getElementById(prefix + '-tag');
+      const lbl = document.getElementById(prefix + '-status-lbl');
+      if (tag) { tag.textContent = connected ? 'Conectado ✓' : 'Sin conectar'; tag.className = 'tag ' + (connected ? 'tg' : 'ta'); }
+      if (lbl) lbl.textContent = connected ? 'Conectado' : 'Sin conectar';
+    };
+    setField('canal-wa-phone-id', m.wa_phone_number_id);
+    setField('canal-wa-token',    m.wa_token ? '••••••••' : '');
+    setStatus('wa', !!m.wa_phone_number_id);
+    setField('canal-fb-page-id', m.fb_page_id);
+    setField('canal-fb-token',   m.fb_token ? '••••••••' : '');
+    setStatus('fb', !!m.fb_page_id);
+    setField('canal-ig-account-id', m.ig_account_id);
+    setField('canal-ig-token',      m.ig_token ? '••••••••' : '');
+    setStatus('ig', !!m.ig_account_id);
+  } catch(e) { console.error('cargarCanales:', e); }
+}
+
+async function saveCanal(canal) {
+  const cid = await getClienteId();
+  if (!cid) return;
+  const g = id => document.getElementById(id)?.value.trim() || '';
+  let patch = {};
+  if (canal === 'whatsapp') {
+    const phoneId = g('canal-wa-phone-id');
+    const token   = g('canal-wa-token');
+    if (!phoneId) { toast('Ingresa el Phone Number ID'); return; }
+    patch = { 'wa_phone_number_id': phoneId };
+    if (token && !token.startsWith('•')) patch.wa_token = token;
+  } else if (canal === 'messenger') {
+    const pageId = g('canal-fb-page-id');
+    const token  = g('canal-fb-token');
+    if (!pageId) { toast('Ingresa el Page ID'); return; }
+    patch = { 'fb_page_id': pageId };
+    if (token && !token.startsWith('•')) patch.fb_token = token;
+  } else if (canal === 'instagram') {
+    const accId = g('canal-ig-account-id');
+    const token = g('canal-ig-token');
+    if (!accId) { toast('Ingresa el Account ID'); return; }
+    patch = { 'ig_account_id': accId };
+    if (token && !token.startsWith('•')) patch.ig_token = token;
+  }
+  try {
+    // Primero obtener canales_meta actuales para hacer merge
+    const r0 = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: _SH });
+    const [cli] = await r0.json();
+    const merged = { ...(cli?.canales_meta || {}), ...patch };
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ canales_meta: merged })
+    });
+    if (!r.ok) throw new Error();
+    toast('✓ Canal guardado');
+    cargarCanales();
+  } catch(e) { toast('Error al guardar canal'); }
+}
 
 function cargarFacturacion() {
   try { _factConfig = JSON.parse(localStorage.getItem('attempo_facturacion') || '{}'); } catch(e) { _factConfig = {}; }
@@ -7047,10 +7202,10 @@ async function sendHelp() {
   const typing = _appendHelp('bot', 'Escribiendo...');
   typing.classList.add('typing');
   try {
-    const res = await fetch('/api/admin-help', {
+    const res = await fetch('/api/ai-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: _helpMsgs.slice(-10) }),
+      body: JSON.stringify({ type: 'admin', messages: _helpMsgs.slice(-10) }),
     });
     const data = await res.json();
     typing.remove();
