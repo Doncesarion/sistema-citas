@@ -1413,7 +1413,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <div class="sc">
         <div class="sc-lbl">Tasa de cobro</div>
-        <div class="sc-val"><span class="hi" id="vkpi-tasa">—</span>%</div>
+        <div class="sc-val"><span class="hi" id="vkpi-tasa">—</span><span style="color:var(--a)">%</span></div>
         <div class="sc-delta" id="vkpi-d-tasa">—</div>
       </div>
     </div>
@@ -1507,8 +1507,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="mod-body">
           <div class="sg" style="margin:0">
             <div class="sc"><div class="sc-lbl">Reservas totales</div><div class="sc-val"><span class="hi" id="rkpi-total">—</span></div><div class="sc-delta" id="rkpi-total-d">—</div><div class="minibars" id="rkpi-total-bars"></div></div>
-            <div class="sc"><div class="sc-lbl">Ingresos período</div><div class="sc-val">$<span class="hi" id="rkpi-ing">—</span></div><div class="sc-delta" id="rkpi-ing-d">—</div><div class="minibars" id="rkpi-ing-bars"></div></div>
-            <div class="sc"><div class="sc-lbl">Cancelaciones</div><div class="sc-val"><span class="hi" id="rkpi-cancel">—</span>%</div><div class="sc-delta dd" id="rkpi-cancel-d">—</div></div>
+            <div class="sc"><div class="sc-lbl">Ingresos período</div><div class="sc-val"><span style="color:var(--a)">$</span><span class="hi" id="rkpi-ing">—</span></div><div class="sc-delta" id="rkpi-ing-d">—</div><div class="minibars" id="rkpi-ing-bars"></div></div>
+            <div class="sc"><div class="sc-lbl">Cancelaciones</div><div class="sc-val"><span class="hi" id="rkpi-cancel">—</span><span style="color:var(--a)">%</span></div><div class="sc-delta dd" id="rkpi-cancel-d">—</div></div>
             <div class="sc"><div class="sc-lbl">Pacientes únicos</div><div class="sc-val"><span class="hi" id="rkpi-nuevos">—</span></div><div class="sc-delta" id="rkpi-nuevos-d">—</div></div>
           </div>
         </div>
@@ -4718,7 +4718,9 @@ function renderVentasTable() {
     const parts  = (c.nombre_paciente||'?').trim().split(' ');
     const ini    = parts.slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
     const fecha  = c.fecha ? c.fecha.slice(5).replace('-','/') + ' ' + (c.hora||'').slice(0,5) : '—';
-    const esp    = c.especialistas?.nombre || '—';
+    const esp    = c.especialistas?.nombre
+      ? `<span>${c.especialistas.nombre}</span>`
+      : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarProf('${c.id}')">+ Asignar</button>`;
     const metodo = METODO_TAG[c.metodo_pago] || '<span class="tag tn">—</span>';
     const estado = c.estado_pago === 'pagado'
       ? '<span class="tag tg">Pagado</span>'
@@ -5928,6 +5930,46 @@ td{vertical-align:top;padding:2px 0}
 </body></html>`;
 }
 
+let _asignarProfCitaId = null;
+async function openAsignarProf(citaId) {
+  _asignarProfCitaId = citaId;
+  const sel = document.getElementById('asignar-prof-sel');
+  sel.innerHTML = '<option value="">Cargando...</option>';
+  document.getElementById('asignar-prof-ov').classList.add('open');
+  const cid = await getClienteId();
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id,nombre,especialidad&order=nombre.asc`, { headers: _SH });
+    const esps = await r.json();
+    sel.innerHTML = Array.isArray(esps) && esps.length
+      ? '<option value="">— Seleccionar —</option>' + esps.map(e => `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre}${e.especialidad ? ' · ' + e.especialidad : ''}</option>`).join('')
+      : '<option value="">Sin profesionales activos</option>';
+  } catch(_) { sel.innerHTML = '<option value="">Error al cargar</option>'; }
+}
+function closeAsignarProf() {
+  document.getElementById('asignar-prof-ov').classList.remove('open');
+  _asignarProfCitaId = null;
+}
+async function saveAsignarProf() {
+  const sel = document.getElementById('asignar-prof-sel');
+  const espId  = sel.value;
+  const nombre = sel.options[sel.selectedIndex]?.dataset.nombre || '';
+  if (!espId || !_asignarProfCitaId) { toast('Selecciona un profesional'); return; }
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_asignarProfCitaId}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ especialista_id: espId })
+    });
+    if (!r.ok) throw new Error();
+    const idx = _allVentas.findIndex(c => c.id === _asignarProfCitaId);
+    if (idx >= 0) { _allVentas[idx].especialistas = { nombre }; }
+    renderVentasTable();
+    renderVentasProfesionales();
+    closeAsignarProf();
+    toast('✓ Profesional asignado');
+  } catch(_) { toast('Error al guardar'); }
+}
+
 function _syncBoletaPrecio() {
   if (!_boletaExtraItems.length || !_currentBoletaCita?.id) return;
   const total = _boletaTotal();
@@ -7111,6 +7153,25 @@ async function sendHelp() {
       <button class="btn-g" onclick="closeBoleta()">Cancelar</button>
       <button class="btn-g" id="bol-btn-email" onclick="enviarBoletaEmail()">📧 Enviar por email</button>
       <button class="btn-a" onclick="emitirBoleta()">🖨 Imprimir / PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ASIGNAR PROFESIONAL ══ -->
+<div class="overlay" id="asignar-prof-ov" style="z-index:750" onclick="if(event.target===this)closeAsignarProf()">
+  <div class="modal" style="width:340px">
+    <div class="modal-head">
+      <span class="modal-title">Asignar profesional</span>
+      <button class="mclose" onclick="closeAsignarProf()">×</button>
+    </div>
+    <div class="mbody" style="gap:12px">
+      <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Profesional</label>
+        <select id="asignar-prof-sel" class="fi" style="width:100%"></select>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeAsignarProf()">Cancelar</button>
+      <button class="btn-a" onclick="saveAsignarProf()">Guardar</button>
     </div>
   </div>
 </div>
