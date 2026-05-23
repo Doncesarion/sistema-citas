@@ -170,7 +170,7 @@ FLUJO PARA AGENDAR UNA CITA (sigue este orden):
 3. Pregunta el servicio o motivo de la consulta.
 4. Si hay un solo profesional, confírmalo. Si hay varios, pregunta con quién prefiere.
 5. Llama a ver_disponibilidad_semana para mostrar los días disponibles con sus bloques de horario. Presenta la lista y pregunta qué día prefiere.
-6. Cuando el paciente elija un día concreto, SIEMPRE llama a buscar_disponibilidad para ese día y profesional. Esto verifica las horas exactas libres descontando citas ya agendadas. Muestra los slots disponibles y pregunta cuál prefiere. NUNCA asumas que una hora está disponible sin llamar a buscar_disponibilidad primero.
+6. Cuando el paciente elija un día concreto, SIEMPRE llama a buscar_disponibilidad para ese día. Usa el campo "rangos" del resultado para presentar la disponibilidad de forma compacta. Ejemplo: "El miércoles tenemos horas de 09:00 a 13:00 y de 14:00 a 17:30. ¿Tienes alguna preferencia de horario?" NUNCA listes todos los slots individualmente. Si el paciente pide una hora específica, verifica que esté en el campo "horas" antes de confirmar.
 7. Cuando el paciente confirme la hora, pide teléfono y email en un solo mensaje. El email es importante para enviarle la confirmación de la cita — si no lo da, igual procede.
 8. Con todos los datos, llama a crear_cita. No agregues texto después de esa llamada.
 
@@ -292,7 +292,28 @@ REGLAS GENERALES:
     if (!disponibles.length) {
       return { disponible: false, mensaje: 'No hay horas disponibles ese día.' };
     }
-    return { disponible: true, horas: disponibles, texto: `Horas disponibles: ${disponibles.join(', ')}.` };
+
+    // Convertir slots individuales en rangos legibles (ej: "09:00 a 13:00 y 14:00 a 17:30")
+    function slotsARangos(slots) {
+      const rangos = [];
+      let ini = slots[0], prev = slots[0];
+      for (let i = 1; i < slots.length; i++) {
+        const [ph, pm] = prev.split(':').map(Number);
+        const [ch, cm] = slots[i].split(':').map(Number);
+        if (ch * 60 + cm - (ph * 60 + pm) === 30) { prev = slots[i]; continue; }
+        const [pph, ppm] = prev.split(':').map(Number);
+        const finMin = pph * 60 + ppm + 30;
+        rangos.push(`${ini} a ${String(Math.floor(finMin/60)).padStart(2,'0')}:${String(finMin%60).padStart(2,'0')}`);
+        ini = slots[i]; prev = slots[i];
+      }
+      const [lh, lm] = prev.split(':').map(Number);
+      const finMin = lh * 60 + lm + 30;
+      rangos.push(`${ini} a ${String(Math.floor(finMin/60)).padStart(2,'0')}:${String(finMin%60).padStart(2,'0')}`);
+      return rangos.join(' y ');
+    }
+
+    const rangosTexto = slotsARangos(disponibles);
+    return { disponible: true, horas: disponibles, rangos: rangosTexto };
   }
 
   async function ejecutarVerDisponibilidadSemana(especialista_id_param) {
