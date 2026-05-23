@@ -2494,6 +2494,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div><div class="fp-info-lbl">Teléfono</div><div class="fp-info-val mono" id="fpi-tel">+56 9 9999 9999</div></div>
         <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
         <div><div class="fp-info-lbl">Cumpleaños</div><div class="fp-info-val">15 de marzo</div></div>
+        <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
+        <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
         <div><div class="fp-info-lbl">Próxima cita</div><div class="fp-info-val accent">Sáb 3 mayo · 11:00</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val">cesar salinas</div></div>
       </div>
@@ -4721,8 +4723,9 @@ function renderVentasTable() {
     const esp    = c.especialistas?.nombre
       ? `<span>${c.especialistas.nombre}</span>`
       : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarProf('${c.id}')">+ Asignar</button>`;
-    const metodo = METODO_TAG[c.metodo_pago]
-      || `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarMetodo('${c.id}')">+ Asignar</button>`;
+    const metodo = c.metodo_pago && METODO_TAG[c.metodo_pago]
+      ? `<span style="cursor:pointer" title="Cambiar método" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','${c.metodo_pago}')">${METODO_TAG[c.metodo_pago]}</span>`
+      : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','')">+ Asignar</button>`;
     const estado = c.estado_pago === 'pagado'
       ? '<span class="tag tg">Pagado</span>'
       : '<span class="tag ta">Pendiente</span>';
@@ -5024,6 +5027,11 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
   document.getElementById('fpi-rut').textContent   = '—';
+  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online' };
+  const epEl = document.getElementById('fpi-estado-pago');
+  if (epEl) { epEl.textContent = c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente'; epEl.style.color = c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)'; }
+  const mpEl = document.getElementById('fpi-metodo-pago');
+  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || '—';
   // Guardar cita para boleta y mostrar botón (siempre que tenga precio)
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
@@ -5932,9 +5940,9 @@ td{vertical-align:top;padding:2px 0}
 }
 
 let _asignarMetodoCitaId = null;
-function openAsignarMetodo(citaId) {
+function openAsignarMetodo(citaId, current = '') {
   _asignarMetodoCitaId = citaId;
-  document.getElementById('asignar-metodo-sel').value = '';
+  document.getElementById('asignar-metodo-sel').value = current;
   document.getElementById('asignar-metodo-ov').classList.add('open');
 }
 function closeAsignarMetodo() {
