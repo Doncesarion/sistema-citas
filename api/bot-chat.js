@@ -287,8 +287,9 @@ REGLAS GENERALES:
     const slotsBase = diaHorario.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
     const slotsFiltrados = filtrarSlotsPasados(slotsBase, fecha);
 
+    // Incluir citas sin especialista_id asignado (pueden bloquear el slot igual)
     const r2 = await fetch(
-      `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
+      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=eq.${fecha}&estado=neq.canceled&or=(especialista_id.eq.${especialista_id},especialista_id.is.null)&select=hora`,
       { headers: sh }
     );
     const citasExistentes = await r2.json();
@@ -351,7 +352,7 @@ REGLAS GENERALES:
     for (const esp of esps) {
       const horario = esp.horario || {};
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${esp.id}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&estado=neq.canceled&select=fecha,hora`,
+        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&estado=neq.canceled&or=(especialista_id.eq.${esp.id},especialista_id.is.null)&select=fecha,hora`,
         { headers: sh }
       );
       const citas = await r.json();
