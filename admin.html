@@ -1132,10 +1132,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <svg class="sbi-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2v9M4 8l4 4 4-4"/><path d="M2 14h12"/></svg>
       Transacciones CSV
     </button>
-    <button class="sbi" onclick="exportarHonorarios()">
-      <svg class="sbi-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M6 6h4M6 9h4M6 12h2"/></svg>
-      Boletas honorarios
-    </button>
   </div>
 </div><!-- end sb-ventas -->
 
@@ -1401,18 +1397,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <div class="sg">
       <div class="sc">
         <div class="sc-lbl" id="vkpi-lbl1">Ingresado</div>
-        <div class="sc-val">$<span class="hi" id="vkpi-ing">—</span></div>
+        <div class="sc-val"><span style="color:var(--a)">$</span><span class="hi" id="vkpi-ing">—</span></div>
         <div class="sc-delta" id="vkpi-d1">Cargando...</div>
         <div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div></div>
       </div>
       <div class="sc">
         <div class="sc-lbl">Ticket promedio</div>
-        <div class="sc-val">$<span class="hi" id="vkpi-ticket">—</span></div>
+        <div class="sc-val"><span style="color:var(--a)">$</span><span class="hi" id="vkpi-ticket">—</span></div>
         <div class="sc-delta" id="vkpi-d-ticket">Por cita cobrada</div>
       </div>
       <div class="sc">
         <div class="sc-lbl">Por cobrar</div>
-        <div class="sc-val">$<span class="hi" id="vkpi-pend">—</span></div>
+        <div class="sc-val"><span style="color:var(--a)">$</span><span class="hi" id="vkpi-pend">—</span></div>
         <div class="sc-delta dd" id="vkpi-d3">—</div>
       </div>
       <div class="sc">
@@ -4779,7 +4775,7 @@ function renderVentasProfesionales() {
   const lista = _ventasFiltradas();
   const profs = {};
   lista.forEach(c => {
-    const nom = c.especialistas?.nombre || 'Sin asignar';
+    const nom = c.especialistas?.nombre || '—';
     if (!profs[nom]) profs[nom] = { citas:0, cobrado:0, pendiente:0 };
     profs[nom].citas++;
     if (c.estado_pago === 'pagado') profs[nom].cobrado += Number(c.precio)||0;
@@ -5489,7 +5485,7 @@ function exportarHonorarios() {
   const label = PERIODO_LABELS[_ventasPeriodo] || _ventasPeriodo;
   const profs = {};
   lista.forEach(c => {
-    const nom = c.especialistas?.nombre || 'Sin asignar';
+    const nom = c.especialistas?.nombre || '—';
     if (!profs[nom]) profs[nom] = [];
     profs[nom].push(c);
   });
@@ -6596,7 +6592,7 @@ function renderRepProfesionales(lista) {
   if (!tbody) return;
   const profs = {};
   lista.forEach(c => {
-    const nom = c.especialistas?.nombre || 'Sin asignar';
+    const nom = c.especialistas?.nombre || '—';
     if (!profs[nom]) profs[nom] = {citas:0,cobrado:0,pendiente:0};
     profs[nom].citas++;
     if (c.estado_pago==='pagado') profs[nom].cobrado += Number(c.precio)||0;
