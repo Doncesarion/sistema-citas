@@ -5702,9 +5702,8 @@ function openBoletaModal(cita) {
   document.getElementById('bol-receptor-nombre').value = cita.nombre_paciente || '';
   document.getElementById('bol-receptor-rut').value    = '';
   renderBoletaItems();
-  // Mostrar botón email solo si hay email del paciente
   const emailBtn = document.getElementById('bol-btn-email');
-  if (emailBtn) emailBtn.style.display = cita.email_paciente ? 'inline-flex' : 'none';
+  if (emailBtn) emailBtn.style.display = 'inline-flex';
   updateBoletaPreview();
   document.getElementById('boleta-ov').classList.add('open');
 }
@@ -5898,8 +5897,11 @@ function emitirBoleta() {
 
 async function enviarBoletaEmail() {
   const cita  = _currentBoletaCita;
-  const email = cita?.email_paciente;
-  if (!email) { toast('Esta cita no tiene email registrado'); return; }
+  let email = cita?.email_paciente;
+  if (!email) {
+    email = window.prompt('Ingresa el email del cliente:');
+    if (!email || !email.includes('@')) { toast('Email inválido'); return; }
+  }
 
   const btn = document.getElementById('bol-btn-email');
   const orig = btn.textContent;
