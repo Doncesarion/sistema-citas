@@ -4778,7 +4778,7 @@ function renderVentasProfesionales() {
   const lista = _ventasFiltradas();
   const profs = {};
   lista.forEach(c => {
-    const nom = c.especialistas?.nombre || '—';
+    const nom = c.especialistas?.nombre || 'Sin asignar';
     if (!profs[nom]) profs[nom] = { citas:0, cobrado:0, pendiente:0 };
     profs[nom].citas++;
     if (c.estado_pago === 'pagado') profs[nom].cobrado += Number(c.precio)||0;
