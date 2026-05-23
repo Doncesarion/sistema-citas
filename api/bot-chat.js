@@ -772,7 +772,7 @@ REGLAS GENERALES:
     // Si se creó una cita, limpiar el historial para que la siguiente conversación empiece fresco
     const mensajesGuardables = citaCreada
       ? []
-      : msgs.filter(m => typeof m.content === 'string').slice(-MAX_MESSAGES);
+      : msgs.slice(-MAX_MESSAGES);
 
     fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
       method: 'PATCH',
