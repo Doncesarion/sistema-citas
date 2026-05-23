@@ -1442,7 +1442,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
       <table>
-        <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método</th><th>Monto</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método de pago</th><th>Monto</th><th>Estado</th></tr></thead>
         <tbody id="ventas-tbody">
           <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
         </tbody>
@@ -4721,7 +4721,8 @@ function renderVentasTable() {
     const esp    = c.especialistas?.nombre
       ? `<span>${c.especialistas.nombre}</span>`
       : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarProf('${c.id}')">+ Asignar</button>`;
-    const metodo = METODO_TAG[c.metodo_pago] || '<span class="tag tn">—</span>';
+    const metodo = METODO_TAG[c.metodo_pago]
+      || `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarMetodo('${c.id}')">+ Asignar</button>`;
     const estado = c.estado_pago === 'pagado'
       ? '<span class="tag tg">Pagado</span>'
       : '<span class="tag ta">Pendiente</span>';
@@ -5928,6 +5929,34 @@ td{vertical-align:top;padding:2px 0}
   </div>
 </div>
 </body></html>`;
+}
+
+let _asignarMetodoCitaId = null;
+function openAsignarMetodo(citaId) {
+  _asignarMetodoCitaId = citaId;
+  document.getElementById('asignar-metodo-sel').value = '';
+  document.getElementById('asignar-metodo-ov').classList.add('open');
+}
+function closeAsignarMetodo() {
+  document.getElementById('asignar-metodo-ov').classList.remove('open');
+  _asignarMetodoCitaId = null;
+}
+async function saveAsignarMetodo() {
+  const metodo = document.getElementById('asignar-metodo-sel').value;
+  if (!metodo || !_asignarMetodoCitaId) { toast('Selecciona un método'); return; }
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_asignarMetodoCitaId}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ metodo_pago: metodo })
+    });
+    if (!r.ok) throw new Error();
+    const idx = _allVentas.findIndex(c => c.id === _asignarMetodoCitaId);
+    if (idx >= 0) _allVentas[idx].metodo_pago = metodo;
+    renderVentasTable();
+    closeAsignarMetodo();
+    toast('✓ Método de pago guardado');
+  } catch(_) { toast('Error al guardar'); }
 }
 
 let _asignarProfCitaId = null;
@@ -7172,6 +7201,31 @@ async function sendHelp() {
     <div class="mfoot">
       <button class="btn-g" onclick="closeAsignarProf()">Cancelar</button>
       <button class="btn-a" onclick="saveAsignarProf()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ASIGNAR MÉTODO DE PAGO ══ -->
+<div class="overlay" id="asignar-metodo-ov" style="z-index:750" onclick="if(event.target===this)closeAsignarMetodo()">
+  <div class="modal" style="width:320px">
+    <div class="modal-head">
+      <span class="modal-title">Método de pago</span>
+      <button class="mclose" onclick="closeAsignarMetodo()">×</button>
+    </div>
+    <div class="mbody" style="gap:12px">
+      <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Método</label>
+        <select id="asignar-metodo-sel" class="fi" style="width:100%">
+          <option value="">— Seleccionar —</option>
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="online">Online</option>
+        </select>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeAsignarMetodo()">Cancelar</button>
+      <button class="btn-a" onclick="saveAsignarMetodo()">Guardar</button>
     </div>
   </div>
 </div>
