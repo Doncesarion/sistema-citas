@@ -1650,6 +1650,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="ptab"    id="ctab-notificaciones" onclick="showCfg('notificaciones',this)">Notificaciones</button>
         <button class="ptab"    id="ctab-servicios"      onclick="showCfg('servicios',this)">Servicios</button>
         <button class="ptab"    id="ctab-pagos"          onclick="showCfg('pagos',this)">Pagos</button>
+        <button class="ptab"    id="ctab-facturacion"    onclick="showCfg('facturacion',this)">Facturación</button>
         <button class="ptab"    id="ctab-chatbot"        onclick="showCfg('chatbot',this)">Chatbot IA</button>
       </div>
     </div>
@@ -1665,6 +1666,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="cfg-row" onclick="openCfgModal('recordatorios')"><div><div class="cfg-t">Recordatorios automáticos</div><div class="cfg-s">WhatsApp y email antes de cada cita</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="toast('Abriendo configuración de pagos...')"><div><div class="cfg-t">Pagos online</div><div class="cfg-s">Webpay, tarjetas de crédito y débito, datos bancarios</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag ta">Sin configurar</span><span style="color:var(--t4)">›</span></div></div>
+        <div class="cfg-row" onclick="showCfg('facturacion',document.getElementById('ctab-facturacion'))"><div><div class="cfg-t">Facturación</div><div class="cfg-s">Tipo de boleta, RUT emisor, razón social y numeración</div></div><span style="color:var(--t4)">›</span></div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="showCfg('profesionales',document.getElementById('ctab-profesionales'))"><div><div class="cfg-t">Profesionales y roles</div><div class="cfg-s">Gestiona tu equipo, horarios y permisos de acceso</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tp">3 activos</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
@@ -1953,6 +1955,72 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
       <div style="display:flex;justify-content:flex-end;margin-top:4px">
         <button class="btn-a" onclick="guardarPagos()">Guardar métodos de pago</button>
+      </div>
+    </div>
+
+    <!-- Panel: Facturación -->
+    <div id="cfg-facturacion" style="display:none">
+      <div class="vh" style="margin-bottom:16px">
+        <span>Facturación</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
+
+      <!-- Tipo de emisor -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Tipo de emisor</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Define el tipo de boleta que emites a tus clientes.</div>
+        <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+          <label style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)">
+            <input type="radio" name="fact-tipo" id="fact-honorarios" value="honorarios" style="accent-color:var(--a);width:15px;height:15px">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Persona natural — Boleta de honorarios</div>
+              <div style="font-size:12px;color:var(--t3)">Sin IVA · Retención 10% · Médicos, kinesiólogos, profesionales independientes</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer">
+            <input type="radio" name="fact-tipo" id="fact-venta" value="venta" style="accent-color:var(--a);width:15px;height:15px">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Empresa — Boleta electrónica de venta</div>
+              <div style="font-size:12px;color:var(--t3)">Incluye IVA 19% · Barberías, clínicas con personalidad jurídica, spas</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Datos del emisor -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Datos del emisor</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Aparecen en todas las boletas que emitas.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">RUT del emisor</label>
+              <input id="fact-rut" type="text" placeholder="Ej: 18.741.085-9" class="fi" style="width:100%" oninput="formatRutInput(this)" maxlength="13"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Razón social / Nombre</label>
+              <input id="fact-razon" type="text" placeholder="Ej: Clínica Norte Ltda." class="fi" style="width:100%"></div>
+          </div>
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Giro comercial</label>
+            <input id="fact-giro" type="text" placeholder="Ej: Servicios médicos y de salud" class="fi" style="width:100%"></div>
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Dirección</label>
+            <input id="fact-dir" type="text" placeholder="Ej: Av. Providencia 1234, Santiago" class="fi" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- Numeración -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--t1)">Numeración de boletas</div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">Próximo folio: <span id="fact-folio-display" style="font-family:var(--mono);color:var(--a);font-weight:600">—</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:11px;color:var(--t3)">Iniciar desde</label>
+            <input id="fact-folio-ini" type="number" min="1" value="1" class="fi" style="width:72px;text-align:center">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+        <button class="btn-a" onclick="guardarFacturacion()">Guardar configuración</button>
       </div>
     </div>
 
@@ -2428,7 +2496,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="fp-info-grid">
         <div><div class="fp-info-lbl">Email</div><div class="fp-info-val" id="fpi-email">juana.perez@email.com</div></div>
         <div><div class="fp-info-lbl">Teléfono</div><div class="fp-info-val mono" id="fpi-tel">+56 9 9999 9999</div></div>
-        <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono">12.345.678-9</div></div>
+        <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
         <div><div class="fp-info-lbl">Cumpleaños</div><div class="fp-info-val">15 de marzo</div></div>
         <div><div class="fp-info-lbl">Próxima cita</div><div class="fp-info-val accent">Sáb 3 mayo · 11:00</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val">cesar salinas</div></div>
@@ -2449,6 +2517,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="btn-g" style="flex:1" onclick="closeFicha();openModal()" title="Reagendar la próxima cita">↺ Reagendar</button>
         <button class="btn-g" onclick="toast('Abriendo WhatsApp con ' + document.getElementById('fp-name').textContent + '...')">💬 WhatsApp</button>
         <button class="btn-g" onclick="openEstadoModal()" title="Cambiar estado de la próxima cita">⚡ Estado</button>
+      </div>
+      <div id="fp-boleta-row" style="display:none;margin-top:8px">
+        <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">📄 Emitir boleta</button>
       </div>
     </div>
 
@@ -2847,7 +2918,9 @@ function openFicha(name, initials, rubro) {
   asEl.textContent = d.asist;
   asEl.style.color = d.asist === '100%' ? 'var(--green)' : d.asist === '75%' ? 'var(--amber)' : 'var(--red)';
   document.getElementById('fpi-email').textContent = d.email;
-  document.getElementById('fpi-tel').textContent = d.tel;
+  document.getElementById('fpi-tel').textContent   = d.tel;
+  document.getElementById('fpi-rut').textContent   = '—';
+  document.getElementById('fp-boleta-row').style.display = 'none';
   document.getElementById('ficha-ov').classList.add('open');
   // Reset to info tab
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
@@ -2980,11 +3053,11 @@ function updateReport(p, btn) {
 
 /* ════ CONFIG PANEL SWITCHING ════ */
 function showCfg(panel, btn, skipPush) {
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion'].forEach(p => {
     const el = document.getElementById('cfg-' + p);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion'].forEach(p => {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
@@ -2992,6 +3065,7 @@ function showCfg(panel, btn, skipPush) {
   if (panel === 'servicios')     cargarServicios();
   if (panel === 'pagos')         cargarPagos();
   if (panel === 'chatbot')       loadBotConfig();
+  if (panel === 'facturacion')   cargarFacturacion();
   if (!skipPush) history.pushState({ section:'config', sub: panel }, '', '/configuracion/' + panel);
 }
 
@@ -4928,6 +5002,10 @@ function openVentaDetalle(jsonStr) {
   asEl.style.color  = c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
+  document.getElementById('fpi-rut').textContent   = '—';
+  // Guardar cita para boleta y mostrar botón
+  _currentBoletaCita = c;
+  document.getElementById('fp-boleta-row').style.display = c.estado_pago === 'pagado' ? 'block' : 'none';
   document.getElementById('ficha-ov').classList.add('open');
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.fptab')[0].classList.add('on');
@@ -5504,7 +5582,7 @@ function routeFromURL() {
   const section = parts[0];
   const sub     = parts[1] || null;
   const calSubs = ['semana','dia','mes','lista'];
-  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot'];
+  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion'];
 
   if (!section || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);
@@ -5544,6 +5622,218 @@ routeFromURL();
   } catch(e) { console.error('Error cargando slug', e); }
   tutInit();
 })();
+
+/* ══════════════════════════════════════════════════
+   FACTURACIÓN — Boletas internas
+══════════════════════════════════════════════════ */
+let _factConfig       = {};
+let _currentBoletaCita = null;
+
+function cargarFacturacion() {
+  try { _factConfig = JSON.parse(localStorage.getItem('attempo_facturacion') || '{}'); } catch(e) { _factConfig = {}; }
+  const g  = id => document.getElementById(id);
+  const fc = _factConfig;
+  if (g('fact-honorarios')) g('fact-honorarios').checked = (fc.tipo || 'honorarios') === 'honorarios';
+  if (g('fact-venta'))      g('fact-venta').checked      = fc.tipo === 'venta';
+  if (g('fact-rut'))        g('fact-rut').value   = fc.rut   || '';
+  if (g('fact-razon'))      g('fact-razon').value  = fc.razon || '';
+  if (g('fact-giro'))       g('fact-giro').value   = fc.giro  || '';
+  if (g('fact-dir'))        g('fact-dir').value    = fc.dir   || '';
+  const folio = Number(localStorage.getItem('attempo_folio') || fc.folio_ini || 1);
+  if (g('fact-folio-display')) g('fact-folio-display').textContent = folio;
+  if (g('fact-folio-ini'))     g('fact-folio-ini').value = fc.folio_ini || 1;
+}
+
+function guardarFacturacion() {
+  const g = id => document.getElementById(id);
+  _factConfig = {
+    tipo:      g('fact-honorarios')?.checked ? 'honorarios' : 'venta',
+    rut:       g('fact-rut')?.value.trim()   || '',
+    razon:     g('fact-razon')?.value.trim()  || '',
+    giro:      g('fact-giro')?.value.trim()   || '',
+    dir:       g('fact-dir')?.value.trim()    || '',
+    folio_ini: parseInt(g('fact-folio-ini')?.value || '1')
+  };
+  localStorage.setItem('attempo_facturacion', JSON.stringify(_factConfig));
+  const folioActual = Number(localStorage.getItem('attempo_folio') || 0);
+  if (folioActual < _factConfig.folio_ini) localStorage.setItem('attempo_folio', _factConfig.folio_ini);
+  toast('✓ Configuración de facturación guardada');
+  cargarFacturacion();
+}
+
+function _nextFolio() {
+  const n = Number(localStorage.getItem('attempo_folio') || _factConfig.folio_ini || 1);
+  localStorage.setItem('attempo_folio', n + 1);
+  return n;
+}
+
+function openBoletaModal(cita) {
+  if (!cita) return;
+  try { _factConfig = JSON.parse(localStorage.getItem('attempo_facturacion') || '{}'); } catch(e) { _factConfig = {}; }
+  if (!_factConfig.rut) {
+    toast('Primero configura tus datos en Configuración → Facturación');
+    return;
+  }
+  _currentBoletaCita = cita;
+  document.getElementById('bol-receptor-nombre').value = cita.nombre_paciente || '';
+  document.getElementById('bol-receptor-rut').value    = '';
+  updateBoletaPreview();
+  document.getElementById('boleta-ov').classList.add('open');
+}
+
+function closeBoleta() {
+  document.getElementById('boleta-ov').classList.remove('open');
+}
+
+function updateBoletaPreview() {
+  const cita   = _currentBoletaCita;
+  const cfg    = _factConfig;
+  if (!cita || !cfg) return;
+  const tipo   = cfg.tipo || 'honorarios';
+  const precio = Number(cita.precio || 0);
+  const folio  = Number(localStorage.getItem('attempo_folio') || cfg.folio_ini || 1);
+  const rawFecha = cita.fecha || new Date().toISOString().slice(0,10);
+  const fecha  = new Date(rawFecha + 'T12:00:00').toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
+  const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
+  const rrut    = document.getElementById('bol-receptor-rut')?.value.trim()    || '66.666.666-6';
+
+  let montoHtml = '';
+  if (tipo === 'venta') {
+    const neto = Math.round(precio / 1.19);
+    const iva  = precio - neto;
+    montoHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)">
+      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>Neto</span><span>$${neto.toLocaleString('es-CL')}</span></div>
+      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>IVA 19%</span><span>$${iva.toLocaleString('es-CL')}</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-top:4px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${precio.toLocaleString('es-CL')}</span></div></div>`;
+  } else {
+    const ret = Math.round(precio * 0.10);
+    const liq = precio - ret;
+    montoHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)">
+      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>Monto bruto</span><span>$${precio.toLocaleString('es-CL')}</span></div>
+      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>Retención 10%</span><span>−$${ret.toLocaleString('es-CL')}</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-top:4px;color:var(--t1)"><span>LÍQUIDO</span><span style="color:var(--a)">$${liq.toLocaleString('es-CL')}</span></div></div>`;
+  }
+
+  document.getElementById('bol-preview').innerHTML = `
+<div style="text-align:center;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--b1)">
+  <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px">${tipo==='venta'?'Boleta electrónica de venta':'Boleta de honorarios'}</div>
+  <div style="font-size:11px;color:var(--t3)">Folio N° <strong style="color:var(--t1)">${folio}</strong></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+  <div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Emisor</div>
+    <div style="font-weight:600;color:var(--t1)">${cfg.razon||'—'}</div>
+    <div style="color:var(--t2)">RUT: ${cfg.rut||'—'}</div>
+    ${cfg.giro?`<div style="color:var(--t3);font-size:11px">${cfg.giro}</div>`:''}
+    ${cfg.dir ?`<div style="color:var(--t3);font-size:11px">${cfg.dir}</div>` :''}
+    <div style="color:var(--t3);font-size:11px">${fecha}</div>
+  </div>
+  <div style="background:var(--adim);border-radius:8px;padding:10px 12px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Receptor</div>
+    <div style="font-weight:500;color:var(--t1)">${rnombre}</div>
+    <div style="color:var(--t2)">RUT: ${rrut}</div>
+  </div>
+</div>
+<div>
+  <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Detalle</div>
+  <div style="display:flex;justify-content:space-between;color:var(--t1)"><span>${cita.servicio||'Servicio'}</span><span>$${precio.toLocaleString('es-CL')}</span></div>
+  ${cita.especialistas?.nombre?`<div style="font-size:11px;color:var(--t3)">Profesional: ${cita.especialistas.nombre}</div>`:''}
+</div>
+${montoHtml}`;
+}
+
+function emitirBoleta() {
+  const cita   = _currentBoletaCita;
+  const cfg    = _factConfig;
+  const tipo   = cfg.tipo || 'honorarios';
+  const precio = Number(cita?.precio || 0);
+  const folio  = _nextFolio();
+  const rawFecha = cita?.fecha || new Date().toISOString().slice(0,10);
+  const fecha  = new Date(rawFecha + 'T12:00:00').toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
+  const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
+  const rrut    = document.getElementById('bol-receptor-rut')?.value.trim()    || '66.666.666-6';
+
+  let montoRows = '';
+  if (tipo === 'venta') {
+    const neto = Math.round(precio / 1.19);
+    const iva  = precio - neto;
+    montoRows = `<tr><td style="color:#666;padding:3px 0">Neto</td><td style="text-align:right;padding:3px 0">$${neto.toLocaleString('es-CL')}</td></tr>
+<tr><td style="color:#666;padding:3px 0">IVA 19%</td><td style="text-align:right;padding:3px 0">$${iva.toLocaleString('es-CL')}</td></tr>
+<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${precio.toLocaleString('es-CL')}</td></tr>`;
+  } else {
+    const ret = Math.round(precio * 0.10);
+    const liq = precio - ret;
+    montoRows = `<tr><td style="color:#666;padding:3px 0">Monto bruto</td><td style="text-align:right;padding:3px 0">$${precio.toLocaleString('es-CL')}</td></tr>
+<tr><td style="color:#666;padding:3px 0">Retención 10%</td><td style="text-align:right;padding:3px 0">−$${ret.toLocaleString('es-CL')}</td></tr>
+<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">LÍQUIDO</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${liq.toLocaleString('es-CL')}</td></tr>`;
+  }
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Boleta N° ${folio} · ${cfg.razon||''}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Arial,sans-serif;color:#111;font-size:13px;line-height:1.6}
+.page{max-width:420px;margin:40px auto;padding:32px;border:1px solid #e5e5e5;border-radius:12px}
+.header{text-align:center;padding-bottom:18px;margin-bottom:20px;border-bottom:2px solid #6c5ce4}
+.tipo{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6c5ce4;margin-bottom:6px}
+.folio{font-size:24px;font-weight:800;color:#111}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:4px}
+.receptor{background:#f5f3ff;border-radius:8px;padding:12px 14px}
+h3{font-size:13px;font-weight:600;margin:0 0 2px}
+.sub{font-size:12px;color:#555}
+.detalle{margin-bottom:16px}
+.detalle-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:8px}
+table{width:100%;border-collapse:collapse}
+td{vertical-align:top}
+.footer{margin-top:20px;padding-top:14px;border-top:1px dashed #ddd;text-align:center;font-size:10px;color:#999;line-height:1.8}
+@media print{.page{border:none;padding:24px;margin:0 auto}}
+</style></head><body>
+<div class="page">
+  <div class="header">
+    <div class="tipo">${tipo==='venta'?'Boleta electrónica de venta':'Boleta de honorarios'}</div>
+    <div class="folio">N° ${folio}</div>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="lbl">Emisor</div>
+      <h3>${cfg.razon||'—'}</h3>
+      <div class="sub">RUT: ${cfg.rut||'—'}</div>
+      ${cfg.giro?`<div class="sub">${cfg.giro}</div>`:''}
+      ${cfg.dir ?`<div class="sub">${cfg.dir}</div>` :''}
+      <div class="sub">${fecha}</div>
+    </div>
+    <div class="receptor">
+      <div class="lbl">Receptor</div>
+      <h3>${rnombre}</h3>
+      <div class="sub">RUT: ${rrut}</div>
+    </div>
+  </div>
+  <div class="detalle">
+    <div class="detalle-lbl">Detalle</div>
+    <table>
+      <tr><td>${cita?.servicio||'Servicio'}</td><td style="text-align:right">$${precio.toLocaleString('es-CL')}</td></tr>
+      ${cita?.especialistas?.nombre?`<tr><td colspan="2" style="font-size:11px;color:#666">Profesional: ${cita.especialistas.nombre}</td></tr>`:''}
+      <tr><td colspan="2"><hr style="border:none;border-top:1px dashed #ddd;margin:8px 0"></td></tr>
+      ${montoRows}
+    </table>
+  </div>
+  <div class="footer">
+    Documento de carácter interno · No válido como boleta tributaria electrónica SII<br>
+    Generado por Attempo · attempo.cl
+  </div>
+</div>
+</body></html>`;
+
+  closeBoleta();
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 600);
+  }
+}
 
 /* ══════════════════════════════════════════════════
    TUTORIAL DE BIENVENIDA — 6 pasos
@@ -6614,6 +6904,34 @@ async function sendHelp() {
     <button id="help-send-btn" onclick="sendHelp()">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M7 1l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+  </div>
+</div>
+
+<!-- ══ MODAL BOLETA ══ -->
+<div class="overlay" id="boleta-ov" style="z-index:700" onclick="if(event.target===this)closeBoleta()">
+  <div class="modal" style="width:520px">
+    <div class="modal-head">
+      <span class="modal-title">Emitir boleta</span>
+      <button class="mclose" onclick="closeBoleta()">×</button>
+    </div>
+    <div class="mbody" style="gap:12px">
+      <!-- Receptor -->
+      <div style="background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:10px">Receptor</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Nombre del cliente</label>
+            <input id="bol-receptor-nombre" class="fi" placeholder="Consumidor Final" style="width:100%" oninput="updateBoletaPreview()"></div>
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">RUT (opcional)</label>
+            <input id="bol-receptor-rut" class="fi" placeholder="66.666.666-6" style="width:100%" oninput="formatRutInput(this);updateBoletaPreview()" maxlength="13"></div>
+        </div>
+      </div>
+      <!-- Preview -->
+      <div id="bol-preview" style="border:1px solid var(--b1);border-radius:var(--r);padding:18px 20px;background:var(--surface-hi);font-size:12px;line-height:1.75"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeBoleta()">Cancelar</button>
+      <button class="btn-a" onclick="emitirBoleta()">🖨 Imprimir / PDF</button>
+    </div>
   </div>
 </div>
 
