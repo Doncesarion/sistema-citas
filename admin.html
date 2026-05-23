@@ -5935,12 +5935,19 @@ td{vertical-align:top;padding:2px 0}
 function _syncBoletaPrecio() {
   if (!_boletaExtraItems.length || !_currentBoletaCita?.id) return;
   const total = _boletaTotal();
-  fetch(`${_SURL}/rest/v1/citas?id=eq.${_currentBoletaCita.id}`, {
+  const id    = _currentBoletaCita.id;
+  fetch(`${_SURL}/rest/v1/citas?id=eq.${id}`, {
     method: 'PATCH',
     headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
     body: JSON.stringify({ precio: total })
   }).catch(() => {});
   _currentBoletaCita.precio = total;
+  const idx = _allVentas.findIndex(c => c.id === id);
+  if (idx >= 0) {
+    _allVentas[idx].precio = total;
+    renderVentasTable();
+    renderVentasKPIs();
+  }
 }
 
 function emitirBoleta() {
