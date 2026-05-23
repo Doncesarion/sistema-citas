@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'Attempo <contacto@attempo.cl>',
           to,
-          subject: `Tu boleta de ${negocio || 'tu negocio'} — Folio N° ${folio}`,
+          subject: `Tu boleta de ${negocio || 'tu negocio'}`,
           html: html_boleta
         })
       });

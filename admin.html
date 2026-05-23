@@ -5854,7 +5854,7 @@ td{vertical-align:top;padding:2px 0}
 <div class="page">
   <div class="header">
     <div class="tipo">${tipo==='venta'?'Boleta electrónica de venta':'Boleta de honorarios'}</div>
-    <div class="folio">N° ${folio}</div>
+    <div style="font-size:11px;color:#888;margin-bottom:4px">${fecha}</div>
   </div>
   <div class="grid">
     <div>
@@ -5863,7 +5863,6 @@ td{vertical-align:top;padding:2px 0}
       <div class="sub">RUT: ${cfg.rut||'—'}</div>
       ${cfg.giro?`<div class="sub">${cfg.giro}</div>`:''}
       ${cfg.dir ?`<div class="sub">${cfg.dir}</div>` :''}
-      <div class="sub">${fecha}</div>
     </div>
     <div class="receptor">
       <div class="lbl">Receptor</div>
