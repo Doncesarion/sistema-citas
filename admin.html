@@ -5648,8 +5648,9 @@ routeFromURL();
 /* ══════════════════════════════════════════════════
    FACTURACIÓN — Boletas internas
 ══════════════════════════════════════════════════ */
-let _factConfig       = {};
+let _factConfig        = {};
 let _currentBoletaCita = null;
+let _boletaExtraItems  = [];   // [{desc, monto}]
 
 function cargarFacturacion() {
   try { _factConfig = JSON.parse(localStorage.getItem('attempo_facturacion') || '{}'); } catch(e) { _factConfig = {}; }
@@ -5697,8 +5698,13 @@ function openBoletaModal(cita) {
     return;
   }
   _currentBoletaCita = cita;
+  _boletaExtraItems  = [];
   document.getElementById('bol-receptor-nombre').value = cita.nombre_paciente || '';
   document.getElementById('bol-receptor-rut').value    = '';
+  renderBoletaItems();
+  // Mostrar botón email solo si hay email del paciente
+  const emailBtn = document.getElementById('bol-btn-email');
+  if (emailBtn) emailBtn.style.display = cita.email_paciente ? 'inline-flex' : 'none';
   updateBoletaPreview();
   document.getElementById('boleta-ov').classList.add('open');
 }
@@ -5707,29 +5713,67 @@ function closeBoleta() {
   document.getElementById('boleta-ov').classList.remove('open');
 }
 
+/* ── Ítems adicionales ── */
+function addBoletaItem() {
+  _boletaExtraItems.push({ desc: '', monto: '' });
+  renderBoletaItems();
+  updateBoletaPreview();
+}
+function removeBoletaItem(i) {
+  _boletaExtraItems.splice(i, 1);
+  renderBoletaItems();
+  updateBoletaPreview();
+}
+function renderBoletaItems() {
+  const list = document.getElementById('bol-items-list');
+  if (!list) return;
+  list.innerHTML = _boletaExtraItems.map((item, i) => `
+    <div style="display:grid;grid-template-columns:1fr 100px 28px;gap:6px;margin-bottom:6px;align-items:center">
+      <input class="fi" placeholder="Descripción del ítem" value="${item.desc.replace(/"/g,'&quot;')}"
+        oninput="_boletaExtraItems[${i}].desc=this.value;updateBoletaPreview()" style="width:100%">
+      <input class="fi" type="number" placeholder="Monto" value="${item.monto}"
+        oninput="_boletaExtraItems[${i}].monto=this.value;updateBoletaPreview()" style="width:100%;text-align:right">
+      <button onclick="removeBoletaItem(${i})" style="background:none;border:1px solid var(--b2);border-radius:6px;color:var(--t3);width:28px;height:28px;cursor:pointer;font-size:14px;line-height:1">×</button>
+    </div>`).join('');
+}
+
+function _boletaTotal() {
+  const base  = Number(_currentBoletaCita?.precio || 0);
+  const extra = _boletaExtraItems.reduce((s, it) => s + (Number(it.monto) || 0), 0);
+  return base + extra;
+}
+
 function updateBoletaPreview() {
   const cita   = _currentBoletaCita;
   const cfg    = _factConfig;
   if (!cita || !cfg) return;
-  const tipo   = cfg.tipo || 'honorarios';
-  const precio = Number(cita.precio || 0);
-  const folio  = Number(localStorage.getItem('attempo_folio') || cfg.folio_ini || 1);
+  const tipo    = cfg.tipo || 'honorarios';
+  const total   = _boletaTotal();
+  const folio   = Number(localStorage.getItem('attempo_folio') || cfg.folio_ini || 1);
   const rawFecha = cita.fecha || new Date().toISOString().slice(0,10);
-  const fecha  = new Date(rawFecha + 'T12:00:00').toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
+  const fecha   = new Date(rawFecha + 'T12:00:00').toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
   const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
   const rrut    = document.getElementById('bol-receptor-rut')?.value.trim()    || '66.666.666-6';
 
+  // Filas de detalle
+  const precio  = Number(cita.precio || 0);
+  let detalleHtml = `<div style="display:flex;justify-content:space-between;color:var(--t1)"><span>${cita.servicio||'Servicio'}</span><span>$${precio.toLocaleString('es-CL')}</span></div>`;
+  if (cita.especialistas?.nombre) detalleHtml += `<div style="font-size:11px;color:var(--t3)">Profesional: ${cita.especialistas.nombre}</div>`;
+  _boletaExtraItems.forEach(it => {
+    if (it.desc || it.monto) detalleHtml += `<div style="display:flex;justify-content:space-between;color:var(--t1);margin-top:4px"><span>${it.desc||'—'}</span><span>$${Number(it.monto||0).toLocaleString('es-CL')}</span></div>`;
+  });
+
   let montoHtml = '';
   if (tipo === 'venta') {
-    const neto = Math.round(precio / 1.19);
-    const iva  = precio - neto;
+    const neto = Math.round(total / 1.19);
+    const iva  = total - neto;
     montoHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)">
       <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>Neto</span><span>$${neto.toLocaleString('es-CL')}</span></div>
       <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>IVA 19%</span><span>$${iva.toLocaleString('es-CL')}</span></div>
-      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-top:4px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${precio.toLocaleString('es-CL')}</span></div></div>`;
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-top:4px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${total.toLocaleString('es-CL')}</span></div></div>`;
   } else {
     montoHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)">
-      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${precio.toLocaleString('es-CL')}</span></div></div>`;
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${total.toLocaleString('es-CL')}</span></div></div>`;
   }
 
   document.getElementById('bol-preview').innerHTML = `
@@ -5754,35 +5798,40 @@ function updateBoletaPreview() {
 </div>
 <div>
   <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Detalle</div>
-  <div style="display:flex;justify-content:space-between;color:var(--t1)"><span>${cita.servicio||'Servicio'}</span><span>$${precio.toLocaleString('es-CL')}</span></div>
-  ${cita.especialistas?.nombre?`<div style="font-size:11px;color:var(--t3)">Profesional: ${cita.especialistas.nombre}</div>`:''}
+  ${detalleHtml}
 </div>
 ${montoHtml}`;
 }
 
-function emitirBoleta() {
-  const cita   = _currentBoletaCita;
-  const cfg    = _factConfig;
-  const tipo   = cfg.tipo || 'honorarios';
-  const precio = Number(cita?.precio || 0);
-  const folio  = _nextFolio();
+function _buildBoletaHtml(folio) {
+  const cita    = _currentBoletaCita;
+  const cfg     = _factConfig;
+  const tipo    = cfg.tipo || 'honorarios';
+  const total   = _boletaTotal();
   const rawFecha = cita?.fecha || new Date().toISOString().slice(0,10);
-  const fecha  = new Date(rawFecha + 'T12:00:00').toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
+  const fecha   = new Date(rawFecha + 'T12:00:00').toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
   const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
   const rrut    = document.getElementById('bol-receptor-rut')?.value.trim()    || '66.666.666-6';
 
+  const precio  = Number(cita?.precio || 0);
+  let itemRows  = `<tr><td>${cita?.servicio||'Servicio'}</td><td style="text-align:right">$${precio.toLocaleString('es-CL')}</td></tr>`;
+  if (cita?.especialistas?.nombre) itemRows += `<tr><td colspan="2" style="font-size:11px;color:#666">Profesional: ${cita.especialistas.nombre}</td></tr>`;
+  _boletaExtraItems.forEach(it => {
+    if (it.desc || it.monto) itemRows += `<tr><td>${it.desc||'—'}</td><td style="text-align:right">$${Number(it.monto||0).toLocaleString('es-CL')}</td></tr>`;
+  });
+
   let montoRows = '';
   if (tipo === 'venta') {
-    const neto = Math.round(precio / 1.19);
-    const iva  = precio - neto;
+    const neto = Math.round(total / 1.19);
+    const iva  = total - neto;
     montoRows = `<tr><td style="color:#666;padding:3px 0">Neto</td><td style="text-align:right;padding:3px 0">$${neto.toLocaleString('es-CL')}</td></tr>
 <tr><td style="color:#666;padding:3px 0">IVA 19%</td><td style="text-align:right;padding:3px 0">$${iva.toLocaleString('es-CL')}</td></tr>
-<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${precio.toLocaleString('es-CL')}</td></tr>`;
+<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${total.toLocaleString('es-CL')}</td></tr>`;
   } else {
-    montoRows = `<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${precio.toLocaleString('es-CL')}</td></tr>`;
+    montoRows = `<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${total.toLocaleString('es-CL')}</td></tr>`;
   }
 
-  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Boleta N° ${folio} · ${cfg.razon||''}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -5799,7 +5848,7 @@ h3{font-size:13px;font-weight:600;margin:0 0 2px}
 .detalle{margin-bottom:16px}
 .detalle-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:8px}
 table{width:100%;border-collapse:collapse}
-td{vertical-align:top}
+td{vertical-align:top;padding:2px 0}
 .footer{margin-top:20px;padding-top:14px;border-top:1px dashed #ddd;text-align:center;font-size:10px;color:#999;line-height:1.8}
 @media print{.page{border:none;padding:24px;margin:0 auto}}
 </style></head><body>
@@ -5826,8 +5875,7 @@ td{vertical-align:top}
   <div class="detalle">
     <div class="detalle-lbl">Detalle</div>
     <table>
-      <tr><td>${cita?.servicio||'Servicio'}</td><td style="text-align:right">$${precio.toLocaleString('es-CL')}</td></tr>
-      ${cita?.especialistas?.nombre?`<tr><td colspan="2" style="font-size:11px;color:#666">Profesional: ${cita.especialistas.nombre}</td></tr>`:''}
+      ${itemRows}
       <tr><td colspan="2"><hr style="border:none;border-top:1px dashed #ddd;margin:8px 0"></td></tr>
       ${montoRows}
     </table>
@@ -5838,14 +5886,59 @@ td{vertical-align:top}
   </div>
 </div>
 </body></html>`;
+}
 
+function emitirBoleta() {
+  const folio = _nextFolio();
+  const html  = _buildBoletaHtml(folio);
   closeBoleta();
   const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 600);
+  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 600); }
+}
+
+async function enviarBoletaEmail() {
+  const cita  = _currentBoletaCita;
+  const email = cita?.email_paciente;
+  if (!email) { toast('Esta cita no tiene email registrado'); return; }
+
+  const btn = document.getElementById('bol-btn-email');
+  const orig = btn.textContent;
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+
+  const folio = _nextFolio();
+  const html  = _buildBoletaHtml(folio);
+  const cfg   = _factConfig;
+  const total = _boletaTotal();
+  const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
+
+  try {
+    const r = await fetch('/api/send-boleta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to:       email,
+        nombre:   rnombre,
+        negocio:  cfg.razon || 'tu negocio',
+        folio,
+        total:    '$' + total.toLocaleString('es-CL'),
+        html_boleta: html
+      })
+    });
+    if (r.ok) {
+      toast('✓ Boleta enviada a ' + email);
+      closeBoleta();
+    } else {
+      _nextFolio() - 1; // devolver folio (aproximación)
+      localStorage.setItem('attempo_folio', folio); // revertir
+      toast('Error al enviar el email');
+    }
+  } catch(e) {
+    localStorage.setItem('attempo_folio', folio);
+    toast('Error de conexión');
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
   }
 }
 
@@ -6939,11 +7032,20 @@ async function sendHelp() {
             <input id="bol-receptor-rut" class="fi" placeholder="66.666.666-6" style="width:100%" oninput="formatRutInput(this);updateBoletaPreview()" maxlength="13"></div>
         </div>
       </div>
+      <!-- Ítems adicionales -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3)">Ítems</div>
+          <button class="btn-sm" onclick="addBoletaItem()">+ Agregar ítem</button>
+        </div>
+        <div id="bol-items-list"></div>
+      </div>
       <!-- Preview -->
       <div id="bol-preview" style="border:1px solid var(--b1);border-radius:var(--r);padding:18px 20px;background:var(--surface-hi);font-size:12px;line-height:1.75"></div>
     </div>
-    <div class="mfoot">
+    <div class="mfoot" style="gap:8px">
       <button class="btn-g" onclick="closeBoleta()">Cancelar</button>
+      <button class="btn-g" id="bol-btn-email" onclick="enviarBoletaEmail()" style="display:none">📧 Enviar por email</button>
       <button class="btn-a" onclick="emitirBoleta()">🖨 Imprimir / PDF</button>
     </div>
   </div>
