@@ -120,7 +120,10 @@
     <div class="sa-sub">Panel de administración de licencias</div>
     <div id="sa-err" class="sa-err">Credenciales incorrectas.</div>
     <input class="sa-input" id="sa-user" placeholder="Usuario" onkeydown="if(event.key==='Enter')saLogin()">
-    <input class="sa-input" type="password" id="sa-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')saLogin()">
+    <div style="position:relative">
+      <input class="sa-input" type="password" id="sa-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')saLogin()" style="width:100%;padding-right:42px;box-sizing:border-box">
+      <button type="button" onclick="const i=document.getElementById('sa-pass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1">👁</button>
+    </div>
     <button class="sa-btn" onclick="saLogin()">Ingresar al panel</button>
   </div>
 </div>
