@@ -56,25 +56,25 @@ Deno.serve(async (req) => {
 
     switch (action) {
 
-      // ── LICENCIAS ──
       case 'listar':
         result = await supabase.from('clientes_sistema').select('*').order('created_at', { ascending: false })
         break
-      case 'crear':
+
+      case 'crear': {
         const passHash = await hashPassword(body.password)
         const bookingSlug = (body.nombre_negocio || '')
-          .toLowerCase()
-          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
           .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
         result = await supabase.from('clientes_sistema').insert({
           nombre_negocio: body.nombre_negocio, email: body.email, password_hash: passHash,
           plan: body.plan || 'demo', fecha_inicio: new Date().toISOString().split('T')[0],
           fecha_expiracion: body.fecha_expiracion, contacto_nombre: body.contacto_nombre,
-          contacto_tel: body.contacto_tel, rubro: body.rubro, activo: true,
-          booking_slug: bookingSlug,
+          contacto_tel: body.contacto_tel, rubro: body.rubro, activo: true, booking_slug: bookingSlug,
         }).select().single()
         break
-      case 'actualizar':
+      }
+
+      case 'actualizar': {
         const upd: any = {
           nombre_negocio: body.nombre_negocio, email: body.email, plan: body.plan,
           fecha_expiracion: body.fecha_expiracion, contacto_nombre: body.contacto_nombre,
@@ -84,56 +84,58 @@ Deno.serve(async (req) => {
         if (body.password) upd.password_hash = await hashPassword(body.password)
         result = await supabase.from('clientes_sistema').update(upd).eq('id', body.id).select().single()
         break
+      }
+
       case 'toggle':
         result = await supabase.from('clientes_sistema').update({ activo: body.activo, updated_at: new Date().toISOString() }).eq('id', body.id).select().single()
         break
+
       case 'eliminar':
         result = await supabase.from('clientes_sistema').delete().eq('id', body.id)
         break
-      case 'pago':
+
+      case 'pago': {
         await supabase.from('pagos').insert({ cliente_id: body.cliente_id, plan: body.plan, monto: body.monto, plataforma: body.plataforma, referencia: body.referencia, estado: 'pagado', fecha_pago: new Date().toISOString() })
         const diasP = body.plan === 'anual' ? 365 : 30
         const expP = new Date(); expP.setDate(expP.getDate() + diasP)
         result = await supabase.from('clientes_sistema').update({ plan: body.plan, fecha_expiracion: expP.toISOString().split('T')[0], activo: true, updated_at: new Date().toISOString() }).eq('id', body.cliente_id).select().single()
         break
-      case 'login':
+      }
+
+      case 'login': {
         const hoy = new Date().toISOString().split('T')[0]
         const { data: cliList, error: lerr } = await supabase.from('clientes_sistema').select('*').eq('email', body.email).eq('activo', true).gte('fecha_expiracion', hoy)
-        const cli = cliList?.find ? await (async () => {
-          for (const c of (cliList || [])) {
-            if (await verifyPassword(body.password, c.password_hash)) return c
-          }
-          return null
-        })() : null
+        let cli = null
+        for (const c of (cliList || [])) {
+          if (await verifyPassword(body.password, c.password_hash)) { cli = c; break }
+        }
         if (lerr || !cli) return new Response(JSON.stringify({ error: 'Credenciales inválidas o licencia vencida' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         result = { data: { ok: true, cliente: cli }, error: null }
         break
+      }
 
-      // ── CONFIGURACIÓN ──
       case 'get_config':
         result = await supabase.from('negocios_config').select('*').eq('cliente_id', body.cliente_id).single()
         if (result.error?.code === 'PGRST116') {
           result = await supabase.from('negocios_config').insert({ cliente_id: body.cliente_id, nombre: body.nombre_negocio || 'Mi Negocio' }).select().single()
         }
         break
-      case 'save_config':
+
+      case 'save_config': {
         const { data: ce } = await supabase.from('negocios_config').select('id').eq('cliente_id', body.cliente_id).single()
         const cfgData: any = {
           nombre: body.nombre, emoji: body.emoji, whatsapp: body.whatsapp,
           direccion: body.direccion, horario: body.horario, color_actual: body.color_actual,
-          servicios: body.servicios,
-          updated_at: new Date().toISOString()
+          servicios: body.servicios, updated_at: new Date().toISOString()
         }
-        // Optional fields — only include if provided
-        const optFields = ['logo','banner','horarios_semana','horas_bloqueadas',
-          'emailjs_pubkey','emailjs_service','emailjs_template','emailjs_adminmail']
+        const optFields = ['logo','banner','horarios_semana','horas_bloqueadas','emailjs_pubkey','emailjs_service','emailjs_template','emailjs_adminmail']
         optFields.forEach(f => { if (body[f] !== undefined) cfgData[f] = body[f] })
         result = ce
           ? await supabase.from('negocios_config').update(cfgData).eq('cliente_id', body.cliente_id).select().single()
           : await supabase.from('negocios_config').insert({ cliente_id: body.cliente_id, ...cfgData }).select().single()
         break
+      }
 
-      // ── ESPECIALISTAS ──
       case 'get_especialistas':
         result = await supabase.from('especialistas').select('*').eq('cliente_id', body.cliente_id).eq('activo', true).order('created_at')
         break
@@ -150,13 +152,14 @@ Deno.serve(async (req) => {
         result = await supabase.from('especialistas').update({ foto: body.foto, updated_at: new Date().toISOString() }).eq('id', body.id).eq('cliente_id', body.cliente_id).select().single()
         break
 
-      // ── CITAS ──
-      case 'get_citas':
+      case 'get_citas': {
         let q = supabase.from('citas').select('*, especialistas(id,nombre,color,foto)').eq('cliente_id', body.cliente_id).order('fecha').order('hora')
         if (body.desde) q = q.gte('fecha', body.desde)
         if (body.hasta) q = q.lte('fecha', body.hasta)
         result = await q
         break
+      }
+
       case 'create_cita':
         result = await supabase.from('citas').insert({ cliente_id: body.cliente_id, especialista_id: body.especialista_id, fecha: body.fecha, hora: body.hora, nombre_paciente: body.nombre_paciente, email_paciente: body.email_paciente, tel_paciente: body.tel_paciente, servicio: body.servicio, precio: body.precio, estado: 'pending' }).select('*, especialistas(id,nombre,color,foto)').single()
         break
@@ -170,8 +173,7 @@ Deno.serve(async (req) => {
         result = await supabase.from('citas').update({ nota: body.nota, updated_at: new Date().toISOString() }).eq('id', body.id).eq('cliente_id', body.cliente_id).select().single()
         break
 
-      // ── PACIENTES ──
-      case 'get_pacientes':
+      case 'get_pacientes': {
         const { data: cp } = await supabase.from('citas').select('nombre_paciente,email_paciente,tel_paciente,precio,estado,reagendamientos,especialistas(nombre)').eq('cliente_id', body.cliente_id)
         if (!cp) { result = { data: [], error: null }; break }
         const mapa: any = {}
@@ -190,6 +192,7 @@ Deno.serve(async (req) => {
         }).sort((a: any, b: any) => b.citasTotal - a.citasTotal)
         result = { data: pacs, error: null }
         break
+      }
 
       case 'get_historial_paciente':
         result = await supabase.from('citas').select('*, especialistas(id,nombre,color,foto)').eq('cliente_id', body.cliente_id).eq('nombre_paciente', body.nombre_paciente).order('fecha', { ascending: false }).order('hora', { ascending: false })
