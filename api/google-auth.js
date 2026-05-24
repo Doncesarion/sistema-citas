@@ -1,7 +1,28 @@
+import crypto from 'crypto';
+
 const REDIRECT_URI = 'https://www.attempo.cl/api/google-auth';
 const SCOPE        = 'https://www.googleapis.com/auth/calendar';
-
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+
+function encryptToken(token) {
+  const key = Buffer.from(process.env.GOOGLE_TOKEN_KEY, 'hex');
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `enc:${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+}
+
+function decryptToken(stored) {
+  if (!stored || !stored.startsWith('enc:')) return stored; // tokens anteriores sin encriptar
+  const parts = stored.split(':');
+  if (parts.length !== 4) return stored;
+  const [, ivHex, tagHex, dataHex] = parts;
+  const key = Buffer.from(process.env.GOOGLE_TOKEN_KEY, 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+  return decipher.update(Buffer.from(dataHex, 'hex')) + decipher.final('utf8');
+}
 
 export default async function handler(req, res) {
   const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
@@ -66,7 +87,7 @@ export default async function handler(req, res) {
       const patch = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=id`, {
         method: 'PATCH',
         headers: { ...sh, Prefer: 'return=representation' },
-        body: JSON.stringify({ google_refresh_token: tokens.refresh_token })
+        body: JSON.stringify({ google_refresh_token: encryptToken(tokens.refresh_token) })
       });
 
       let patchBody;
@@ -99,9 +120,8 @@ export default async function handler(req, res) {
       const [cli] = await rc.json();
 
       if (cli?.google_refresh_token) {
-        // Revocar en Google (best-effort — no falla si Google devuelve error)
         await fetch(
-          `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(cli.google_refresh_token)}`,
+          `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(decryptToken(cli.google_refresh_token))}`,
           { method: 'POST' }
         ).catch(() => {});
       }
@@ -133,7 +153,7 @@ export default async function handler(req, res) {
       const [cli] = await rc.json();
       if (!cli?.google_refresh_token) return res.status(400).json({ error: 'Google Calendar no conectado' });
 
-      const access_token = await gcGetAccessToken(cli.google_refresh_token, CLIENT_ID, CLIENT_SECRET);
+      const access_token = await gcGetAccessToken(decryptToken(cli.google_refresh_token), CLIENT_ID, CLIENT_SECRET);
       const calendar_id  = await gcGetOrCreateCalendar(access_token, sh, cliente_id, cli.google_calendar_id);
 
       const rc2 = await fetch(
