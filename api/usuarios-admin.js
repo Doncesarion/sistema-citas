@@ -1,4 +1,24 @@
+import crypto from 'crypto';
+
+function verifyToken(token) {
+  if (!token) return false;
+  const SA_SECRET = process.env.SA_SECRET;
+  if (!SA_SECRET) return false;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return false;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
+  if (sig !== expected) return false;
+  if (Date.now() > parseInt(payload)) return false;
+  return true;
+}
+
 export default async function handler(req, res) {
+  if (!verifyToken(req.headers['x-sa-token'])) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+
   const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh = {

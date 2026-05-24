@@ -239,9 +239,11 @@ function togglePw(id) {
 async function cargarAccesos() {
   const list = document.getElementById('accesos-list');
   try {
+    const saToken = localStorage.getItem('sa_token') || '';
+    const saH = { 'Content-Type': 'application/json', 'x-sa-token': saToken };
     const [rC, rU] = await Promise.all([
-      fetch('/api/usuarios-admin?action=clientes'),
-      fetch('/api/usuarios-admin?action=usuarios')
+      fetch('/api/usuarios-admin?action=clientes', { headers: saH }),
+      fetch('/api/usuarios-admin?action=usuarios', { headers: saH })
     ]);
     const clientes = await rC.json();
     const usuarios = await rU.json();
@@ -341,7 +343,7 @@ async function crearNegocio() {
 
   try {
     const r = await fetch('/api/usuarios-admin', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-sa-token':localStorage.getItem('sa_token')||''},
       body: JSON.stringify({ action:'crear-negocio', nombre_negocio:nombre, email:email||null, plan, contacto_nombre:contacto||null, contacto_tel:tel||null, rubro:rubro||null })
     });
     const d = await r.json();
@@ -394,7 +396,7 @@ async function crearUsuario() {
 
   try {
     const r = await fetch('/api/usuarios-admin', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-sa-token':localStorage.getItem('sa_token')||''},
       body: JSON.stringify({ action:'crear', username, password, email:email||null, nombre:nombre||username, rol, cliente_id:_nuClienteId })
     });
     const d = await r.json();
@@ -427,7 +429,7 @@ async function guardarPw() {
 
   try {
     const r = await fetch('/api/usuarios-admin', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-sa-token':localStorage.getItem('sa_token')||''},
       body: JSON.stringify({ action:'cambiar-password', username:_cpwUsername, password })
     });
     const d = await r.json();
@@ -441,7 +443,7 @@ async function eliminarNegocio(clienteId, nombre) {
   if (!confirm(`¿Eliminar el negocio "${nombre}"?\n\nEsto borrará también todos sus usuarios, citas y especialistas.\nEsta acción no se puede deshacer.`)) return;
   try {
     const r = await fetch('/api/usuarios-admin', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-sa-token':localStorage.getItem('sa_token')||''},
       body: JSON.stringify({ action:'eliminar-negocio', cliente_id: clienteId })
     });
     const d = await r.json();
@@ -455,7 +457,7 @@ async function eliminar(username, nombre) {
   if (!confirm(`¿Eliminar el acceso de "${nombre}" (@${username})?\nEsta acción no se puede deshacer.`)) return;
   try {
     const r = await fetch('/api/usuarios-admin', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-sa-token':localStorage.getItem('sa_token')||''},
       body: JSON.stringify({ action:'eliminar', username })
     });
     const d = await r.json();

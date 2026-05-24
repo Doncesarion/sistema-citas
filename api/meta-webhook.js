@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     const mode      = req.query['hub.mode'];
     const token     = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
-    const validToken = process.env.META_VERIFY_TOKEN || 'attempo2024';
+    const validToken = process.env.META_VERIFY_TOKEN;
     if (mode === 'subscribe' && token === validToken) {
       return res.status(200).send(challenge);
     }

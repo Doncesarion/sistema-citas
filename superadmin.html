@@ -258,7 +258,7 @@ const SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
 
 let todosClientes = [];
-let saToken = sessionStorage.getItem('sa_token') || null;
+let saToken = localStorage.getItem('sa_token') || null;
 
 // ═══════════════════════════════════════════
 // LOGIN SUPERADMIN — validado en servidor
@@ -271,7 +271,7 @@ let saToken = sessionStorage.getItem('sa_token') || null;
       document.addEventListener('DOMContentLoaded', init);
       return;
     }
-    sessionStorage.removeItem('sa_token');
+    localStorage.removeItem('sa_token');
     saToken = null;
   }
 })();
@@ -293,7 +293,7 @@ async function saLogin() {
       return;
     }
     saToken = data.token;
-    sessionStorage.setItem('sa_token', saToken);
+    localStorage.setItem('sa_token', saToken);
     errEl.style.display = 'none';
     document.getElementById('sa-login').classList.add('hidden');
     init();
@@ -304,7 +304,7 @@ async function saLogin() {
 }
 function saLogout() {
   saToken = null;
-  sessionStorage.removeItem('sa_token');
+  localStorage.removeItem('sa_token');
   document.getElementById('sa-login').classList.remove('hidden');
   document.getElementById('sa-user').value = '';
   document.getElementById('sa-pass').value = '';
