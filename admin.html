@@ -5193,12 +5193,15 @@ function logout() {
 
 /* ════ IMPERSONACIÓN ════ */
 function salirImpersonacion() {
-  const original = localStorage.getItem('attempo_original_user');
-  if (original) {
-    localStorage.setItem('attempo_user', original);
-    localStorage.removeItem('attempo_original_user');
+  const original = JSON.parse(localStorage.getItem('attempo_original_user') || '{}');
+  localStorage.removeItem('attempo_original_user');
+  if (original._superadmin) {
+    localStorage.removeItem('attempo_user');
+    window.location.href = '/superadmin';
+  } else {
+    localStorage.setItem('attempo_user', JSON.stringify(original));
+    window.location.href = '/accesos';
   }
-  window.location.href = '/accesos';
 }
 
 (function() {
