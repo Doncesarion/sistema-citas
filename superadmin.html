@@ -415,6 +415,7 @@ function renderTabla(lista) {
             <td style="font-size:12px">${ffc(c.fecha_expiracion)}</td>
             <td>
               <div style="display:flex;gap:5px;flex-wrap:wrap">
+                <button class="btn btn-outline btn-sm" onclick="verCuentaCliente('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\'") || ''}')">👁 Ver</button>
                 <button class="btn btn-outline btn-sm" onclick="editarCliente('${c.id}')">✏️ Editar</button>
                 <button class="btn btn-success btn-sm" onclick="abrirModalPago('${c.id}')">💰 Pago</button>
                 ${c.activo
@@ -533,8 +534,23 @@ async function guardarCliente() {
       await edgeFetch('actualizar', { ...datos, id });
       showToast('✓ Cliente actualizado');
     } else {
-      await edgeFetch('crear', { ...datos, password: pass });
-      showToast('✓ Cliente creado — plan: ' + plan);
+      const nuevoCliente = await edgeFetch('crear', { ...datos, password: pass });
+      // Crear usuario admin y enviar email de bienvenida con credenciales
+      if (nuevoCliente?.id && email) {
+        const inviteRes = await fetch('/api/invitar-profesional', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            nombre: contacto || negocio,
+            rol: 'admin',
+            cliente_id: nuevoCliente.id
+          })
+        });
+        const inviteData = await inviteRes.json();
+        if (!inviteRes.ok) console.warn('Error al crear usuario:', inviteData.error);
+      }
+      showToast('✓ Cliente creado — email de acceso enviado a ' + email);
     }
     cerrarModal('modal-cliente');
     await cargarClientes();
@@ -583,6 +599,25 @@ async function toggleActivo(id, activo) {
     await cargarClientes();
     showToast(activo ? '▶ Cliente activado' : '⏸ Cliente pausado');
   } catch(e) { alert('Error: '+e.message); }
+}
+
+async function verCuentaCliente(clienteId, nombreNegocio) {
+  try {
+    const res = await fetch(
+      `${SUPA_URL}/rest/v1/usuarios?cliente_id=eq.${clienteId}&rol=eq.admin&limit=1&select=id,username,nombre,rol,destino,cliente_id`,
+      { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } }
+    );
+    const data = await res.json();
+    if (!data.length) { alert('Este cliente no tiene usuario admin creado todavía.'); return; }
+    const u = data[0];
+    localStorage.setItem('attempo_original_user', JSON.stringify({ _superadmin: true }));
+    localStorage.setItem('attempo_user', JSON.stringify({
+      ...u,
+      nombre_negocio: nombreNegocio,
+      _impersonando: true
+    }));
+    window.open('/admin', '_blank');
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 async function eliminarCliente(id, nombre) {
