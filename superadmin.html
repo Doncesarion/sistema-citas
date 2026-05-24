@@ -253,62 +253,78 @@
 // ═══════════════════════════════════════════
 // CONFIGURACIÓN SUPABASE
 // ═══════════════════════════════════════════
-// Credenciales Supabase — anon key es pública por diseño, no es un secreto
+// anon key es pública por diseño de Supabase
 const SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
-const SA_USER = 'cesar';
-const SA_PASS = 'DonCesarion2024!';
 
 let todosClientes = [];
-let sesionSA = false;
+let saToken = sessionStorage.getItem('sa_token') || null;
 
 // ═══════════════════════════════════════════
-// LOGIN SUPERADMIN (local, no en Supabase)
+// LOGIN SUPERADMIN — validado en servidor
 // ═══════════════════════════════════════════
-function saLogin() {
+(function() {
+  if (saToken) {
+    const expires = parseInt(saToken.split('.')[0]);
+    if (Date.now() < expires) {
+      document.getElementById('sa-login').classList.add('hidden');
+      document.addEventListener('DOMContentLoaded', init);
+      return;
+    }
+    sessionStorage.removeItem('sa_token');
+    saToken = null;
+  }
+})();
+
+async function saLogin() {
   const u = document.getElementById('sa-user').value.trim();
   const p = document.getElementById('sa-pass').value;
-  if (u === SA_USER && p === SA_PASS) {
-    sesionSA = true;
+  const errEl = document.getElementById('sa-err');
+  try {
+    const res = await fetch('/api/superadmin-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: u, pass: p })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.style.display = 'block';
+      errEl.textContent = data.error || 'Credenciales incorrectas';
+      return;
+    }
+    saToken = data.token;
+    sessionStorage.setItem('sa_token', saToken);
+    errEl.style.display = 'none';
     document.getElementById('sa-login').classList.add('hidden');
-    document.getElementById('sa-err').style.display = 'none';
     init();
-  } else {
-    document.getElementById('sa-err').style.display = 'block';
-    document.getElementById('sa-err').textContent = 'Usuario o contraseña incorrectos.';
+  } catch(e) {
+    errEl.style.display = 'block';
+    errEl.textContent = 'Error de conexión';
   }
 }
 function saLogout() {
-  sesionSA = false;
+  saToken = null;
+  sessionStorage.removeItem('sa_token');
   document.getElementById('sa-login').classList.remove('hidden');
   document.getElementById('sa-user').value = '';
   document.getElementById('sa-pass').value = '';
 }
 
 // ═══════════════════════════════════════════
-// API — EDGE FUNCTION (corre en servidor Supabase)
+// API — proxy seguro (ADMIN_TOKEN nunca sale al browser)
 // ═══════════════════════════════════════════
-const ADMIN_TOKEN = 'DonCesarion_SuperAdmin_2024_xK9mP3';
-
 async function edgeFetch(action, body=null) {
-  // Supabase requiere Authorization header con la anon/publishable key
-  // para autenticar la llamada a la Edge Function
-  const method = body ? 'POST' : 'GET';
   const opts = {
-    method,
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-admin-token': ADMIN_TOKEN,
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-    }
+      'x-sa-token': saToken,
+    },
+    body: JSON.stringify(body || {})
   };
-  if (body) opts.body = JSON.stringify(body);
-  const edgeUrl = SUPA_URL + '/functions/v1/admin-clientes?action=' + action;
-  console.log('Calling:', edgeUrl);
+  const edgeUrl = '/api/admin-proxy?action=' + action;
   const res = await fetch(edgeUrl, opts);
   const text = await res.text();
-  console.log('Response:', res.status, text);
   let json;
   try { json = JSON.parse(text); } catch(e) { throw new Error('Respuesta inválida: ' + text); }
   if (!res.ok || json.error) throw new Error(json.error || json.message || 'Error en Edge Function');
