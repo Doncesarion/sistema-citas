@@ -611,8 +611,12 @@ async function verCuentaCliente(clienteId, nombreNegocio) {
       { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } }
     );
     const data = await res.json();
-    if (!data.length) { alert('Este cliente no tiene usuario admin creado todavía.'); return; }
-    const u = data[0];
+    const u = data.length ? data[0] : {
+      nombre: nombreNegocio,
+      rol: 'admin',
+      cliente_id: clienteId,
+      destino: '/admin'
+    };
     localStorage.setItem('attempo_original_user', JSON.stringify({ _superadmin: true }));
     localStorage.setItem('attempo_user', JSON.stringify({
       ...u,
