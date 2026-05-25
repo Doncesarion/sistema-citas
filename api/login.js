@@ -3,15 +3,34 @@ import { promisify } from 'util';
 
 const scryptAsync = promisify(crypto.scrypt);
 
-// Rate limiting: max 10 intentos por IP cada 15 minutos
-const _rateMap = new Map();
-function isRateLimited(ip) {
-  const now = Date.now();
-  const WINDOW = 15 * 60 * 1000;
+// Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
+const _loginFallback = new Map();
+async function isRateLimited(ip) {
   const MAX = 10;
-  const entry = _rateMap.get(ip);
+  const WINDOW_S = 15 * 60;
+
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (url && token) {
+    try {
+      const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
+      const key = `rl:login:${ip}:${bucket}`;
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', key], ['EXPIRE', key, WINDOW_S * 2]])
+      });
+      const data = await r.json();
+      const count = data[0]?.result;
+      if (typeof count === 'number') return count > MAX;
+    } catch {}
+  }
+
+  // Fallback en memoria si Upstash no está disponible
+  const now = Date.now();
+  const entry = _loginFallback.get(ip);
   if (!entry || now > entry.resetAt) {
-    _rateMap.set(ip, { count: 1, resetAt: now + WINDOW });
+    _loginFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
     return false;
   }
   if (entry.count >= MAX) return true;
@@ -44,7 +63,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
-  if (isRateLimited(ip)) {
+  if (await isRateLimited(ip)) {
     return res.status(429).json({ error: 'Demasiados intentos. Espera 15 minutos.' });
   }
 

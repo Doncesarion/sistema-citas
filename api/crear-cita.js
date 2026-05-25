@@ -8,15 +8,34 @@ function generateManageToken(cita_id) {
   return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
 }
 
-// Rate limiting: max 20 reservas por IP por hora
-const _bookingRate = new Map();
-function isBookingRateLimited(ip) {
-  const now = Date.now();
-  const WINDOW = 60 * 60 * 1000;
+// Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
+const _bookingFallback = new Map();
+async function isBookingRateLimited(ip) {
   const MAX = 20;
-  const entry = _bookingRate.get(ip);
+  const WINDOW_S = 60 * 60;
+
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (url && token) {
+    try {
+      const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
+      const key = `rl:booking:${ip}:${bucket}`;
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', key], ['EXPIRE', key, WINDOW_S * 2]])
+      });
+      const data = await r.json();
+      const count = data[0]?.result;
+      if (typeof count === 'number') return count > MAX;
+    } catch {}
+  }
+
+  // Fallback en memoria si Upstash no está disponible
+  const now = Date.now();
+  const entry = _bookingFallback.get(ip);
   if (!entry || now > entry.resetAt) {
-    _bookingRate.set(ip, { count: 1, resetAt: now + WINDOW });
+    _bookingFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
     return false;
   }
   if (entry.count >= MAX) return true;
@@ -37,7 +56,7 @@ export default async function handler(req, res) {
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
   if (!citaIdYaCreada) {
     const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
-    if (isBookingRateLimited(ip)) {
+    if (await isBookingRateLimited(ip)) {
       return res.status(429).json({ error: 'Demasiadas solicitudes. Intenta más tarde.' });
     }
   }
