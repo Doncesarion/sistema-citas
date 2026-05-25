@@ -46,6 +46,7 @@ export default async function handler(req, res) {
 
     res.json(libres.length ? { disponible: true, slots: libres } : { disponible: false });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('slots error:', e.message);
+    res.status(500).json({ error: 'Error interno' });
   }
 }

@@ -3,6 +3,22 @@ import { promisify } from 'util';
 
 const scryptAsync = promisify(crypto.scrypt);
 
+// Rate limiting: max 10 intentos por IP cada 15 minutos
+const _rateMap = new Map();
+function isRateLimited(ip) {
+  const now = Date.now();
+  const WINDOW = 15 * 60 * 1000;
+  const MAX = 10;
+  const entry = _rateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _rateMap.set(ip, { count: 1, resetAt: now + WINDOW });
+    return false;
+  }
+  if (entry.count >= MAX) return true;
+  entry.count++;
+  return false;
+}
+
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = await scryptAsync(password, salt, 64);
@@ -26,6 +42,11 @@ async function verifyPassword(password, stored) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ error: 'Demasiados intentos. Espera 15 minutos.' });
+  }
 
   const { usuario, password } = req.body || {};
   if (!usuario || !password) return res.status(400).json({ error: 'Datos incompletos' });
@@ -64,13 +85,23 @@ export default async function handler(req, res) {
       }).catch(() => {});
     }
 
+    const SESSION_SECRET = process.env.SESSION_SECRET;
+    let session_token = null;
+    if (SESSION_SECRET && u.cliente_id) {
+      const expires = Date.now() + 8 * 60 * 60 * 1000;
+      const payload = `${u.cliente_id}:${u.rol}:${expires}`;
+      const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+      session_token = `${payload}.${sig}`;
+    }
+
     return res.status(200).json({
       ok: true,
       usuario: u.username,
       nombre: u.nombre,
       rol: u.rol,
       destino: u.destino,
-      cliente_id: u.cliente_id
+      cliente_id: u.cliente_id,
+      session_token
     });
 
   } catch (err) {

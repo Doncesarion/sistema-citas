@@ -1,5 +1,26 @@
+import crypto from 'crypto';
+
+function verifySessionToken(token) {
+  if (!token) return false;
+  const SECRET = process.env.SESSION_SECRET;
+  if (!SECRET) return false;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return false;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  if (sig !== expected) return false;
+  const parts = payload.split(':');
+  if (parts.length !== 3) return false;
+  if (Date.now() > parseInt(parts[2])) return false;
+  return true;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+  if (!verifySessionToken(req.headers['x-session-token'])) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
   if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: 'Sin clave de email' });
 
   const body = req.body || {};
@@ -22,7 +43,8 @@ export default async function handler(req, res) {
       if (!r.ok) { console.error('send-boleta error:', await r.text()); return res.status(500).json({ error: 'Error al enviar' }); }
       return res.status(200).json({ ok: true });
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      console.error('send-boleta exception:', e.message);
+      return res.status(500).json({ error: 'Error al enviar boleta' });
     }
   }
 
@@ -59,7 +81,8 @@ export default async function handler(req, res) {
     if (!r.ok) console.error('send-email error:', await r.text());
     return res.status(200).json({ ok: true });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error('send-email exception:', e.message);
+    return res.status(500).json({ error: 'Error al enviar email' });
   }
 }
 

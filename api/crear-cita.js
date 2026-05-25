@@ -61,7 +61,8 @@ export default async function handler(req, res) {
       const data = await r.json();
       if (!r.ok) {
         console.error('crear-cita error:', r.status, JSON.stringify(data));
-        return res.status(500).json({ error: data?.message || 'Error al crear la cita', detalle: data });
+        console.error('crear-cita supabase error:', JSON.stringify(data));
+      return res.status(500).json({ error: 'Error al crear la cita' });
       }
       cita = data[0];
     }
@@ -131,7 +132,7 @@ export default async function handler(req, res) {
     return res.json({ ok: true, cita, gc_debug });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: 'Error interno' });
   }
 }
 

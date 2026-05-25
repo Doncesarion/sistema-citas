@@ -42,7 +42,8 @@ export default async function handler(req, res) {
         negocio_nombre: cliente?.nombre_negocio || null
       });
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      console.error('gestionar-cita GET error:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
     }
   }
 
@@ -153,7 +154,8 @@ export default async function handler(req, res) {
 
       return res.json({ ok: true });
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      console.error('gestionar-cita POST error:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
     }
   }
 

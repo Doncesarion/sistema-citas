@@ -4,6 +4,24 @@ import { promisify } from 'util';
 const scryptAsync = promisify(crypto.scrypt);
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function verifySessionToken(token, expectedClienteId) {
+  if (!token) return false;
+  const SECRET = process.env.SESSION_SECRET;
+  if (!SECRET) return false;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return false;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  if (sig !== expected) return false;
+  const parts = payload.split(':');
+  if (parts.length !== 3) return false;
+  const [clienteId, , expires] = parts;
+  if (Date.now() > parseInt(expires)) return false;
+  if (String(expectedClienteId) !== clienteId) return false;
+  return true;
+}
+
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = await scryptAsync(password, salt, 64);
@@ -22,6 +40,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { email, nombre, rol, cliente_id, reenviar } = req.body || {};
+
+  if (!verifySessionToken(req.headers['x-session-token'], cliente_id)) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
   if (!email || !nombre || !cliente_id) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
   }

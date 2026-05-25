@@ -291,6 +291,7 @@ function loginSubmit() {
         nombre: data.nombre, rol: data.rol,
         email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
       }));
+      if (data.session_token) localStorage.setItem('attempo_session_token', data.session_token);
       window.location.href = '/admin';
     } else {
       document.getElementById('btn-text').style.display = 'block';

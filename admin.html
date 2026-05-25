@@ -3775,7 +3775,7 @@ async function saveEditProf() {
       try {
         const inv = await fetch('/api/invitar-profesional', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
           body: JSON.stringify({ email: emailProf, nombre, rol: data.rol, cliente_id: cid })
         });
         const invData = await inv.json();
@@ -3819,7 +3819,7 @@ async function reenviarInvitacion(id) {
   try {
     const r = await fetch('/api/invitar-profesional', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
       body: JSON.stringify({ email: prof.email, nombre: prof.nombre, rol: prof.rol, cliente_id: cid, reenviar: true })
     });
     const d = await r.json();
@@ -3836,7 +3836,7 @@ async function reenviarInvitacionModal() {
   try {
     const r = await fetch('/api/invitar-profesional', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
       body: JSON.stringify({ email, nombre, rol, cliente_id: cid, reenviar: true })
     });
     const d = await r.json();
@@ -5188,6 +5188,7 @@ if (window.innerWidth <= 768) {
 function logout() {
   localStorage.removeItem('attempo_user');
   localStorage.removeItem('attempo_original_user');
+  localStorage.removeItem('attempo_session_token');
   window.location.replace('/login.html');
 }
 
@@ -6218,7 +6219,7 @@ async function enviarBoletaEmail() {
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
       body: JSON.stringify({
         type:     'boleta',
         to:       email,
