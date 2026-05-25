@@ -1,5 +1,21 @@
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+// Rate limiting: max 20 reservas por IP por hora
+const _bookingRate = new Map();
+function isBookingRateLimited(ip) {
+  const now = Date.now();
+  const WINDOW = 60 * 60 * 1000;
+  const MAX = 20;
+  const entry = _bookingRate.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _bookingRate.set(ip, { count: 1, resetAt: now + WINDOW });
+    return false;
+  }
+  if (entry.count >= MAX) return true;
+  entry.count++;
+  return false;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -8,6 +24,15 @@ export default async function handler(req, res) {
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio
   } = req.body || {};
+
+  // Rate limit solo para reservas nuevas desde el público (no llamadas internas del bot)
+  const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
+  if (!citaIdYaCreada) {
+    const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+    if (isBookingRateLimited(ip)) {
+      return res.status(429).json({ error: 'Demasiadas solicitudes. Intenta más tarde.' });
+    }
+  }
 
   if (!cliente_id || !nombre_paciente || !fecha || !hora) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
@@ -25,9 +50,6 @@ export default async function handler(req, res) {
   const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
-
-  // Si viene del bot, la cita ya fue creada — solo enviamos email y GC
-  const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
 
   // Llamadas internas (bot-chat con cita ya creada) deben incluir la clave interna
   if (citaIdYaCreada) {
@@ -129,7 +151,7 @@ export default async function handler(req, res) {
     }
 
     console.log('crear-cita gc_debug:', JSON.stringify(gc_debug));
-    return res.json({ ok: true, cita, gc_debug });
+    return res.json({ ok: true, cita });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });

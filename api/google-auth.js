@@ -126,7 +126,7 @@ export default async function handler(req, res) {
       return res.json({ ok: true });
     } catch(e) {
       console.error('google-auth disconnect error:', e.message);
-      return res.status(500).json({ error: e.message });
+      return res.status(500).json({ error: 'Error al desconectar calendario' });
     }
   }
 
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
       return res.json({ ok: true, sincronizadas: ok, errores: errors, total: citas.length, calendar_id });
     } catch(e) {
       console.error('google-auth sync error:', e.message);
-      return res.status(500).json({ error: e.message });
+      return res.status(500).json({ error: 'Error al sincronizar calendario' });
     }
   }
 
