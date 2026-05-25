@@ -72,12 +72,13 @@ export default async function handler(req, res) {
     const { edge_action, action: _omit, ...forwardBody } = req.body || {};
     const url = `${FUNCTIONS_URL}/admin-clientes?action=${edge_action}`;
 
-    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+    // Anon key es pública por diseño de Supabase — solo pasa el gateway JWT, la seguridad real es x-admin-token
+    const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
         'x-admin-token': ADMIN_TOKEN
       },
       body: JSON.stringify(forwardBody),
