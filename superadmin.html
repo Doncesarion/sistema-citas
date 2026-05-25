@@ -100,6 +100,7 @@
     .dias-bar{height:4px;background:var(--gray-100);border-radius:100px;overflow:hidden;margin-top:4px;width:80px}
     .dias-fill{height:100%;border-radius:100px;transition:width 0.3s}
 
+    .periodo-btn.active{background:var(--accent);color:var(--white);border-color:var(--accent)}
     .empty-state{text-align:center;padding:48px;color:var(--gray-400)}
     .empty-icon{font-size:36px;margin-bottom:10px}
 
@@ -158,7 +159,7 @@
 <!-- LOGIN SUPERADMIN -->
 <div id="sa-login">
   <div class="sa-login-box">
-    <div class="sa-logo">Don<span>Cesarion</span></div>
+    <div class="sa-logo" style="display:flex;align-items:center;gap:10px;font-size:20px"><div style="width:36px;height:36px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">tt</div><span style="color:#fff;font-weight:800;letter-spacing:-.03em">Attempo</span></div>
     <div class="sa-sub">Panel de administración de licencias</div>
     <div id="sa-err" class="sa-err">Credenciales incorrectas.</div>
     <input class="sa-input" id="sa-user" placeholder="Usuario" onkeydown="if(event.key==='Enter')saLogin()">
@@ -173,7 +174,7 @@
 <!-- TOPBAR -->
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:16px">
-    <div class="brand">Don<span>Cesarion</span> <span style="font-size:11px;font-weight:500;color:var(--gray-400);letter-spacing:0">SuperAdmin</span></div>
+    <div class="brand" style="display:flex;align-items:center;gap:10px"><div style="width:30px;height:30px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;font-weight:700;color:#fff">tt</div><span style="color:var(--black);font-weight:800;letter-spacing:-.03em">Attempo</span><span style="font-size:11px;font-weight:500;color:var(--gray-400);background:var(--gray-100);padding:2px 8px;border-radius:100px">SuperAdmin</span></div>
     <div class="conn-status" id="conn-status">
       <div class="conn-dot loading" id="conn-dot"></div>
       <span id="conn-text">Conectando...</span>
@@ -185,11 +186,25 @@
 <div class="main">
 
   <!-- STATS -->
+  <!-- FILTRO DE PERÍODO -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:600;color:var(--gray-500)">Período:</span>
+    <button class="btn btn-outline btn-sm periodo-btn active" data-periodo="mes" onclick="setPeriodo(this,'mes')">Este mes</button>
+    <button class="btn btn-outline btn-sm periodo-btn" data-periodo="anterior" onclick="setPeriodo(this,'anterior')">Mes anterior</button>
+    <button class="btn btn-outline btn-sm periodo-btn" data-periodo="año" onclick="setPeriodo(this,'año')">Este año</button>
+    <button class="btn btn-outline btn-sm periodo-btn" data-periodo="total" onclick="setPeriodo(this,'total')">Total</button>
+    <button class="btn btn-outline btn-sm periodo-btn" data-periodo="custom" onclick="setPeriodo(this,'custom')">Personalizado</button>
+    <div id="custom-range" style="display:none;align-items:center;gap:6px">
+      <input type="date" id="fecha-desde" class="form-input" style="padding:5px 10px;font-size:12px;width:auto" onchange="cargarIngresos()">
+      <span style="font-size:12px;color:var(--gray-400)">→</span>
+      <input type="date" id="fecha-hasta" class="form-input" style="padding:5px 10px;font-size:12px;width:auto" onchange="cargarIngresos()">
+    </div>
+  </div>
   <div class="stats-row" id="stats-row">
-    <div class="stat-box"><div class="stat-box-icon">🏢</div><div class="stat-box-num" id="st-total">—</div><div class="stat-box-lbl">Clientes totales</div></div>
-    <div class="stat-box"><div class="stat-box-icon">⏳</div><div class="stat-box-num" id="st-demo">—</div><div class="stat-box-lbl">En demo</div></div>
-    <div class="stat-box"><div class="stat-box-icon">✅</div><div class="stat-box-num" id="st-activos">—</div><div class="stat-box-lbl">Pagos activos</div></div>
-    <div class="stat-box"><div class="stat-box-icon">💰</div><div class="stat-box-num" id="st-mrr">—</div><div class="stat-box-lbl">MRR estimado</div></div>
+    <div class="stat-box"><div class="stat-box-num" id="st-total">—</div><div class="stat-box-lbl">Clientes totales</div></div>
+    <div class="stat-box"><div class="stat-box-num" id="st-demo">—</div><div class="stat-box-lbl">En demo</div></div>
+    <div class="stat-box"><div class="stat-box-num" id="st-activos">—</div><div class="stat-box-lbl">Pagos activos</div></div>
+    <div class="stat-box" style="border-left:3px solid var(--accent)"><div class="stat-box-num" id="st-mrr" style="color:var(--accent)">—</div><div class="stat-box-lbl" id="st-mrr-lbl">Ingresos del período</div></div>
   </div>
 
   <!-- ALERTAS VENCIMIENTO -->
@@ -426,19 +441,67 @@ async function cargarClientes() {
   renderTabla(todosClientes);
 }
 
+let periodoActual = 'mes';
+
 function renderStats() {
   const hoy = new Date().toISOString().split('T')[0];
   const total   = todosClientes.length;
   const demos   = todosClientes.filter(c=>c.plan==='demo'&&c.activo&&c.fecha_expiracion>=hoy).length;
   const activos = todosClientes.filter(c=>['mensual','anual'].includes(c.plan)&&c.activo&&c.fecha_expiracion>=hoy).length;
-  const mrrMensual = todosClientes.filter(c=>c.plan==='mensual'&&c.activo&&c.fecha_expiracion>=hoy).length * 29900;
-  const mrrAnual   = todosClientes.filter(c=>c.plan==='anual'&&c.activo&&c.fecha_expiracion>=hoy).length * (269100/12);
-  const mrr = Math.round(mrrMensual + mrrAnual);
 
   document.getElementById('st-total').textContent   = total;
   document.getElementById('st-demo').textContent    = demos;
   document.getElementById('st-activos').textContent = activos;
-  document.getElementById('st-mrr').textContent     = mrr > 0 ? '$' + mrr.toLocaleString('es-CL') : '$0';
+  cargarIngresos();
+}
+
+function setPeriodo(btn, periodo) {
+  document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  periodoActual = periodo;
+  const customWrap = document.getElementById('custom-range');
+  if (customWrap) customWrap.style.display = periodo === 'custom' ? 'flex' : 'none';
+  if (periodo !== 'custom') cargarIngresos();
+}
+
+async function cargarIngresos() {
+  const el = document.getElementById('st-mrr');
+  el.textContent = '...';
+
+  const hoy = new Date();
+  let desde, hasta;
+
+  if (periodoActual === 'mes') {
+    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString();
+    hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59).toISOString();
+  } else if (periodoActual === 'anterior') {
+    desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1).toISOString();
+    hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 0, 23, 59, 59).toISOString();
+  } else if (periodoActual === 'año') {
+    desde = new Date(hoy.getFullYear(), 0, 1).toISOString();
+    hasta = new Date(hoy.getFullYear(), 11, 31, 23, 59, 59).toISOString();
+  } else if (periodoActual === 'custom') {
+    const d = document.getElementById('fecha-desde').value;
+    const h = document.getElementById('fecha-hasta').value;
+    if (!d || !h) { el.textContent = '—'; return; }
+    desde = new Date(d).toISOString();
+    hasta = new Date(h + 'T23:59:59').toISOString();
+  } else {
+    desde = null;
+    hasta = null;
+  }
+
+  try {
+    let url = `${SUPA_URL}/rest/v1/pagos_licencia?select=monto`;
+    if (desde) url += `&created_at=gte.${encodeURIComponent(desde)}&created_at=lte.${encodeURIComponent(hasta)}`;
+    const res = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+    const pagos = await res.json();
+    if (!Array.isArray(pagos)) { el.textContent = '$0'; return; }
+    const total = pagos.reduce((s, p) => s + (Number(p.monto) || 0), 0);
+    el.textContent = total > 0 ? '$' + total.toLocaleString('es-CL') : '$0';
+  } catch(e) {
+    el.textContent = '$0';
+  }
 }
 
 function renderAlertas() {
