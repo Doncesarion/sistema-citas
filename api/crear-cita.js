@@ -64,6 +64,9 @@ export default async function handler(req, res) {
   if (!cliente_id || !nombre_paciente || !fecha || !hora) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
   }
+  if (!citaIdYaCreada && !email_paciente) {
+    return res.status(400).json({ error: 'El email del paciente es obligatorio' });
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
     return res.status(400).json({ error: 'Fecha inválida' });
   }
