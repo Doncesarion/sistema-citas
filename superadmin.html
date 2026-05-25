@@ -220,15 +220,18 @@
     <div class="grid-2">
       <div class="form-group"><label class="form-label">Nombre del negocio</label><input class="form-input" id="mc-negocio" placeholder="Clínica Los Andes"></div>
       <div class="form-group"><label class="form-label">Rubro</label>
-        <select class="form-input" id="mc-rubro">
+        <select class="form-input" id="mc-rubro" onchange="toggleRubroOtro()">
           <option value="psicologia">Psicología</option>
           <option value="medicina">Medicina / Clínica</option>
           <option value="barberia">Barbería</option>
           <option value="belleza">Belleza / Estética</option>
           <option value="odontologia">Odontología</option>
           <option value="kinesiologia">Kinesiología</option>
+          <option value="nutricion">Nutrición</option>
+          <option value="fonoaudiologia">Fonoaudiología</option>
           <option value="otro">Otro</option>
         </select>
+        <input class="form-input" id="mc-rubro-otro" placeholder="Escribe el rubro" style="margin-top:8px;display:none">
       </div>
     </div>
     <div class="grid-2">
@@ -507,6 +510,8 @@ function abrirModalNuevo() {
   document.getElementById('mc-id').value = '';
   document.getElementById('mc-negocio').value = '';
   document.getElementById('mc-rubro').value = 'psicologia';
+  document.getElementById('mc-rubro-otro').value = '';
+  document.getElementById('mc-rubro-otro').style.display = 'none';
   document.getElementById('mc-contacto').value = '';
   document.getElementById('mc-tel').value = '';
   document.getElementById('mc-email').value = '';
@@ -522,7 +527,17 @@ function editarCliente(id) {
   if (!c) return;
   document.getElementById('mc-id').value = c.id;
   document.getElementById('mc-negocio').value = c.nombre_negocio;
-  document.getElementById('mc-rubro').value = c.rubro||'otro';
+  const rubrosConocidos = ['psicologia','medicina','barberia','belleza','odontologia','kinesiologia','nutricion','fonoaudiologia','otro'];
+  const rubroCliente = c.rubro || 'otro';
+  if (rubrosConocidos.includes(rubroCliente)) {
+    document.getElementById('mc-rubro').value = rubroCliente;
+    document.getElementById('mc-rubro-otro').value = '';
+    document.getElementById('mc-rubro-otro').style.display = 'none';
+  } else {
+    document.getElementById('mc-rubro').value = 'otro';
+    document.getElementById('mc-rubro-otro').value = rubroCliente;
+    document.getElementById('mc-rubro-otro').style.display = 'block';
+  }
   document.getElementById('mc-contacto').value = c.contacto_nombre||'';
   document.getElementById('mc-tel').value = c.contacto_tel||'';
   document.getElementById('mc-email').value = c.email;
@@ -557,6 +572,18 @@ function generarPass() {
   showToast('🔑 Contraseña generada y copiada');
 }
 
+function toggleRubroOtro() {
+  const sel   = document.getElementById('mc-rubro');
+  const input = document.getElementById('mc-rubro-otro');
+  if (sel.value === 'otro') {
+    input.style.display = 'block';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    input.value = '';
+  }
+}
+
 async function guardarCliente() {
   const id       = document.getElementById('mc-id').value;
   const negocio  = document.getElementById('mc-negocio').value.trim();
@@ -566,7 +593,10 @@ async function guardarCliente() {
   const expira   = document.getElementById('mc-expira').value;
   const contacto = document.getElementById('mc-contacto').value.trim();
   const tel      = document.getElementById('mc-tel').value.trim();
-  const rubro    = document.getElementById('mc-rubro').value;
+  const rubroSel  = document.getElementById('mc-rubro').value;
+  const rubro      = rubroSel === 'otro'
+    ? (document.getElementById('mc-rubro-otro').value.trim() || 'otro')
+    : rubroSel;
 
   if (!negocio||!email) { alert('Completa nombre del negocio y email'); return; }
   if (!id && !pass) { alert('Ingresa una contraseña inicial'); return; }
