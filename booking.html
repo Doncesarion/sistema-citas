@@ -81,13 +81,20 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .slots-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:6px}
 .slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:320px}
 .slot-btn{
-  padding:9px 6px;background:#fff;border:1.5px solid var(--b1);border-radius:var(--r);
+  padding:11px 6px;background:#fff;border:1.5px solid var(--b1);border-radius:var(--r);
   font-size:13px;font-family:var(--mono);font-weight:500;color:var(--t2);
-  cursor:pointer;transition:all .15s;text-align:center;
+  cursor:pointer;transition:all .15s;text-align:center;min-height:44px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .slot-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim);transform:translateY(-1px)}
 .slot-btn:active{transform:translateY(0)}
-@media(max-width:600px){.slots-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.slots-grid{grid-template-columns:repeat(3,1fr);max-width:none}}
+@media(max-width:380px){
+  .slots-grid{grid-template-columns:repeat(2,1fr)}
+  .confirm-card{max-width:100%}
+  .chips-wrap{padding-left:0}
+  .chip{font-size:11px;padding:6px 10px}
+}
 
 /* TYPING */
 .typing .msg-bubble{padding:13px 16px}
@@ -107,8 +114,8 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .confirm-row span{color:var(--t1);font-weight:600}
 
 /* INPUT */
-.input-bar{flex-shrink:0;padding:10px 0 20px;display:flex;gap:10px}
-.chat-input{flex:1;padding:11px 16px;border:1.5px solid var(--b1);border-radius:24px;font-size:14px;font-family:'Geist',sans-serif;color:var(--t1);background:#fff;outline:none;transition:border-color .12s;resize:none;line-height:1.5;max-height:120px;overflow-y:auto}
+.input-bar{flex-shrink:0;padding:10px 0 20px;padding-bottom:max(20px,env(safe-area-inset-bottom));display:flex;gap:10px}
+.chat-input{flex:1;padding:11px 16px;border:1.5px solid var(--b1);border-radius:24px;font-size:16px;font-family:'Geist',sans-serif;color:var(--t1);background:#fff;outline:none;transition:border-color .12s;resize:none;line-height:1.5;max-height:120px;overflow-y:auto}
 .chat-input:focus{border-color:var(--a)}
 .chat-input::placeholder{color:var(--t4)}
 .send-btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(108,92,228,0.3);transition:all .15s}
@@ -126,11 +133,12 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
 @media(max-width:600px){
   .nav{padding:10px 16px}
-  .chat-wrap{padding:0 12px}
+  .chat-wrap{padding:0 10px}
   .msg{max-width:92%}
   .msg-bubble{font-size:13px;padding:10px 12px}
-  .chips-wrap{padding-left:0}
+  .chips-wrap{padding-left:0;gap:6px}
   .chip{font-size:11px;padding:6px 12px}
+  .slots-wrap{padding-left:0}
 }
 </style>
 </head>

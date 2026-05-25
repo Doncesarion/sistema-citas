@@ -109,6 +109,48 @@
     .conn-dot.err{background:var(--danger)}
     .conn-dot.loading{background:var(--warn);animation:pulse 1s infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    /* TABLA SCROLL HORIZONTAL */
+    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .table-wrap table{min-width:700px}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:900px){
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:768px){
+      .topbar{padding:0 16px;height:52px}
+      .brand{font-size:14px}
+      .main{padding:20px 14px}
+      .stats-row{grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+      .card-header{padding:14px 16px;flex-wrap:wrap;gap:8px}
+      .card-header > div:last-child{width:100%;display:flex;gap:8px}
+      #buscar-cliente{flex:1;width:auto}
+      thead th{padding:10px 14px}
+      tbody td{padding:12px 14px}
+      .modal{max-width:calc(100vw - 28px);padding:20px}
+      .modal-title{font-size:16px}
+      .sa-login-box{padding:28px 22px;margin:12px}
+    }
+    @media(max-width:480px){
+      .stats-row{grid-template-columns:1fr 1fr;gap:10px}
+      .stat-box{padding:14px}
+      .stat-box-num{font-size:22px}
+      .topbar{padding:0 12px}
+      .brand span:last-child{display:none}
+      .main{padding:14px 10px}
+      .card-header{padding:12px 14px}
+      .grid-2{grid-template-columns:1fr}
+      .modal{padding:16px}
+      .modal-btns{flex-direction:column}
+      .modal-btns .btn{width:100%}
+      .sa-login-box{padding:24px 18px}
+      .sa-logo{font-size:22px}
+    }
+    @media(max-width:360px){
+      .stats-row{grid-template-columns:1fr}
+      .stat-box-num{font-size:20px}
+    }
   </style>
 </head>
 <body>
@@ -163,7 +205,7 @@
         <button class="btn btn-primary" onclick="abrirModalNuevo()">+ Nuevo cliente</button>
       </div>
     </div>
-    <div id="tabla-wrap">
+    <div class="table-wrap" id="tabla-wrap">
       <div class="empty-state"><div class="conn-dot loading" style="width:20px;height:20px;margin:0 auto 10px"></div><div>Cargando clientes...</div></div>
     </div>
   </div>
