@@ -211,9 +211,9 @@ export default async function handler(req, res) {
               headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
               html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
 <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
-  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px;display:flex;align-items:center;gap:12px">
-    <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" width="40" height="40" style="border-radius:10px;display:block">
-    <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.03em">Attempo</span>
+  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px">
+    <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" width="40" height="40" style="border-radius:10px;display:inline-block;vertical-align:middle">
+    <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.03em;display:inline-block;vertical-align:middle;margin-left:14px">Attempo</span>
   </div>
   <div style="padding:32px">
     <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">¡Bienvenido/a, ${nombreMostrar}!</h2>
@@ -330,9 +330,9 @@ export default async function handler(req, res) {
               headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
               html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
 <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
-  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px;display:flex;align-items:center;gap:12px">
-    <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" width="40" height="40" style="border-radius:10px;display:block">
-    <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.03em">Attempo</span>
+  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px">
+    <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" width="40" height="40" style="border-radius:10px;display:inline-block;vertical-align:middle">
+    <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.03em;display:inline-block;vertical-align:middle;margin-left:14px">Attempo</span>
   </div>
   <div style="padding:32px">
     <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">Acceso actualizado</h2>
