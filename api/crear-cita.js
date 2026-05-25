@@ -1,4 +1,12 @@
+import crypto from 'crypto';
+
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
+function generateManageToken(cita_id) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return '';
+  return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+}
 
 // Rate limiting: max 20 reservas por IP por hora
 const _bookingRate = new Map();
@@ -328,7 +336,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     </td></tr>
   </table>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">
-    ¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
+    ¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}&token=${generateManageToken(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
   </p>
   ${en ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${en}" style="color:#6C5CE4;text-decoration:none;">${en}</a></p>` : ''}
 </td></tr>

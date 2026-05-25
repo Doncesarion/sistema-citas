@@ -1,4 +1,24 @@
+import crypto from 'crypto';
+
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
+function generateManageToken(cita_id) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return '';
+  return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+}
+
+function verifyManageToken(cita_id, token) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return true;
+  if (!token || typeof token !== 'string' || token.length !== 64) return false;
+  const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'));
+  } catch {
+    return false;
+  }
+}
 
 function htmlEscape(str) {
   if (!str && str !== 0) return '';
@@ -48,8 +68,12 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { id, accion, nueva_fecha, nueva_hora } = req.body || {};
+    const { id, accion, nueva_fecha, nueva_hora, token } = req.body || {};
     if (!id || !['cancelar', 'reagendar'].includes(accion)) return res.status(400).json({ error: 'Acción inválida' });
+
+    if (!verifyManageToken(id, token)) {
+      return res.status(401).json({ error: 'Link inválido. Usa el enlace original de tu email de confirmación.' });
+    }
 
     try {
       let patchBody;
@@ -287,7 +311,7 @@ function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
     </td></tr>
   </table>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">
-    ¿Necesitas más cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
+    ¿Necesitas más cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}&token=${generateManageToken(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
   </p>
   ${en ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${en}" style="color:#6C5CE4;text-decoration:none;">${en}</a></p>` : ''}
 </td></tr>

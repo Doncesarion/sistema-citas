@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestionar cita — Attempo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --a:#6C5CE4;--a3:#4F3EE0;--adim:rgba(108,92,228,0.08);
+  --bg:#F8F7FF;
+  --t1:#16143A;--t2:#5E5880;--t3:#9C96B4;--t4:#C4C0D8;
+  --green:#16A34A;--red:#DC2626;
+  --b1:rgba(108,92,228,0.08);--b2:rgba(108,92,228,0.18);
+  --sh1:0 2px 8px rgba(108,92,228,0.08),0 8px 32px rgba(108,92,228,0.07);
+  --r:8px;--rl:12px;--rx:16px;
+  --mono:'Geist Mono',monospace;
+}
+html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);color:var(--t1)}
+
+.nav{background:linear-gradient(135deg,#1E1B3A 0%,#16143A 60%,#1A1642 100%);padding:11px 24px;height:56px;display:flex;align-items:center;border-bottom:1px solid rgba(108,92,228,0.25)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-mark{width:28px;height:28px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:monospace}
+.nav-biz{font-size:14px;font-weight:600;color:#fff;letter-spacing:-.03em}
+
+.page{max-width:480px;margin:0 auto;padding:36px 20px 64px;width:100%}
+
+/* ── CARD ── */
+.card{background:#fff;border:1px solid var(--b1);border-radius:var(--rx);box-shadow:var(--sh1);overflow:hidden}
+.card-head{padding:24px 28px 0}
+.card-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:6px}
+.card-body{padding:20px 28px 28px}
+.info-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--b1)}
+.info-row:last-child{border-bottom:none}
+.info-lbl{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;min-width:100px;flex-shrink:0;padding-top:1px}
+.info-val{font-size:13px;color:var(--t1);font-weight:500}
+
+.estado-badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.estado-pending{background:rgba(217,119,6,0.1);color:#D97706}
+.estado-canceled{background:rgba(220,38,38,0.1);color:var(--red)}
+.estado-done{background:rgba(22,163,74,0.1);color:var(--green)}
+
+/* ── ACCIONES ── */
+.actions{display:flex;flex-direction:column;gap:10px;margin-top:24px}
+.btn-reagendar{padding:12px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;width:100%}
+.btn-reagendar.open{background:var(--bg);color:var(--t2);border:1.5px solid var(--b2)}
+.btn-cancel{padding:12px;background:#fff;color:var(--red);border:1.5px solid rgba(220,38,38,0.25);border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn-cancel:hover{background:rgba(220,38,38,0.05);border-color:var(--red)}
+.btn-new{padding:12px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;text-align:center;text-decoration:none;display:block;touch-action:manipulation;-webkit-tap-highlight-color:transparent;margin-top:16px}
+
+.confirm-box{background:rgba(220,38,38,0.05);border:1.5px solid rgba(220,38,38,0.2);border-radius:var(--rl);padding:18px;margin-top:12px;display:none}
+.confirm-box.show{display:block}
+.confirm-text{font-size:13px;color:var(--t1);margin-bottom:14px;line-height:1.5}
+.confirm-btns{display:flex;gap:8px}
+.btn-si{flex:1;padding:10px;background:var(--red);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn-no{flex:1;padding:10px;background:#fff;color:var(--t2);border:1.5px solid var(--b2);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:'Geist',sans-serif;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+/* ── CALENDARIO REAGENDAR ── */
+.rag-section{border-top:1px solid var(--b1);margin-top:16px;padding-top:20px;display:none;animation:fadeUp .2s ease}
+.rag-section.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.rag-title{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
+
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-month-lbl{font-size:14px;font-weight:600;color:var(--t1)}
+.cal-arr{width:30px;height:30px;border:1px solid var(--b1);border-radius:7px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--t2);transition:all .12s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.cal-arr:hover{border-color:var(--a);color:var(--a)}
+
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:16px}
+.cal-dh{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t4);text-align:center;padding:4px 0}
+.cal-day{min-height:36px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;border-radius:7px;border:1.5px solid transparent;transition:all .12s}
+.cal-day.other{color:var(--t4)}
+.cal-day.past{color:var(--t4);opacity:.4}
+.cal-day.today{background:var(--adim);color:var(--a);font-weight:600}
+.cal-day.avail{cursor:pointer;color:var(--t1);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.cal-day.avail:hover{background:var(--adim);border-color:var(--b2)}
+.cal-day.sel{background:var(--a)!important;color:#fff!important;border-color:var(--a)!important;font-weight:600}
+
+/* ── SLOTS ── */
+.slots-wrap{margin-bottom:16px}
+.slots-title{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.slots-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.slot-btn{padding:10px 4px;border:1.5px solid var(--b1);border-radius:var(--r);background:#fff;cursor:pointer;font-size:12px;font-family:var(--mono);font-weight:500;color:var(--t2);transition:all .12s;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.slot-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.slot-btn.sel{background:var(--a);border-color:var(--a);color:#fff}
+.slots-none{font-size:13px;color:var(--t3);padding:12px 0;text-align:center}
+.slots-loading{font-size:13px;color:var(--t3);padding:12px 0;text-align:center}
+
+/* ── CONFIRMACIÓN REAGENDAR ── */
+.rag-confirm{background:var(--adim);border:1px solid var(--b2);border-radius:var(--rl);padding:16px;margin-top:4px}
+.rag-confirm-lbl{font-size:13px;color:var(--t2);margin-bottom:12px}
+.rag-confirm-lbl strong{color:var(--t1)}
+.btn-confirm-rag{width:100%;padding:12px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn-confirm-rag:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── MISC ── */
+.msg-ok{text-align:center;padding:36px 20px}
+.msg-icon{font-size:40px;margin-bottom:16px}
+.msg-title{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.msg-sub{font-size:13px;color:var(--t3);line-height:1.6}
+.loading{text-align:center;padding:60px 20px;color:var(--t3);font-size:14px}
+.error-box{background:rgba(220,38,38,0.05);border:1px solid rgba(220,38,38,0.2);border-radius:var(--rl);padding:20px;text-align:center;color:var(--red);font-size:14px}
+
+@media(max-width:480px){
+  .card-head{padding:20px 20px 0}
+  .card-body{padding:16px 20px 20px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="https://attempo.cl">
+    <div class="nav-mark">AT</div>
+    <span class="nav-biz">Attempo</span>
+  </a>
+</nav>
+
+<div class="page">
+  <div id="loading" class="loading">Cargando tu cita...</div>
+  <div id="content" style="display:none"></div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const citaId = params.get('id');
+const manageToken = params.get('token') || '';
+
+const MESES     = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_CAP = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS      = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+const NOW = new Date();
+let calY = NOW.getFullYear();
+let calM = NOW.getMonth();
+let espId       = null;
+let nuevaFecha  = null;
+let nuevaHora   = null;
+let calAbierto  = false;
+
+/* ── BADGES ── */
+function estadoBadge(estado) {
+  const map = { pending:['estado-pending','Pendiente'], canceled:['estado-canceled','Cancelada'], done:['estado-done','Realizada'] };
+  const [cls, lbl] = map[estado] || ['',''];
+  return `<span class="estado-badge ${cls}">${lbl}</span>`;
+}
+
+function fechaTexto(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return `${DIAS[date.getDay()]} ${d} de ${MESES[m - 1]} ${y}`;
+}
+
+/* ── CARGAR CITA ── */
+async function cargar() {
+  if (!citaId) { mostrarError('No se encontró el identificador de la cita.'); return; }
+  try {
+    const r = await fetch(`/api/gestionar-cita?id=${encodeURIComponent(citaId)}`);
+    const data = await r.json();
+    if (!r.ok || !data.cita) { mostrarError(data.error || 'Cita no encontrada.'); return; }
+    renderCita(data);
+  } catch (e) {
+    mostrarError('Error de conexión. Intenta de nuevo.');
+  }
+}
+
+function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre }) {
+  document.getElementById('loading').style.display = 'none';
+  const el = document.getElementById('content');
+  el.style.display = 'block';
+  espId = cita.especialista_id || null;
+
+  const esCancelada = cita.estado === 'canceled';
+  const esRealizada = cita.estado === 'done';
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Tu cita</div>
+        ${estadoBadge(cita.estado)}
+      </div>
+      <div class="card-body">
+        <div class="info-row"><span class="info-lbl">Servicio</span><span class="info-val">${cita.servicio || '—'}</span></div>
+        ${nombre_especialista ? `<div class="info-row"><span class="info-lbl">Profesional</span><span class="info-val">${nombre_especialista}</span></div>` : ''}
+        <div class="info-row" id="row-fecha"><span class="info-lbl">Fecha</span><span class="info-val">${fechaTexto(cita.fecha)}</span></div>
+        <div class="info-row" id="row-hora"><span class="info-lbl">Hora</span><span class="info-val">${cita.hora} hrs</span></div>
+        ${negocio_nombre ? `<div class="info-row"><span class="info-lbl">Negocio</span><span class="info-val">${negocio_nombre}</span></div>` : ''}
+
+        ${esCancelada ? `
+          <div class="msg-ok" style="padding:24px 0 4px">
+            <div class="msg-icon">❌</div>
+            <div class="msg-title" style="font-size:15px">Esta cita fue cancelada</div>
+            ${booking_slug ? `<a href="/${booking_slug}" class="btn-new">Agendar una nueva cita</a>` : ''}
+          </div>
+        ` : esRealizada ? `
+          <div class="msg-ok" style="padding:24px 0 4px">
+            <div class="msg-icon">✅</div>
+            <div class="msg-title" style="font-size:15px">Esta cita ya fue realizada</div>
+            ${booking_slug ? `<a href="/${booking_slug}" class="btn-new">Agendar una nueva cita</a>` : ''}
+          </div>
+        ` : `
+          <div class="actions">
+            ${espId ? `<button class="btn-reagendar" id="btn-rag" onclick="toggleCalendario()">Reagendar cita</button>` : ''}
+            <button class="btn-cancel" onclick="mostrarConfirmacion()">Cancelar cita</button>
+          </div>
+          <div class="confirm-box" id="confirm-box">
+            <div class="confirm-text">¿Seguro que quieres cancelar esta cita?<br>Esta acción no se puede deshacer.</div>
+            <div class="confirm-btns">
+              <button class="btn-si" onclick="cancelar()">Sí, cancelar</button>
+              <button class="btn-no" onclick="ocultarConfirmacion()">No, volver</button>
+            </div>
+          </div>
+
+          <!-- CALENDARIO INLINE -->
+          <div class="rag-section" id="rag-section">
+            <div class="rag-title">Elige nueva fecha y hora</div>
+            <div class="cal-nav">
+              <button class="cal-arr" onclick="prevMes()">‹</button>
+              <span class="cal-month-lbl" id="cal-lbl"></span>
+              <button class="cal-arr" onclick="nextMes()">›</button>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <div id="slots-wrap" style="display:none">
+              <div class="slots-title" id="slots-title">Horas disponibles</div>
+              <div id="slots-inner"></div>
+            </div>
+            <div id="rag-confirm" style="display:none">
+              <div class="rag-confirm">
+                <div class="rag-confirm-lbl">Nueva hora: <strong id="nueva-lbl"></strong></div>
+                <button class="btn-confirm-rag" onclick="confirmarReagendado()">Confirmar nueva hora</button>
+              </div>
+            </div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+
+  renderCal();
+}
+
+/* ── CANCELAR ── */
+function mostrarConfirmacion() {
+  document.getElementById('confirm-box').classList.add('show');
+}
+function ocultarConfirmacion() {
+  document.getElementById('confirm-box').classList.remove('show');
+}
+
+async function cancelar() {
+  const btn = document.querySelector('.btn-si');
+  btn.textContent = 'Cancelando...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/gestionar-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: citaId, accion: 'cancelar', token: manageToken })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error al cancelar');
+    document.getElementById('content').innerHTML = `
+      <div class="card"><div class="card-body">
+        <div class="msg-ok">
+          <div class="msg-icon">✓</div>
+          <div class="msg-title">Cita cancelada</div>
+          <div class="msg-sub" style="margin-top:8px">Tu cita fue cancelada exitosamente.</div>
+        </div>
+      </div></div>`;
+  } catch (e) {
+    btn.textContent = 'Sí, cancelar';
+    btn.disabled = false;
+    alert('No se pudo cancelar: ' + e.message);
+  }
+}
+
+/* ── CALENDARIO ── */
+function toggleCalendario() {
+  calAbierto = !calAbierto;
+  document.getElementById('rag-section').classList.toggle('show', calAbierto);
+  const btn = document.getElementById('btn-rag');
+  if (btn) {
+    btn.textContent = calAbierto ? 'Cerrar calendario' : 'Reagendar cita';
+    btn.classList.toggle('open', calAbierto);
+  }
+  if (calAbierto) renderCal();
+}
+
+function renderCal() {
+  const lbl  = document.getElementById('cal-lbl');
+  const grid = document.getElementById('cal-grid');
+  if (!lbl || !grid) return;
+
+  lbl.textContent = MESES_CAP[calM] + ' ' + calY;
+
+  const first    = new Date(calY, calM, 1);
+  let startDow   = first.getDay();
+  startDow       = startDow === 0 ? 6 : startDow - 1;
+  const lastDay  = new Date(calY, calM + 1, 0).getDate();
+  const prevLast = new Date(calY, calM, 0).getDate();
+  const todayDate = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+
+  let html = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
+    .map(d => `<div class="cal-dh">${d}</div>`).join('');
+
+  for (let i = startDow - 1; i >= 0; i--)
+    html += `<div class="cal-day other">${prevLast - i}</div>`;
+
+  for (let d = 1; d <= lastDay; d++) {
+    const date   = new Date(calY, calM, d);
+    const isToday = date.toDateString() === todayDate.toDateString();
+    const isPast  = date < todayDate;
+    const iso     = `${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isSel   = nuevaFecha === iso;
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (isPast)  cls += ' past';
+    if (!isPast) cls += ' avail';
+    if (isSel)   cls += ' sel';
+    const click = !isPast ? `onclick="selDia('${iso}')"` : '';
+    html += `<div class="${cls}" ${click}>${d}</div>`;
+  }
+
+  const total = startDow + lastDay;
+  const rows  = Math.ceil(total / 7);
+  for (let d = 1; d <= rows * 7 - total; d++)
+    html += `<div class="cal-day other">${d}</div>`;
+
+  grid.innerHTML = html;
+}
+
+function prevMes() {
+  calM--; if (calM < 0) { calM = 11; calY--; }
+  const min = new Date(NOW.getFullYear(), NOW.getMonth(), 1);
+  if (new Date(calY, calM, 1) < min) { calM++; if (calM > 11) { calM = 0; calY++; } return; }
+  nuevaFecha = null; nuevaHora = null;
+  renderCal(); ocultarSlots(); ocultarConfirmRag();
+}
+function nextMes() {
+  calM++; if (calM > 11) { calM = 0; calY++; }
+  nuevaFecha = null; nuevaHora = null;
+  renderCal(); ocultarSlots(); ocultarConfirmRag();
+}
+
+async function selDia(iso) {
+  nuevaFecha = iso;
+  nuevaHora  = null;
+  renderCal();
+  ocultarConfirmRag();
+
+  const wrap  = document.getElementById('slots-wrap');
+  const inner = document.getElementById('slots-inner');
+  const title = document.getElementById('slots-title');
+
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  title.textContent = `Horas del ${DIAS[date.getDay()]} ${d} de ${MESES[m - 1]}`;
+  wrap.style.display = 'block';
+  inner.innerHTML = `<div class="slots-loading">Cargando disponibilidad...</div>`;
+
+  try {
+    const r = await fetch(`/api/slots?especialista_id=${encodeURIComponent(espId)}&fecha=${iso}`);
+    const data = await r.json();
+    if (!data.disponible || !data.slots?.length) {
+      inner.innerHTML = `<div class="slots-none">No hay disponibilidad este día, elige otro.</div>`;
+      return;
+    }
+    inner.innerHTML = `<div class="slots-grid">${
+      data.slots.map(h => `<button class="slot-btn${nuevaHora===h?' sel':''}" onclick="selHora('${h}')">${h}</button>`).join('')
+    }</div>`;
+  } catch (e) {
+    inner.innerHTML = `<div class="slots-none">Error al cargar. Intenta de nuevo.</div>`;
+  }
+}
+
+function selHora(h) {
+  nuevaHora = h;
+  // Re-render slots highlighting selection
+  document.querySelectorAll('.slot-btn').forEach(b => b.classList.toggle('sel', b.textContent.trim() === h));
+
+  const [y, m, d] = nuevaFecha.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const lbl  = `${DIAS[date.getDay()]} ${d} de ${MESES[m-1]} ${y} a las ${h} hrs`;
+  document.getElementById('nueva-lbl').textContent = lbl;
+  document.getElementById('rag-confirm').style.display = 'block';
+}
+
+function ocultarSlots() {
+  const wrap = document.getElementById('slots-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
+function ocultarConfirmRag() {
+  const el = document.getElementById('rag-confirm');
+  if (el) el.style.display = 'none';
+}
+
+async function confirmarReagendado() {
+  if (!nuevaFecha || !nuevaHora) return;
+  const btn = document.querySelector('.btn-confirm-rag');
+  btn.textContent = 'Guardando...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/gestionar-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: citaId, accion: 'reagendar', nueva_fecha: nuevaFecha, nueva_hora: nuevaHora, token: manageToken })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error al reagendar');
+
+    const [y, m, d] = nuevaFecha.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const lbl  = `${DIAS[date.getDay()]} ${d} de ${MESES[m-1]} ${y} a las ${nuevaHora} hrs`;
+
+    document.getElementById('content').innerHTML = `
+      <div class="card"><div class="card-body">
+        <div class="msg-ok">
+          <div class="msg-icon">✅</div>
+          <div class="msg-title">¡Cita reagendada!</div>
+          <div class="msg-sub" style="margin-top:8px">Tu nueva hora es el <strong>${lbl}</strong>.<br>Recibirás confirmación en tu correo.</div>
+        </div>
+      </div></div>`;
+  } catch (e) {
+    btn.textContent = 'Confirmar nueva hora';
+    btn.disabled = false;
+    alert('No se pudo reagendar: ' + e.message);
+  }
+}
+
+/* ── ERROR ── */
+function mostrarError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  const el = document.getElementById('content');
+  el.style.display = 'block';
+  el.innerHTML = `<div class="error-box">${msg}</div>`;
+}
+
+cargar();
+</script>
+</body>
+</html>
