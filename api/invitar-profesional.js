@@ -47,6 +47,9 @@ export default async function handler(req, res) {
   if (!email || !nombre || !cliente_id) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
   }
+  if (rol && !['admin', 'staff', 'recep', 'finanzas', 'viewer'].includes(rol)) {
+    return res.status(400).json({ error: 'Rol inválido' });
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Email inválido' });
   }

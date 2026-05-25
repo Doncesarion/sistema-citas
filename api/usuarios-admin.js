@@ -146,6 +146,7 @@ export default async function handler(req, res) {
         const days     = plan === 'demo' ? 14 : 365;
         const nextYear = new Date(Date.now() + days * 24 * 3600 * 1000).toISOString().split('T')[0];
         const slug     = nombre_negocio.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        if (!slug) return res.status(400).json({ error: 'El nombre del negocio debe contener al menos una letra o número' });
 
         const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema`, {
           method: 'POST',

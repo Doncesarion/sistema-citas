@@ -167,6 +167,7 @@ export default async function handler(req, res) {
                 servicio:    cita.servicio,
                 fecha:       nueva_fecha,
                 hora:        nueva_hora,
+                duracion:    cita.duracion || null,
                 direccion:   cliente?.direccion || null
               }).catch(() => {});
             }
@@ -227,7 +228,7 @@ function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, h
   };
 }
 
-async function gcGestionarEvento({ supabaseUrl, sh, accion, cliente_id, google_event_id, refresh_token, nombre_paciente, nombre_especialista, servicio, fecha, hora, direccion }) {
+async function gcGestionarEvento({ supabaseUrl, sh, accion, cliente_id, google_event_id, refresh_token, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion }) {
   try {
     const access_token = await gcGetAccessToken(refresh_token);
     const base = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${google_event_id}`;
@@ -235,7 +236,7 @@ async function gcGestionarEvento({ supabaseUrl, sh, accion, cliente_id, google_e
     if (accion === 'cancelar') {
       await fetch(base, { method: 'DELETE', headers: { Authorization: `Bearer ${access_token}` } });
     } else if (accion === 'reagendar') {
-      const event = gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion: null, direccion });
+      const event = gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion });
       await fetch(base, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },

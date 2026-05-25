@@ -237,14 +237,14 @@ REGLAS GENERALES:
           nombre_especialista: { type: 'string' },
           nombre_paciente:     { type: 'string' },
           tel_paciente:        { type: 'string' },
-          email_paciente:      { type: 'string', description: 'Opcional' },
+          email_paciente:      { type: 'string', description: 'Email del paciente — requerido para enviar confirmación de cita' },
           servicio:            { type: 'string' },
           fecha:               { type: 'string', description: 'YYYY-MM-DD' },
           hora:                { type: 'string', description: 'HH:MM' },
           duracion:            { type: 'string', description: 'Ej: 45 min — opcional' },
           precio:              { type: 'number', description: 'Valor en pesos sin formato — opcional' }
         },
-        required: ['especialista_id', 'nombre_paciente', 'tel_paciente', 'servicio', 'fecha', 'hora']
+        required: ['especialista_id', 'nombre_paciente', 'tel_paciente', 'email_paciente', 'servicio', 'fecha', 'hora']
       }
     }
   ];
