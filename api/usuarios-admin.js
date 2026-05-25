@@ -72,9 +72,14 @@ export default async function handler(req, res) {
     const { edge_action, action: _omit, ...forwardBody } = req.body || {};
     const url = `${FUNCTIONS_URL}/admin-clientes?action=${edge_action}`;
 
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'x-admin-token': ADMIN_TOKEN
+      },
       body: JSON.stringify(forwardBody),
     });
 
