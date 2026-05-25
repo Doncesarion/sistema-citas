@@ -3,7 +3,16 @@ const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().repla
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { cliente_id, canal, canal_user_id, canal_user_name, mensaje } = req.body || {};
+  // Canales Meta (webhook) deben provenir del servidor con clave interna
+  const incomingBody = req.body || {};
+  if (['whatsapp', 'messenger', 'instagram'].includes(incomingBody.canal)) {
+    const key = req.headers['x-internal-key'];
+    if (!process.env.INTERNAL_API_SECRET || key !== process.env.INTERNAL_API_SECRET) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+  }
+
+  const { cliente_id, canal, canal_user_id, canal_user_name, mensaje } = incomingBody;
   if (!cliente_id || !canal || !canal_user_id || !mensaje) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
@@ -534,7 +543,7 @@ REGLAS GENERALES:
 
     // Enviar email de confirmación directamente desde aquí
     if (email_paciente && process.env.RESEND_API_KEY) {
-      console.log('bot-chat: enviando email confirmación a', email_paciente);
+      console.log('bot-chat: enviando email confirmación');
       try {
         // Helpers para el template
         function he(str) {
@@ -624,14 +633,14 @@ REGLAS GENERALES:
         console.error('bot-chat: email exception:', e.message);
       }
     } else {
-      console.log('bot-chat: email omitido — email_paciente:', email_paciente, '| KEY:', !!process.env.RESEND_API_KEY);
+      console.log('bot-chat: email omitido — KEY:', !!process.env.RESEND_API_KEY);
     }
 
     // Llamar a crear-cita solo para Google Calendar (no email, cita ya creada)
     if (cita?.id) {
       fetch(`${BASE_URL}/api/crear-cita`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_API_SECRET || '' },
         body: JSON.stringify({
           _cita_id_ya_creada: cita.id,
           cliente_id,

@@ -83,7 +83,7 @@ export default async function handler(req, res) {
   try {
     const botRes = await fetch(`${BASE_URL}/api/bot-chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_API_SECRET || '' },
       body: JSON.stringify({ cliente_id, canal, canal_user_id, canal_user_name, mensaje })
     });
     const botData = await botRes.json();

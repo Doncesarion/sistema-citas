@@ -281,10 +281,10 @@ async function saLogin() {
   const p = document.getElementById('sa-pass').value;
   const errEl = document.getElementById('sa-err');
   try {
-    const res = await fetch('/api/superadmin-login', {
+    const res = await fetch('/api/usuarios-admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: u, pass: p })
+      body: JSON.stringify({ action: 'login', user: u, pass: p })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -320,10 +320,9 @@ async function edgeFetch(action, body=null) {
       'Content-Type': 'application/json',
       'x-sa-token': saToken,
     },
-    body: JSON.stringify(body || {})
+    body: JSON.stringify({ action: 'proxy', edge_action: action, ...(body || {}) })
   };
-  const edgeUrl = '/api/admin-proxy?action=' + action;
-  const res = await fetch(edgeUrl, opts);
+  const res = await fetch('/api/usuarios-admin', opts);
   const text = await res.text();
   let json;
   try { json = JSON.parse(text); } catch(e) { throw new Error('Respuesta inválida: ' + text); }

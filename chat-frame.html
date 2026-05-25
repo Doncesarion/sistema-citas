@@ -57,6 +57,8 @@ body { display: flex; flex-direction: column; }
   padding: 20px 16px 12px;
   display: flex; flex-direction: column; gap: 16px;
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .msgs::-webkit-scrollbar { width: 4px; }
 .msgs::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 4px; }
@@ -96,6 +98,7 @@ body { display: flex; flex-direction: column; }
   display: flex; flex-wrap: wrap; gap: 8px;
   padding-left: 42px; margin-top: 2px;
   animation: fadeup .24s ease;
+  -webkit-overflow-scrolling: touch;
 }
 .chip {
   padding: 8px 15px;
@@ -106,6 +109,8 @@ body { display: flex; flex-direction: column; }
   cursor: pointer; white-space: nowrap; user-select: none;
   transition: all .15s;
   box-shadow: 0 1px 5px rgba(108,92,228,0.09);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .chip:hover {
   background: rgba(108,92,228,0.06); border-color: var(--a);
@@ -129,12 +134,53 @@ body { display: flex; flex-direction: column; }
   font-size: 13px; font-weight: 500; color: var(--t2);
   cursor: pointer; text-align: center;
   transition: all .15s; box-shadow: 0 1px 4px rgba(108,92,228,0.07);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .slot-btn:hover {
   border-color: var(--a); color: var(--a);
   background: rgba(108,92,228,0.05); transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(108,92,228,0.14);
 }
+
+/* ── CALENDAR ── */
+.cal {
+  background: #fff; border: 1.5px solid var(--b1); border-radius: 16px;
+  padding: 14px 16px; max-width: 276px; width: calc(100% - 42px);
+  margin-left: 42px; margin-top: 6px;
+  box-shadow: 0 2px 10px rgba(108,92,228,0.09); animation: fadeup .24s ease;
+  user-select: none;
+}
+.cal-hd {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.cal-mes { font-size: 13px; font-weight: 600; color: var(--t1); text-transform: capitalize; }
+.cal-nav {
+  background: none; border: 1.5px solid var(--b1); cursor: pointer; color: var(--a);
+  width: 28px; height: 28px; border-radius: 8px; font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.cal-nav:hover:not(:disabled) { background: var(--b1); border-color: var(--a); }
+.cal-nav:disabled { opacity: .3; cursor: default; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-sdh {
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  color: var(--t3); text-align: center; padding: 4px 0 6px;
+}
+.cal-dia {
+  aspect-ratio: 1; background: none; border: none; border-radius: 50%;
+  font-size: 12px; color: var(--t1); cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 36px;
+}
+.cal-dia:hover:not(.dis) { background: var(--b1); color: var(--a); }
+.cal-dia.dis { color: var(--t4); cursor: default; pointer-events: none; }
+.cal-dia.hoy { background: rgba(108,92,228,0.12); color: var(--a); font-weight: 700; }
+.cal-dia.sel { background: var(--a) !important; color: #fff !important; font-weight: 700; }
 
 /* ── TYPING ── */
 .typing .bubble { padding: 14px 16px; }
@@ -189,10 +235,39 @@ body { display: flex; flex-direction: column; }
   background: linear-gradient(135deg, #6C5CE4, #4F3EE0); border: none;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 14px rgba(108,92,228,0.42); transition: all .15s;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
 .send:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(108,92,228,0.52); }
 .send:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
 .send svg { color: #fff; }
+
+/* ── PRE-CONFIRM ── */
+.pre-confirm {
+  background: #fff; border: 1.5px solid var(--b1); border-radius: 16px;
+  padding: 18px; max-width: 272px; width: calc(100% - 42px);
+  margin-left: 42px; margin-top: 6px;
+  box-shadow: 0 2px 10px rgba(108,92,228,0.09); animation: fadeup .24s ease;
+}
+.pre-confirm-title { font-size: 13px; font-weight: 700; color: var(--t1); margin-bottom: 12px; }
+.pre-confirm-row { display: flex; gap: 8px; font-size: 12px; margin-bottom: 6px; align-items: baseline; }
+.pre-confirm-row b { color: var(--t3); font-weight: 500; min-width: 58px; flex-shrink: 0; }
+.pre-confirm-row span { color: var(--t1); font-weight: 600; }
+.pre-confirm-btns { display: flex; gap: 8px; margin-top: 14px; }
+.btn-confirmar {
+  flex: 1; padding: 10px 8px; background: var(--a); color: #fff;
+  border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s; font-family: inherit;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.btn-confirmar:hover:not(:disabled) { background: var(--a3); transform: translateY(-1px); }
+.btn-confirmar:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-modificar {
+  padding: 10px 12px; background: none; color: var(--t2);
+  border: 1.5px solid var(--b1); border-radius: 10px; font-size: 13px;
+  cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.btn-modificar:hover { border-color: var(--a); color: var(--a); }
 
 /* ── LOADING ── */
 .loading {
@@ -242,9 +317,10 @@ const params  = new URLSearchParams(window.location.search);
 let clienteId = params.get('cid') || null;
 const slug    = params.get('slug') || null;
 
-let negocioNombre = '';
-let historial     = [];
-let enviando      = false;
+let negocioNombre   = '';
+let historial       = [];
+let enviando        = false;
+let especialistaCal = null;
 
 const msgsEl = document.getElementById('msgs');
 const inpEl  = document.getElementById('inp');
@@ -279,9 +355,7 @@ function getChips(t) {
   t = t.toLowerCase();
   if (t.includes('nombre') || t.includes('llamas')) return [];
   if (t.includes('motivo') || t.includes('en qué puedo')) return ['Consulta general', 'Control', 'Primera consulta', 'Urgencia'];
-  if (t.includes('qué día') || t.includes('fecha') || t.includes('cuándo')) return ['Hoy', 'Mañana', 'Esta semana'];
   if (t.includes('todo correcto') || t.includes('¿confirm') || t.includes('¿agend')) return ['Sí, confirmar', 'No, cambiar algo'];
-  if (t.includes('email') || t.includes('correo')) return ['No tengo email'];
   return [];
 }
 
@@ -301,10 +375,17 @@ async function enviar(texto) {
   enviando = false; sendEl.disabled = false;
   if (r) {
     historial.push({ role: 'assistant', content: r.mensaje });
-    if (r.slots_disponibles?.length) {
+    if (r.mostrar_calendario) {
+      especialistaCal = r.especialista_id_cal || null;
+      agregarMsg('ai', r.mensaje, null, null, null, true);
+    } else if (r.datos_reserva) {
+      agregarMsg('ai', r.mensaje);
+      msgsEl.appendChild(renderPreConfirm(r.datos_reserva));
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+    } else if (r.slots_disponibles?.length) {
       agregarMsg('ai', r.mensaje, null, null, r.slots_disponibles);
     } else {
-      agregarMsg('ai', r.mensaje, r.cita_creada, r.cita_creada ? [] : getChips(r.mensaje));
+      agregarMsg('ai', r.mensaje, null, getChips(r.mensaje));
     }
   }
 }
@@ -325,8 +406,196 @@ async function llamarIA() {
   }
 }
 
+/* ── PRE-CONFIRM: tarjeta con botón real ── */
+function renderPreConfirm(datos) {
+  const fechaFmt = datos.fecha
+    ? new Date(datos.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' })
+    : datos.fecha;
+
+  const card = document.createElement('div');
+  card.className = 'pre-confirm'; card.id = 'chips-activos';
+  card.innerHTML = `
+    <div class="pre-confirm-title">📋 Resumen de tu cita</div>
+    <div class="pre-confirm-row"><b>Profesional</b><span>${esc(datos.nombre_especialista || '—')}</span></div>
+    <div class="pre-confirm-row"><b>Fecha</b><span>${esc(fechaFmt || datos.fecha || '—')}</span></div>
+    <div class="pre-confirm-row"><b>Hora</b><span>${esc(datos.hora || '—')}</span></div>
+    <div class="pre-confirm-row"><b>Motivo</b><span>${esc(datos.servicio || 'Consulta')}</span></div>
+    <div class="pre-confirm-row"><b>Paciente</b><span>${esc(datos.nombre_paciente || '—')}</span></div>
+    ${datos.tel_paciente ? `<div class="pre-confirm-row"><b>Teléfono</b><span>${esc(datos.tel_paciente)}</span></div>` : ''}
+    ${datos.email_paciente ? `<div class="pre-confirm-row"><b>Email</b><span>${esc(datos.email_paciente)}</span></div>` : ''}
+    <div class="pre-confirm-btns">
+      <button class="btn-confirmar" id="btn-confirmar-cita">Confirmar cita</button>
+      <button class="btn-modificar" id="btn-modificar-cita">Modificar</button>
+    </div>`;
+
+  card.querySelector('#btn-confirmar-cita').addEventListener('click', () => confirmarCita(datos, card));
+  card.querySelector('#btn-modificar-cita').addEventListener('click', () => {
+    card.remove();
+    enviar('Quiero cambiar algo');
+  });
+  return card;
+}
+
+async function confirmarCita(datos, card) {
+  const btn = card.querySelector('#btn-confirmar-cita');
+  btn.disabled = true; btn.textContent = 'Confirmando...';
+
+  try {
+    const r = await fetch('/api/crear-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...datos, cliente_id: clienteId, negocio_nombre: negocioNombre })
+    });
+    const d = await r.json();
+
+    if (!r.ok || !d.ok) throw new Error(d.error || 'Error al confirmar');
+
+    card.remove();
+
+    const fechaFmt = datos.fecha
+      ? new Date(datos.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' })
+      : datos.fecha;
+
+    // Tarjeta verde de confirmación
+    const confirmCard = document.createElement('div'); confirmCard.className = 'confirm-card';
+    confirmCard.innerHTML = `
+      <div class="confirm-ico">✓</div>
+      <div class="confirm-title">¡Cita confirmada!</div>
+      <div class="confirm-row"><b>Paciente</b><span>${esc(datos.nombre_paciente)}</span></div>
+      <div class="confirm-row"><b>Fecha</b><span>${esc(fechaFmt)}</span></div>
+      <div class="confirm-row"><b>Hora</b><span>${esc(datos.hora)}</span></div>
+      ${datos.servicio ? `<div class="confirm-row"><b>Motivo</b><span>${esc(datos.servicio)}</span></div>` : ''}
+      ${datos.email_paciente ? `<div class="confirm-row"><b>Email</b><span>Confirmación enviada ✉</span></div>` : ''}`;
+    msgsEl.appendChild(confirmCard);
+
+    // Mensaje de cierre
+    const cierre = `¡Listo, ${datos.nombre_paciente}! Te esperamos el ${fechaFmt} a las ${datos.hora}. ¡Hasta pronto! 😊`;
+    historial.push({ role: 'assistant', content: cierre });
+    const msgDiv = document.createElement('div'); msgDiv.className = 'msg ai';
+    msgDiv.innerHTML = `<div class="av">tt</div><div class="bubble">${esc(cierre)}</div>`;
+    msgsEl.appendChild(msgDiv);
+
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Confirmar cita';
+    const errDiv = document.createElement('div'); errDiv.className = 'msg ai';
+    errDiv.innerHTML = `<div class="av">tt</div><div class="bubble">Hubo un problema al registrar la cita: ${esc(e.message)}. ¿Intentamos de nuevo?</div>`;
+    msgsEl.appendChild(errDiv);
+  }
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+/* ── SELECCIÓN DIRECTA DE FECHA (sin pasar por Claude) ── */
+async function seleccionarFecha(espId, iso, texto) {
+  quitarChips();
+
+  const userDiv = document.createElement('div');
+  userDiv.className = 'msg user';
+  userDiv.innerHTML = `<div class="bubble">${esc(texto)}</div>`;
+  msgsEl.appendChild(userDiv);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  mostrarTyping();
+  try {
+    const r = await fetch(`/api/slots?especialista_id=${encodeURIComponent(espId)}&fecha=${iso}`);
+    const d = await r.json();
+    quitarTyping();
+
+    if (d.disponible && d.slots?.length) {
+      historial.push({ role: 'user', content: `El ${texto} (${iso})` });
+      const aiMsg = '¡Hay disponibilidad ese día! ¿Cuál hora te acomoda mejor?';
+      historial.push({ role: 'assistant', content: aiMsg });
+
+      const aiDiv = document.createElement('div'); aiDiv.className = 'msg ai';
+      aiDiv.innerHTML = `<div class="av">tt</div><div class="bubble">${esc(aiMsg)}</div>`;
+      msgsEl.appendChild(aiDiv);
+      msgsEl.appendChild(renderSlots(d.slots));
+    } else {
+      const aiMsg = 'Mmm, ese día no hay horas disponibles. ¿Pruebas con otro día?';
+      const aiDiv = document.createElement('div'); aiDiv.className = 'msg ai';
+      aiDiv.innerHTML = `<div class="av">tt</div><div class="bubble">${esc(aiMsg)}</div>`;
+      msgsEl.appendChild(aiDiv);
+      msgsEl.appendChild(renderCalendario(espId));
+    }
+  } catch(_) {
+    quitarTyping();
+    const aiDiv = document.createElement('div'); aiDiv.className = 'msg ai';
+    aiDiv.innerHTML = `<div class="av">tt</div><div class="bubble">Mmm, hubo un problema al verificar. ¿Intentamos con otro día?</div>`;
+    msgsEl.appendChild(aiDiv);
+    msgsEl.appendChild(renderCalendario(espId));
+  }
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+/* ── CALENDAR ── */
+function renderCalendario(especialistaId) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cal'; wrap.id = 'chips-activos';
+
+  const hoyBase = new Date(); hoyBase.setHours(0,0,0,0);
+  let año = hoyBase.getFullYear();
+  let mes  = hoyBase.getMonth();
+
+  function build() {
+    wrap.innerHTML = '';
+
+    const mesNombre = new Date(año, mes, 1).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+    const hd   = document.createElement('div'); hd.className = 'cal-hd';
+    const prev = document.createElement('button'); prev.className = 'cal-nav'; prev.innerHTML = '&#8249;';
+    const next = document.createElement('button'); next.className = 'cal-nav'; next.innerHTML = '&#8250;';
+    const lbl  = document.createElement('div');    lbl.className = 'cal-mes'; lbl.textContent = mesNombre;
+
+    if (mes === hoyBase.getMonth() && año === hoyBase.getFullYear()) prev.disabled = true;
+
+    prev.addEventListener('click', () => { mes--; if (mes < 0) { mes = 11; año--; } build(); });
+    next.addEventListener('click', () => { mes++; if (mes > 11) { mes = 0; año++; } build(); });
+
+    hd.appendChild(prev); hd.appendChild(lbl); hd.appendChild(next);
+    wrap.appendChild(hd);
+
+    const grid = document.createElement('div'); grid.className = 'cal-grid';
+
+    ['L','M','M','J','V','S','D'].forEach(d => {
+      const s = document.createElement('div'); s.className = 'cal-sdh'; s.textContent = d;
+      grid.appendChild(s);
+    });
+
+    const primerDia = new Date(año, mes, 1).getDay();
+    const offset = (primerDia === 0) ? 6 : primerDia - 1;
+    for (let i = 0; i < offset; i++) {
+      const v = document.createElement('div'); grid.appendChild(v);
+    }
+
+    const totalDias = new Date(año, mes + 1, 0).getDate();
+    for (let d = 1; d <= totalDias; d++) {
+      const fecha = new Date(año, mes, d);
+      const btn = document.createElement('button'); btn.className = 'cal-dia'; btn.textContent = d;
+
+      if (fecha < hoyBase) { btn.classList.add('dis'); }
+      else if (fecha.getTime() === hoyBase.getTime()) { btn.classList.add('hoy'); }
+
+      btn.addEventListener('click', () => {
+        const iso  = `${año}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const text = fecha.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
+        wrap.querySelectorAll('.cal-dia.sel').forEach(b => b.classList.remove('sel'));
+        btn.classList.add('sel');
+        if (especialistaId) {
+          setTimeout(() => seleccionarFecha(especialistaId, iso, text), 180);
+        } else {
+          setTimeout(() => enviar(`El ${text} (${iso})`), 180);
+        }
+      });
+
+      grid.appendChild(btn);
+    }
+    wrap.appendChild(grid);
+  }
+
+  build();
+  return wrap;
+}
+
 /* ── UI ── */
-function agregarMsg(rol, texto, cita, chips, slots) {
+function agregarMsg(rol, texto, cita, chips, slots, calendario) {
   const div = document.createElement('div');
   div.className = `msg ${rol}`;
   if (rol === 'ai') {
@@ -336,8 +605,9 @@ function agregarMsg(rol, texto, cita, chips, slots) {
   }
   msgsEl.appendChild(div);
 
-  if (cita)          msgsEl.appendChild(cardConfirmacion(cita));
-  if (slots?.length) msgsEl.appendChild(renderSlots(slots));
+  if (cita)              msgsEl.appendChild(cardConfirmacion(cita));
+  if (calendario)        msgsEl.appendChild(renderCalendario(especialistaCal));
+  else if (slots?.length) msgsEl.appendChild(renderSlots(slots));
   else if (chips?.length) {
     const cd = document.createElement('div');
     cd.className = 'chips'; cd.id = 'chips-activos';

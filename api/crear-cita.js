@@ -29,6 +29,14 @@ export default async function handler(req, res) {
   // Si viene del bot, la cita ya fue creada — solo enviamos email y GC
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
 
+  // Llamadas internas (bot-chat con cita ya creada) deben incluir la clave interna
+  if (citaIdYaCreada) {
+    const key = req.headers['x-internal-key'];
+    if (!process.env.INTERNAL_API_SECRET || key !== process.env.INTERNAL_API_SECRET) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+  }
+
   try {
     let cita;
     if (citaIdYaCreada) {
@@ -80,21 +88,33 @@ export default async function handler(req, res) {
       const fechaFmt = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
       });
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'Attempo <contacto@attempo.cl>',
-          to: email_paciente,
-          subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada ✓`,
-          headers: {
-            'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-          },
-          html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco })
-        })
-      }).then(async er => { if (!er.ok) console.error('email error:', await er.text()); })
-        .catch(e  => console.error('email exception:', e.message));
+      console.log('crear-cita: enviando email confirmación');
+      try {
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Attempo <contacto@attempo.cl>',
+            to: [email_paciente],
+            subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada ✓`,
+            headers: {
+              'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+            },
+            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco })
+          })
+        });
+        if (!emailRes.ok) {
+          const errTxt = await emailRes.text();
+          console.error('crear-cita: email error', emailRes.status, errTxt);
+        } else {
+          console.log('crear-cita: email enviado OK');
+        }
+      } catch (e) {
+        console.error('crear-cita: email exception:', e.message);
+      }
+    } else {
+      console.log('crear-cita: email omitido — RESEND_KEY:', !!process.env.RESEND_API_KEY);
     }
 
     // Google Calendar: crear evento (awaited — Vercel termina la función al enviar la respuesta)

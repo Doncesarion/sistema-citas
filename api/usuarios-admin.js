@@ -14,11 +14,67 @@ function verifyToken(token) {
   return true;
 }
 
+function timingSafeStringEqual(a, b) {
+  const ba = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  const maxLen = Math.max(ba.length, bb.length);
+  const padA = Buffer.concat([ba, Buffer.alloc(maxLen - ba.length)]);
+  const padB = Buffer.concat([bb, Buffer.alloc(maxLen - bb.length)]);
+  return crypto.timingSafeEqual(padA, padB) && ba.length === bb.length;
+}
+
 export default async function handler(req, res) {
+  // ── POST login: genera token SA (no requiere autenticación previa) ─────────
+  if (req.method === 'POST' && req.body?.action === 'login') {
+    const { user, pass } = req.body;
+    if (!user || !pass) return res.status(400).json({ error: 'Faltan credenciales' });
+
+    const SA_USER   = process.env.SA_USER;
+    const SA_PASS   = process.env.SA_PASS;
+    const SA_SECRET = process.env.SA_SECRET;
+
+    if (!SA_USER || !SA_PASS || !SA_SECRET) {
+      return res.status(500).json({ error: 'Servidor no configurado correctamente' });
+    }
+
+    if (!timingSafeStringEqual(user, SA_USER) || !timingSafeStringEqual(pass, SA_PASS)) {
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
+    }
+
+    const expires = Date.now() + 8 * 60 * 60 * 1000;
+    const payload = String(expires);
+    const sig = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
+    return res.status(200).json({ token: `${payload}.${sig}` });
+  }
+
+  // ── Todas las demás rutas requieren token válido ───────────────────────────
   if (!verifyToken(req.headers['x-sa-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
+  // ── POST proxy: reenvía a edge function admin-clientes ────────────────────
+  if (req.method === 'POST' && req.body?.action === 'proxy') {
+    const ADMIN_TOKEN   = process.env.ADMIN_TOKEN;
+    const FUNCTIONS_URL = process.env.SUPABASE_FUNCTIONS_URL;
+
+    if (!ADMIN_TOKEN || !FUNCTIONS_URL) {
+      return res.status(500).json({ error: 'Servidor no configurado correctamente' });
+    }
+
+    const { edge_action, action: _omit, ...forwardBody } = req.body || {};
+    const url = `${FUNCTIONS_URL}/admin-clientes?action=${edge_action}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN },
+      body: JSON.stringify(forwardBody),
+    });
+
+    const data = await response.json();
+    return res.status(response.status).json(data);
+  }
+
+  // ── Gestión de usuarios y negocios ────────────────────────────────────────
   const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh = {
@@ -50,7 +106,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const body = req.body || {};
+      const body   = req.body || {};
       const { action } = body;
 
       if (action === 'crear') {
@@ -66,9 +122,9 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             username: username.trim().toLowerCase(),
             password,
-            email: email || null,
-            nombre: nombre || username,
-            rol: rol || 'admin',
+            email:   email || null,
+            nombre:  nombre || username,
+            rol:     rol || 'admin',
             destino: '/admin.html',
             cliente_id
           })
@@ -96,16 +152,16 @@ export default async function handler(req, res) {
           headers: { ...sh, Prefer: 'return=representation' },
           body: JSON.stringify({
             nombre_negocio,
-            email:           email || null,
-            plan:            plan || 'basic',
-            fecha_inicio:    today,
+            email:            email || null,
+            plan:             plan || 'basic',
+            fecha_inicio:     today,
             fecha_expiracion: nextYear,
-            password_hash:   '',
-            activo:          true,
-            booking_slug:    slug,
-            contacto_nombre: contacto_nombre || null,
-            contacto_tel:    contacto_tel || null,
-            rubro:           rubro || null
+            password_hash:    '',
+            activo:           true,
+            booking_slug:     slug,
+            contacto_nombre:  contacto_nombre || null,
+            contacto_tel:     contacto_tel    || null,
+            rubro:            rubro           || null
           })
         });
 
@@ -146,7 +202,6 @@ export default async function handler(req, res) {
         const { cliente_id } = body;
         if (!cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
 
-        // Eliminar en cascada: citas, especialistas, usuarios, luego el negocio
         await fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}`,        { method: 'DELETE', headers: { ...sh, Prefer: 'return=minimal' } });
         await fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}`, { method: 'DELETE', headers: { ...sh, Prefer: 'return=minimal' } });
         await fetch(`${SUPABASE_URL}/rest/v1/usuarios?cliente_id=eq.${cliente_id}`,     { method: 'DELETE', headers: { ...sh, Prefer: 'return=minimal' } });

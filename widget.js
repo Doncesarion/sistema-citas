@@ -14,9 +14,11 @@
   /* ── CSS (solo el contenedor exterior, sin conflictos) ── */
   const style = document.createElement('style');
   style.textContent = `
-    #at-root { position:fixed; bottom:24px; right:24px; z-index:2147483647; display:flex; flex-direction:column; align-items:flex-end; gap:14px; }
+    /* at-root is only as big as the button — panel floats absolutely above it */
+    #at-root { position:fixed; bottom:24px; right:24px; z-index:2147483647; width:60px; height:60px; }
 
     #at-panel {
+      position: absolute; bottom: 74px; right: 0;
       width: 380px; height: 580px;
       border-radius: 20px; overflow: hidden;
       box-shadow: 0 12px 48px rgba(108,92,228,0.25), 0 2px 12px rgba(0,0,0,0.12);
@@ -26,6 +28,17 @@
     #at-panel.at-off { transform: scale(0.82) translateY(20px); opacity: 0; pointer-events: none; }
     #at-panel iframe { width:100%; height:100%; border:none; display:block; border-radius:20px; }
 
+    @media (max-width: 440px) {
+      #at-root { bottom:16px; right:16px; }
+      #at-panel {
+        position: fixed;
+        bottom: 92px; left: 16px; right: 16px;
+        width: auto; height: calc(100svh - 108px);
+        border-radius: 16px;
+      }
+      #at-panel iframe { border-radius:16px; }
+    }
+
     #at-btn {
       width: 60px; height: 60px; border-radius: 50%;
       background: #fff;
@@ -34,6 +47,7 @@
       box-shadow: 0 6px 24px rgba(108,92,228,0.45);
       transition: transform .2s, box-shadow .2s;
       position: relative; overflow: hidden; padding: 10px;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
     }
     #at-btn:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(108,92,228,0.58); }
     #at-btn .at-open  { display: flex; width:100%; height:100%; object-fit:contain; }

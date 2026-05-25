@@ -1,5 +1,15 @@
 {
   "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "https://app.attempo.cl" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/login",                          "destination": "/login.html" },
     { "source": "/admin",                          "destination": "/admin.html" },
