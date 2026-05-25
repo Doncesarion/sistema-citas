@@ -595,22 +595,25 @@ async function guardarCliente() {
       showToast('✓ Cliente actualizado');
     } else {
       const nuevoCliente = await edgeFetch('crear', { ...datos, password: pass });
-      // Crear usuario admin y enviar email de bienvenida con credenciales
-      if (nuevoCliente?.id && email) {
-        const inviteRes = await fetch('/api/invitar-profesional', {
+      // Crear usuario admin con SA token (invitar-profesional requiere session token)
+      if (nuevoCliente?.id && email && pass) {
+        const userRes = await fetch('/api/usuarios-admin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-sa-token': saToken },
           body: JSON.stringify({
+            action: 'crear',
+            username: email.toLowerCase(),
+            password: pass,
             email,
             nombre: contacto || negocio,
             rol: 'admin',
             cliente_id: nuevoCliente.id
           })
         });
-        const inviteData = await inviteRes.json();
-        if (!inviteRes.ok) console.warn('Error al crear usuario:', inviteData.error);
+        const userData = await userRes.json();
+        if (!userRes.ok) console.warn('Error al crear usuario admin:', userData.error);
       }
-      showToast('✓ Cliente creado — email de acceso enviado a ' + email);
+      showToast('✅ Cliente creado. Acceso: ' + email + ' / ' + pass);
     }
     cerrarModal('modal-cliente');
     await cargarClientes();

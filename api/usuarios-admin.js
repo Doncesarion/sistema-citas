@@ -1,4 +1,12 @@
 import crypto from 'crypto';
+import { promisify } from 'util';
+const scryptAsync = promisify(crypto.scrypt);
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = await scryptAsync(password, salt, 64);
+  return `scrypt$${salt}$${hash.toString('hex')}`;
+}
 
 function verifyToken(token) {
   if (!token) return false;
@@ -116,12 +124,13 @@ export default async function handler(req, res) {
         }
         if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
 
+        const hashedPw = await hashPassword(password);
         const r = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
           method: 'POST',
           headers: { ...sh, Prefer: 'return=minimal' },
           body: JSON.stringify({
             username: username.trim().toLowerCase(),
-            password,
+            password: hashedPw,
             email:   email || null,
             nombre:  nombre || username,
             rol:     rol || 'admin',
