@@ -226,6 +226,55 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, cliente: rows[0] });
       }
 
+      if (action === 'reenviar-acceso') {
+        const { email, password, negocio_nombre, cliente_id } = body;
+        if (!email || !password || !cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
+        if (password.length < 8) return res.status(400).json({ error: 'Mínimo 8 caracteres' });
+
+        const hashedPw = await hashPassword(password);
+        const rUpd = await fetch(
+          `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&cliente_id=eq.${cliente_id}`,
+          { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ password: hashedPw }) }
+        );
+        if (!rUpd.ok) return res.status(500).json({ error: 'No se encontró el usuario o error al actualizar' });
+
+        if (process.env.RESEND_API_KEY) {
+          const BASE_URL = process.env.BASE_URL || 'https://attempo.cl';
+          const negocio  = negocio_nombre || '';
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Attempo <contacto@attempo.cl>',
+              to: [email],
+              subject: `Tu acceso a Attempo${negocio ? ' — ' + negocio : ''}`,
+              headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
+              html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
+<div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
+  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:28px 32px">
+    <div style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);display:inline-block;padding:6px 12px;border-radius:8px">tt</div>
+    <span style="font-size:18px;font-weight:700;color:#fff;margin-left:12px;letter-spacing:-.03em">Attempo</span>
+  </div>
+  <div style="padding:32px">
+    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">Aquí están tus credenciales de acceso</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:#5E5880;line-height:1.6">Acceso${negocio ? ' para <b>' + negocio + '</b>' : ''} actualizado. Usa estas credenciales para ingresar al panel:</p>
+    <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
+      <div style="margin-bottom:12px"><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Usuario</span><br><span style="font-size:15px;font-weight:600;color:#16143A">${email.toLowerCase()}</span></div>
+      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Contraseña</span><br><span style="font-size:15px;font-weight:600;color:#6C5CE4;font-family:monospace">${password}</span></div>
+    </div>
+    <a href="${BASE_URL}/login" style="display:block;text-align:center;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Ingresar al panel →</a>
+  </div>
+  <div style="padding:16px 32px;border-top:1px solid rgba(108,92,228,0.08);text-align:center">
+    <p style="margin:0;font-size:11px;color:#C4C0D8">© Attempo · <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
+  </div>
+</div></body></html>`
+            })
+          }).catch(e => console.error('reenviar email error:', e.message));
+        }
+
+        return res.status(200).json({ ok: true });
+      }
+
       if (action === 'cambiar-password') {
         const { username, password } = body;
         if (!username || !password) return res.status(400).json({ error: 'Datos incompletos' });

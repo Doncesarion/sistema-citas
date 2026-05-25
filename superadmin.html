@@ -239,11 +239,16 @@
       <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="mc-tel" placeholder="+56 9..."></div>
     </div>
     <div class="form-group"><label class="form-label">Email (será su usuario de acceso)</label><input class="form-input" id="mc-email" placeholder="ana@clinica.cl" type="email"></div>
-    <div class="form-group"><label class="form-label">Contraseña inicial</label>
+    <div class="form-group"><label class="form-label" id="mc-pass-label">Contraseña inicial</label>
       <div style="display:flex;gap:8px">
         <input class="form-input" id="mc-pass" placeholder="Mínimo 8 caracteres" style="flex:1">
         <button class="btn btn-outline" onclick="generarPass()" style="white-space:nowrap">🎲 Generar</button>
       </div>
+    </div>
+    <div id="mc-reenviar-wrap" style="display:none;margin-top:-4px;margin-bottom:14px">
+      <button class="btn btn-outline" onclick="reenviarAcceso()" style="width:100%;justify-content:center;gap:8px;border-color:var(--accent);color:var(--accent)">
+        📧 Reenviar email de acceso <span style="font-size:11px;color:var(--gray-400)">(usa la contraseña ingresada o genera una nueva)</span>
+      </button>
     </div>
     <div class="grid-2">
       <div class="form-group"><label class="form-label">Plan</label>
@@ -569,6 +574,8 @@ function abrirModalNuevo() {
   document.getElementById('mc-rubro').value = 'psicologia';
   document.getElementById('mc-rubro-otro').value = '';
   document.getElementById('mc-rubro-otro').style.display = 'none';
+  document.getElementById('mc-reenviar-wrap').style.display = 'none';
+  document.getElementById('mc-pass-label').textContent = 'Contraseña inicial';
   document.getElementById('mc-contacto').value = '';
   document.getElementById('mc-tel').value = '';
   document.getElementById('mc-email').value = '';
@@ -602,6 +609,8 @@ function editarCliente(id) {
   document.getElementById('mc-plan').value = c.plan;
   document.getElementById('mc-expira').value = c.fecha_expiracion;
   document.getElementById('modal-cliente-title').textContent = 'Editar cliente — ' + c.nombre_negocio;
+  document.getElementById('mc-pass-label').textContent = 'Nueva contraseña (opcional)';
+  document.getElementById('mc-reenviar-wrap').style.display = 'block';
   abrirModal('modal-cliente');
 }
 
@@ -627,6 +636,49 @@ function generarPass() {
   document.getElementById('mc-pass').value = pass;
   navigator.clipboard.writeText(pass).catch(()=>{});
   showToast('🔑 Contraseña generada y copiada');
+}
+
+async function reenviarAcceso() {
+  const clienteId = document.getElementById('mc-id').value;
+  const email     = document.getElementById('mc-email').value.trim();
+  const negocio   = document.getElementById('mc-negocio').value.trim();
+  if (!clienteId || !email) { alert('Faltan datos del cliente'); return; }
+
+  let pass = document.getElementById('mc-pass').value.trim();
+  if (!pass) {
+    // Generar contraseña automática si no se escribió una
+    pass = Array.from(crypto.getRandomValues(new Uint8Array(10)))
+      .map(b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('');
+    document.getElementById('mc-pass').value = pass;
+  }
+  if (pass.length < 8) { alert('La contraseña debe tener al menos 8 caracteres'); return; }
+
+  const btn = document.querySelector('#mc-reenviar-wrap button');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try {
+    const res = await fetch('/api/usuarios-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-sa-token': saToken },
+      body: JSON.stringify({
+        action: 'reenviar-acceso',
+        email,
+        password: pass,
+        negocio_nombre: negocio,
+        cliente_id: clienteId
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al reenviar');
+    showToast('📧 Email de acceso reenviado a ' + email);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
 }
 
 function toggleRubroOtro() {
