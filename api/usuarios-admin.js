@@ -2,10 +2,24 @@ import crypto from 'crypto';
 import { promisify } from 'util';
 const scryptAsync = promisify(crypto.scrypt);
 
-async function hashPassword(password) {
+async function hashPassword(password, isFirst = false) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = await scryptAsync(password, salt, 64);
-  return `scrypt$${salt}$${hash.toString('hex')}`;
+  const prefix = isFirst ? 'first$' : '';
+  return `${prefix}scrypt$${salt}$${hash.toString('hex')}`;
+}
+
+async function verifyHash(password, stored) {
+  if (!stored) return false;
+  const inner = stored.startsWith('first$') ? stored.slice(6) : stored;
+  if (!inner.startsWith('scrypt$')) return inner === password;
+  const parts = inner.split('$');
+  if (parts.length !== 3) return false;
+  const [, salt, hashHex] = parts;
+  const hash = await scryptAsync(password, salt, 64);
+  const storedBuf = Buffer.from(hashHex, 'hex');
+  if (hash.length !== storedBuf.length) return false;
+  return crypto.timingSafeEqual(hash, storedBuf);
 }
 
 function verifyToken(token) {
@@ -53,6 +67,38 @@ export default async function handler(req, res) {
     const payload = String(expires);
     const sig = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
     return res.status(200).json({ token: `${payload}.${sig}` });
+  }
+
+  // ── Cambio de contraseña forzado (primer ingreso) — sin SA token ──────────
+  if (req.method === 'POST' && req.body?.action === 'force-cambiar-password') {
+    const { email, password_actual, password_nuevo } = req.body;
+    if (!email || !password_actual || !password_nuevo)
+      return res.status(400).json({ error: 'Datos incompletos' });
+    if (password_nuevo.length < 8)
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+
+    const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+    const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
+
+    const rGet = await fetch(
+      `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email.toLowerCase())}&select=id,password`,
+      { headers: sh }
+    );
+    const rows = await rGet.json();
+    if (!rows.length) return res.status(401).json({ error: 'Usuario no encontrado' });
+    const u = rows[0];
+
+    const ok = await verifyHash(password_actual, u.password);
+    if (!ok) return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+
+    const newHash = await hashPassword(password_nuevo, false);
+    const rUpd = await fetch(
+      `${SUPABASE_URL}/rest/v1/usuarios?id=eq.${u.id}`,
+      { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ password: newHash }) }
+    );
+    if (!rUpd.ok) return res.status(500).json({ error: 'Error al actualizar contraseña' });
+    return res.status(200).json({ ok: true });
   }
 
   // ── Todas las demás rutas requieren token válido ───────────────────────────
@@ -130,7 +176,7 @@ export default async function handler(req, res) {
         }
         if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
 
-        const hashedPw = await hashPassword(password);
+        const hashedPw = await hashPassword(password, true);
         const r = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
           method: 'POST',
           headers: { ...sh, Prefer: 'return=minimal' },
@@ -165,16 +211,17 @@ export default async function handler(req, res) {
               headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
               html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
 <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
-  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:28px 32px">
-    <div style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);display:inline-block;padding:6px 12px;border-radius:8px;letter-spacing:-.01em">tt</div>
-    <span style="font-size:18px;font-weight:700;color:#fff;margin-left:12px;letter-spacing:-.03em">Attempo</span>
+  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px;display:flex;align-items:center;gap:12px">
+    <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" width="40" height="40" style="border-radius:10px;display:block">
+    <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.03em">Attempo</span>
   </div>
   <div style="padding:32px">
     <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">¡Bienvenido/a, ${nombreMostrar}!</h2>
-    <p style="margin:0 0 24px;font-size:14px;color:#5E5880;line-height:1.6">Tu cuenta en Attempo${negocio ? ' para <b>' + negocio + '</b>' : ''} ha sido creada. Aquí están tus credenciales de acceso:</p>
+    <p style="margin:0 0 8px;font-size:14px;color:#5E5880;line-height:1.6">Tu cuenta en Attempo${negocio ? ' para <b>' + negocio + '</b>' : ''} ha sido creada. Aquí están tus credenciales de acceso:</p>
+    <p style="margin:0 0 24px;font-size:13px;color:#9C96B4;line-height:1.5">Al ingresar por primera vez se te pedirá que crees tu propia contraseña personal.</p>
     <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
       <div style="margin-bottom:12px"><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Usuario</span><br><span style="font-size:15px;font-weight:600;color:#16143A">${username.trim().toLowerCase()}</span></div>
-      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Contraseña</span><br><span style="font-size:15px;font-weight:600;color:#6C5CE4;font-family:monospace">${password}</span></div>
+      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Contraseña temporal</span><br><span style="font-size:15px;font-weight:600;color:#6C5CE4;font-family:monospace">${password}</span></div>
     </div>
     <a href="${BASE_URL}/login" style="display:block;text-align:center;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Ingresar al panel →</a>
     <p style="margin:0;font-size:12px;color:#9C96B4;text-align:center">Te recomendamos cambiar tu contraseña después de tu primer ingreso.</p>
@@ -227,16 +274,47 @@ export default async function handler(req, res) {
       }
 
       if (action === 'reenviar-acceso') {
-        const { email, password, negocio_nombre, cliente_id } = body;
+        const { email, password, negocio_nombre, cliente_id, nombre } = body;
         if (!email || !password || !cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
         if (password.length < 8) return res.status(400).json({ error: 'Mínimo 8 caracteres' });
 
-        const hashedPw = await hashPassword(password);
-        const rUpd = await fetch(
-          `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&cliente_id=eq.${cliente_id}`,
-          { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ password: hashedPw }) }
+        const hashedPw = await hashPassword(password, true);
+
+        // Check if user exists
+        const rCheck = await fetch(
+          `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email.toLowerCase())}&cliente_id=eq.${cliente_id}&select=id`,
+          { headers: sh }
         );
-        if (!rUpd.ok) return res.status(500).json({ error: 'No se encontró el usuario o error al actualizar' });
+        const existing = await rCheck.json();
+
+        if (existing.length > 0) {
+          // Update existing user
+          const rUpd = await fetch(
+            `${SUPABASE_URL}/rest/v1/usuarios?id=eq.${existing[0].id}`,
+            { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ password: hashedPw }) }
+          );
+          if (!rUpd.ok) return res.status(500).json({ error: 'Error al actualizar contraseña' });
+        } else {
+          // Create user (first time)
+          const rIns = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+            method: 'POST',
+            headers: { ...sh, Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              username: email.toLowerCase(),
+              password: hashedPw,
+              email: email.toLowerCase(),
+              nombre: nombre || email,
+              rol: 'admin',
+              destino: '/admin.html',
+              cliente_id
+            })
+          });
+          if (!rIns.ok) {
+            const txt = await rIns.text();
+            const isDup = txt.includes('duplicate') || txt.includes('unique');
+            return res.status(400).json({ error: isDup ? 'El usuario ya existe' : 'Error al crear usuario' });
+          }
+        }
 
         if (process.env.RESEND_API_KEY) {
           const BASE_URL = process.env.BASE_URL || 'https://attempo.cl';
@@ -251,16 +329,17 @@ export default async function handler(req, res) {
               headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
               html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
 <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
-  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:28px 32px">
-    <div style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);display:inline-block;padding:6px 12px;border-radius:8px">tt</div>
-    <span style="font-size:18px;font-weight:700;color:#fff;margin-left:12px;letter-spacing:-.03em">Attempo</span>
+  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px;display:flex;align-items:center;gap:12px">
+    <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" width="40" height="40" style="border-radius:10px;display:block">
+    <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.03em">Attempo</span>
   </div>
   <div style="padding:32px">
-    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">Aquí están tus credenciales de acceso</h2>
-    <p style="margin:0 0 24px;font-size:14px;color:#5E5880;line-height:1.6">Acceso${negocio ? ' para <b>' + negocio + '</b>' : ''} actualizado. Usa estas credenciales para ingresar al panel:</p>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">Acceso actualizado</h2>
+    <p style="margin:0 0 8px;font-size:14px;color:#5E5880;line-height:1.6">Acceso${negocio ? ' para <b>' + negocio + '</b>' : ''} enviado. Usa estas credenciales para ingresar al panel:</p>
+    <p style="margin:0 0 24px;font-size:13px;color:#9C96B4;line-height:1.5">Al ingresar se te pedirá que establezcas tu propia contraseña personal.</p>
     <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
       <div style="margin-bottom:12px"><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Usuario</span><br><span style="font-size:15px;font-weight:600;color:#16143A">${email.toLowerCase()}</span></div>
-      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Contraseña</span><br><span style="font-size:15px;font-weight:600;color:#6C5CE4;font-family:monospace">${password}</span></div>
+      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Contraseña temporal</span><br><span style="font-size:15px;font-weight:600;color:#6C5CE4;font-family:monospace">${password}</span></div>
     </div>
     <a href="${BASE_URL}/login" style="display:block;text-align:center;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Ingresar al panel →</a>
   </div>

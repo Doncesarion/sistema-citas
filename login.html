@@ -242,6 +242,20 @@
   </div>
 </div>
 
+<!-- MODAL CAMBIAR CONTRASEÑA (primer ingreso) -->
+<div class="modal-overlay" id="modal-cambiar" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px">
+  <div class="modal-box" style="max-width:420px;width:100%">
+    <div class="modal-icon">🔐</div>
+    <div class="modal-title">Crea tu contraseña</div>
+    <div class="modal-sub">Es tu primer ingreso. Elige una contraseña personal segura para acceder a tu cuenta.</div>
+    <div id="cambiar-err" style="background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;display:none"></div>
+    <input class="modal-input" type="password" id="new-pass1" placeholder="Nueva contraseña (mínimo 8 caracteres)" autocomplete="new-password">
+    <input class="modal-input" type="password" id="new-pass2" placeholder="Confirmar contraseña" autocomplete="new-password" style="margin-top:10px">
+    <button class="modal-btn" id="btn-cambiar" type="button">Guardar contraseña →</button>
+    <button class="modal-cancel" id="btn-skip-cambiar" type="button" style="margin-top:8px;font-size:12px;color:#94a3b8">Hacerlo más tarde</button>
+  </div>
+</div>
+
 <!-- MODAL RECUPERAR -->
 <div class="modal-overlay" id="modal-forgot">
   <div class="modal-box">
@@ -293,7 +307,17 @@ function loginSubmit() {
         email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
       }));
       if (data.session_token) localStorage.setItem('attempo_session_token', data.session_token);
-      window.location.href = '/admin';
+      document.getElementById('btn-text').style.display = 'block';
+      document.getElementById('spinner').style.display  = 'none';
+      document.getElementById('btn-login').disabled = false;
+      if (data.debe_cambiar) {
+        _pendingEmail = data.usuario;
+        _pendingPass  = pass;
+        document.getElementById('modal-cambiar').style.display = 'flex';
+        document.getElementById('new-pass1').focus();
+      } else {
+        window.location.href = '/admin';
+      }
     } else {
       document.getElementById('btn-text').style.display = 'block';
       document.getElementById('spinner').style.display  = 'none';
@@ -392,6 +416,53 @@ function enviarRecuperacion() {
 }
 
 document.getElementById('usuario').focus();
+
+// ── CAMBIAR CONTRASEÑA (primer ingreso) ──
+var _pendingEmail = '';
+var _pendingPass  = '';
+
+document.getElementById('btn-cambiar').addEventListener('click', submitCambiarPassword);
+document.getElementById('btn-skip-cambiar').addEventListener('click', function() {
+  document.getElementById('modal-cambiar').style.display = 'none';
+  window.location.href = '/admin';
+});
+document.getElementById('new-pass2').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') submitCambiarPassword();
+});
+
+function submitCambiarPassword() {
+  var p1  = document.getElementById('new-pass1').value;
+  var p2  = document.getElementById('new-pass2').value;
+  var err = document.getElementById('cambiar-err');
+  var btn = document.getElementById('btn-cambiar');
+  err.style.display = 'none';
+  if (p1.length < 8) { err.textContent = 'Mínimo 8 caracteres'; err.style.display = 'block'; return; }
+  if (p1 !== p2)     { err.textContent = 'Las contraseñas no coinciden'; err.style.display = 'block'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  fetch('/api/usuarios-admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'force-cambiar-password', email: _pendingEmail, password_actual: _pendingPass, password_nuevo: p1 })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.ok) {
+      window.location.href = '/admin';
+    } else {
+      err.textContent = d.error || 'Error al guardar';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Guardar contraseña →';
+    }
+  })
+  .catch(function() {
+    err.textContent = 'Error de conexión';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Guardar contraseña →';
+  });
+}
 </script>
 </body>
 </html>

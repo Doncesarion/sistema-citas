@@ -45,18 +45,33 @@ async function hashPassword(password) {
 }
 
 async function verifyPassword(password, stored) {
-  if (!stored || !stored.startsWith('scrypt$')) {
-    // Contraseña legacy en texto plano — comparar y señalar upgrade
-    return { ok: stored === password, upgrade: stored === password };
+  if (!stored) return { ok: false, upgrade: false, first: false };
+
+  // First-login password: prefix 'first$scrypt$...'
+  if (stored.startsWith('first$')) {
+    const inner = stored.slice(6);
+    const parts = inner.split('$');
+    if (parts.length === 3 && parts[0] === 'scrypt') {
+      const [, salt, hashHex] = parts;
+      const hash = await scryptAsync(password, salt, 64);
+      const storedBuf = Buffer.from(hashHex, 'hex');
+      if (hash.length !== storedBuf.length) return { ok: false, upgrade: false, first: false };
+      const ok = crypto.timingSafeEqual(hash, storedBuf);
+      return { ok, upgrade: false, first: ok };
+    }
+  }
+
+  if (!stored.startsWith('scrypt$')) {
+    return { ok: stored === password, upgrade: stored === password, first: false };
   }
   const parts = stored.split('$');
-  if (parts.length !== 3) return { ok: false, upgrade: false };
+  if (parts.length !== 3) return { ok: false, upgrade: false, first: false };
   const [, salt, hashHex] = parts;
   const hash = await scryptAsync(password, salt, 64);
   const storedBuf = Buffer.from(hashHex, 'hex');
-  if (hash.length !== storedBuf.length) return { ok: false, upgrade: false };
+  if (hash.length !== storedBuf.length) return { ok: false, upgrade: false, first: false };
   const ok = crypto.timingSafeEqual(hash, storedBuf);
-  return { ok, upgrade: false };
+  return { ok, upgrade: false, first: false };
 }
 
 export default async function handler(req, res) {
@@ -85,7 +100,7 @@ export default async function handler(req, res) {
     if (!rows.length) return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
 
     const u = rows[0];
-    const { ok, upgrade } = await verifyPassword(password, u.password || '');
+    const { ok, upgrade, first } = await verifyPassword(password, u.password || '');
 
     if (!ok) return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
 
@@ -115,12 +130,13 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
-      usuario: u.username,
+      usuario: u.email || u.username,
       nombre: u.nombre,
       rol: u.rol,
       destino: u.destino,
       cliente_id: u.cliente_id,
-      session_token
+      session_token,
+      debe_cambiar: first || false,
     });
 
   } catch (err) {
