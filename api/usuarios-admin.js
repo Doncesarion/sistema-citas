@@ -124,7 +124,7 @@ export default async function handler(req, res) {
       const { action } = body;
 
       if (action === 'crear') {
-        const { username, password, email, nombre, rol, cliente_id } = body;
+        const { username, password, email, nombre, rol, cliente_id, negocio_nombre, send_welcome } = body;
         if (!username || !password || !cliente_id) {
           return res.status(400).json({ error: 'username, password y cliente_id son obligatorios' });
         }
@@ -150,6 +150,43 @@ export default async function handler(req, res) {
           const isDup = txt.includes('duplicate') || txt.includes('unique');
           return res.status(400).json({ error: isDup ? 'Ese nombre de usuario ya existe' : 'Error al crear usuario' });
         }
+
+        if (send_welcome && email && process.env.RESEND_API_KEY) {
+          const BASE_URL = process.env.BASE_URL || 'https://attempo.cl';
+          const nombreMostrar = nombre || username;
+          const negocio       = negocio_nombre || '';
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Attempo <contacto@attempo.cl>',
+              to: [email],
+              subject: `Tu acceso a Attempo${negocio ? ' — ' + negocio : ''} está listo`,
+              headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
+              html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
+<div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
+  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:28px 32px">
+    <div style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);display:inline-block;padding:6px 12px;border-radius:8px;letter-spacing:-.01em">tt</div>
+    <span style="font-size:18px;font-weight:700;color:#fff;margin-left:12px;letter-spacing:-.03em">Attempo</span>
+  </div>
+  <div style="padding:32px">
+    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">¡Bienvenido/a, ${nombreMostrar}!</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:#5E5880;line-height:1.6">Tu cuenta en Attempo${negocio ? ' para <b>' + negocio + '</b>' : ''} ha sido creada. Aquí están tus credenciales de acceso:</p>
+    <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
+      <div style="margin-bottom:12px"><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Usuario</span><br><span style="font-size:15px;font-weight:600;color:#16143A">${username.trim().toLowerCase()}</span></div>
+      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Contraseña</span><br><span style="font-size:15px;font-weight:600;color:#6C5CE4;font-family:monospace">${password}</span></div>
+    </div>
+    <a href="${BASE_URL}/login" style="display:block;text-align:center;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Ingresar al panel →</a>
+    <p style="margin:0;font-size:12px;color:#9C96B4;text-align:center">Te recomendamos cambiar tu contraseña después de tu primer ingreso.</p>
+  </div>
+  <div style="padding:16px 32px;border-top:1px solid rgba(108,92,228,0.08);text-align:center">
+    <p style="margin:0;font-size:11px;color:#C4C0D8">© Attempo · <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
+  </div>
+</div></body></html>`
+            })
+          }).catch(e => console.error('welcome email error:', e.message));
+        }
+
         return res.status(200).json({ ok: true });
       }
 

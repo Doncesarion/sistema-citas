@@ -694,7 +694,9 @@ async function guardarCliente() {
             email,
             nombre: contacto || negocio,
             rol: 'admin',
-            cliente_id: nuevoCliente.id
+            cliente_id: nuevoCliente.id,
+            negocio_nombre: negocio,
+            send_welcome: true
           })
         });
         const userData = await userRes.json();
