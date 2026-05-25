@@ -280,9 +280,10 @@ export default async function handler(req, res) {
 
         const hashedPw = await hashPassword(password, true);
 
-        // Check if user exists
+        // Check if user exists (by username OR email, any cliente_id)
+        const emailEnc = encodeURIComponent(email.toLowerCase());
         const rCheck = await fetch(
-          `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email.toLowerCase())}&cliente_id=eq.${cliente_id}&select=id`,
+          `${SUPABASE_URL}/rest/v1/usuarios?or=(username.eq.${emailEnc},email.eq.${emailEnc})&select=id`,
           { headers: sh }
         );
         const existing = await rCheck.json();
