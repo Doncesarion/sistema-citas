@@ -227,6 +227,11 @@ function getChips(texto) {
     document.getElementById('nav-negocio').textContent = negocioNombre;
     document.title = `Reserva en ${negocioNombre} — Attempo`;
 
+    // Si se llegó vía /booking?slug=..., limpiar la URL para mostrar la URL bonita
+    if (slugParam && slug) {
+      history.replaceState({}, '', '/' + slug);
+    }
+
     mostrarBienvenida();
   } catch(e) {
     mostrarError('Error de conexión', 'No se pudo cargar la información. Recarga la página.');
