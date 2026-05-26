@@ -3425,10 +3425,16 @@ async function openProfile() {
     // Cargar teléfono y nombre negocio desde clientes_sistema
     const cid = u.cliente_id;
     if (cid) {
-      const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,contacto_tel,plan,fecha_expiracion&limit=1`, { headers: _SH });
+      const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,contacto_nombre,contacto_tel,plan,fecha_expiracion&limit=1`, { headers: _SH });
       const rows = await r.json();
       const d = Array.isArray(rows) ? rows[0] : null;
       if (d) {
+        // Nombre completo: preferir contacto_nombre de BD (más completo) sobre localStorage
+        const nombreCompleto = d.contacto_nombre || nombre;
+        const iniCompleto = nombreCompleto.trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
+        set('pf-avatar', iniCompleto);
+        set('pf-header-name', nombreCompleto);
+        set('pf-nombre', nombreCompleto);
         set('pf-tel', d.contacto_tel || '');
         set('pf-header-sub', `Administrador · ${d.nombre_negocio || ''}`);
         // Plan
@@ -5341,7 +5347,7 @@ function salirImpersonacion() {
       <div>
         <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:10px">Información personal</div>
         <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="pf-nombre" placeholder="Tu nombre"></div>
-        <div class="fg" style="margin-top:10px"><label class="fl">Email</label><input class="fi" id="pf-email" placeholder="tu@email.com" type="email" readonly style="opacity:.6;cursor:default"></div>
+        <div class="fg" style="margin-top:10px"><label class="fl">Email <span style="font-size:10px;color:var(--t4);font-weight:400">(no editable — es tu usuario de acceso)</span></label><input class="fi" id="pf-email" placeholder="tu@email.com" type="email" readonly></div>
         <div class="fg" style="margin-top:10px"><label class="fl">Teléfono de contacto</label><input class="fi" id="pf-tel" placeholder="+56 9 1234 5678" type="tel"></div>
       </div>
 
