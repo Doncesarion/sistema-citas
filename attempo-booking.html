@@ -376,6 +376,7 @@ let calM = NOW.getMonth();
 
 let clienteId = null;
 let negocioData = null;
+let horarioNegocio = null;
 let especialistas = [];
 let citasDelDia = [];
 
@@ -396,14 +397,15 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
 
   try {
     const r = await fetch(
-      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,rubro,email,metodos_pago&limit=1`,
+      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,rubro,email,metodos_pago,horario_negocio&limit=1`,
       { headers: SH }
     );
     const rows = await r.json();
     if (!Array.isArray(rows) || !rows.length) { mostrarError('Negocio no encontrado', 'Verifica que el enlace sea correcto.'); return; }
 
-    negocioData = rows[0];
-    clienteId   = rows[0].id;
+    negocioData    = rows[0];
+    clienteId      = rows[0].id;
+    horarioNegocio = rows[0].horario_negocio || null;
 
     document.getElementById('nav-biz').textContent    = negocioData.nombre_negocio;
     document.getElementById('biz-name').textContent   = negocioData.nombre_negocio;
@@ -543,18 +545,45 @@ function getEspsActivos() {
 
 function isDiaDisponible(date) {
   const dow = DOW_KEY[date.getDay()];
+  // Si hay horario del negocio configurado, ese manda
+  if (horarioNegocio && Object.keys(horarioNegocio).length) {
+    return !!(horarioNegocio[dow]?.activo);
+  }
+  // Fallback: revisar horario de especialistas
   return getEspsActivos().some(e => e.horario?.[dow]?.activo);
 }
 
 function getSlotsDelDia(y, m, d) {
-  const dow    = DOW_KEY[new Date(y, m, d).getDay()];
-  const dur    = st.svc?.duracion || 60;
-  const seen   = new Set();
-  const slots  = [];
+  const dow  = DOW_KEY[new Date(y, m, d).getDay()];
+  const dur  = st.svc?.duracion || 60;
+  const seen = new Set();
+  const slots = [];
 
+  // Si hay horario del negocio, usar sus bloques como fuente principal
+  if (horarioNegocio && horarioNegocio[dow]?.activo) {
+    const espsActivos = getEspsActivos();
+    for (const bloque of (horarioNegocio[dow].bloques || [])) {
+      let t = hToMin(bloque.desde);
+      const fin = hToMin(bloque.hasta);
+      while (t + dur <= fin) {
+        const hStr = minToH(t);
+        if (!seen.has(hStr)) {
+          seen.add(hStr);
+          // Asociar con el especialista seleccionado o marcar como 'any'
+          const espId  = (st.prof && st.prof.id !== 'any') ? st.prof.id  : 'any';
+          const espNom = (st.prof && st.prof.id !== 'any') ? st.prof.nombre : '';
+          slots.push({ h: hStr, espId, espNom });
+        }
+        t += dur;
+      }
+    }
+    return slots.sort((a, b) => a.h.localeCompare(b.h));
+  }
+
+  // Fallback: usar horario de cada especialista
   for (const esp of getEspsActivos()) {
     for (const bloque of (esp.horario?.[dow]?.bloques || [])) {
-      let t   = hToMin(bloque.desde);
+      let t = hToMin(bloque.desde);
       const fin = hToMin(bloque.hasta);
       while (t + dur <= fin) {
         const hStr = minToH(t);
