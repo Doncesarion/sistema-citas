@@ -1021,28 +1021,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <span id="prof-label" style="flex:1">Todos los profesionales</span>
         <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.4;flex-shrink:0"><path d="M1 1l4 4 4-4"/></svg>
       </button>
-      <!-- Dropdown -->
+      <!-- Dropdown — llenado dinámicamente por renderProfDrop() -->
       <div id="prof-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--b2);border-radius:var(--rl);box-shadow:var(--sh3);z-index:300;overflow:hidden">
-        <div onclick="setProf('todos')" style="display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s;border-bottom:1px solid var(--b1)" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
-          <div style="width:22px;height:22px;border-radius:50%;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--a);flex-shrink:0">3</div>
-          <div><div style="font-weight:500">Todos</div><div style="font-size:11px;color:var(--t3)">3 profesionales activos</div></div>
-          <div id="check-todos" style="margin-left:auto;color:var(--a);font-size:14px">✓</div>
-        </div>
-        <div onclick="setProf('cesar')" style="display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s;border-bottom:1px solid var(--b1)" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
-          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0">CS</div>
-          <div><div style="font-weight:500" id="nav-nombre">cesar salinas</div><div style="font-size:11px;color:var(--t3)">Psicólogo · 8 citas/sem</div></div>
-          <div id="check-cesar" style="margin-left:auto;color:var(--a);font-size:14px;display:none">✓</div>
-        </div>
-        <div onclick="setProf('maria')" style="display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s;border-bottom:1px solid var(--b1)" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
-          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--green),#22C55E);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0">MJ</div>
-          <div><div style="font-weight:500">maría jose</div><div style="font-size:11px;color:var(--t3)">Nutricionista · 5 citas/sem</div></div>
-          <div id="check-maria" style="margin-left:auto;color:var(--a);font-size:14px;display:none">✓</div>
-        </div>
-        <div onclick="setProf('juan')" style="display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
-          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--amber),#FBBF24);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0">JP</div>
-          <div><div style="font-weight:500">juan pablo</div><div style="font-size:11px;color:var(--t3)">Barbero · 6 citas/sem</div></div>
-          <div id="check-juan" style="margin-left:auto;color:var(--a);font-size:14px;display:none">✓</div>
-        </div>
+        <div style="font-size:12px;color:var(--t3);padding:10px 12px">Cargando...</div>
       </div>
     </div>
   </div>
@@ -4000,7 +3981,7 @@ function renderDiaView(date) {
         const full  = evNombreFull(abrev);
         const ini   = evIniciales(full);
         const hEnd  = `${String(parseInt(slotTime)+1).padStart(2,'0')}:00`;
-        return `<div class="ev ${ev.cls}" style="position:absolute;top:4px;left:3px;right:8px;height:44px" onclick="openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:8px;height:44px" onclick="openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
       }).join('');
       html += `<div class="slot">${evHtml}</div>`;
     });
@@ -4100,7 +4081,7 @@ function renderWeekBody() {
         var ini   = evIniciales(full);
         var hr    = parseInt(HOURS[s].split(':')[0]);
         var hEnd  = (hr + 1 < 10 ? '0' : '') + (hr + 1) + ':00';
-        evHtml += '<div class="ev ' + cur.cls + '" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="openFicha(\'' +
+        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="openFicha(\'' +
                   full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
@@ -4225,7 +4206,7 @@ function renderLista() {
       const color = EV_COLORS[ev.cls] || 'var(--a)';
       const tagCls = TAG_MAP[ev.cls] || 'tn';
       const tagLbl = TAG_LABEL[ev.cls] || 'Reservada';
-      return `<div class="lista-row" onclick="openFicha('${full}','${ini}','')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+      return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
     }).join('');
 
     return `<div><div style="${headStyle}">${badge}${dayLabel}</div><div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--b1);border-radius:var(--rl);background:var(--b1);box-shadow:var(--sh1)">${rows}</div></div>`;
@@ -4341,49 +4322,74 @@ function navCal(dir) {
   }
 }
 
-// Filtro por profesional — con filtrado real de eventos
-const profData = {
-  todos: {label:'Todos los profesionales', badge:'3'},
-  cesar: {label:'cesar salinas', badge:''},
-  maria: {label:'maría jose', badge:''},
-  juan:  {label:'juan pablo', badge:''},
-};
+// Filtro por profesional — dinámico desde _agendaEsps
+let _agendaEsps = [];
 let currentProf = 'todos';
+const _PROF_GRADS = [
+  'linear-gradient(135deg,var(--a),var(--a3))',
+  'linear-gradient(135deg,var(--green),#22C55E)',
+  'linear-gradient(135deg,var(--amber),#FBBF24)',
+  'linear-gradient(135deg,#EC4899,#F472B6)',
+  'linear-gradient(135deg,#06B6D4,#22D3EE)',
+  'linear-gradient(135deg,#8B5CF6,#A78BFA)',
+];
+
+function renderProfDrop() {
+  const drop = document.getElementById('prof-drop');
+  if (!drop) return;
+  const n = _agendaEsps.length;
+  const rowStyle = 'display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--t1);transition:background .1s;border-bottom:1px solid var(--b1)';
+  let html = `<div onclick="setProf('todos')" style="${rowStyle}" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
+    <div style="width:22px;height:22px;border-radius:50%;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--a);flex-shrink:0" id="prof-badge-todos">${n}</div>
+    <div><div style="font-weight:500">Todos</div><div style="font-size:11px;color:var(--t3)">${n} profesional${n!==1?'es':''} activo${n!==1?'s':''}</div></div>
+    <div id="check-todos" style="margin-left:auto;color:var(--a);font-size:14px">✓</div>
+  </div>`;
+  _agendaEsps.forEach((esp, i) => {
+    const ini = esp.nombre.trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const grad = _PROF_GRADS[i % _PROF_GRADS.length];
+    const isLast = i === _agendaEsps.length - 1;
+    html += `<div onclick="setProf('${esp.id}')" style="${isLast ? rowStyle.replace('border-bottom:1px solid var(--b1)','') : rowStyle}" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
+      <div style="width:22px;height:22px;border-radius:50%;background:${grad};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0">${ini}</div>
+      <div><div style="font-weight:500">${esp.nombre}</div><div style="font-size:11px;color:var(--t3)">${esp.especialidad||'Profesional'}</div></div>
+      <div id="check-prof-${esp.id}" style="margin-left:auto;color:var(--a);font-size:14px;display:none">✓</div>
+    </div>`;
+  });
+  drop.innerHTML = html;
+  // Restore checkmark for currentProf
+  const ck = document.getElementById(currentProf === 'todos' ? 'check-todos' : 'check-prof-' + currentProf);
+  if (ck) ck.style.display = 'block';
+}
 
 function setProf(prof) {
   currentProf = prof;
 
-  // Update checkmarks in dropdown
-  ['todos','cesar','maria','juan'].forEach(p => {
-    const c = document.getElementById('check-' + p);
-    if (c) c.style.display = p === prof ? 'block' : 'none';
+  // Update checkmarks
+  document.getElementById('check-todos') && (document.getElementById('check-todos').style.display = prof === 'todos' ? 'block' : 'none');
+  _agendaEsps.forEach(esp => {
+    const ck = document.getElementById('check-prof-' + esp.id);
+    if (ck) ck.style.display = esp.id === prof ? 'block' : 'none';
   });
 
   // Update label
-  const profName = profData[prof]?.label || 'Todos los profesionales';
+  const esp = _agendaEsps.find(e => e.id === prof);
+  const label = prof === 'todos' ? 'Todos los profesionales' : (esp?.nombre || 'Todos los profesionales');
   const lbl = document.getElementById('prof-label');
-  if (lbl) lbl.textContent = profName;
+  if (lbl) lbl.textContent = label;
 
-  // Filter calendar events by data-prof
+  // Filter calendar events by data-prof attribute (UUID)
   document.querySelectorAll('.ev[data-prof]').forEach(ev => {
-    const evProf = ev.getAttribute('data-prof');
-    const visible = prof === 'todos' || evProf === prof;
+    const visible = prof === 'todos' || ev.getAttribute('data-prof') === prof;
     ev.style.opacity = visible ? '' : '0.08';
     ev.style.pointerEvents = visible ? '' : 'none';
   });
 
-  // Filter lista rows by data-prof in meta text (name of professional)
-  const profNames = {cesar:'cesar salinas', maria:'maría jose', juan:'juan pablo'};
-  document.querySelectorAll('.lista-row').forEach(row => {
-    const meta = row.querySelector('.lista-meta')?.textContent || '';
-    if (prof === 'todos') {
-      row.style.display = '';
-    } else {
-      row.style.display = meta.includes(profNames[prof]) ? '' : 'none';
-    }
+  // Filter lista rows by data-prof attribute (UUID)
+  document.querySelectorAll('.lista-row[data-prof]').forEach(row => {
+    const visible = prof === 'todos' || row.getAttribute('data-prof') === prof;
+    row.style.display = visible ? '' : 'none';
   });
 
-  toast('Filtrando: ' + profName);
+  toast('Filtrando: ' + label);
   closeProfDrop();
 }
 
@@ -5421,25 +5427,34 @@ async function cargarCitasSupabase() {
     const cid = await getClienteId();
     if (!cid) return;
 
-    // 2. Traer todas las citas (con datos del especialista)
-    const r2 = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.asc,hora.asc`, { headers: _SH });
+    // 2. Traer especialistas activos y construir dropdown
+    const rEsp = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id,nombre,especialidad&order=nombre.asc`, { headers: _SH });
+    const esps = await rEsp.json();
+    if (Array.isArray(esps)) {
+      _agendaEsps = esps;
+      renderProfDrop();
+    }
+
+    // 3. Traer todas las citas (con datos del especialista)
+    const r2 = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(id,nombre)&order=fecha.asc,hora.asc`, { headers: _SH });
     const citas = await r2.json();
     if (!Array.isArray(citas)) return;
 
-    // 3. Construir mesEvents desde citas reales y agregar a los existentes
+    // 4. Construir mesEvents desde citas reales
     citas.forEach(c => {
       const [y, mStr, d] = c.fecha.split('-').map(Number);
-      const m = mStr - 1; // JS months 0-indexed
+      const m = mStr - 1;
       const key = `${y}-${m}-${d}`;
       const espNom = c.especialistas?.nombre || c.nombre_paciente;
+      const espId  = c.especialistas?.id || c.especialista_id || '';
       const parts  = c.nombre_paciente.trim().split(' ');
       const abrev  = `${parts[0]} ${(parts[1]||'')[0]||''}.`.trim();
       const lbl    = `${abrev} ${c.hora}`;
-      const cls_   = profColor(espNom);
+      const espIdx = _agendaEsps.findIndex(e => e.id === espId);
+      const cls_   = espIdx >= 0 ? (['ev-p','ev-g','ev-a','ev-b','ev-t','ev-r'][espIdx % 6]) : profColor(espNom);
       if (!mesEvents[key]) mesEvents[key] = [];
-      // Evitar duplicados
       if (!mesEvents[key].some(e => e.lbl === lbl)) {
-        mesEvents[key].push({ cls: cls_, lbl, id: c.id, real: true });
+        mesEvents[key].push({ cls: cls_, lbl, id: c.id, espId, real: true });
       }
     });
 
