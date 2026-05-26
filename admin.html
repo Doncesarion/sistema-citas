@@ -4626,23 +4626,12 @@ async function saveNegocio() {
   try {
     const cid = await getClienteId();
     if (!cid) { toast('⚠ No se pudo identificar la cuenta'); return; }
-
-    // Campos seguros que existen en la tabla
-    const safe = { nombre_negocio: nombre, contacto_tel: tel, direccion: dir };
-    await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
       method: 'PATCH',
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify(safe)
+      body: JSON.stringify({ nombre_negocio: nombre, contacto_tel: tel, direccion: dir, descripcion: desc, ciudad })
     });
-
-    // Campos opcionales (descripcion, ciudad, logo_url) — guardar si la columna existe
-    try {
-      await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
-        method: 'PATCH',
-        headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-        body: JSON.stringify({ descripcion: desc, ciudad })
-      });
-    } catch(_) {}
+    if (!r.ok) throw new Error(await r.text());
   } catch(e) {
     console.error('saveNegocio error', e);
     toast('⚠ Error al guardar');
