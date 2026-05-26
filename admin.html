@@ -1668,84 +1668,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Puedes agregar múltiples bloques por día, por ejemplo 08:00–14:00 y 15:00–19:00 (pausa almuerzo).</div>
         <div style="display:flex;flex-direction:column;gap:12px" id="hor-dias">
 
-          <!-- LUNES -->
-          <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)">
-              <div style="display:flex;align-items:center;gap:10px">
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked onchange="toggleDia('lun',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)" id="lbl-lun-d">Lunes</span></label>
-                <span style="font-size:11px;color:var(--t3)" id="lbl-lun">Abierto</span>
-              </div>
-              <button onclick="addBloque('lun')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button>
-            </div>
-            <div id="bloques-lun">
-              <div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b1)">
-                <span style="font-size:12px;color:var(--t3);min-width:52px">Bloque 1</span>
-                <select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option>07:00</option><option>08:00</option><option selected>09:00</option><option>10:00</option></select>
-                <span style="font-size:12px;color:var(--t3)">hasta</span>
-                <select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option>13:00</option><option>14:00</option><option>18:00</option><option selected>19:00</option><option>20:00</option></select>
-                <button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:2px 4px" title="Eliminar bloque">×</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- MARTES -->
-          <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)">
-              <div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked onchange="toggleDia('mar',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Martes</span></label><span style="font-size:11px;color:var(--t3)" id="lbl-mar">Abierto</span></div>
-              <button onclick="addBloque('mar')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button>
-            </div>
-            <div id="bloques-mar"><div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px"><span style="font-size:12px;color:var(--t3);min-width:52px">Bloque 1</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>09:00</option></select><span style="font-size:12px;color:var(--t3)">hasta</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>19:00</option></select><button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px">×</button></div></div>
-          </div>
-
-          <!-- MIÉRCOLES -->
-          <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)">
-              <div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked onchange="toggleDia('mie',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Miércoles</span></label><span style="font-size:11px;color:var(--t3)" id="lbl-mie">Abierto</span></div>
-              <button onclick="addBloque('mie')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button>
-            </div>
-            <div id="bloques-mie"><div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px"><span style="font-size:12px;color:var(--t3);min-width:52px">Bloque 1</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option>08:00</option><option selected>09:00</option></select><span style="font-size:12px;color:var(--t3)">hasta</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option>14:00</option><option selected>19:00</option></select><button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px">×</button></div></div>
-          </div>
-
-          <!-- JUEVES -->
-          <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)">
-              <div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked onchange="toggleDia('jue',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Jueves</span></label><span style="font-size:11px;color:var(--t3)" id="lbl-jue">Abierto</span></div>
-              <button onclick="addBloque('jue')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button>
-            </div>
-            <div id="bloques-jue"><div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px"><span style="font-size:12px;color:var(--t3);min-width:52px">Bloque 1</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>09:00</option></select><span style="font-size:12px;color:var(--t3)">hasta</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>19:00</option></select><button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px">×</button></div></div>
-          </div>
-
-          <!-- VIERNES -->
-          <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)">
-              <div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked onchange="toggleDia('vie',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Viernes</span></label><span style="font-size:11px;color:var(--t3)" id="lbl-vie">Abierto</span></div>
-              <button onclick="addBloque('vie')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button>
-            </div>
-            <div id="bloques-vie"><div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px"><span style="font-size:12px;color:var(--t3);min-width:52px">Bloque 1</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>08:00</option><option>09:00</option></select><span style="font-size:12px;color:var(--t3)">hasta</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>14:00</option><option>19:00</option></select><button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px">×</button></div>
-            <!-- Bloque 2 de ejemplo mostrando pausa almuerzo -->
-            <div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--b1)"><span style="font-size:12px;color:var(--t3);min-width:52px">Bloque 2</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>15:00</option></select><span style="font-size:12px;color:var(--t3)">hasta</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>19:00</option></select><button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px">×</button></div></div>
-          </div>
-
-          <!-- SÁBADO -->
-          <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)">
-              <div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked onchange="toggleDia('sab',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Sábado</span></label><span style="font-size:11px;color:var(--t3)" id="lbl-sab">Abierto</span></div>
-              <button onclick="addBloque('sab')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button>
-            </div>
-            <div id="bloques-sab"><div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px"><span style="font-size:12px;color:var(--t3);min-width:52px">Bloque 1</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>10:00</option></select><span style="font-size:12px;color:var(--t3)">hasta</span><select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px"><option selected>15:00</option></select><button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px">×</button></div></div>
-          </div>
-
-          <!-- DOMINGO -->
-          <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden;opacity:.6">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.4)">
-              <div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" onchange="toggleDia('dom',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t2)">Domingo</span></label><span style="font-size:11px;color:var(--red)" id="lbl-dom">Cerrado</span></div>
-              <button onclick="addBloque('dom')" style="font-size:11px;color:var(--t3);border:1px dashed var(--b1);background:none;padding:3px 10px;border-radius:5px;cursor:pointer" disabled>+ Agregar bloque</button>
-            </div>
-          </div>
+          <!-- Días renderizados dinámicamente por loadHorario() -->
+          <div id="hor-lun" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-lun" onchange="toggleDia('lun',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Lunes</span></label><span style="font-size:11px;color:var(--red)" id="lbl-lun">Cerrado</span></div><button onclick="addBloque('lun')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button></div><div id="bloques-lun"></div></div>
+          <div id="hor-mar" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-mar" onchange="toggleDia('mar',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Martes</span></label><span style="font-size:11px;color:var(--red)" id="lbl-mar">Cerrado</span></div><button onclick="addBloque('mar')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button></div><div id="bloques-mar"></div></div>
+          <div id="hor-mie" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-mie" onchange="toggleDia('mie',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Miércoles</span></label><span style="font-size:11px;color:var(--red)" id="lbl-mie">Cerrado</span></div><button onclick="addBloque('mie')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button></div><div id="bloques-mie"></div></div>
+          <div id="hor-jue" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-jue" onchange="toggleDia('jue',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Jueves</span></label><span style="font-size:11px;color:var(--red)" id="lbl-jue">Cerrado</span></div><button onclick="addBloque('jue')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button></div><div id="bloques-jue"></div></div>
+          <div id="hor-vie" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-vie" onchange="toggleDia('vie',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Viernes</span></label><span style="font-size:11px;color:var(--red)" id="lbl-vie">Cerrado</span></div><button onclick="addBloque('vie')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button></div><div id="bloques-vie"></div></div>
+          <div id="hor-sab" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-sab" onchange="toggleDia('sab',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Sábado</span></label><span style="font-size:11px;color:var(--red)" id="lbl-sab">Cerrado</span></div><button onclick="addBloque('sab')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button></div><div id="bloques-sab"></div></div>
+          <div id="hor-dom" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden;opacity:.6"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.4)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-dom" onchange="toggleDia('dom',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t2)">Domingo</span></label><span style="font-size:11px;color:var(--red)" id="lbl-dom">Cerrado</span></div><button onclick="addBloque('dom')" style="font-size:11px;color:var(--t3);border:1px dashed var(--b1);background:none;padding:3px 10px;border-radius:5px;cursor:pointer" disabled>+ Agregar bloque</button></div><div id="bloques-dom"></div></div>
 
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:16px">
-          <button class="btn-a" onclick="toast('✓ Horario guardado correctamente')">Guardar horario</button>
+          <button class="btn-a" onclick="saveHorario()">Guardar horario</button>
         </div>
       </div>
     </div>
@@ -3124,6 +3058,7 @@ function showCfg(panel, btn, skipPush) {
   if (panel === 'chatbot')       loadBotConfig();
   if (panel === 'facturacion')   cargarFacturacion();
   if (panel === 'canales')       cargarCanales();
+  if (panel === 'horarios')      loadHorario();
   if (!skipPush) history.pushState({ section:'config', sub: panel }, '', '/configuracion/' + panel);
 }
 
@@ -3828,7 +3763,80 @@ async function deleteProfDirect(id) {
 /* ════ HORARIOS ════ */
 function toggleDia(dia, cb) {
   const lbl = document.getElementById('lbl-' + dia);
-  if (lbl) lbl.textContent = cb.checked ? 'Abierto' : 'Cerrado';
+  if (lbl) { lbl.textContent = cb.checked ? 'Abierto' : 'Cerrado'; lbl.style.color = cb.checked ? 'var(--t3)' : 'var(--red)'; }
+  const bloques = document.getElementById('bloques-' + dia);
+  if (bloques) { bloques.style.opacity = cb.checked ? '' : '.35'; bloques.style.pointerEvents = cb.checked ? '' : 'none'; }
+}
+
+const _HOR_TIMES = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+function _bloqueRowNeg(desde, hasta) {
+  const opts = (sel) => _HOR_TIMES.map(t => `<option${t===sel?' selected':''}>${t}</option>`).join('');
+  const n = document.querySelectorAll('#bloques-' + '__TMP__' + ' .bloque-row').length + 1;
+  return `<div class="bloque-row" style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--b1)">
+    <span style="font-size:12px;color:var(--t3);min-width:52px">Bloque</span>
+    <select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px">${opts(desde)}</select>
+    <span style="font-size:12px;color:var(--t3)">hasta</span>
+    <select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px">${opts(hasta)}</select>
+    <button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:2px 4px">×</button>
+  </div>`;
+}
+
+const _HOR_DIAS = ['lun','mar','mie','jue','vie','sab','dom'];
+
+async function loadHorario() {
+  try {
+    const cid = await getClienteId();
+    if (!cid) return;
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=horario_negocio&limit=1`, { headers: _SH });
+    const rows = await r.json();
+    const h = (Array.isArray(rows) && rows[0]?.horario_negocio) ? rows[0].horario_negocio : {};
+    _HOR_DIAS.forEach(dia => {
+      const d = h[dia] || { activo: false, bloques: [] };
+      const chk = document.getElementById('chk-' + dia);
+      const lbl = document.getElementById('lbl-' + dia);
+      const blkEl = document.getElementById('bloques-' + dia);
+      if (chk) chk.checked = !!d.activo;
+      if (lbl) { lbl.textContent = d.activo ? 'Abierto' : 'Cerrado'; lbl.style.color = d.activo ? 'var(--t3)' : 'var(--red)'; }
+      if (blkEl) {
+        blkEl.style.opacity = d.activo ? '' : '.35';
+        blkEl.style.pointerEvents = d.activo ? '' : 'none';
+        blkEl.innerHTML = (d.bloques || []).map(b => _bloqueRowNeg(b.desde, b.hasta)).join('');
+      }
+    });
+  } catch(e) { console.warn('loadHorario error', e); }
+}
+
+async function saveHorario() {
+  const h = {};
+  _HOR_DIAS.forEach(dia => {
+    const chk = document.getElementById('chk-' + dia);
+    const blkEl = document.getElementById('bloques-' + dia);
+    const activo = chk?.checked || false;
+    const bloques = [];
+    if (blkEl) {
+      blkEl.querySelectorAll('.bloque-row').forEach(row => {
+        const sels = row.querySelectorAll('select');
+        if (sels.length >= 2) bloques.push({ desde: sels[0].value, hasta: sels[1].value });
+      });
+    }
+    h[dia] = { activo, bloques };
+  });
+  try {
+    const cid = await getClienteId();
+    if (!cid) return;
+    await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ horario_negocio: h })
+    });
+    toast('✓ Horario guardado');
+  } catch(e) { console.error('saveHorario error', e); toast('⚠ Error al guardar horario'); }
+}
+
+function addBloque(dia) {
+  const container = document.getElementById('bloques-' + dia);
+  if (!container) return;
+  container.insertAdjacentHTML('beforeend', _bloqueRowNeg('09:00', '18:00'));
 }
 
 /* ════ ESTADO RESERVA MODAL ════ */
@@ -4465,31 +4473,14 @@ function openCfgModal(key) {
   const ov = document.getElementById('cfg-' + key + '-ov');
   if (ov) ov.classList.add('open');
   if (key === 'integraciones') { cargarApiKey(); cargarEstadoGoogleCalendar(); }
+  if (key === 'negocio') loadNegocio();
 }
 function closeCfgModal(key) {
   const ov = document.getElementById('cfg-' + key + '-ov');
   if (ov) ov.classList.remove('open');
 }
 
-/* ════ HORARIOS — agregar bloque por día ════ */
-function addBloque(dia) {
-  const container = document.getElementById('bloques-' + dia);
-  if (!container) return;
-  const count = container.querySelectorAll('.bloque-row').length + 1;
-  const div = document.createElement('div');
-  div.className = 'bloque-row';
-  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--b1)';
-  div.innerHTML = `<span style="font-size:12px;color:var(--t3);min-width:52px">Bloque ${count}</span>
-    <select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px">
-      <option>07:00</option><option>08:00</option><option selected>09:00</option><option>10:00</option><option>14:00</option><option>15:00</option><option>16:00</option>
-    </select>
-    <span style="font-size:12px;color:var(--t3)">hasta</span>
-    <select class="fs" style="flex:1;font-size:12px;padding:5px 24px 5px 9px">
-      <option>12:00</option><option>14:00</option><option selected>18:00</option><option>19:00</option><option>20:00</option>
-    </select>
-    <button onclick="this.parentElement.remove()" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px">×</button>`;
-  container.appendChild(div);
-}
+/* addBloque — definido en sección loadHorario / saveHorario */
 
 /* ════ FOTO ════ */
 function handleFoto(input) {
@@ -4607,18 +4598,66 @@ function copyLink() {
 }
 
 /* ════ GUARDAR NEGOCIO ════ */
-function saveNegocio() {
-  const nombre = document.getElementById('neg-nombre')?.value.trim();
+async function loadNegocio() {
+  try {
+    const cid = await getClienteId();
+    if (!cid) return;
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,contacto_tel,direccion,descripcion,ciudad,logo_url&limit=1`, { headers: _SH });
+    const rows = await r.json();
+    const d = Array.isArray(rows) ? rows[0] : null;
+    if (!d) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set('neg-nombre', d.nombre_negocio);
+    set('neg-tel',    d.contacto_tel);
+    set('neg-dir',    d.direccion);
+    set('neg-desc',   d.descripcion);
+    set('neg-ciudad', d.ciudad);
+    if (d.logo_url) applyLogo(d.logo_url);
+  } catch(e) { console.warn('loadNegocio error', e); }
+}
+
+async function saveNegocio() {
+  const nombre  = document.getElementById('neg-nombre')?.value.trim() || '';
+  const tel     = document.getElementById('neg-tel')?.value.trim()    || '';
+  const dir     = document.getElementById('neg-dir')?.value.trim()    || '';
+  const desc    = document.getElementById('neg-desc')?.value.trim()   || '';
+  const ciudad  = document.getElementById('neg-ciudad')?.value.trim() || '';
+
+  try {
+    const cid = await getClienteId();
+    if (!cid) { toast('⚠ No se pudo identificar la cuenta'); return; }
+
+    // Campos seguros que existen en la tabla
+    const safe = { nombre_negocio: nombre, contacto_tel: tel, direccion: dir };
+    await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify(safe)
+    });
+
+    // Campos opcionales (descripcion, ciudad, logo_url) — guardar si la columna existe
+    try {
+      await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+        method: 'PATCH',
+        headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ descripcion: desc, ciudad })
+      });
+    } catch(_) {}
+  } catch(e) {
+    console.error('saveNegocio error', e);
+    toast('⚠ Error al guardar');
+    return;
+  }
+
+  // Actualizar nav
   if (nombre) {
-    // Actualiza nombre en nav
     const navName = document.querySelector('.nav-name');
     if (navName) navName.textContent = nombre.toLowerCase();
-    // Actualiza mark (iniciales) solo si no hay logo
     const navMark = document.querySelector('.nav-mark');
     if (navMark && !navMark.querySelector('img')) navMark.textContent = nombre.slice(0,2).toLowerCase();
   }
   closeCfgModal('negocio');
-  toast('✓ Datos del negocio actualizados');
+  toast('✓ Datos del negocio guardados');
 }
 
 /* ════ GUARDAR SITIO ════ */
@@ -5283,13 +5322,13 @@ function salirImpersonacion() {
   <div class="modal" style="width:520px">
     <div class="modal-head"><span class="modal-title">Mi negocio</span><button class="mclose" onclick="closeCfgModal('negocio')">×</button></div>
     <div class="mbody" style="gap:14px">
-      <div class="fg"><label class="fl">Nombre del negocio</label><input class="fi" id="neg-nombre" value="Studio Norte"></div>
-      <div class="fg"><label class="fl">Descripción</label><textarea class="fi" rows="3" style="resize:none;line-height:1.6">Centro de salud y bienestar con atención personalizada.</textarea></div>
+      <div class="fg"><label class="fl">Nombre del negocio</label><input class="fi" id="neg-nombre" placeholder="Ej: Clínica Norte"></div>
+      <div class="fg"><label class="fl">Descripción</label><textarea class="fi" id="neg-desc" rows="3" style="resize:none;line-height:1.6" placeholder="Breve descripción de tu negocio..."></textarea></div>
       <div class="r2">
-        <div class="fg"><label class="fl">Ciudad</label><input class="fi" value="Santiago"></div>
-        <div class="fg"><label class="fl">Dirección</label><input class="fi" value="Av. Providencia 1234, Piso 3"></div>
+        <div class="fg"><label class="fl">Ciudad</label><input class="fi" id="neg-ciudad" placeholder="Ej: Santiago"></div>
+        <div class="fg"><label class="fl">Dirección</label><input class="fi" id="neg-dir" placeholder="Ej: Av. Providencia 1234"></div>
       </div>
-      <div class="fg"><label class="fl">Teléfono del negocio</label><input class="fi" value="+56 2 2345 6789" type="tel"></div>
+      <div class="fg"><label class="fl">Teléfono del negocio</label><input class="fi" id="neg-tel" placeholder="+56 9 1234 5678" type="tel"></div>
       <div class="fg"><label class="fl">Logo del negocio</label>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--b1);border-radius:var(--r);background:#fafafe">
           <div id="logo-preview" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;font-family:var(--mono);overflow:hidden;flex-shrink:0">tt</div>
