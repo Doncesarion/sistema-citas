@@ -199,12 +199,13 @@ function getChips(texto) {
 
 /* ─ INIT ─ */
 (async function init() {
-  const params = new URLSearchParams(window.location.search);
-  const cid    = params.get('cid');
-  const path   = window.location.pathname;
-  const slug   = path.startsWith('/reservar/')
+  const params    = new URLSearchParams(window.location.search);
+  const cid       = params.get('cid');
+  const slugParam = params.get('slug');
+  const path      = window.location.pathname;
+  const slug      = slugParam || (path.startsWith('/reservar/')
     ? path.split('/reservar/')[1]
-    : (path.replace(/^\//, '') || null);
+    : (path.replace(/^\//, '') || null));
 
   try {
     let rows;

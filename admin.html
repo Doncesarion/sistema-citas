@@ -5534,27 +5534,10 @@ async function manualRefresh() {
 
 async function getClienteId() {
   if (_ventasCid) return _ventasCid;
-  // 1. Desde localStorage (seteado al hacer login si usuarios.cliente_id está configurado)
   try {
     const s = localStorage.getItem('attempo_user');
-    if (s) { const u = JSON.parse(s); if (u.cliente_id) { _ventasCid = u.cliente_id; console.log('[getClienteId] desde localStorage:', _ventasCid); return _ventasCid; } }
+    if (s) { const u = JSON.parse(s); if (u.cliente_id) { _ventasCid = u.cliente_id; return _ventasCid; } }
   } catch(e) {}
-  // 2. Fallback: obtener el cliente más reciente activo (para evitar agarrar clientes de prueba viejos)
-  try {
-    let r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id,nombre_negocio&activo=eq.true&order=created_at.desc&limit=10`, { headers: _SH });
-    let cls = await r.json();
-    if (!Array.isArray(cls) || !cls.length) {
-      r = await fetch(`${_SURL}/rest/v1/clientes_sistema?select=id,nombre_negocio&order=created_at.desc&limit=10`, { headers: _SH });
-      cls = await r.json();
-    }
-    if (Array.isArray(cls) && cls.length) {
-      // Preferir el que tenga nombre real (no demo/prueba/ejemplo)
-      const real = cls.find(c => !/demo|prueba|ejemplo|test/i.test(c.nombre_negocio||'')) || cls[0];
-      _ventasCid = real.id;
-      console.log('[getClienteId] fallback — todos los clientes:', cls.map(c=>c.nombre_negocio), '→ usando:', real.nombre_negocio, real.id);
-      return _ventasCid;
-    }
-  } catch(e) { console.error('[getClienteId] error:', e); }
   return null;
 }
 

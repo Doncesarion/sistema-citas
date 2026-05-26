@@ -2,8 +2,18 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0;url=/login">
-  <script>window.location.replace('/login');</script>
+  <script>
+    (function() {
+      var path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
+      var adminPaths = ['login','admin','superadmin','reset-password','editor','landing','configuracion','ventas','reportes','agenda','clientes','accesos','gc-callback','privacidad','terminos','gestionar-cita','attempo-booking','attempo-dashboard','chat-frame','booking','reservar'];
+      var isAdmin = !path || adminPaths.indexOf(path.split('/')[0]) !== -1;
+      if (isAdmin) {
+        window.location.replace('/login');
+      } else {
+        window.location.replace('/booking?slug=' + encodeURIComponent(path.split('/').pop()));
+      }
+    })();
+  </script>
 </head>
 <body></body>
 </html>
