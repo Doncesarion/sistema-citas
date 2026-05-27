@@ -1043,6 +1043,7 @@ function resetear() {
 <script>
 let _attiaOpen = false;
 let _attiaHist = [];
+let _attiaReserva = null;
 
 function attiaToggle() {
   _attiaOpen = !_attiaOpen;
@@ -1096,7 +1097,30 @@ async function attiaEnviar(texto) {
       wrap.appendChild(div);
       wrap.scrollTop = wrap.scrollHeight;
     }
-    if (!resp && !d.slots_disponibles?.length) {
+    if (d.datos_reserva) {
+      _attiaReserva = d.datos_reserva;
+      const dr = d.datos_reserva;
+      const fecha = dr.fecha ? dr.fecha.split('-').reverse().join('/') : '—';
+      const wrap = document.getElementById('attia-msgs');
+      const card = document.createElement('div');
+      card.className = 'am-bot';
+      card.id = 'attia-card-reserva';
+      card.innerHTML = `
+        <div style="background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.2);border-radius:10px;padding:12px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8B7CF8;margin-bottom:8px">Resumen de tu reserva</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#1E1B3A">
+            <div>👤 ${dr.nombre_paciente || '—'}</div>
+            <div>🩺 ${dr.servicio || '—'}</div>
+            <div>👨‍⚕️ ${dr.nombre_especialista || '—'}</div>
+            <div>📅 ${fecha} · ${dr.hora || '—'}</div>
+            ${dr.precio ? `<div>💰 $${Number(dr.precio).toLocaleString('es-CL')}</div>` : ''}
+          </div>
+          <button id="attia-btn-confirmar" onclick="attiaConfirmar()" style="margin-top:10px;width:100%;padding:9px;border-radius:8px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">✓ Confirmar cita</button>
+        </div>`;
+      wrap.appendChild(card);
+      wrap.scrollTop = wrap.scrollHeight;
+    }
+    if (!resp && !d.slots_disponibles?.length && !d.datos_reserva) {
       _attiaAppend('bot', 'Sin respuesta. Intenta de nuevo.');
     }
   } catch {
@@ -1126,6 +1150,46 @@ function _attiaAppend(rol, texto) {
 function attiaSelHora(h) {
   document.getElementById('attia-input').value = h;
   attiaSend();
+}
+async function attiaConfirmar() {
+  const dr = _attiaReserva;
+  if (!dr) return;
+  const btn = document.getElementById('attia-btn-confirmar');
+  btn.disabled = true;
+  btn.textContent = 'Reservando...';
+  try {
+    const r = await fetch('/api/crear-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cliente_id:          clienteId,
+        especialista_id:     dr.especialista_id,
+        nombre_especialista: dr.nombre_especialista,
+        nombre_paciente:     dr.nombre_paciente,
+        email_paciente:      dr.email_paciente  || null,
+        tel_paciente:        dr.tel_paciente    || null,
+        servicio:            dr.servicio,
+        fecha:               dr.fecha,
+        hora:                dr.hora,
+        duracion:            dr.duracion        || null,
+        precio:              dr.precio          || null
+      })
+    });
+    const data = await r.json();
+    if (data.ok || data.id) {
+      document.getElementById('attia-card-reserva').innerHTML =
+        '<div style="color:#16a34a;font-weight:600;font-size:13px;padding:4px 0">✓ ¡Cita reservada! Recibirás un email de confirmación.</div>';
+      _attiaAppend('bot', '¡Todo listo! Tu cita quedó agendada. ¿Hay algo más en lo que pueda ayudarte?');
+    } else {
+      btn.disabled = false;
+      btn.textContent = '✓ Confirmar cita';
+      _attiaAppend('bot', 'Hubo un problema al crear la cita. ¿Puedes intentarlo de nuevo?');
+    }
+  } catch {
+    btn.disabled = false;
+    btn.textContent = '✓ Confirmar cita';
+    _attiaAppend('bot', 'Error de conexión. ¿Puedes intentarlo de nuevo?');
+  }
 }
 function _attiaTyping() {
   const wrap = document.getElementById('attia-msgs');
