@@ -6849,7 +6849,7 @@ function renderRepKPIs(lista) {
   const total    = lista.length;
   const pagadas  = lista.filter(c => c.estado_pago === 'pagado');
   const ing      = pagadas.reduce((s,c) => s+(Number(c.precio)||0), 0);
-  const canceladas = lista.filter(c => c.estado === 'cancelada' || c.estado === 'inasistencia');
+  const canceladas = lista.filter(c => ['cancelada','canceled','cancelled','inasistencia','no-show','no_show'].includes(c.estado));
   const tasaCancel = total > 0 ? Math.round(canceladas.length / total * 100) : 0;
   const pacientes  = new Set(lista.map(c => c.email_paciente || c.nombre_paciente).filter(Boolean));
   const $ = id => document.getElementById(id);
@@ -6959,10 +6959,10 @@ function renderRepEstado(lista) {
   const el = document.getElementById('rep-hb-estado');
   if (!el) return;
   const total    = lista.length || 1;
-  const conf     = lista.filter(c=>c.estado==='confirmada'||c.estado==='completada').length;
-  const pend     = lista.filter(c=>!c.estado||c.estado==='pendiente').length;
-  const cancel   = lista.filter(c=>c.estado==='cancelada').length;
-  const inas     = lista.filter(c=>c.estado==='inasistencia').length;
+  const conf     = lista.filter(c=>['confirmada','completada','completed','confirmed'].includes(c.estado)).length;
+  const pend     = lista.filter(c=>!c.estado||['pendiente','pending'].includes(c.estado)).length;
+  const cancel   = lista.filter(c=>['cancelada','canceled','cancelled'].includes(c.estado)).length;
+  const inas     = lista.filter(c=>['inasistencia','no-show','no_show'].includes(c.estado)).length;
   const pct = v => Math.round(v/total*100);
   el.innerHTML = `
     <div class="hb-item"><div class="hb-hd"><span class="hb-name">✓ Confirmadas</span><span class="hb-val">${conf} (${pct(conf)}%)</span></div><div class="hb-track"><div class="hb-fill hb-green" style="width:${pct(conf)}%"></div></div></div>
@@ -7015,13 +7015,20 @@ function renderRepTablaDia() {
   if (label) label.textContent = hoy.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/, c=>c.toUpperCase());
   const citas = _allReportes.filter(c=>c.fecha===fechaStr).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
   if (!citas.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Sin citas este día</td></tr>'; return; }
-  const ETAG = { confirmada:'<span class="tag tg">Confirmada</span>', pendiente:'<span class="tag ta">Pendiente</span>', cancelada:'<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Cancelada</span>', inasistencia:'<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Inasistencia</span>' };
+  const _etag = (e) => {
+    if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta">Pendiente</span>';
+    if (e==='confirmada'||e==='confirmed') return '<span class="tag tg">Confirmada</span>';
+    if (e==='completada'||e==='completed') return '<span class="tag tg">Completada</span>';
+    if (e==='cancelada'||e==='canceled'||e==='cancelled') return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Cancelada</span>';
+    if (e==='inasistencia'||e==='no-show') return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Inasistencia</span>';
+    return `<span class="tag">${e}</span>`;
+  };
   tbody.innerHTML = citas.map(c => `<tr>
     <td style="font-family:var(--mono);font-size:12px;font-weight:600">${(c.hora||'—').slice(0,5)}</td>
     <td>${c.nombre_paciente||'—'}</td>
     <td style="color:var(--t2)">${c.servicio||'—'}</td>
     <td style="color:var(--t3)">${c.especialistas?.nombre||'—'}</td>
-    <td>${ETAG[c.estado]||ETAG.pendiente}</td>
+    <td>${_etag(c.estado)}</td>
   </tr>`).join('');
 }
 
@@ -7140,7 +7147,7 @@ async function loadClientesView() {
       if (!key) return;
       if (!map[key]) map[key] = { nombre: c.nombre_paciente.trim(), email: c.email_paciente||'', tel: c.tel_paciente||'', ultima: c.fecha, citas: 0, canceladas: 0, gasto: 0 };
       map[key].citas++;
-      if (c.estado === 'canceled') map[key].canceladas++;
+      if (['canceled','cancelada','cancelled'].includes(c.estado)) map[key].canceladas++;
       else map[key].gasto += (c.precio||0);
       if (c.fecha > map[key].ultima) map[key].ultima = c.fecha;
     });
