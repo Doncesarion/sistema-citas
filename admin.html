@@ -3659,8 +3659,7 @@ function closeEditProf() {
 }
 
 function _horOpts(selected) {
-  const HORAS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'];
-  return HORAS.map(t => `<option value="${t}"${t===selected?' selected':''}>${t}</option>`).join('');
+  return _HOR_TIMES.map(t => `<option value="${t}"${t===selected?' selected':''}>${t}</option>`).join('');
 }
 
 function _bloqueRow(desde, hasta) {
@@ -3850,7 +3849,7 @@ function toggleDia(dia, cb) {
   if (bloques) { bloques.style.opacity = cb.checked ? '' : '.35'; bloques.style.pointerEvents = cb.checked ? '' : 'none'; }
 }
 
-const _HOR_TIMES = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+const _HOR_TIMES = (()=>{const t=[];for(let h=0;h<24;h++){t.push(String(h).padStart(2,'0')+':00');t.push(String(h).padStart(2,'0')+':30');}t.push('23:59');return t;})();
 function _bloqueRowNeg(desde, hasta) {
   const opts = (sel) => _HOR_TIMES.map(t => `<option${t===sel?' selected':''}>${t}</option>`).join('');
   const n = document.querySelectorAll('#bloques-' + '__TMP__' + ' .bloque-row').length + 1;

@@ -846,13 +846,18 @@ function checkForm() {
 
 /* ── HORARIO ABIERTO/CERRADO ── */
 function checkHorario() {
-  const now  = new Date();
-  const dow  = DOW_KEY[now.getDay()];
-  const min  = now.getHours() * 60 + now.getMinutes();
-  const abierto = especialistas.some(e => {
-    if (!e.horario?.[dow]?.activo) return false;
-    return (e.horario[dow].bloques || []).some(b => min >= hToMin(b.desde) && min < hToMin(b.hasta));
-  });
+  const now = new Date();
+  const dow = DOW_KEY[now.getDay()];
+  const min = now.getHours() * 60 + now.getMinutes();
+  let abierto = false;
+  if (horarioNegocio && horarioNegocio[dow]?.activo) {
+    abierto = (horarioNegocio[dow].bloques || []).some(b => min >= hToMin(b.desde) && min < hToMin(b.hasta));
+  } else {
+    abierto = especialistas.some(e => {
+      if (!e.horario?.[dow]?.activo) return false;
+      return (e.horario[dow].bloques || []).some(b => min >= hToMin(b.desde) && min < hToMin(b.hasta));
+    });
+  }
   const badge = document.getElementById('biz-status');
   badge.classList.toggle('closed', !abierto);
   document.getElementById('biz-status-lbl').textContent = abierto ? 'Abierto ahora' : 'Cerrado';
