@@ -2895,20 +2895,23 @@ const clientData = {
 };
 
 function openFicha(name, initials, rubro) {
-  const d = clientData[name] || {
-    av: initials || name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(),
-    since:'2026', citas:1, gasto:15000, asist:'100%', email:'—', tel:'—'
-  };
+  const real = (window._clientesDataMap || {})[name] || (window._clientesDataMap || {})[name?.toLowerCase?.()];
+  let d;
+  if (real) {
+    const ini2 = initials || real.nombre.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const asistNum = real.citas > 0 ? Math.round((real.citas - real.canceladas) / real.citas * 100) : 100;
+    d = { av: ini2, since: real.ultima ? real.ultima.slice(0,4) : '2026', citas: real.citas, gasto: real.gasto, asist: asistNum + '%', email: real.email || '—', tel: real.tel || '—' };
+  } else {
+    d = clientData[name] || { av: initials || name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(), since:'2026', citas:1, gasto:0, asist:'100%', email:'—', tel:'—' };
+  }
   document.getElementById('fp-av').textContent = d.av;
   document.getElementById('fp-name').textContent = name;
   document.getElementById('fp-since').textContent = 'Cliente desde ' + d.since + (rubro ? ' · ' + rubro : '');
   document.getElementById('fps-citas').textContent = d.citas;
-  // Gasto en CLP real
   document.getElementById('fps-gasto').textContent = d.gasto.toLocaleString('es-CL');
-  // Asistencia con color
   const asEl = document.getElementById('fps-asist');
   asEl.textContent = d.asist;
-  asEl.style.color = d.asist === '100%' ? 'var(--green)' : d.asist === '75%' ? 'var(--amber)' : 'var(--red)';
+  asEl.style.color = d.asist === '100%' ? 'var(--green)' : parseInt(d.asist) >= 75 ? 'var(--amber)' : 'var(--red)';
   document.getElementById('fpi-email').textContent = d.email;
   document.getElementById('fpi-tel').textContent   = d.tel;
   document.getElementById('fpi-rut').textContent   = '—';
@@ -4924,7 +4927,8 @@ function renderVentasTable() {
     const estado = c.estado_pago === 'pagado'
       ? '<span class="tag tg">Pagado</span>'
       : '<span class="tag ta">Pendiente</span>';
-    const monto  = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
+    const montoVal = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
+    const monto = `<span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Editar monto" onclick="event.stopPropagation();openEditarMonto('${c.id}',${c.precio||0})">${montoVal}</span>`;
     const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente}));
     return `<tr style="cursor:pointer" onclick="openVentaDetalle(decodeURIComponent('${cJson}'))">
       <td style="font-family:var(--mono);font-size:12px">${fecha}</td>
@@ -6221,6 +6225,37 @@ async function saveAsignarMetodo() {
   } catch(_) { toast('Error al guardar'); }
 }
 
+let _editarMontoCitaId = null;
+function openEditarMonto(citaId, precioActual) {
+  _editarMontoCitaId = citaId;
+  const inp = document.getElementById('editar-monto-input');
+  inp.value = precioActual || '';
+  document.getElementById('editar-monto-ov').classList.add('open');
+  setTimeout(() => { inp.focus(); inp.select(); }, 80);
+}
+function closeEditarMonto() {
+  document.getElementById('editar-monto-ov').classList.remove('open');
+  _editarMontoCitaId = null;
+}
+async function saveEditarMonto() {
+  const precio = parseInt(document.getElementById('editar-monto-input').value) || 0;
+  if (!_editarMontoCitaId) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_editarMontoCitaId}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ precio: precio || null })
+    });
+    if (!r.ok) throw new Error();
+    const idx = _allVentas.findIndex(c => c.id === _editarMontoCitaId);
+    if (idx >= 0) _allVentas[idx].precio = precio || null;
+    renderVentasTable();
+    renderVentasKPIs();
+    closeEditarMonto();
+    toast('✓ Monto actualizado');
+  } catch(_) { toast('Error al guardar'); }
+}
+
 let _asignarProfCitaId = null;
 async function openAsignarProf(citaId) {
   _asignarProfCitaId = citaId;
@@ -7087,13 +7122,16 @@ async function loadClientesView() {
     citas.forEach(c => {
       const key = (c.nombre_paciente||'').trim().toLowerCase();
       if (!key) return;
-      if (!map[key]) map[key] = { nombre: c.nombre_paciente.trim(), email: c.email_paciente||'', tel: c.tel_paciente||'', ultima: c.fecha, citas: 0, gasto: 0 };
+      if (!map[key]) map[key] = { nombre: c.nombre_paciente.trim(), email: c.email_paciente||'', tel: c.tel_paciente||'', ultima: c.fecha, citas: 0, canceladas: 0, gasto: 0 };
       map[key].citas++;
-      if (c.estado !== 'canceled') map[key].gasto += (c.precio||0);
+      if (c.estado === 'canceled') map[key].canceladas++;
+      else map[key].gasto += (c.precio||0);
       if (c.fecha > map[key].ultima) map[key].ultima = c.fecha;
     });
 
     const lista = Object.values(map).sort((a,b) => b.ultima.localeCompare(a.ultima));
+    window._clientesDataMap = {};
+    lista.forEach(p => { window._clientesDataMap[p.nombre.trim()] = p; });
     const total = lista.length;
     const rec   = lista.filter(p => p.citas >= 2).length;
     const sc    = lista.filter(p => !p.email && !p.tel).length;
@@ -7489,6 +7527,25 @@ async function sendHelp() {
     <div class="mfoot">
       <button class="btn-g" onclick="closeAsignarMetodo()">Cancelar</button>
       <button class="btn-a" onclick="saveAsignarMetodo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR MONTO ══ -->
+<div class="overlay" id="editar-monto-ov" style="z-index:750" onclick="if(event.target===this)closeEditarMonto()">
+  <div class="modal" style="width:320px">
+    <div class="modal-head">
+      <span class="modal-title">Editar monto</span>
+      <button class="mclose" onclick="closeEditarMonto()">×</button>
+    </div>
+    <div class="mbody" style="gap:12px">
+      <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Monto ($)</label>
+        <input id="editar-monto-input" type="number" class="fi" style="width:100%" placeholder="0" min="0" onkeydown="if(event.key==='Enter')saveEditarMonto()">
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeEditarMonto()">Cancelar</button>
+      <button class="btn-a" onclick="saveEditarMonto()">Guardar</button>
     </div>
   </div>
 </div>

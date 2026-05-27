@@ -106,6 +106,8 @@ export default async function handler(req, res) {
           servicio:       servicio       || 'Consulta',
           fecha,
           hora,
+          duracion:       duracion       || null,
+          precio:         precio         || null,
           estado: 'pending'
         })
       });
