@@ -1411,9 +1411,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
       <table>
-        <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método de pago</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método de pago</th><th>Monto</th><th>Estado</th></tr></thead>
         <tbody id="ventas-tbody">
-          <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
+          <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
         </tbody>
       </table>
       <div id="ventas-pager" style="display:none;text-align:center;padding:12px 0">
@@ -4905,7 +4905,7 @@ function renderVentasTable() {
   if (!tbody) return;
 
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones en este período</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones en este período</td></tr>';
     if (pager) pager.style.display = 'none';
     return;
   }
@@ -4928,7 +4928,7 @@ function renderVentasTable() {
       ? '<span class="tag tg">Pagado</span>'
       : '<span class="tag ta">Pendiente</span>';
     const montoVal = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
-    const monto = `<span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Editar monto" onclick="event.stopPropagation();openEditarMonto('${c.id}',${c.precio||0})">${montoVal}</span>`;
+    const monto = `<span style="cursor:pointer" title="Editar monto" onclick="event.stopPropagation();openEditarMonto('${c.id}',${c.precio||0})">${montoVal} <span style="font-size:10px;opacity:.4">✎</span></span>`;
     const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente}));
     return `<tr style="cursor:pointer" onclick="openVentaDetalle(decodeURIComponent('${cJson}'))">
       <td style="font-family:var(--mono);font-size:12px">${fecha}</td>
@@ -4938,7 +4938,6 @@ function renderVentasTable() {
       <td>${metodo}</td>
       <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">${monto}</td>
       <td>${estado}</td>
-      <td><button class="btn-sm" style="font-size:11px;padding:2px 7px;color:var(--red,#e53e3e);border-color:var(--red,#e53e3e);opacity:.7" title="Eliminar" onclick="event.stopPropagation();eliminarVenta('${c.id}')">✕</button></td>
     </tr>`;
   }).join('');
 
