@@ -18,6 +18,7 @@ export default async function handler(req, res) {
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
   const body = req.body || {};
+  console.log('meta-webhook object:', body.object, '| entry[0].id:', body.entry?.[0]?.id, '| messaging:', JSON.stringify(body.entry?.[0]?.messaging?.[0]?.message)?.slice(0,80));
 
   // ── Parsear mensaje según canal ───────────────────────────────────────────
   let canal, canal_user_id, canal_user_name, mensaje, channelKey, channelValue;
