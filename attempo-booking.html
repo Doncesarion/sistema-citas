@@ -1080,7 +1080,7 @@ async function attiaEnviar(texto) {
     });
     const d = await r.json();
     typing.remove();
-    const resp = d.mensaje || d.reply || d.error || 'Sin respuesta. Intenta de nuevo.';
+    const resp = d.mensaje || (d.mostrar_calendario ? '¡Elige el día que te acomode! 📅' : null) || d.reply || d.error || 'Sin respuesta. Intenta de nuevo.';
     _attiaHist.push({ role: 'assistant', content: resp });
     _attiaAppend('bot', resp);
   } catch {

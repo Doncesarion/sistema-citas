@@ -119,7 +119,7 @@ export default async function handler(req, res) {
   if (metodosPago.efectivo)      pagosMethods.push('Efectivo en el local');
   const pagosTexto = pagosMethods.length ? pagosMethods.join(', ') : 'Sin métodos configurados';
 
-  const DIAS_LABEL = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
+  const DIAS_LABEL = { lun:'Lunes', mar:'Martes', mie:'Miércoles', jue:'Jueves', vie:'Viernes', sab:'Sábado', dom:'Domingo' };
   function horarioObjToTexto(h) {
     const lineas = Object.entries(DIAS_LABEL)
       .filter(([k]) => h[k]?.activo && h[k]?.bloques?.length)
