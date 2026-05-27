@@ -96,24 +96,27 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (!respuesta || !accessToken) return res.status(200).end();
+  console.log('meta-webhook: respuesta generada:', !!respuesta, '| accessToken:', !!accessToken, '| canal:', canal);
+  if (!respuesta || !accessToken) { console.log('meta-webhook: abortando envío — respuesta:', !!respuesta, 'token:', !!accessToken); return res.status(200).end(); }
 
   // ── Enviar respuesta al canal ─────────────────────────────────────────────
   try {
+    let sendRes;
     if (canal === 'whatsapp') {
-      await fetch(`https://graph.facebook.com/v19.0/${channelValue}/messages`, {
+      sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: respuesta } })
       });
     } else {
-      // Messenger o Instagram — mismo endpoint
-      await fetch(`https://graph.facebook.com/v19.0/me/messages`, {
+      sendRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: respuesta } })
       });
     }
+    const sendBody = await sendRes.text();
+    console.log('meta-webhook: send status:', sendRes.status, '| body:', sendBody.slice(0,120));
   } catch (e) {
     console.error('meta-webhook: error enviando respuesta:', e.message);
   }
