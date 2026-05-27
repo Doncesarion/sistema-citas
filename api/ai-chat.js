@@ -72,12 +72,9 @@ export default async function handler(req, res) {
 
   if (!cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
 
-  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;
   const SUPABASE_URL  = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
-
-  if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key no configurada' });
 
   // Pre-cargar especialistas y datos del negocio (evita llamadas extra por turno)
   let espLista = [];
