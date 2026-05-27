@@ -2490,18 +2490,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div><div class="fp-info-lbl">Cumpleaños</div><div class="fp-info-val">15 de marzo</div></div>
         <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
         <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
-        <div><div class="fp-info-lbl">Próxima cita</div><div class="fp-info-val accent">Sáb 3 mayo · 11:00</div></div>
-        <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val">cesar salinas</div></div>
+        <div><div class="fp-info-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
+        <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
       </div>
       <div style="height:1px;background:var(--b1)"></div>
       <div>
         <div class="fp-info-lbl" style="margin-bottom:9px">Servicio más reservado</div>
-        <div style="background:rgba(108,92,228,0.06);border:1px solid var(--b1);border-radius:var(--rl);padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
+        <div id="fpi-serv-top-wrap" style="background:rgba(108,92,228,0.06);border:1px solid var(--b1);border-radius:var(--rl);padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
           <div>
-            <div style="font-size:13px;font-weight:500;color:var(--t1)">Consulta Médica</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:2px">3 reservas · 30 min · $15.000 c/u</div>
+            <div style="font-size:13px;font-weight:500;color:var(--t1)" id="fpi-serv-top">—</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:2px" id="fpi-serv-top-sub">Sin citas</div>
           </div>
-          <span class="tag tg">3 citas</span>
+          <span class="tag tg" id="fpi-serv-top-tag">0</span>
         </div>
       </div>
       <div class="fp-actions">
@@ -2518,46 +2518,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <!-- Tab: Historial -->
     <div class="fp-body" id="ft-hist" style="display:none">
       <div class="tl-lbl">Historial de citas</div>
-      <div class="tl-item">
-        <div class="tl-dot ok">✓</div>
-        <div class="tl-card">
-          <div class="tl-card-hd"><span class="tl-serv">Consulta Médica</span><span class="tl-date">03/05/2026 · 11:00</span></div>
-          <div class="tl-meta">
-            <span class="tag tg" id="tl-est-1" onclick="openEstadoModal()" style="cursor:pointer" title="Cambiar estado">✓ Confirmada ▾</span>
-            <span class="tl-price">$15.000</span>
-            <span style="font-size:11px;color:var(--t3)">Online</span>
-          </div>
-        </div>
-      </div>
-      <div class="tl-item">
-        <div class="tl-dot ok">✓</div>
-        <div class="tl-card">
-          <div class="tl-card-hd"><span class="tl-serv">Consulta Médica</span><span class="tl-date">15/04/2026 · 10:00</span></div>
-          <div class="tl-meta">
-            <span class="tag tg" onclick="openEstadoModal()" style="cursor:pointer" title="Cambiar estado">✓ Confirmada ▾</span>
-            <span class="tl-price">$15.000</span>
-            <span style="font-size:11px;color:var(--t3)">Efectivo</span>
-          </div>
-        </div>
-      </div>
-      <div class="tl-item">
-        <div class="tl-dot ok">✓</div>
-        <div class="tl-card">
-          <div class="tl-card-hd"><span class="tl-serv">Consulta Médica</span><span class="tl-date">02/03/2026 · 11:00</span></div>
-          <div class="tl-meta">
-            <span class="tag tg" onclick="openEstadoModal()" style="cursor:pointer" title="Cambiar estado">✓ Confirmada ▾</span>
-            <span class="tl-price">$15.000</span>
-            <span style="font-size:11px;color:var(--t3)">Online</span>
-          </div>
-        </div>
+      <div id="ft-hist-wrap" style="display:flex;flex-direction:column;gap:0">
+        <div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>
       </div>
     </div>
 
     <!-- Tab: Notas -->
     <div class="fp-body" id="ft-notas" style="display:none">
       <div class="tl-lbl">Notas internas del equipo</div>
-      <textarea class="fp-textarea" rows="5" placeholder="Escribe observaciones sobre este cliente. Solo las ve tu equipo.">Paciente puntual, prefiere citas de mañana. Recordar traer resultados de exámenes en próxima visita.</textarea>
-      <button class="btn-a" style="align-self:flex-end" onclick="toast('Nota guardada correctamente')">Guardar nota</button>
+      <textarea id="fp-notas-txt" class="fp-textarea" rows="5" placeholder="Escribe observaciones sobre este cliente. Solo las ve tu equipo."></textarea>
+      <button class="btn-a" style="align-self:flex-end" onclick="saveFichaNota()">Guardar nota</button>
     </div>
 
   </div>
@@ -2894,7 +2864,10 @@ const clientData = {
   'Carla Bravo':    {av:'CB', since:'enero 2026',   citas:5, gasto:175000, asist:'100%', email:'carla.b@email.com',      tel:'+56 9 1098 7654'},
 };
 
+let _fichaCurrentNombre = '';
+
 function openFicha(name, initials, rubro) {
+  _fichaCurrentNombre = name;
   const real = (window._clientesDataMap || {})[name] || (window._clientesDataMap || {})[name?.toLowerCase?.()];
   let d;
   if (real) {
@@ -2914,6 +2887,13 @@ function openFicha(name, initials, rubro) {
   asEl.style.color = d.asist === '100%' ? 'var(--green)' : parseInt(d.asist) >= 75 ? 'var(--amber)' : 'var(--red)';
   document.getElementById('fpi-email').textContent = d.email;
   document.getElementById('fpi-tel').textContent   = d.tel;
+  // Reset campos dinámicos
+  ['fpi-proxima','fpi-prof-habitual','fpi-serv-top','fpi-serv-top-sub'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = '…'; });
+  const hw = document.getElementById('ft-hist-wrap');
+  if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
+  const nt = document.getElementById('fp-notas-txt');
+  if (nt) nt.value = '';
+  loadFichaData(name);
   document.getElementById('fpi-rut').textContent   = '—';
   document.getElementById('fp-boleta-row').style.display = 'none';
   document.getElementById('ficha-ov').classList.add('open');
@@ -2936,6 +2916,120 @@ function fpTab(btn, id) {
     if (el) el.style.display = i === id ? 'flex' : 'none';
     if (i === id && el) el.style.flexDirection = 'column';
   });
+}
+
+async function loadFichaData(nombre) {
+  const cid = await getClienteId();
+  if (!cid || !nombre) return;
+  try {
+    const r = await fetch(
+      `${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&nombre_paciente=ilike.${encodeURIComponent(nombre)}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=100`,
+      { headers: _SH }
+    );
+    const citas = await r.json();
+    if (!Array.isArray(citas)) return;
+
+    const hoy = new Date().toISOString().slice(0,10);
+    const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online' };
+
+    // Próxima cita
+    const prox = citas.filter(c => c.fecha >= hoy && !['cancelada','canceled','cancelled'].includes(c.estado)).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''))[0];
+    const proximaEl = document.getElementById('fpi-proxima');
+    if (proximaEl) {
+      if (prox) {
+        const dt = new Date(prox.fecha + 'T12:00:00');
+        const lbl = dt.toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'long'}) + ' · ' + (prox.hora||'').slice(0,5);
+        proximaEl.textContent = lbl; proximaEl.style.color = 'var(--a)';
+      } else { proximaEl.textContent = 'Sin citas próximas'; proximaEl.style.color = 'var(--t3)'; }
+    }
+
+    // Profesional habitual
+    const profCount = {};
+    citas.forEach(c => { const n = c.especialistas?.nombre; if(n) profCount[n] = (profCount[n]||0)+1; });
+    const profHabitual = Object.entries(profCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+    const profEl = document.getElementById('fpi-prof-habitual');
+    if (profEl) profEl.textContent = profHabitual;
+
+    // Servicio más reservado
+    const srvMap = {};
+    citas.forEach(c => { if(c.servicio){ if(!srvMap[c.servicio]) srvMap[c.servicio]={count:0,precio:null}; srvMap[c.servicio].count++; if(!srvMap[c.servicio].precio&&c.precio) srvMap[c.servicio].precio=c.precio; }});
+    const topEntry = Object.entries(srvMap).sort((a,b)=>b[1].count-a[1].count)[0];
+    const srvTop = document.getElementById('fpi-serv-top');
+    const srvSub = document.getElementById('fpi-serv-top-sub');
+    const srvTag = document.getElementById('fpi-serv-top-tag');
+    if (topEntry) {
+      const [srvNombre, sd] = topEntry;
+      if (srvTop) srvTop.textContent = srvNombre;
+      const sub = [sd.count + ' reserva' + (sd.count!==1?'s':'')];
+      if (sd.precio) sub.push('$'+Number(sd.precio).toLocaleString('es-CL')+' c/u');
+      if (srvSub) srvSub.textContent = sub.join(' · ');
+      if (srvTag) srvTag.textContent = sd.count + ' cita' + (sd.count!==1?'s':'');
+    } else {
+      if (srvTop) srvTop.textContent = '—';
+      if (srvSub) srvSub.textContent = 'Sin citas';
+      if (srvTag) srvTag.textContent = '0';
+    }
+
+    // Notas
+    const notaEl = document.getElementById('fp-notas-txt');
+    const primeraNota = citas.find(c => c.notas)?.notas || '';
+    if (notaEl) notaEl.value = primeraNota;
+
+    // Historial
+    renderFichaHistorial(citas);
+  } catch(e) { console.error('loadFichaData:', e); }
+}
+
+function renderFichaHistorial(citas) {
+  const wrap = document.getElementById('ft-hist-wrap');
+  if (!wrap) return;
+  if (!citas.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin historial de citas</div>'; return; }
+  const METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online' };
+  const estTag = e => {
+    if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta">Pendiente</span>';
+    if (e==='confirmada'||e==='confirmed')  return '<span class="tag tg">✓ Confirmada</span>';
+    if (e==='completada'||e==='completed')  return '<span class="tag tn">✓ Completada</span>';
+    if (['cancelada','canceled','cancelled'].includes(e)) return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Cancelada</span>';
+    if (e==='inasistencia'||e==='no-show')  return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Inasistencia</span>';
+    return `<span class="tag">${e}</span>`;
+  };
+  const dotCls = e => ['completada','completed','confirmada','confirmed'].includes(e) ? 'ok' : ['cancelada','canceled','cancelled','inasistencia','no-show'].includes(e) ? 'cn' : 'pn';
+  const dotChr = e => ['completada','completed','confirmada','confirmed'].includes(e) ? '✓' : ['cancelada','canceled','cancelled','inasistencia','no-show'].includes(e) ? '✗' : '·';
+  wrap.innerHTML = citas.map(c => {
+    const [y,m,d] = (c.fecha||'').split('-');
+    const fechaFmt = d ? `${d}/${m}/${y} · ${(c.hora||'').slice(0,5)}` : '—';
+    const precioStr = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '';
+    const metodoStr = METODO[c.metodo_pago] || '';
+    const espStr = c.especialistas?.nombre || '';
+    return `<div class="tl-item">
+      <div class="tl-dot ${dotCls(c.estado)}">${dotChr(c.estado)}</div>
+      <div class="tl-card">
+        <div class="tl-card-hd"><span class="tl-serv">${c.servicio||'Consulta'}</span><span class="tl-date">${fechaFmt}</span></div>
+        <div class="tl-meta">
+          ${estTag(c.estado)}
+          ${precioStr ? `<span class="tl-price">${precioStr}</span>` : ''}
+          ${metodoStr ? `<span style="font-size:11px;color:var(--t3)">${metodoStr}</span>` : ''}
+          ${espStr ? `<span style="font-size:11px;color:var(--t3)">${espStr}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveFichaNota() {
+  const txt = document.getElementById('fp-notas-txt')?.value?.trim() || '';
+  const nombre = _fichaCurrentNombre;
+  if (!nombre) return;
+  const cid = await getClienteId();
+  if (!cid) return;
+  try {
+    await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&nombre_paciente=ilike.${encodeURIComponent(nombre)}&order=fecha.desc&limit=1`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ notas: txt })
+    });
+    toast('✓ Nota guardada');
+  } catch(_) { toast('Error al guardar'); }
 }
 
 /* ════ REPORTES ════ */
