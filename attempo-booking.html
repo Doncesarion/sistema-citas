@@ -546,21 +546,24 @@ function renderProfs() {
     { id: 'any', nom: 'Sin preferencia', cargo: 'Asignación automática', isAny: true },
     ...especialistas.map(e => ({ id: e.id, nom: e.nombre, cargo: e.cargo || e.especialidad || '', isAny: false }))
   ];
-  list.innerHTML = rows.map(p =>
-    `<div class="prof-row${p.isAny ? ' any' : ''}" onclick="selProf(this,'${p.id}',${JSON.stringify(p.nom)},${JSON.stringify(p.cargo)})">
+  list.innerHTML = rows.map(p => {
+    const dataStr = JSON.stringify({ id: p.id, nom: p.nom, cargo: p.cargo }).replace(/'/g,"&#39;");
+    return `<div class="prof-row${p.isAny ? ' any' : ''}" data-prof='${dataStr}' onclick="selProf(this)">
       <div class="prof-dot"></div>
       <div class="prof-info">
         <div class="prof-name">${p.nom}</div>
         <div class="prof-role">${p.cargo}</div>
       </div>
       <div class="prof-radio"></div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 }
 
-function selProf(el, id, nom, cargo) {
+function selProf(el) {
+  const row = el.closest('.prof-row') || el;
+  const { id, nom, cargo } = JSON.parse(row.getAttribute('data-prof'));
   document.querySelectorAll('.prof-row').forEach(r => r.classList.remove('sel'));
-  el.classList.add('sel');
+  row.classList.add('sel');
   st.prof  = { id, nom, cargo };
   st.fecha = null; st.hora = null;
   document.getElementById('prev2').textContent = nom;
@@ -758,7 +761,8 @@ function renderHoras() {
   none.style.display = 'none';
   grid.innerHTML = disponibles.map(s => {
     const isSel = st.hora === s.h;
-    return `<button class="h-btn${isSel ? ' sel' : ''}" onclick="selHora('${s.h}','${s.espId}',${JSON.stringify(s.espNom)})">${s.h}</button>`;
+    const nom = (s.espNom || '').replace(/'/g,"&#39;");
+    return `<button class="h-btn${isSel ? ' sel' : ''}" onclick="selHora('${s.h}','${s.espId || ''}','${nom}')">${s.h}</button>`;
   }).join('');
 }
 
