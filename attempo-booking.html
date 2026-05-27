@@ -513,7 +513,7 @@ function renderServicios(servicios) {
     const durStr  = s.duracion ? `${s.duracion} min` : '';
     const precioStr = s.precio ? `$${Number(s.precio).toLocaleString('es-CL')}` : '';
     const dataStr = JSON.stringify({ nom: s.nombre, duracion: s.duracion || 60, precio: s.precio || 0, icon });
-    return `<div class="svc-row" onclick="selSvc(this,${dataStr})">
+    return `<div class="svc-row" data-svc='${dataStr.replace(/'/g,"&#39;")}' onclick="selSvc(this)">
       <div class="svc-icon">${icon}</div>
       <div class="svc-info">
         <div class="svc-name">${s.nombre}</div>
@@ -525,9 +525,11 @@ function renderServicios(servicios) {
   }).join('');
 }
 
-function selSvc(el, data) {
+function selSvc(el) {
+  const row = el.closest('.svc-row') || el;
+  const data = JSON.parse(row.getAttribute('data-svc'));
   document.querySelectorAll('.svc-row').forEach(r => r.classList.remove('sel'));
-  el.classList.add('sel');
+  row.classList.add('sel');
   st.svc  = data;
   st.prof = null; st.fecha = null; st.hora = null;
   document.getElementById('prev1').textContent = data.nom;
