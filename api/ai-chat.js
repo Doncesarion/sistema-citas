@@ -91,16 +91,18 @@ export default async function handler(req, res) {
     ? espLista.map(e => `• ${e.nombre} — ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
 
-  let serviciosCatalogo = [], metodosPago = {}, datosBanco = {};
+  let serviciosCatalogo = [], metodosPago = {}, datosBanco = {}, horarioNegocio = null, direccionNegocio = null;
   try {
     const rc = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=servicios,metodos_pago,datos_banco&limit=1`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=servicios,metodos_pago,datos_banco,horario_negocio,direccion&limit=1`,
       { headers: sh }
     );
     const [cli] = await rc.json();
     serviciosCatalogo = Array.isArray(cli?.servicios) ? cli.servicios : [];
     metodosPago = cli?.metodos_pago || {};
     datosBanco  = cli?.datos_banco  || {};
+    horarioNegocio = cli?.horario_negocio || null;
+    direccionNegocio = cli?.direccion || null;
   } catch(_) {}
 
   const srvTexto = serviciosCatalogo.length
@@ -117,6 +119,18 @@ export default async function handler(req, res) {
   if (metodosPago.efectivo)      pagosMethods.push('Efectivo en el local');
   const pagosTexto = pagosMethods.length ? pagosMethods.join(', ') : 'Sin métodos configurados';
 
+  const DIAS_LABEL = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
+  let horarioTexto = 'No hay horario configurado.';
+  if (horarioNegocio && Object.keys(horarioNegocio).length) {
+    const lineas = Object.entries(DIAS_LABEL)
+      .filter(([k]) => horarioNegocio[k]?.activo && horarioNegocio[k]?.bloques?.length)
+      .map(([k, l]) => {
+        const bloques = horarioNegocio[k].bloques.map(b => `${b.desde}–${b.hasta}`).join(', ');
+        return `• ${l}: ${bloques}`;
+      });
+    horarioTexto = lineas.length ? lineas.join('\n') : 'No hay horario configurado.';
+  }
+
   const hoy = new Date().toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago'
   });
@@ -128,6 +142,12 @@ ${espTexto}
 
 CATÁLOGO DE SERVICIOS (con duración y precio si disponibles):
 ${srvTexto}
+
+HORARIO DE ATENCIÓN:
+${horarioTexto}
+
+DIRECCIÓN:
+${direccionNegocio || 'No disponible.'}
 
 MÉTODOS DE PAGO ACEPTADOS:
 ${pagosTexto}
@@ -143,9 +163,9 @@ CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden sin saltarte pasos:
 8. Llama a confirmar_reserva con TODOS los datos: especialista_id, nombre_especialista (nombre completo), nombre_paciente, tel_paciente, email_paciente, servicio, fecha (YYYY-MM-DD), hora (HH:MM). Si durante la conversación se mencionó duración o precio del servicio, inclúyelos también (duracion como texto ej: "45 min", precio como número ej: 35000). El sistema mostrará la tarjeta de resumen automáticamente. NO escribas nada después de llamar confirmar_reserva — ningún texto, ningún resumen, ninguna pregunta. La tarjeta ya tiene toda la información.
 
 CUANDO PREGUNTAN OTRA COSA:
-- Horarios generales: ofrece buscar una hora concreta con verificar_disponibilidad.
-- Servicios: presenta los profesionales que ya tienes arriba.
-- Ubicación u otros datos: indica que no tienes esa info y sugiere llamar al negocio.
+- Horarios generales: responde con el horario de atención que tienes arriba.
+- Dirección: responde con la dirección que tienes arriba. Si no hay, sugiere llamar al negocio.
+- Servicios: presenta el catálogo que tienes arriba.
 
 TONO:
 - Español chileno, conversacional y cálido. Puedes usar emojis con moderación.
