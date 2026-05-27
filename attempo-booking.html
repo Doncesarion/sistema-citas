@@ -1080,9 +1080,25 @@ async function attiaEnviar(texto) {
     });
     const d = await r.json();
     typing.remove();
-    const resp = d.mensaje || (d.mostrar_calendario ? '¡Elige el día que te acomode! 📅' : null) || d.reply || d.error || 'Sin respuesta. Intenta de nuevo.';
-    _attiaHist.push({ role: 'assistant', content: resp });
-    _attiaAppend('bot', resp);
+    const resp = d.mensaje || d.reply || d.error || '';
+    if (resp) {
+      _attiaHist.push({ role: 'assistant', content: resp });
+      _attiaAppend('bot', resp);
+    }
+    if (d.slots_disponibles?.length) {
+      const wrap = document.getElementById('attia-msgs');
+      const div = document.createElement('div');
+      div.className = 'am-bot';
+      div.innerHTML = '<div style="font-size:11px;color:#8B7CF8;font-weight:600;margin-bottom:6px">Horas disponibles:</div>' +
+        d.slots_disponibles.map(h =>
+          `<button onclick="attiaSelHora('${h}')" style="margin:3px;padding:5px 11px;border-radius:20px;border:1.5px solid #8B7CF8;background:#fff;color:#6C5CE4;font-size:12px;cursor:pointer;font-family:inherit">${h}</button>`
+        ).join('');
+      wrap.appendChild(div);
+      wrap.scrollTop = wrap.scrollHeight;
+    }
+    if (!resp && !d.slots_disponibles?.length) {
+      _attiaAppend('bot', 'Sin respuesta. Intenta de nuevo.');
+    }
   } catch {
     typing.remove();
     _attiaAppend('bot', 'Ups, problema de conexión. ¿Puedes intentarlo de nuevo?');
@@ -1107,6 +1123,10 @@ function _attiaAppend(rol, texto) {
   return div;
 }
 
+function attiaSelHora(h) {
+  document.getElementById('attia-input').value = h;
+  attiaSend();
+}
 function _attiaTyping() {
   const wrap = document.getElementById('attia-msgs');
   const div = document.createElement('div');
