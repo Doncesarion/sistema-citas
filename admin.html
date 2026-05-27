@@ -1162,8 +1162,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <div id="sb-clientes" class="sb-ctx">
   <div class="sb-section">
     <div class="sb-label">Buscar cliente</div>
-    <div style="margin:0 10px 4px">
-      <input type="text" id="sb-clientes-q" placeholder="Nombre, email o teléfono..." oninput="sbFilterClientes(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+    <div style="margin:0 10px 4px;position:relative">
+      <input type="text" id="sb-clientes-q" placeholder="Nombre, email o teléfono..." oninput="sbFilterClientes(this.value);document.getElementById('sb-clientes-x').style.display=this.value?'flex':'none'" style="width:100%;padding:7px 28px 7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+      <button id="sb-clientes-x" onclick="document.getElementById('sb-clientes-q').value='';sbFilterClientes('');this.style.display='none'" style="display:none;position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t4);font-size:15px;line-height:1;padding:0 2px" title="Limpiar">×</button>
     </div>
   </div>
   <div class="sb-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
