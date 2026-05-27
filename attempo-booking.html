@@ -50,6 +50,7 @@ body::before{
 .biz-logo{width:72px;height:72px;flex-shrink:0;border-radius:16px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:22px;font-weight:500;color:#fff;box-shadow:0 6px 20px rgba(108,92,228,0.32)}
 .biz-info{flex:1;min-width:0}
 .biz-name{font-size:22px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:5px}
+.biz-desc{font-size:13px;color:var(--t3);line-height:1.55;margin:4px 0 0}
 .biz-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px}
 .biz-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t3)}
 .biz-open{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green);padding:4px 11px;background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.18);border-radius:100px}
@@ -210,11 +211,16 @@ body::before{
       <div class="biz-logo" id="biz-logo-ini">AT</div>
       <div class="biz-info">
         <div class="biz-name" id="biz-name">—</div>
+        <div class="biz-desc" id="biz-desc" style="display:none"></div>
         <div class="biz-meta">
           <div class="biz-open" id="biz-status"><span class="dot-pulse"></span><span id="biz-status-lbl">Verificando...</span></div>
           <div class="biz-item" id="biz-dir-wrap" style="display:none">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
             <span id="biz-dir"></span>
+          </div>
+          <div class="biz-item" id="biz-horario-wrap" style="display:none">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3v3l2 1.5"/></svg>
+            <span id="biz-horario-txt"></span>
           </div>
         </div>
       </div>
@@ -397,7 +403,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
 
   try {
     const r = await fetch(
-      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,rubro,email,metodos_pago,horario_negocio&limit=1`,
+      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,descripcion,rubro,email,metodos_pago,horario_negocio&limit=1`,
       { headers: SH }
     );
     const rows = await r.json();
@@ -411,9 +417,18 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
     document.getElementById('biz-name').textContent   = negocioData.nombre_negocio;
     document.getElementById('biz-logo-ini').textContent = iniciales(negocioData.nombre_negocio);
     document.title = `${negocioData.nombre_negocio} — Reserva tu hora`;
+    if (negocioData.descripcion) {
+      document.getElementById('biz-desc').textContent = negocioData.descripcion;
+      document.getElementById('biz-desc').style.display = 'block';
+    }
     if (negocioData.direccion) {
       document.getElementById('biz-dir').textContent = negocioData.direccion;
       document.getElementById('biz-dir-wrap').style.display = 'flex';
+    }
+    const horarioTxt = resumirHorario(horarioNegocio);
+    if (horarioTxt) {
+      document.getElementById('biz-horario-txt').textContent = horarioTxt;
+      document.getElementById('biz-horario-wrap').style.display = 'flex';
     }
 
     const rE = await fetch(
@@ -446,6 +461,31 @@ function iniciales(nombre) {
   const partes = (nombre || '').trim().split(/\s+/);
   if (partes.length === 1) return partes[0].slice(0,2).toUpperCase();
   return (partes[0][0] + partes[1][0]).toUpperCase();
+}
+function resumirHorario(h) {
+  if (!h || !Object.keys(h).length) return '';
+  const orden = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+  const corto  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const activos = orden.filter(d => h[d]?.activo && h[d]?.bloques?.length);
+  if (!activos.length) return '';
+  // Agrupar días consecutivos con mismo horario
+  const bloqTxt = d => (h[d].bloques || []).map(b => `${b.desde}–${b.hasta}`).join(', ');
+  const grupos = [];
+  let ini = activos[0], prev = activos[0];
+  for (let i = 1; i <= activos.length; i++) {
+    const cur = activos[i];
+    const prevIdx = orden.indexOf(prev);
+    const curIdx  = cur ? orden.indexOf(cur) : -1;
+    const mismoH  = cur && bloqTxt(cur) === bloqTxt(prev);
+    if (!mismoH || curIdx !== prevIdx + 1) {
+      const iniShort  = corto[orden.indexOf(ini)];
+      const prevShort = corto[orden.indexOf(prev)];
+      const rango = ini === prev ? iniShort : `${iniShort}–${prevShort}`;
+      grupos.push(`${rango} ${bloqTxt(ini)}`);
+      ini = cur; prev = cur;
+    } else { prev = cur; }
+  }
+  return grupos.join(' · ');
 }
 
 /* ── SERVICIOS ── */
