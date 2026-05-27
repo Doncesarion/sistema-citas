@@ -7150,7 +7150,8 @@ function sbBuildClientesList(q) {
   list.innerHTML = matching.slice(0,30).map(r => {
     const cells = r.querySelectorAll('td');
     const av    = r.querySelector('.tav')?.textContent || '?';
-    const name  = cells[0]?.querySelector('.tdn')?.textContent?.trim() || cells[0]?.textContent?.trim() || '—';
+    const tdn   = cells[0]?.querySelector('.tdn');
+    const name  = tdn ? (tdn.textContent || '').replace(av, '').trim() || '—' : cells[0]?.textContent?.trim() || '—';
     const email = cells[1]?.textContent?.trim() || '';
     return `<div onclick="sbSelectCliente(this)" data-name="${name.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-radius:var(--r);transition:background .1s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
       <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0">${av}</div>
