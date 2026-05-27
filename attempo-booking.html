@@ -1093,7 +1093,15 @@ function _attiaAppend(rol, texto) {
   const wrap = document.getElementById('attia-msgs');
   const div = document.createElement('div');
   div.className = rol === 'bot' ? 'am-bot' : 'am-usr';
-  div.textContent = texto;
+  if (rol === 'bot') {
+    div.innerHTML = texto
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/\n/g,'<br>');
+  } else {
+    div.textContent = texto;
+  }
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
   return div;
