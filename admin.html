@@ -4803,10 +4803,10 @@ function _ventasFechaRange(periodo) {
   switch(periodo) {
     case 'hoy':  return [hoy, hoy];
     case 'ayer': { const y = new Date(hoy); y.setDate(hoy.getDate()-1); return [y,y]; }
-    case 'sem':  { const lun = new Date(hoy); const dow = hoy.getDay()||7; lun.setDate(hoy.getDate()-dow+1); return [lun, hoy]; }
+    case 'sem':  { const lun = new Date(hoy); const dow = hoy.getDay()||7; lun.setDate(hoy.getDate()-dow+1); const dom = new Date(lun); dom.setDate(lun.getDate()+6); return [lun, dom]; }
     case 'mes':  return [new Date(now.getFullYear(), now.getMonth(), 1), new Date(now.getFullYear(), now.getMonth() + 1, 0)];
-    case '3m':   { const d = new Date(hoy); d.setMonth(d.getMonth()-3); return [d, hoy]; }
-    case '1y':   return [new Date(now.getFullYear(), 0, 1), hoy];
+    case '3m':   { const d = new Date(hoy); d.setMonth(d.getMonth()-3); return [d, new Date(now.getFullYear(), now.getMonth() + 1, 0)]; }
+    case '1y':   return [new Date(now.getFullYear(), 0, 1), new Date(now.getFullYear(), 11, 31)];
     default:     return [new Date(now.getFullYear(), now.getMonth(), 1), hoy];
   }
 }
