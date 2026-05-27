@@ -3414,8 +3414,8 @@ async function openProfile() {
   // Cargar desde localStorage
   try {
     const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-    const nombre = u.nombre || u.usuario || '';
-    const email  = u.usuario || '';
+    const nombre = u.nombre || u.email || '';
+    const email  = u.email || '';
     const ini    = nombre.trim().split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
     const set = (id, val) => { const el = document.getElementById(id); if (el) el[el.tagName==='INPUT'||el.tagName==='TEXTAREA'?'value':'textContent'] = val; };
     set('pf-avatar', ini);
