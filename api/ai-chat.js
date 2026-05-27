@@ -80,7 +80,7 @@ export default async function handler(req, res) {
   let espLista = [];
   try {
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&estado=eq.activo&select=id,nombre,cargo&order=nombre.asc`,
+      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,cargo,horario&order=nombre.asc`,
       { headers: sh }
     );
     espLista = await r.json();
@@ -120,15 +120,23 @@ export default async function handler(req, res) {
   const pagosTexto = pagosMethods.length ? pagosMethods.join(', ') : 'Sin métodos configurados';
 
   const DIAS_LABEL = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
+  function horarioObjToTexto(h) {
+    const lineas = Object.entries(DIAS_LABEL)
+      .filter(([k]) => h[k]?.activo && h[k]?.bloques?.length)
+      .map(([k, l]) => `• ${l}: ${h[k].bloques.map(b => `${b.desde}–${b.hasta}`).join(', ')}`);
+    return lineas.length ? lineas.join('\n') : null;
+  }
   let horarioTexto = 'No hay horario configurado.';
   if (horarioNegocio && Object.keys(horarioNegocio).length) {
-    const lineas = Object.entries(DIAS_LABEL)
-      .filter(([k]) => horarioNegocio[k]?.activo && horarioNegocio[k]?.bloques?.length)
-      .map(([k, l]) => {
-        const bloques = horarioNegocio[k].bloques.map(b => `${b.desde}–${b.hasta}`).join(', ');
-        return `• ${l}: ${bloques}`;
-      });
-    horarioTexto = lineas.length ? lineas.join('\n') : 'No hay horario configurado.';
+    horarioTexto = horarioObjToTexto(horarioNegocio) || 'No hay horario configurado.';
+  } else if (espLista.length) {
+    // Usar el horario del primer especialista que tenga uno configurado
+    for (const esp of espLista) {
+      if (esp.horario && Object.keys(esp.horario).length) {
+        const txt = horarioObjToTexto(esp.horario);
+        if (txt) { horarioTexto = txt; break; }
+      }
+    }
   }
 
   const hoy = new Date().toLocaleDateString('es-CL', {
