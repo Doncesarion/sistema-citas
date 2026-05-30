@@ -3670,16 +3670,10 @@ async function openProfile() {
     set('pf-header-name', nombre);
     set('pf-nombre', nombre);
     set('pf-email', email);
-    // Cargar teléfono, nombre negocio y email real desde clientes_sistema / usuarios
+    // Cargar datos del negocio desde clientes_sistema (siempre accesible, correcto en impersonación)
     const cid = u.cliente_id;
     if (cid) {
-      // Traer email real desde usuarios por cliente_id (funciona tanto en sesión normal como en impersonación)
-      try {
-        const rU = await fetch(`${_SURL}/rest/v1/usuarios?cliente_id=eq.${cid}&select=email&limit=1`, { headers: _SH });
-        const rowsU = await rU.json();
-        if (rowsU[0]?.email) set('pf-email', rowsU[0].email);
-      } catch(e) {}
-      const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,contacto_nombre,contacto_tel,plan,fecha_expiracion&limit=1`, { headers: _SH });
+      const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,contacto_nombre,contacto_tel,email,plan,fecha_expiracion&limit=1`, { headers: _SH });
       const rows = await r.json();
       const d = Array.isArray(rows) ? rows[0] : null;
       if (d) {
@@ -3690,6 +3684,7 @@ async function openProfile() {
         set('pf-header-name', nombreCompleto);
         set('pf-nombre', nombreCompleto);
         set('pf-tel', d.contacto_tel || '');
+        if (d.email) set('pf-email', d.email);
         set('pf-header-sub', `Administrador · ${d.nombre_negocio || ''}`);
         // Plan
         const planEl = document.getElementById('pf-plan-nombre');
