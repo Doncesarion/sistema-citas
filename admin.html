@@ -343,6 +343,20 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .btn-a:active{transform:none}
 .btn-sm{padding:5px 10px;border-radius:var(--r);border:1px solid var(--b1);background:none;color:var(--t2);font-size:12px;cursor:pointer;font-family:var(--font);transition:all .12s}
 .btn-sm:hover{border-color:var(--b2);color:var(--t1)}
+.btn-r{padding:7px 14px;border-radius:var(--r);border:1px solid rgba(220,38,38,0.25);background:rgba(220,38,38,0.05);color:var(--red);font-size:13px;cursor:pointer;font-family:var(--font);transition:all .12s;width:100%}
+.btn-r:hover{background:rgba(220,38,38,0.1);border-color:rgba(220,38,38,0.4)}
+.nav-help-btn{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,0.25);background:transparent;color:rgba(255,255,255,0.75);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-help-btn:hover{background:rgba(255,255,255,0.18);color:#fff;border-color:rgba(255,255,255,0.5)}
+.rep-insight{display:none;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(135deg,rgba(108,92,228,0.07),rgba(108,92,228,0.03));border:1px solid rgba(108,92,228,0.14);border-radius:var(--rl);margin-bottom:16px;font-size:13px;color:var(--t1)}
+.rep-insight.up{background:linear-gradient(135deg,rgba(22,163,74,0.07),rgba(22,163,74,0.02));border-color:rgba(22,163,74,0.15)}
+.rep-insight.down{background:linear-gradient(135deg,rgba(217,119,6,0.07),rgba(217,119,6,0.02));border-color:rgba(217,119,6,0.15)}
+.ins-icon{font-size:20px;flex-shrink:0}
+.ins-main{font-weight:600;color:var(--t1)}
+.ins-sub{font-size:12px;color:var(--t3);margin-top:2px}
+.ins-badge{margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;flex-shrink:0}
+.ins-badge.up{background:rgba(22,163,74,0.12);color:var(--green)}
+.ins-badge.down{background:rgba(217,119,6,0.12);color:var(--amber)}
+.ins-badge.neu{background:var(--adim);color:var(--a)}
 .vmdrop-item{padding:8px 14px;font-size:13px;color:var(--t2);cursor:pointer;transition:background .1s}
 .vmdrop-item:hover{background:var(--b1);color:var(--t1)}
 .vmdrop-item.on{color:var(--a);font-weight:500}
@@ -986,6 +1000,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <span class="ldot"></span>
       <span id="nav-citas-hoy">En línea</span>
     </div>
+    <button class="nav-help-btn" onclick="openHelp()" title="Ayuda y soporte">?</button>
     <button class="btn-new" onclick="openModal()">
       <span class="btn-new-txt">+ Nueva reserva</span>
       <span class="btn-new-ico" style="display:none">+</span>
@@ -1474,6 +1489,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <span id="rep-loading" style="display:none;font-size:12px;color:var(--t3)">Actualizando...</span>
         <span class="ag-sync"><span class="ldot"></span>&nbsp;Datos reales</span>
       </div>
+    </div>
+
+    <div id="rep-insight" class="rep-insight">
+      <div class="ins-icon" id="rep-ins-icon">📊</div>
+      <div><div class="ins-main" id="rep-ins-main">—</div><div class="ins-sub" id="rep-ins-sub">—</div></div>
+      <div class="ins-badge neu" id="rep-ins-badge">—</div>
     </div>
 
     <div id="rep-modules">
@@ -2559,9 +2580,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <div class="fp-actions">
         <button class="btn-a" style="flex:1" onclick="closeFicha();openModal()">+ Nueva cita</button>
-        <button class="btn-g" style="flex:1" onclick="closeFicha();openModal()" title="Reagendar la próxima cita">↺ Reagendar</button>
+        <button class="btn-g" style="flex:1" onclick="reagendarProxCita()" title="Reagendar la próxima cita">↺ Reagendar</button>
         <button class="btn-g" onclick="toast('Abriendo WhatsApp con ' + document.getElementById('fp-name').textContent + '...')">💬 WhatsApp</button>
-        <button class="btn-g" onclick="openEstadoModal()" title="Cambiar estado de la próxima cita">⚡ Estado</button>
+        <button class="btn-g" onclick="openEstadoModal()" title="Cambiar el estado de la próxima cita: confirmada, completada, inasistencia…">Cambiar estado ▾</button>
+      </div>
+      <div style="margin-top:8px">
+        <button class="btn-r" onclick="cancelarProxCita()">✕ Cancelar próxima cita</button>
       </div>
       <div id="fp-boleta-row" style="display:none;margin-top:8px">
         <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">📄 Emitir boleta</button>
@@ -3065,6 +3089,34 @@ function openFicha(name, initials, rubro) {
 function closeFicha() {
   document.getElementById('ficha-ov').classList.remove('open');
 }
+async function cancelarProxCita() {
+  const id = window._fichaProxCitaId;
+  if (!id) { toast('No hay cita próxima activa para cancelar'); return; }
+  if (!confirm('¿Cancelar esta cita? El paciente no será notificado automáticamente.')) return;
+  const cid = await getClienteId();
+  if (!cid) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ estado: 'cancelada' })
+    });
+    if (r.ok) {
+      closeFicha();
+      toast('✓ Cita cancelada');
+      cargarCitasSupabase();
+    } else {
+      toastErr('No se pudo cancelar la cita. Intenta de nuevo.');
+    }
+  } catch(e) { toastErr('Error al cancelar la cita'); }
+}
+function reagendarProxCita() {
+  const fecha = window._fichaProxFecha;
+  const hora  = window._fichaProxHora;
+  closeFicha();
+  if (fecha && hora) openModalWithTime(fecha, hora);
+  else openModal();
+}
 function fpTab(btn, id) {
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   btn.classList.add('on');
@@ -3091,6 +3143,9 @@ async function loadFichaData(nombre) {
 
     // Próxima cita
     const prox = citas.filter(c => c.fecha >= hoy && !['cancelada','canceled','cancelled'].includes(c.estado)).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''))[0];
+    window._fichaProxCitaId = prox ? prox.id : null;
+    window._fichaProxFecha  = prox ? prox.fecha : null;
+    window._fichaProxHora   = prox ? (prox.hora||'').slice(0,5) : null;
     const proximaEl = document.getElementById('fpi-proxima');
     if (proximaEl) {
       if (prox) {
@@ -4345,7 +4400,7 @@ function renderDiaView(date) {
         const full  = ev.nombre || evNombreFull(abrev);
         const ini   = evIniciales(full);
         const hEnd  = `${String(slotH+1).padStart(2,'0')}:00`;
-        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openFicha('${full}','${ini}','')">Ver opciones →</button></div>`;
       }).join('');
       if (slotEvs.length > 0 && !slotIsPast) {
         evHtml += `<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime('${diaFecha}','${slotTime}')" title="Agregar sobrecupo a las ${slotTime}">+</button>`;
@@ -4458,7 +4513,7 @@ function renderWeekBody() {
                   full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
-                  '<button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button>' +
+                  '<button class="ev-rag" onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">Ver opciones →</button>' +
                   '</div>';
       }
       // Botón sobrecupo: aparece al hacer hover cuando ya hay un evento en el slot
@@ -4596,7 +4651,7 @@ function renderLista() {
         const color = EV_COLORS[ev.cls] || 'var(--a)';
         const tagCls = TAG_MAP[ev.cls] || 'tn';
         const tagLbl = TAG_LABEL[ev.cls] || 'Reservada';
-        return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+        return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openFicha('${full}','${ini}','')">Ver opciones →</button></div>`;
       }).join('');
       body = `<div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--b1);border-radius:var(--rl);background:var(--b1);box-shadow:var(--sh1)">${rows}</div>`;
     }
@@ -4881,6 +4936,37 @@ function clearModalErr() {
   if (el) el.style.display = 'none';
 }
 
+const _HELP_FAQS = [
+  { q: '¿Cómo agrego un profesional?', a: 'Ve a Configuración → Profesionales → "+ Nuevo profesional". Puedes asignarle servicios, horarios y colores en el calendario.' },
+  { q: '¿Cómo cancelo o reagendo una cita?', a: 'Haz clic sobre el evento en el calendario para abrir la ficha del paciente. Desde ahí puedes "↺ Reagendar", "Cambiar estado" o "✕ Cancelar próxima cita".' },
+  { q: '¿Cómo bloqueo un horario específico?', a: 'En Configuración → Horarios puedes ajustar los días y horas de atención. Para bloqueos puntuales, crea una reserva interna en el bloque que quieras bloquear.' },
+  { q: '¿Cómo cambio el método de pago de un servicio?', a: 'En Configuración → Servicios edita el servicio correspondiente. También puedes cambiar el método al momento de crear cada reserva desde el modal.' },
+  { q: '¿Cómo activo las notificaciones por WhatsApp?', a: 'Ve a Configuración → Notificaciones y activa el envío automático por WhatsApp. Asegúrate de tener el número del paciente registrado.' },
+  { q: '¿Dónde veo mis ingresos del mes?', a: 'En la sección "Ventas" ves el detalle de cada cita cobrada. En "Reportes" tienes un resumen con gráficos y comparación vs período anterior.' },
+];
+function openHelp() {
+  const ov = document.getElementById('help-ov');
+  if (!ov) return;
+  const list = document.getElementById('help-faqs');
+  if (list && !list.children.length) {
+    list.innerHTML = _HELP_FAQS.map((f,i) => `
+      <div style="border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;margin-bottom:2px">
+        <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block';this.querySelector('.faq-arr').style.transform=this.nextElementSibling.style.display==='block'?'rotate(180deg)':'none'"
+          style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:500;color:var(--t1);background:var(--surface)">
+          ${f.q}<span class="faq-arr" style="color:var(--t4);transition:transform .2s;flex-shrink:0">▾</span>
+        </div>
+        <div style="display:none;padding:10px 14px 12px;font-size:12px;color:var(--t2);line-height:1.6;background:#fff">${f.a}</div>
+      </div>`).join('');
+  }
+  ov.style.display = 'flex';
+  requestAnimationFrame(() => ov.classList.add('open'));
+}
+function closeHelp() {
+  const ov = document.getElementById('help-ov');
+  if (!ov) return;
+  ov.classList.remove('open');
+  setTimeout(() => { ov.style.display = 'none'; }, 300);
+}
 function openPrivacyInfo() {
   const existing = document.getElementById('privacy-modal-ov');
   if (existing) { existing.classList.add('open'); return; }
@@ -7287,6 +7373,22 @@ function renderReportes() {
   restoreModuleVisibility();
 }
 
+function _prevPeriodRange(periodo) {
+  const now = new Date();
+  const hoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch(periodo) {
+    case 'hoy':  { const y=new Date(hoy); y.setDate(hoy.getDate()-1); return [y,y]; }
+    case 'ayer': { const y=new Date(hoy); y.setDate(hoy.getDate()-2); return [y,y]; }
+    case 'sem':  { const lun=new Date(hoy); const dow=hoy.getDay()||7; lun.setDate(hoy.getDate()-dow+1-7); const dom=new Date(lun); dom.setDate(lun.getDate()+6); return [lun,dom]; }
+    case 'mes':  return [new Date(now.getFullYear(),now.getMonth()-1,1), new Date(now.getFullYear(),now.getMonth(),0)];
+    case '3m':   { const a=new Date(hoy); a.setMonth(a.getMonth()-6); const b=new Date(hoy); b.setMonth(b.getMonth()-3); return [a,b]; }
+    case '1y':   return [new Date(now.getFullYear()-1,0,1), new Date(now.getFullYear()-1,11,31)];
+    default:     return [new Date(now.getFullYear(),now.getMonth()-1,1), new Date(now.getFullYear(),now.getMonth(),0)];
+  }
+}
+
+const _PERIODO_LBL = { hoy:'ayer', ayer:'anteayer', sem:'semana pasada', mes:'mes pasado', '3m':'período anterior', '1y':'año anterior' };
+
 function renderRepKPIs(lista) {
   const total    = lista.length;
   const pagadas  = lista.filter(c => c.estado_pago === 'pagado');
@@ -7294,15 +7396,55 @@ function renderRepKPIs(lista) {
   const canceladas = lista.filter(c => ['cancelada','canceled','cancelled','inasistencia','no-show','no_show'].includes(c.estado));
   const tasaCancel = total > 0 ? Math.round(canceladas.length / total * 100) : 0;
   const pacientes  = new Set(lista.map(c => c.email_paciente || c.nombre_paciente).filter(Boolean));
+
+  // Comparación con período anterior
+  const [prevD, prevH] = _prevPeriodRange(_reportesPeriodo);
+  const prevLista  = _allReportes.filter(c => { if(!c.fecha) return false; const f=new Date(c.fecha+'T00:00:00'); return f>=prevD&&f<=prevH; });
+  const prevTotal  = prevLista.length;
+  const prevIng    = prevLista.filter(c=>c.estado_pago==='pagado').reduce((s,c)=>s+(Number(c.precio)||0),0);
+  const prevLbl    = _PERIODO_LBL[_reportesPeriodo] || 'período anterior';
+
+  const pctTotal   = prevTotal > 0 ? Math.round((total - prevTotal) / prevTotal * 100) : null;
+  const pctIng     = prevIng   > 0 ? Math.round((ing   - prevIng)   / prevIng   * 100) : null;
+
   const $ = id => document.getElementById(id);
-  if ($('rkpi-total'))       $('rkpi-total').textContent      = total;
-  if ($('rkpi-total-d'))     $('rkpi-total-d').textContent    = total > 0 ? total + ' citas en el período' : 'Sin citas';
-  if ($('rkpi-ing'))         $('rkpi-ing').textContent        = ing.toLocaleString('es-CL');
-  if ($('rkpi-ing-d'))       $('rkpi-ing-d').textContent      = pagadas.length + ' citas cobradas';
-  if ($('rkpi-cancel'))      $('rkpi-cancel').textContent     = tasaCancel;
-  if ($('rkpi-cancel-d'))    $('rkpi-cancel-d').textContent   = canceladas.length + ' canceladas/inasistencias';
-  if ($('rkpi-nuevos'))      $('rkpi-nuevos').textContent     = pacientes.size;
-  if ($('rkpi-nuevos-d'))    $('rkpi-nuevos-d').textContent   = 'Pacientes únicos';
+  if ($('rkpi-total'))    $('rkpi-total').textContent   = total;
+  if ($('rkpi-total-d'))  $('rkpi-total-d').textContent = pctTotal !== null
+    ? (pctTotal >= 0 ? '↑ +' : '↓ ') + Math.abs(pctTotal) + '% vs ' + prevLbl
+    : (total > 0 ? total + ' citas en el período' : 'Sin citas');
+  if ($('rkpi-ing'))      $('rkpi-ing').textContent     = ing.toLocaleString('es-CL');
+  if ($('rkpi-ing-d'))    $('rkpi-ing-d').textContent   = pctIng !== null
+    ? (pctIng >= 0 ? '↑ +' : '↓ ') + Math.abs(pctIng) + '% vs ' + prevLbl
+    : pagadas.length + ' citas cobradas';
+  if ($('rkpi-cancel'))   $('rkpi-cancel').textContent  = tasaCancel;
+  if ($('rkpi-cancel-d')) $('rkpi-cancel-d').textContent= canceladas.length + ' canceladas/inasistencias';
+  if ($('rkpi-nuevos'))   $('rkpi-nuevos').textContent  = pacientes.size;
+  if ($('rkpi-nuevos-d')) $('rkpi-nuevos-d').textContent= 'Pacientes únicos';
+
+  // Banner de tendencia
+  const banner = $('rep-insight');
+  if (banner && total > 0) {
+    const icon = $('rep-ins-icon'); const main = $('rep-ins-main'); const sub = $('rep-ins-sub'); const badge = $('rep-ins-badge');
+    banner.style.display = 'flex';
+    if (pctTotal !== null && pctTotal !== 0) {
+      const up = pctTotal > 0;
+      banner.className = 'rep-insight ' + (up ? 'up' : 'down');
+      if (icon)  icon.textContent  = up ? '🚀' : '📉';
+      if (main)  main.textContent  = up
+        ? 'Este período tienes ' + total + ' reservas — ¡más que ' + prevLbl + '!'
+        : 'Este período tienes ' + total + ' reservas, menos que ' + prevLbl + '.';
+      if (sub)   sub.textContent   = ing > 0 ? 'Ingresos: $' + ing.toLocaleString('es-CL') + ' · ' + pacientes.size + ' pacientes únicos' : pacientes.size + ' pacientes únicos';
+      if (badge) { badge.textContent = (up ? '↑ +' : '↓ ') + Math.abs(pctTotal) + '%'; badge.className = 'ins-badge ' + (up ? 'up' : 'down'); }
+    } else {
+      banner.className = 'rep-insight';
+      if (icon)  icon.textContent  = '📊';
+      if (main)  main.textContent  = total + ' reservas en el período · ' + pacientes.size + ' pacientes únicos';
+      if (sub)   sub.textContent   = ing > 0 ? 'Ingresos cobrados: $' + ing.toLocaleString('es-CL') : 'Sin ingresos registrados en el período';
+      if (badge) { badge.textContent = total + ' citas'; badge.className = 'ins-badge neu'; }
+    }
+  } else if (banner) {
+    banner.style.display = 'none';
+  }
   const bars = $('rkpi-total-bars');
   if (bars && total > 0) {
     const byDate = {};
@@ -8046,6 +8188,46 @@ async function sendHelp() {
   <div class="tut-spot-nav">
     <span class="tut-spot-counter" id="tut-spot-counter"></span>
     <button class="tut-spot-next" id="tut-spot-next" onclick="tutSpotNext()">Siguiente →</button>
+  </div>
+</div>
+
+<!-- ═══ MODAL AYUDA ═══ -->
+<div class="modal-ov" id="help-ov" onclick="if(event.target.id==='help-ov')closeHelp()" style="display:none">
+  <div class="modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
+    <div class="mhd">
+      <span>Centro de ayuda</span>
+      <button class="mclose" onclick="closeHelp()">×</button>
+    </div>
+    <div class="mbody" style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- FAQ -->
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:12px">Preguntas frecuentes</div>
+        <div style="display:flex;flex-direction:column;gap:2px" id="help-faqs"></div>
+      </div>
+
+      <!-- Privacidad -->
+      <div style="padding:12px 14px;background:rgba(108,92,228,0.04);border:1px solid var(--b1);border-radius:var(--r);display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px">🔒</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:var(--t1)">Privacidad y datos</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:2px">Attempo almacena solo los datos necesarios para la gestión de citas. No los compartimos con terceros.</div>
+        </div>
+        <button class="btn-sm" onclick="closeHelp();openPrivacyInfo()">Ver política →</button>
+      </div>
+
+      <!-- Soporte -->
+      <div style="padding:12px 14px;background:rgba(22,163,74,0.04);border:1px solid rgba(22,163,74,0.12);border-radius:var(--r);display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px">💬</span>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--t1)">¿Necesitas ayuda personalizada?</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:2px">Escríbenos y te respondemos en menos de 24 horas hábiles.</div>
+          <a href="mailto:soporte@attempo.cl" style="font-size:12px;color:var(--a);font-weight:500;margin-top:4px;display:block">soporte@attempo.cl →</a>
+        </div>
+      </div>
+
+    </div>
+    <div class="mfoot"><button class="btn-a" onclick="closeHelp()">Cerrar</button></div>
   </div>
 </div>
 
