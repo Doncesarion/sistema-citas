@@ -6089,8 +6089,10 @@ async function cargarCitasSupabase() {
     const citas = await r2.json();
     if (!Array.isArray(citas)) return;
 
-    // 4. Construir mesEvents desde citas reales
-    citas.forEach(c => {
+    // 4. Construir mesEvents desde citas reales (limpiar antes para que canceladas no persistan)
+    mesEvents = {};
+    const CANCEL_ESTADOS = ['cancelada','canceled','cancelled','no-show','inasistencia'];
+    citas.filter(c => !CANCEL_ESTADOS.includes(c.estado)).forEach(c => {
       const [y, mStr, d] = c.fecha.split('-').map(Number);
       const m = mStr - 1;
       const key = `${y}-${m}-${d}`;
