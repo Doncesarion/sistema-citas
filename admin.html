@@ -2416,8 +2416,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <!-- Nuevo paciente: campos manuales -->
         <div id="pt-nuevo-wrap" style="display:none;flex-direction:column;gap:8px;margin-top:4px">
           <input class="fi" id="pt-nuevo-nombre" placeholder="Nombre completo del paciente *" autocomplete="off">
-          <input class="fi" id="pt-nuevo-email"  placeholder="Email *" type="email" autocomplete="off">
-          <input class="fi" id="pt-nuevo-tel"    placeholder="Teléfono *" type="tel" autocomplete="off">
+          <input class="fi" id="pt-nuevo-email"  placeholder="Email (requerido)" type="email" autocomplete="off">
+          <input class="fi" id="pt-nuevo-tel"    placeholder="Teléfono (requerido)" type="tel" autocomplete="off">
         </div>
       </div>
       <div class="fg">
@@ -2448,6 +2448,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div class="pay-opt" id="pay-on" onclick="setPay(this)">
             <div class="pico">🔗</div>
             <div class="plbl">Link de pago</div>
+            <div style="font-size:9px;color:var(--t3);margin-top:2px;line-height:1.3">El paciente paga en línea</div>
           </div>
         </div>
         <div id="pay-link-info" style="display:none;font-size:11px;color:var(--t3);margin-top:6px;padding:7px 10px;background:rgba(108,92,228,0.05);border-radius:6px;line-height:1.5">
@@ -2793,8 +2794,11 @@ function goStep(n) {
   document.getElementById('btn-back').style.display = n > 1 ? 'inline-flex' : 'none';
   document.getElementById('btn-next').style.display = n < 3 ? 'inline-flex' : 'none';
   document.getElementById('btn-save').style.display = n === 3 ? 'inline-flex' : 'none';
-  // Recargar profesionales al entrar al paso 2 para evitar el bug "Sin profesionales activos"
-  if (n === 2) _loadModalEspecialistas();
+  if (n === 2) {
+    const sel = document.getElementById('ms-prof');
+    if (sel) sel.innerHTML = '<option value="">Cargando profesionales...</option>';
+    _loadModalEspecialistas();
+  }
 }
 function nextStep() {
   if (curStep === 2) {
@@ -2814,7 +2818,8 @@ function nextStep() {
       const email  = document.getElementById('pt-nuevo-email')?.value.trim();
       const tel    = document.getElementById('pt-nuevo-tel')?.value.trim();
       if (!nombre) { showModalErr('Ingresa el nombre del paciente'); document.getElementById('pt-nuevo-nombre')?.focus(); return; }
-      if (!email && !tel) { showModalErr('Agrega al menos un medio de contacto (email o teléfono) para poder enviarle confirmación'); return; }
+      if (!email)  { showModalErr('El email es requerido para enviar confirmaciones al paciente'); document.getElementById('pt-nuevo-email')?.focus(); return; }
+      if (!tel)    { showModalErr('El teléfono es requerido para enviar recordatorios por WhatsApp'); document.getElementById('pt-nuevo-tel')?.focus(); return; }
     }
   }
   if (curStep < 3) goStep(curStep + 1);
