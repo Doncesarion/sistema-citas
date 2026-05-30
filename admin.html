@@ -267,6 +267,9 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .ev:hover{transform:scale(1.015) translateY(-1px);box-shadow:var(--sh2);filter:brightness(1.04)}
 .ev-rag{position:absolute;bottom:3px;right:4px;opacity:0;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,0.6);border:none;color:var(--t1);cursor:pointer;transition:opacity .12s;font-family:var(--font)}
 .ev:hover .ev-rag{opacity:1}
+.sobrecupo-btn{position:absolute;top:4px;right:3px;width:18px;height:18px;border-radius:50%;background:var(--a);color:#fff;border:none;font-size:16px;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s;z-index:6;padding:0;display:flex;align-items:center;justify-content:center;font-family:var(--font)}
+.slot:hover .sobrecupo-btn{opacity:.85}
+.sobrecupo-btn:hover{opacity:1!important}
 .ev .evn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .ev .evt{font-size:10px;opacity:.65;font-family:var(--mono);margin-top:1px}
 .ev .evs{font-size:10px;opacity:.7;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -4315,19 +4318,34 @@ function renderDiaView(date) {
       const t = (ev.lbl.match(/\d{2}:\d{2}/) || [''])[0];
       if (t) { const h = parseInt(t.split(':')[0]); evByHour[h] = evByHour[h] || []; evByHour[h].push(ev); }
     });
-    const diaFecha = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const diaIsPast = diaFecha < new Date().toISOString().split('T')[0];
-    let html = `<div class="slot" style="height:52px;position:relative">${isToday?'<div class="now-line" style="top:34px"><div class="now-dot"></div><div class="now-track"></div></div>':''}</div>`;
+    const diaFecha    = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const _dNow       = new Date();
+    const _dTodayStr  = _dNow.toISOString().split('T')[0];
+    const _dNowH      = _dNow.getHours();
+    const _dNowM      = _dNow.getMinutes();
+    const diaIsToday  = diaFecha === _dTodayStr;
+    const diaPastDate = diaFecha < _dTodayStr;
+    const nowLineTop  = Math.round((_dNowM/60)*52);
+    let html = `<div style="height:52px;border-bottom:1px solid rgba(108,92,228,0.05)"></div>`;
     SLOTS.forEach(slotTime => {
-      const slotEvs = evByHour[parseInt(slotTime)] || [];
-      const evHtml = slotEvs.map(ev => {
+      const slotH      = parseInt(slotTime);
+      const slotIsPast = diaPastDate || (diaIsToday && slotH <= _dNowH);
+      const slotEvs    = evByHour[slotH] || [];
+      let evHtml = '';
+      if (diaIsToday && slotH === _dNowH) {
+        evHtml += `<div class="now-line" style="top:${nowLineTop}px"><div class="now-dot"></div><div class="now-track"></div></div>`;
+      }
+      evHtml += slotEvs.map(ev => {
         const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
         const full  = ev.nombre || evNombreFull(abrev);
         const ini   = evIniciales(full);
-        const hEnd  = `${String(parseInt(slotTime)+1).padStart(2,'0')}:00`;
-        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:8px;height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+        const hEnd  = `${String(slotH+1).padStart(2,'0')}:00`;
+        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
       }).join('');
-      const slotClick = !diaIsPast ? ` onclick="openModalWithTime('${diaFecha}','${slotTime}')" title="+ Nueva reserva a las ${slotTime}" style="cursor:pointer"` : '';
+      if (slotEvs.length > 0 && !slotIsPast) {
+        evHtml += `<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime('${diaFecha}','${slotTime}')" title="Agregar sobrecupo a las ${slotTime}">+</button>`;
+      }
+      const slotClick = !slotIsPast ? ` onclick="openModalWithTime('${diaFecha}','${slotTime}')" title="+ Nueva reserva a las ${slotTime}" style="cursor:pointer"` : '';
       html += `<div class="slot"${slotClick}>${evHtml}</div>`;
     });
     dcol.innerHTML = html;
@@ -4413,13 +4431,14 @@ function renderWeekBody() {
       if (t) { var hh = parseInt(t.split(':')[0]); byHour[hh] = byHour[hh] || []; byHour[hh].push(dayEvs[e]); }
     }
 
-    var dFecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    var isPast  = dFecha < today.toISOString().split('T')[0];
+    var dFecha    = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    var isPastDate = dFecha < today.toISOString().split('T')[0];
 
     for (var s = 0; s < HOURS.length; s++) {
-      var slotH   = parseInt(HOURS[s]);
-      var slotEvs = byHour[slotH] || [];
-      var evHtml  = '';
+      var slotH      = parseInt(HOURS[s]);
+      var slotIsPast = isPastDate || (isToday && slotH <= nowH);
+      var slotEvs    = byHour[slotH] || [];
+      var evHtml     = '';
       // Now-line en el slot de la hora actual
       if (isToday && slotH === nowH) {
         evHtml += '<div class="now-line" style="top:' + Math.round((nowM/60)*52) + 'px"><div class="now-dot"></div><div class="now-track"></div></div>';
@@ -4437,8 +4456,12 @@ function renderWeekBody() {
                   '<button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button>' +
                   '</div>';
       }
-      var slotClick  = !isPast ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"' : '';
-      var slotCursor = !isPast ? 'cursor:pointer' : '';
+      // Botón sobrecupo: aparece al hacer hover cuando ya hay un evento en el slot
+      if (slotEvs.length > 0 && !slotIsPast) {
+        evHtml += '<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="Agregar sobrecupo a las ' + HOURS[s] + '">+</button>';
+      }
+      var slotClick  = !slotIsPast ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"' : '';
+      var slotCursor = !slotIsPast ? 'cursor:pointer' : '';
       html += '<div class="slot"' + slotClick + (slotCursor ? ' style="' + slotCursor + '"' : '') + '>' + evHtml + '</div>';
     }
     html += '</div>';
