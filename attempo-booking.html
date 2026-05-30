@@ -699,7 +699,7 @@ async function selDia(d, m, y) {
   const fechaStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   try {
     const r = await fetch(
-      `${SURL}/rest/v1/citas?cliente_id=eq.${clienteId}&fecha=eq.${fechaStr}&estado=neq.cancelada&select=hora,duracion,especialista_id`,
+      `${SURL}/rest/v1/citas_disponibilidad?cliente_id=eq.${clienteId}&fecha=eq.${fechaStr}&estado=neq.cancelada&select=hora,duracion,especialista_id`,
       { headers: SH }
     );
     citasDelDia = await r.json();

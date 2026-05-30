@@ -3073,8 +3073,8 @@ async function loadFichaData(nombre) {
   if (!cid || !nombre) return;
   try {
     const r = await fetch(
-      `${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&nombre_paciente=ilike.${encodeURIComponent(nombre)}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=100`,
-      { headers: _SH }
+      `/api/citas-get?nombre=${encodeURIComponent(nombre)}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=100`,
+      { headers: _citasH() }
     );
     const citas = await r.json();
     if (!Array.isArray(citas)) return;
@@ -5853,6 +5853,14 @@ function salirImpersonacion() {
 const _SURL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const _SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
 const _SH   = { apikey: _SKEY, Authorization: `Bearer ${_SKEY}` };
+// Headers para /api/citas-get — usa service role en el servidor, nunca expone datos de pacientes al anon key
+function _citasH() {
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  if (u._impersonando) {
+    return { 'x-sa-token': localStorage.getItem('sa_token') || '', 'x-cliente-id': u.cliente_id || '' };
+  }
+  return { 'x-session-token': localStorage.getItem('attempo_session_token') || '' };
+}
 
 // Colores por especialista (iniciales → clase css)
 const PROF_COLOR = { 'CS':'ev-p', 'MJ':'ev-g', 'JP':'ev-a' };
@@ -5898,7 +5906,7 @@ async function cargarCitasSupabase() {
     }
 
     // 3. Traer todas las citas (con datos del especialista)
-    const r2 = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(id,nombre)&order=fecha.asc,hora.asc`, { headers: _SH });
+    const r2 = await fetch(`/api/citas-get?select=*,especialistas(id,nombre)&order=fecha.asc,hora.asc`, { headers: _citasH() });
     const citas = await r2.json();
     if (!Array.isArray(citas)) return;
 
@@ -6047,7 +6055,7 @@ async function getClienteId() {
 async function cargarVentas() {
   const cid = await getClienteId();
   if (!cid) return;
-  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _SH });
+  const r = await fetch(`/api/citas-get?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
   const citas = await r.json();
   if (!Array.isArray(citas)) return;
   _allVentas  = citas;
@@ -6125,7 +6133,7 @@ function openRegistrarPago() {
       return;
     }
     // Traer citas sin pago (estado_pago pendiente o nulo) o todas si no hay filtro
-    return fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=id,nombre_paciente,servicio,fecha,hora,precio,estado_pago&order=fecha.desc,hora.desc&limit=100`, { headers: _SH })
+    return fetch(`/api/citas-get?select=id,nombre_paciente,servicio,fecha,hora,precio,estado_pago&order=fecha.desc,hora.desc&limit=100`, { headers: _citasH() })
       .then(r => r.json())
       .then(citas => {
         if (!Array.isArray(citas) || !citas.length) {
@@ -7161,7 +7169,7 @@ async function cargarReportes(force) {
   if (loading) loading.style.display = 'inline';
   const cid = await getClienteId();
   if (!cid) { if (loading) loading.style.display = 'none'; return; }
-  const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _SH });
+  const r = await fetch(`/api/citas-get?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
   const citas = await r.json();
   if (!Array.isArray(citas)) { if (loading) loading.style.display = 'none'; return; }
   _allReportes = citas;
@@ -7541,7 +7549,7 @@ async function loadClientesView() {
 
   try {
     // Citas con datos de paciente (agrupa por nombre_paciente)
-    const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=nombre_paciente,email_paciente,tel_paciente,fecha,precio,estado&order=fecha.desc`, { headers: _SH });
+    const r = await fetch(`/api/citas-get?select=nombre_paciente,email_paciente,tel_paciente,fecha,precio,estado&order=fecha.desc`, { headers: _citasH() });
     const citas = await r.json();
     if (!Array.isArray(citas)) throw new Error('respuesta inválida');
 
