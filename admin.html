@@ -3032,13 +3032,13 @@ async function saveReservation() {
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || 'Error al crear la cita');
 
+    // Capturar ID antes de closeModal() que lo limpia
+    const _cancelarId = _reagendarCancelId;
     closeModal();
     toast('✓ Reserva confirmada');
     // Si es reagendar, cancelar la cita original
-    if (_reagendarCancelId) {
-      const cancelId = _reagendarCancelId;
-      _reagendarCancelId = null;
-      fetch(`/api/slots?id=${cancelId}`, { method: 'DELETE', headers: _citasH() }).catch(() => {});
+    if (_cancelarId) {
+      fetch(`/api/slots?id=${_cancelarId}`, { method: 'DELETE', headers: _citasH() }).catch(() => {});
     }
     // Recargar agenda
     if (typeof cargarCitasSupabase === 'function') cargarCitasSupabase();
