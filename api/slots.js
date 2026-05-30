@@ -20,11 +20,59 @@ function verifySessionToken(token) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'DELETE') return res.status(405).end();
+  if (req.method !== 'GET' && req.method !== 'DELETE' && req.method !== 'POST') return res.status(405).end();
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const sessionToken = req.headers['x-session-token'];
+
+  // — POST: guardar bot_config —
+  if (req.method === 'POST') {
+    const s = verifySessionToken(sessionToken);
+    if (!s) return res.status(401).json({ error: 'No autorizado' });
+    let cliente_id = s.cliente_id;
+    const overrideId = req.headers['x-override-cliente-id'];
+    if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
+      cliente_id = overrideId;
+    }
+    const body = req.body || {};
+    if (body.resource !== 'bot_config') return res.status(400).json({ error: 'Recurso no válido' });
+    const TONOS = ['formal','informal'], GENEROS = ['femenino','masculino','neutro'];
+    const payload = {
+      cliente_id,
+      nombre_bot: String(body.nombre_bot || 'Valentina').slice(0, 100),
+      genero:     GENEROS.includes(body.genero) ? body.genero : 'femenino',
+      tono:       TONOS.includes(body.tono) ? body.tono : 'informal',
+      saludo:     String(body.saludo || '').slice(0, 500),
+      faqs:       Array.isArray(body.faqs) ? body.faqs.slice(0, 50).map(f => ({
+        pregunta:  String(f.pregunta  || '').slice(0, 300),
+        respuesta: String(f.respuesta || '').slice(0, 1000)
+      })) : [],
+      activo: true
+    };
+    try {
+      const check = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=id&limit=1`, { headers: sh });
+      const existing = await check.json();
+      const method = existing.length ? 'PATCH' : 'POST';
+      const url = existing.length
+        ? `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}`
+        : `${SUPABASE_URL}/rest/v1/bot_config`;
+      const r = await fetch(url, {
+        method,
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        console.error('bot_config save error:', r.status, JSON.stringify(err));
+        return res.status(500).json({ error: 'Error al guardar configuración' });
+      }
+      return res.json({ ok: true });
+    } catch(e) {
+      console.error('bot_config save exception:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
 
   // — DELETE: cancelar una cita —
   if (req.method === 'DELETE') {
@@ -64,6 +112,19 @@ export default async function handler(req, res) {
     const overrideId = req.headers['x-override-cliente-id'];
     if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
       cliente_id = overrideId;
+    }
+
+    // — GET bot_config —
+    if (req.query.resource === 'bot_config') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh });
+        const data = await r.json();
+        if (!r.ok) return res.status(500).json({ error: 'Error al obtener configuración' });
+        return res.status(200).json(data[0] || null);
+      } catch(e) {
+        console.error('bot_config GET exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
     }
 
     try {

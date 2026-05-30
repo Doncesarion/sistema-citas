@@ -3566,19 +3566,19 @@ let _botFaqs = [];
 let _botTestUserId = 'admin-test-' + Date.now();
 
 async function loadBotConfig() {
-  const cid = await getClienteId();
-  if (!cid) return;
-  const r = await fetch(`${_SURL}/rest/v1/bot_config?cliente_id=eq.${cid}&limit=1`, { headers: _SH });
-  if (!r.ok) return;
-  const [cfg] = await r.json();
-  if (!cfg) return;
-  document.getElementById('bot-nombre').value = cfg.nombre_bot || 'Valentina';
-  document.getElementById('bot-genero').value = cfg.genero || 'femenino';
-  const tono = cfg.tono || 'informal';
-  document.getElementById('bot-tono-' + tono).checked = true;
-  if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
-  _botFaqs = Array.isArray(cfg.faqs) ? cfg.faqs : [];
-  renderFaqs();
+  try {
+    const r = await fetch('/api/slots?resource=bot_config', { headers: _citasH() });
+    if (!r.ok) return;
+    const cfg = await r.json();
+    if (!cfg) return;
+    document.getElementById('bot-nombre').value = cfg.nombre_bot || 'Valentina';
+    document.getElementById('bot-genero').value = cfg.genero || 'femenino';
+    const tono = cfg.tono || 'informal';
+    document.getElementById('bot-tono-' + tono).checked = true;
+    if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
+    _botFaqs = Array.isArray(cfg.faqs) ? cfg.faqs : [];
+    renderFaqs();
+  } catch(e) { console.error('loadBotConfig:', e.message); }
 }
 
 function renderFaqs() {
@@ -3612,24 +3612,24 @@ function removeFaq(i) {
 }
 
 async function saveBotConfig() {
-  const cid = await getClienteId();
-  if (!cid) return;
   const tono = document.querySelector('input[name="bot-tono"]:checked')?.value || 'informal';
   const payload = {
-    cliente_id: cid,
+    resource:   'bot_config',
     nombre_bot: document.getElementById('bot-nombre').value.trim() || 'Valentina',
     genero:     document.getElementById('bot-genero').value,
     tono,
     saludo:     document.getElementById('bot-saludo').value.trim(),
     faqs:       _botFaqs.filter(f => f.pregunta.trim())
   };
-  const r = await fetch(`${_SURL}/rest/v1/bot_config`, {
-    method: 'POST',
-    headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify(payload)
-  });
-  if (r.ok) { toast('✓ Configuración del bot guardada'); }
-  else { toast('Error al guardar la configuración del bot'); }
+  try {
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) { toast('✓ Configuración del bot guardada'); }
+    else { const err = await r.json().catch(()=>({})); toast('Error al guardar: ' + (err.error || r.status)); }
+  } catch(e) { toast('Error al guardar la configuración del bot'); }
 }
 
 async function testBotSend() {
