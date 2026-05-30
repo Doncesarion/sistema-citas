@@ -4329,7 +4329,7 @@ function renderDiaView(date) {
     let html = `<div style="height:52px;border-bottom:1px solid rgba(108,92,228,0.05)"></div>`;
     SLOTS.forEach(slotTime => {
       const slotH      = parseInt(slotTime);
-      const slotIsPast = diaPastDate || (diaIsToday && slotH <= _dNowH);
+      const slotIsPast = diaPastDate || (diaIsToday && slotH < _dNowH);
       const slotEvs    = evByHour[slotH] || [];
       let evHtml = '';
       if (diaIsToday && slotH === _dNowH) {
@@ -4436,7 +4436,7 @@ function renderWeekBody() {
 
     for (var s = 0; s < HOURS.length; s++) {
       var slotH      = parseInt(HOURS[s]);
-      var slotIsPast = isPastDate || (isToday && slotH <= nowH);
+      var slotIsPast = isPastDate || (isToday && slotH < nowH);
       var slotEvs    = byHour[slotH] || [];
       var evHtml     = '';
       // Now-line en el slot de la hora actual
