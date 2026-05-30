@@ -2561,7 +2561,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div><div class="fp-info-lbl">Email</div><div class="fp-info-val" id="fpi-email">juana.perez@email.com</div></div>
         <div><div class="fp-info-lbl">Teléfono</div><div class="fp-info-val mono" id="fpi-tel">+56 9 9999 9999</div></div>
         <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
-        <div><div class="fp-info-lbl">Cumpleaños</div><div class="fp-info-val">15 de marzo</div></div>
         <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
         <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
         <div><div class="fp-info-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
@@ -2747,6 +2746,7 @@ function _renderPtDrop(q) {
 function closeModal() {
   document.getElementById('modal-ov').classList.remove('open');
   clearModalErr();
+  _modalPresetTime = null;
 }
 
 let _modalPresetTime = null;
@@ -2994,6 +2994,8 @@ async function saveReservation() {
   // 2. Fecha y hora
   const fecha = document.getElementById('ms-fecha')?.value;
   if (!fecha) { showModalErr('Selecciona una fecha para la reserva'); return; }
+  const _hoyVal = new Date().toISOString().split('T')[0];
+  if (fecha < _hoyVal) { showModalErr('La fecha no puede ser en el pasado'); return; }
   const hh = document.getElementById('ms-hora')?.value || '09';
   const mm = document.getElementById('ms-min')?.value  || '00';
   const hora = `${hh}:${mm}`;
@@ -3097,17 +3099,18 @@ async function cancelarProxCita() {
   const cid = await getClienteId();
   if (!cid) return;
   try {
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cid}`, {
-      method: 'PATCH',
-      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ estado: 'cancelada' })
+    const r = await fetch('/api/cancelar-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ..._citasH() },
+      body: JSON.stringify({ cita_id: id, cliente_id: cid })
     });
-    if (r.ok) {
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.ok) {
       closeFicha();
       toast('✓ Cita cancelada');
       cargarCitasSupabase();
     } else {
-      toastErr('No se pudo cancelar la cita. Intenta de nuevo.');
+      toastErr(d.error || 'No se pudo cancelar la cita. Intenta de nuevo.');
     }
   } catch(e) { toastErr('Error al cancelar la cita'); }
 }
