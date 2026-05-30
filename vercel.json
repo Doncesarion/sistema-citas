@@ -16,7 +16,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "https://app.attempo.cl" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key, x-session-token" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key, x-session-token, x-override-cliente-id" }
       ]
     }
   ],
