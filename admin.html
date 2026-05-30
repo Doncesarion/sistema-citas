@@ -3670,6 +3670,12 @@ async function openProfile() {
     set('pf-header-name', nombre);
     set('pf-nombre', nombre);
     set('pf-email', email);
+    // Traer email real desde tabla usuarios (más fiable que localStorage)
+    if (email) {
+      const enc = encodeURIComponent(email);
+      fetch(`${_SURL}/rest/v1/usuarios?or=(email.eq.${enc},username.eq.${enc})&select=email&limit=1`, { headers: _SH })
+        .then(r => r.json()).then(rows => { if (rows[0]?.email) set('pf-email', rows[0].email); }).catch(()=>{});
+    }
     // Cargar teléfono y nombre negocio desde clientes_sistema
     const cid = u.cliente_id;
     if (cid) {

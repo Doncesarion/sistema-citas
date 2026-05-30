@@ -167,8 +167,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);font-size:13px
     <div class="mbody">
       <div class="m-info" id="nu-negocio-label">—</div>
       <div class="fg"><label class="fl">Nombre completo</label><input class="fi" id="nu-nombre" placeholder="Ej: María González"></div>
-      <div class="fg"><label class="fl">Usuario <span style="color:var(--red)">*</span></label><input class="fi" id="nu-username" placeholder="Ej: maria.gonzalez" autocomplete="off"></div>
-      <div class="fg"><label class="fl">Email (opcional)</label><input class="fi" id="nu-email" type="email" placeholder="correo@ejemplo.com"></div>
+      <div class="fg"><label class="fl">Email <span style="color:var(--red)">*</span> <span style="font-size:10px;color:var(--t4);font-weight:400">(será el usuario de acceso)</span></label><input class="fi" id="nu-email" type="email" placeholder="correo@ejemplo.com" autocomplete="off"></div>
       <div class="fg">
         <label class="fl">Contraseña <span style="color:var(--red)">*</span></label>
         <div class="input-rel">
@@ -368,7 +367,7 @@ function entrarPanel(clienteId, clienteNombre) {
 function abrirNu(clienteId, clienteNombre) {
   _nuClienteId = clienteId;
   document.getElementById('nu-negocio-label').textContent = 'Negocio: ' + clienteNombre;
-  ['nu-nombre','nu-username','nu-email','nu-password'].forEach(id => document.getElementById(id).value = '');
+  ['nu-nombre','nu-email','nu-password'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('nu-rol').value = 'admin';
   document.getElementById('nu-err').style.display = 'none';
   document.getElementById('nu-btn').disabled = false;
@@ -380,13 +379,13 @@ function cerrarNu() { document.getElementById('nu-ov').classList.remove('open');
 
 async function crearUsuario() {
   const nombre   = document.getElementById('nu-nombre').value.trim();
-  const username = document.getElementById('nu-username').value.trim().toLowerCase();
-  const email    = document.getElementById('nu-email').value.trim();
+  const email    = document.getElementById('nu-email').value.trim().toLowerCase();
   const password = document.getElementById('nu-password').value;
   const rol      = document.getElementById('nu-rol').value;
   const errEl    = document.getElementById('nu-err');
 
-  if (!username)         { showErr(errEl, 'El usuario es obligatorio'); return; }
+  if (!email)            { showErr(errEl, 'El email es obligatorio'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr(errEl, 'Ingresa un email válido'); return; }
   if (!password)         { showErr(errEl, 'La contraseña es obligatoria'); return; }
   if (password.length<8) { showErr(errEl, 'La contraseña debe tener al menos 8 caracteres'); return; }
 
@@ -397,7 +396,7 @@ async function crearUsuario() {
   try {
     const r = await fetch('/api/usuarios-admin', {
       method:'POST', headers:{'Content-Type':'application/json','x-sa-token':localStorage.getItem('sa_token')||''},
-      body: JSON.stringify({ action:'crear', username, password, email:email||null, nombre:nombre||username, rol, cliente_id:_nuClienteId })
+      body: JSON.stringify({ action:'crear', username: email, password, email, nombre: nombre || email, rol, cliente_id:_nuClienteId })
     });
     const d = await r.json();
     if (r.ok) { cerrarNu(); toast('✓ Acceso creado para @' + username); cargarAccesos(); }
