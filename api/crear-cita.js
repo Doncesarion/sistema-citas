@@ -116,8 +116,17 @@ export default async function handler(req, res) {
       const data = await r.json();
       if (!r.ok) {
         console.error('crear-cita supabase error:', r.status, JSON.stringify(data));
-        const isDup = data?.code === '23505';
-        const msg   = isDup ? 'Ya existe una cita en ese horario' : 'Error al crear la cita';
+        const code = data?.code;
+        const isDup  = code === '23505';
+        const isFk   = code === '23503';
+        const isNull = code === '23502';
+        const isRls  = code === '42501' || r.status === 403;
+        let msg;
+        if (isDup)  msg = 'Ya existe una cita en ese horario';
+        else if (isFk)   msg = 'Profesional no encontrado (FK). Revisa la configuración de profesionales.';
+        else if (isNull) msg = `Falta un campo obligatorio: ${data?.details || ''}`;
+        else if (isRls)  msg = 'Sin permisos para crear la cita (RLS)';
+        else msg = `Error al crear la cita [${code || r.status}]: ${data?.message || ''}`;
         return res.status(isDup ? 409 : 500).json({ error: msg });
       }
       cita = data[0];
