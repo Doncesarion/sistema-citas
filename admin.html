@@ -4382,10 +4382,12 @@ function renderWeekBody() {
   var body = document.getElementById('semana-body');
   if (!body) return;
   var today = new Date();
-  var HOURS = _calHoras || ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+  var nowH  = today.getHours();
+  var nowM  = today.getMinutes();
+  var HOURS = _calHoras || Array.from({length:24}, function(_,i){ return String(i).padStart(2,'0') + ':00'; });
 
-  // Columna de horas
-  var html = '<div class="time-col"><div class="tslot" style="height:52px"></div>';
+  // Columna de horas — espaciador sin borde para que no parezca fila vacía
+  var html = '<div class="time-col"><div class="tslot" style="height:52px;border-bottom:none"></div>';
   for (var h = 0; h < HOURS.length; h++) { html += '<div class="tslot">' + HOURS[h] + '</div>'; }
   html += '</div>';
 
@@ -4399,13 +4401,8 @@ function renderWeekBody() {
     html += '<div class="dcol' + (isToday ? ' today-col' : '') + '"' +
             (isSun ? ' style="background:rgba(108,92,228,0.01)"' : '') + '>';
 
-    // Slot espaciador (con now-line si es hoy)
-    if (isToday) {
-      html += '<div class="slot" style="height:52px;position:relative">' +
-              '<div class="now-line" style="top:34px"><div class="now-dot"></div><div class="now-track"></div></div></div>';
-    } else {
-      html += '<div class="slot" style="height:52px"></div>';
-    }
+    // Espaciador sin now-line ni cursor (la now-line va en el slot de hora correcto)
+    html += '<div style="height:52px;border-bottom:1px solid rgba(108,92,228,0.05)"></div>';
 
     // Eventos del día desde mesEvents
     var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
@@ -4413,23 +4410,26 @@ function renderWeekBody() {
     var byHour = {};
     for (var e = 0; e < dayEvs.length; e++) {
       var t = (dayEvs[e].lbl.match(/\d{2}:\d{2}/) || [''])[0];
-      if (t) { var h = parseInt(t.split(':')[0]); byHour[h] = byHour[h] || []; byHour[h].push(dayEvs[e]); }
+      if (t) { var hh = parseInt(t.split(':')[0]); byHour[hh] = byHour[hh] || []; byHour[hh].push(dayEvs[e]); }
     }
 
-    // Fecha del día en formato YYYY-MM-DD para pre-llenar el modal
     var dFecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     var isPast  = dFecha < today.toISOString().split('T')[0];
 
     for (var s = 0; s < HOURS.length; s++) {
-      var slotEvs = byHour[parseInt(HOURS[s])] || [];
-      var evHtml = '';
+      var slotH   = parseInt(HOURS[s]);
+      var slotEvs = byHour[slotH] || [];
+      var evHtml  = '';
+      // Now-line en el slot de la hora actual
+      if (isToday && slotH === nowH) {
+        evHtml += '<div class="now-line" style="top:' + Math.round((nowM/60)*52) + 'px"><div class="now-dot"></div><div class="now-track"></div></div>';
+      }
       for (var ev = 0; ev < slotEvs.length; ev++) {
         var cur   = slotEvs[ev];
         var abrev = cur.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
         var full  = cur.nombre || evNombreFull(abrev);
         var ini   = evIniciales(full);
-        var hr    = parseInt(HOURS[s].split(':')[0]);
-        var hEnd  = (hr + 1 < 10 ? '0' : '') + (hr + 1) + ':00';
+        var hEnd  = (slotH + 1 < 10 ? '0' : '') + (slotH + 1) + ':00';
         evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="event.stopPropagation();openFicha(\'' +
                   full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">' +
                   '<div class="evn">' + full + '</div>' +
@@ -4437,8 +4437,7 @@ function renderWeekBody() {
                   '<button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button>' +
                   '</div>';
       }
-      // Todo slot futuro es clickeable para nueva reserva (los eventos ya tienen stopPropagation)
-      var slotClick = !isPast ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"' : '';
+      var slotClick  = !isPast ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"' : '';
       var slotCursor = !isPast ? 'cursor:pointer' : '';
       html += '<div class="slot"' + slotClick + (slotCursor ? ' style="' + slotCursor + '"' : '') + '>' + evHtml + '</div>';
     }
@@ -4446,6 +4445,13 @@ function renderWeekBody() {
   }
 
   body.innerHTML = html;
+
+  // Scroll a la hora actual (o a las 07:00 si no hay hora activa)
+  var scrollH = (nowH > 1 ? nowH - 1 : 0);
+  var scrollIdx = HOURS.findIndex(function(h){ return parseInt(h) >= scrollH; });
+  if (scrollIdx < 0) scrollIdx = 0;
+  var calBody = document.querySelector('.cal-body');
+  if (calBody) calBody.scrollTop = 52 + scrollIdx * 52;
 }
 
 function setCalView(view, btn, skipPush) {
@@ -5858,7 +5864,6 @@ function _citasH() {
   const tok = localStorage.getItem('attempo_session_token') || '';
   const h = { 'x-session-token': tok };
   if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
-  console.log('[_citasH] rol:', u.rol, '| impersonando:', u._impersonando, '| cid:', u.cliente_id, '| token_ok:', tok.length > 10);
   return h;
 }
 
@@ -5892,8 +5897,7 @@ async function cargarCitasSupabase() {
             });
           }
         });
-        _calHoras = [];
-        for (let i = minH; i <= maxH; i++) _calHoras.push(String(i).padStart(2,'0') + ':00');
+        _calHoras = Array.from({length:24}, (_,i) => String(i).padStart(2,'0') + ':00');
       } catch(_) {}
     }
 
@@ -6205,7 +6209,7 @@ function routeFromURL() {
   const calSubs = ['semana','dia','mes','lista'];
   const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales'];
 
-  if (!section || section === 'admin.html' || section === 'agenda') {
+  if (!section || section === 'admin' || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);
     setCalView(calSubs.includes(sub) ? sub : 'semana', null, true);
   } else if (section === 'clientes') {
