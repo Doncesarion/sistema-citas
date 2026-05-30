@@ -2749,6 +2749,7 @@ function closeModal() {
   document.getElementById('modal-ov').classList.remove('open');
   clearModalErr();
   _modalPresetTime = null;
+  _reagendarCancelId = null;
 }
 
 let _modalPresetTime = null;
@@ -3033,6 +3034,12 @@ async function saveReservation() {
 
     closeModal();
     toast('✓ Reserva confirmada');
+    // Si es reagendar, cancelar la cita original
+    if (_reagendarCancelId) {
+      const cancelId = _reagendarCancelId;
+      _reagendarCancelId = null;
+      fetch(`/api/slots?id=${cancelId}`, { method: 'DELETE', headers: _citasH() }).catch(() => {});
+    }
     // Recargar agenda
     if (typeof cargarCitasSupabase === 'function') cargarCitasSupabase();
   } catch(e) {
@@ -3061,13 +3068,13 @@ function openFicha(name, initials, rubro) {
     const asistNum = real.citas > 0 ? Math.round((real.citas - real.canceladas) / real.citas * 100) : 100;
     d = { av: ini2, since: real.ultima ? real.ultima.slice(0,4) : '2026', citas: real.citas, gasto: real.gasto, asist: asistNum + '%', email: real.email || '—', tel: real.tel || '—' };
   } else {
-    d = clientData[name] || { av: initials || name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(), since:'2026', citas:1, gasto:0, asist:'100%', email:'—', tel:'—' };
+    d = clientData[name] || { av: initials || name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(), since:'…', citas:0, gasto:0, asist:'…', email:'…', tel:'…' };
   }
   document.getElementById('fp-av').textContent = d.av;
   document.getElementById('fp-name').textContent = name;
   document.getElementById('fp-since').textContent = 'Cliente desde ' + d.since + (rubro ? ' · ' + rubro : '');
   document.getElementById('fps-citas').textContent = d.citas;
-  document.getElementById('fps-gasto').textContent = d.gasto.toLocaleString('es-CL');
+  document.getElementById('fps-gasto').textContent = typeof d.gasto === 'number' ? d.gasto.toLocaleString('es-CL') : d.gasto;
   const asEl = document.getElementById('fps-asist');
   asEl.textContent = d.asist;
   asEl.style.color = d.asist === '100%' ? 'var(--green)' : parseInt(d.asist) >= 75 ? 'var(--amber)' : 'var(--red)';
@@ -3115,7 +3122,10 @@ async function cancelarProxCita() {
     }
   } catch(e) { toastErr('Error al cancelar la cita'); }
 }
+let _reagendarCancelId = null;
 function reagendarProxCita() {
+  // Guardar ID de la cita a cancelar: próxima futura primero, si no la más reciente activa
+  _reagendarCancelId = window._fichaProxCitaId || window._fichaLastActiveCitaId || null;
   const fecha    = window._fichaProxFecha;
   const hora     = window._fichaProxHora;
   // Leer datos del paciente desde el panel de ficha antes de cerrarlo
@@ -3157,6 +3167,33 @@ async function loadFichaData(nombre) {
 
     const hoy = new Date().toISOString().slice(0,10);
     const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online' };
+    const CANCEL_ST = ['cancelada','canceled','cancelled','no-show','inasistencia'];
+
+    // — Actualizar stats de cabecera desde datos reales —
+    const citasActivas = citas.filter(c => !CANCEL_ST.includes(c.estado));
+    const nCanceladas  = citas.filter(c =>  CANCEL_ST.includes(c.estado)).length;
+    const nCitas  = citasActivas.length;
+    const nGasto  = citasActivas.reduce((s,c) => s + (Number(c.precio)||0), 0);
+    const asistPct = (nCitas + nCanceladas) > 0 ? Math.round(nCitas/(nCitas+nCanceladas)*100) : 100;
+    const since = citas.length ? new Date(citas[citas.length-1].fecha+'T12:00:00').getFullYear() : new Date().getFullYear();
+    const emailReal = citas.find(c => c.email_paciente)?.email_paciente;
+    const telReal   = citas.find(c => c.tel_paciente)?.tel_paciente;
+    // Store most recent active cita ID (for reagendar cancel)
+    const lastActive = citasActivas.sort((a,b) => b.fecha.localeCompare(a.fecha))[0];
+    window._fichaLastActiveCitaId = lastActive ? lastActive.id : null;
+    // Update DOM
+    const citasEl = document.getElementById('fps-citas');
+    const gastoEl = document.getElementById('fps-gasto');
+    const asistEl = document.getElementById('fps-asist');
+    const sinceEl = document.getElementById('fp-since');
+    const emailEl = document.getElementById('fpi-email');
+    const telEl   = document.getElementById('fpi-tel');
+    if (citasEl) citasEl.textContent = nCitas;
+    if (gastoEl) gastoEl.textContent = nGasto.toLocaleString('es-CL');
+    if (asistEl) { asistEl.textContent = asistPct+'%'; asistEl.style.color = asistPct===100?'var(--green)':asistPct>=75?'var(--amber)':'var(--red)'; }
+    if (sinceEl && document.getElementById('fp-name')?.textContent?.trim()===nombre) sinceEl.textContent = 'Cliente desde ' + since;
+    if (emailEl && emailReal) emailEl.textContent = emailReal;
+    if (telEl   && telReal)   telEl.textContent   = telReal;
 
     // Próxima cita
     const prox = citas.filter(c => c.fecha >= hoy && !['cancelada','canceled','cancelled'].includes(c.estado)).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''))[0];
