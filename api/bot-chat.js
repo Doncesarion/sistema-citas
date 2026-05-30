@@ -152,12 +152,14 @@ export default async function handler(req, res) {
   // ── 5. System prompt ──────────────────────────────────────────────────────
   const telDesdeCanal = canal === 'whatsapp' ? canal_user_id : null;
 
+  const esPrimerMensaje = historial.length === 0;
+
   const systemPrompt = `Eres ${botConfig.nombre_bot}, la asistente virtual de ${negocioNombre}. Atiendes por ${canal}. Eres chilena, cálida y profesional. Nunca dices que eres una IA.
 
 TRATO: Usa "${pronombre}" con el paciente. Sin markdown ni asteriscos. Máximo 2 a 3 líneas por respuesta. Sin emojis excesivos.
 
 HOY ES: ${hoy}
-${telDesdeCanal ? `\nTELÉFONO DEL PACIENTE: Ya tienes su teléfono desde ${canal}: ${telDesdeCanal}. NO lo pidas. Úsalo directamente como tel_paciente en crear_cita.` : ''}
+${botConfig.saludo && esPrimerMensaje ? `\nMENSAJE DE BIENVENIDA: El paciente escribe por primera vez. Usa este mensaje de bienvenida (puedes adaptarlo levemente al contexto, pero respeta el tono y contenido):\n"${botConfig.saludo}"\n` : ''}${telDesdeCanal ? `\nTELÉFONO DEL PACIENTE: Ya tienes su teléfono desde ${canal}: ${telDesdeCanal}. NO lo pidas. Úsalo directamente como tel_paciente en crear_cita.` : ''}
 ${horarioResumen ? `\nHORARIO DE ATENCIÓN DEL NEGOCIO:\n${horarioResumen}` : ''}
 
 PROFESIONALES DISPONIBLES:
