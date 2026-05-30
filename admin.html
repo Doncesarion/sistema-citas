@@ -6386,7 +6386,18 @@ cargarVentas();
 
 /* ════ URL ROUTER ════ */
 function routeFromURL() {
-  const parts = window.location.pathname.replace(/^\//, '').split('/');
+  // If we arrived at /admin via a 404 redirect, restore the original intended path
+  let pathname = window.location.pathname;
+  try {
+    const returnTo = sessionStorage.getItem('attempo_return_to');
+    if (returnTo && (pathname === '/admin' || pathname === '/agenda')) {
+      sessionStorage.removeItem('attempo_return_to');
+      history.replaceState({}, '', returnTo);
+      pathname = returnTo;
+    }
+  } catch(e) {}
+
+  const parts = pathname.replace(/^\//, '').split('/');
   const section = parts[0];
   const sub     = parts[1] || null;
   const calSubs = ['semana','dia','mes','lista'];
