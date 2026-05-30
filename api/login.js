@@ -121,9 +121,10 @@ export default async function handler(req, res) {
 
     const SESSION_SECRET = process.env.SESSION_SECRET;
     let session_token = null;
-    if (SESSION_SECRET && u.cliente_id) {
+    if (SESSION_SECRET && (u.cliente_id || u.rol === 'superadmin')) {
       const expires = Date.now() + 24 * 60 * 60 * 1000;
-      const payload = `${u.cliente_id}:${u.rol}:${expires}`;
+      const cid     = u.cliente_id || 'sa';
+      const payload = `${cid}:${u.rol}:${expires}`;
       const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
       session_token = `${payload}.${sig}`;
     }
