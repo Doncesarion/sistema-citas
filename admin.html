@@ -127,6 +127,9 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 }
 .btn-new:hover{transform:translateY(-1px);box-shadow:0 5px 18px rgba(108,92,228,0.44)}
 .btn-new:active{transform:none}
+/* Dentro del nav oscuro, el botón usa fondo blanco para contrastar */
+nav .btn-new{background:#fff;color:var(--a);box-shadow:0 2px 10px rgba(0,0,0,0.18)}
+nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);transform:translateY(-1px)}
 
 /* ─────────────────────────────────────
    LAYOUT
@@ -2380,8 +2383,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <!-- Nuevo paciente: campos manuales -->
         <div id="pt-nuevo-wrap" style="display:none;flex-direction:column;gap:8px;margin-top:4px">
           <input class="fi" id="pt-nuevo-nombre" placeholder="Nombre completo del paciente *" autocomplete="off">
-          <input class="fi" id="pt-nuevo-email"  placeholder="Email (opcional)" type="email" autocomplete="off">
-          <input class="fi" id="pt-nuevo-tel"    placeholder="Teléfono (opcional)" type="tel" autocomplete="off">
+          <input class="fi" id="pt-nuevo-email"  placeholder="Email *" type="email" autocomplete="off">
+          <input class="fi" id="pt-nuevo-tel"    placeholder="Teléfono *" type="tel" autocomplete="off">
         </div>
       </div>
       <div class="fg">
@@ -2413,6 +2416,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <div class="pico">🔗</div>
             <div class="plbl">Link de pago</div>
           </div>
+        </div>
+        <div id="pay-link-info" style="display:none;font-size:11px;color:var(--t3);margin-top:6px;padding:7px 10px;background:rgba(108,92,228,0.05);border-radius:6px;line-height:1.5">
+          Se enviará un link al paciente por email o WhatsApp para que pague en línea antes de su cita. El monto corresponde al servicio seleccionado.
         </div>
       </div>
       <!-- Summary -->
@@ -2677,6 +2683,20 @@ function closeModal() {
   document.getElementById('modal-ov').classList.remove('open');
   clearModalErr();
 }
+function openModalWithTime(fecha, hora) {
+  openModal();
+  const hoy = new Date().toISOString().split('T')[0];
+  // No abrir en fechas pasadas
+  if (fecha < hoy) return;
+  const fEl = document.getElementById('ms-fecha');
+  if (fEl) fEl.value = fecha;
+  const parts = hora.split(':');
+  const hrEl = document.getElementById('ms-hora');
+  const mmEl = document.getElementById('ms-min');
+  if (hrEl) hrEl.value = parts[0];
+  if (mmEl) mmEl.value = parts[1] || '00';
+  _recalcFin();
+}
 function goStep(n) {
   curStep = n;
   clearModalErr();
@@ -2696,7 +2716,29 @@ function goStep(n) {
   // Recargar profesionales al entrar al paso 2 para evitar el bug "Sin profesionales activos"
   if (n === 2) _loadModalEspecialistas();
 }
-function nextStep() { if (curStep < 3) goStep(curStep + 1); }
+function nextStep() {
+  if (curStep === 2) {
+    const chip      = document.getElementById('pt-chip');
+    const nuevoWrap = document.getElementById('pt-nuevo-wrap');
+    const chipOk    = chip?.style.display !== 'none';
+    const nuevoOk   = nuevoWrap?.style.display !== 'none';
+    if (!chipOk && !nuevoOk) {
+      const typed = document.getElementById('pt-input')?.value?.trim();
+      showModalErr(typed
+        ? 'Selecciona un paciente del listado o elige "Nuevo paciente" para ingresar uno nuevo'
+        : 'Selecciona o ingresa un paciente para continuar');
+      return;
+    }
+    if (nuevoOk) {
+      const nombre = document.getElementById('pt-nuevo-nombre')?.value.trim();
+      const email  = document.getElementById('pt-nuevo-email')?.value.trim();
+      const tel    = document.getElementById('pt-nuevo-tel')?.value.trim();
+      if (!nombre) { showModalErr('Ingresa el nombre del paciente'); document.getElementById('pt-nuevo-nombre')?.focus(); return; }
+      if (!email && !tel) { showModalErr('Agrega al menos un medio de contacto (email o teléfono) para poder enviarle confirmación'); return; }
+    }
+  }
+  if (curStep < 3) goStep(curStep + 1);
+}
 function prevStep() { if (curStep > 1) goStep(curStep - 1); }
 
 function _recalcFin() {
@@ -2730,6 +2772,8 @@ function setPay(el) {
     o.querySelector('.plbl').style.fontWeight = '';
   });
   el.classList.add('on');
+  const info = document.getElementById('pay-link-info');
+  if (info) info.style.display = el.id === 'pay-on' ? 'block' : 'none';
 }
 
 /* Price update */
@@ -4272,6 +4316,10 @@ function renderWeekBody() {
       if (t) { var h = parseInt(t.split(':')[0]); byHour[h] = byHour[h] || []; byHour[h].push(dayEvs[e]); }
     }
 
+    // Fecha del día en formato YYYY-MM-DD para pre-llenar el modal
+    var dFecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    var isPast  = dFecha < today.toISOString().split('T')[0];
+
     for (var s = 0; s < HOURS.length; s++) {
       var slotEvs = byHour[parseInt(HOURS[s])] || [];
       var evHtml = '';
@@ -4282,14 +4330,17 @@ function renderWeekBody() {
         var ini   = evIniciales(full);
         var hr    = parseInt(HOURS[s].split(':')[0]);
         var hEnd  = (hr + 1 < 10 ? '0' : '') + (hr + 1) + ':00';
-        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="openFicha(\'' +
+        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="event.stopPropagation();openFicha(\'' +
                   full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
                   '<button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button>' +
                   '</div>';
       }
-      html += '<div class="slot">' + evHtml + '</div>';
+      // Slot vacío en fecha futura → clickeable para nueva reserva
+      var slotClick = (!isPast && !evHtml) ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="Nueva reserva a las ' + HOURS[s] + '"' : '';
+      var slotCursor = (!isPast && !evHtml) ? 'cursor:pointer' : '';
+      html += '<div class="slot"' + slotClick + (slotCursor ? ' style="' + slotCursor + '"' : '') + '>' + evHtml + '</div>';
     }
     html += '</div>';
   }
