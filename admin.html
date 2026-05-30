@@ -5856,8 +5856,10 @@ const _SH   = { apikey: _SKEY, Authorization: `Bearer ${_SKEY}` };
 // Headers para /api/citas-get — usa service role en el servidor, nunca expone datos de pacientes al anon key
 function _citasH() {
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  const h = { 'x-session-token': localStorage.getItem('attempo_session_token') || '' };
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const h = { 'x-session-token': tok };
   if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
+  console.log('[_citasH] rol:', u.rol, '| impersonando:', u._impersonando, '| cid:', u.cliente_id, '| token_ok:', tok.length > 10);
   return h;
 }
 
@@ -6053,10 +6055,10 @@ async function getClienteId() {
 
 async function cargarVentas() {
   const cid = await getClienteId();
-  if (!cid) return;
+  if (!cid) { console.warn('[cargarVentas] sin cid'); return; }
   const r = await fetch(`/api/slots?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
   const citas = await r.json();
-  if (!Array.isArray(citas)) return;
+  if (!Array.isArray(citas)) { console.error('[cargarVentas] respuesta no-array:', JSON.stringify(citas)); return; }
   _allVentas  = citas;
   _ventasPage = 0;
   _renderVentasSidebarProfs();
@@ -7167,10 +7169,10 @@ async function cargarReportes(force) {
   const loading = document.getElementById('rep-loading');
   if (loading) loading.style.display = 'inline';
   const cid = await getClienteId();
-  if (!cid) { if (loading) loading.style.display = 'none'; return; }
+  if (!cid) { if (loading) loading.style.display = 'none'; console.warn('[cargarReportes] sin cid'); return; }
   const r = await fetch(`/api/slots?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
   const citas = await r.json();
-  if (!Array.isArray(citas)) { if (loading) loading.style.display = 'none'; return; }
+  if (!Array.isArray(citas)) { if (loading) loading.style.display = 'none'; console.error('[cargarReportes] respuesta no-array:', JSON.stringify(citas)); return; }
   _allReportes = citas;
   if (loading) loading.style.display = 'none';
   _renderRepSidebarProfs();
@@ -7550,7 +7552,7 @@ async function loadClientesView() {
     // Citas con datos de paciente (agrupa por nombre_paciente)
     const r = await fetch(`/api/slots?select=nombre_paciente,email_paciente,tel_paciente,fecha,precio,estado&order=fecha.desc`, { headers: _citasH() });
     const citas = await r.json();
-    if (!Array.isArray(citas)) throw new Error('respuesta inválida');
+    if (!Array.isArray(citas)) throw new Error((citas?.error || citas?.message || 'respuesta inválida') + ' (HTTP ' + r.status + ')');
 
     // Agrupar por nombre normalizado
     const map = {};
