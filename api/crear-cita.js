@@ -50,8 +50,12 @@ export default async function handler(req, res) {
     cliente_id, especialista_id, nombre_especialista,
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
-    from_admin, enviar_email
+    from_admin, enviar_email, estado_admin
   } = req.body || {};
+
+  // Map Spanish UI estado names to English DB constraint values
+  const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'completed', cancelada:'canceled', inasistencia:'no-show' };
+  const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending';
 
   // Rate limit solo para reservas nuevas desde el público (no llamadas internas del bot)
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
@@ -109,7 +113,7 @@ export default async function handler(req, res) {
           hora,
           duracion:       duracion ? (parseInt(duracion) || null) : null,
           precio:         precio         || null,
-          estado: 'reservada'
+          estado: estadoFinal
         })
       });
 

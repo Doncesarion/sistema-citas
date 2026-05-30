@@ -3026,7 +3026,7 @@ async function saveReservation() {
     const r = await fetch('/api/crear-cita', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, enviar_email: document.getElementById('email-check')?.checked !== false })
+      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, estado_admin: currentEstado, enviar_email: document.getElementById('email-check')?.checked !== false })
     });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || 'Error al crear la cita');

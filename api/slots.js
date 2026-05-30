@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
         method: 'PATCH',
         headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-        body: JSON.stringify({ estado: 'cancelada' })
+        body: JSON.stringify({ estado: 'canceled' })
       });
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
