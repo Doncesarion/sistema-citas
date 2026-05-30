@@ -49,7 +49,8 @@ export default async function handler(req, res) {
   const {
     cliente_id, especialista_id, nombre_especialista,
     nombre_paciente, tel_paciente, email_paciente,
-    servicio, fecha, hora, negocio_nombre, duracion, precio
+    servicio, fecha, hora, negocio_nombre, duracion, precio,
+    from_admin, enviar_email
   } = req.body || {};
 
   // Rate limit solo para reservas nuevas desde el público (no llamadas internas del bot)
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
   if (!cliente_id || !nombre_paciente || !fecha || !hora) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
   }
-  if (!citaIdYaCreada && !email_paciente) {
+  if (!citaIdYaCreada && !from_admin && !email_paciente) {
     return res.status(400).json({ error: 'El email del paciente es obligatorio' });
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
@@ -139,7 +140,7 @@ export default async function handler(req, res) {
       google_calendar_id   = cli?.google_calendar_id   || null;
     } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
 
-    if (email_paciente && process.env.RESEND_API_KEY) {
+    if (email_paciente && process.env.RESEND_API_KEY && enviar_email !== false) {
       const fechaFmt = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
       });

@@ -2370,12 +2370,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
       <div class="fg">
-        <label class="fl">Hora fin (calculada automáticamente)</label>
-        <input class="fi" id="fin-time" value="13:00" readonly style="background:rgba(108,92,228,0.04);color:var(--t2);cursor:default">
+        <label class="fl" id="fin-time-lbl">Hora fin (calculada automáticamente)</label>
+        <input class="fi" id="fin-time" value="13:00" readonly style="background:rgba(108,92,228,0.04);color:var(--t2);cursor:default" placeholder="HH:MM">
       </div>
-      <div class="minfo">
+      <div class="minfo" id="fin-time-info">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="7" cy="7" r="6"/><path d="M7 4.5v3.5M7 10v.5"/></svg>
-        La hora fin se actualiza automáticamente. Puedes ajustarla en el paso de servicio.
+        <span id="fin-time-info-txt">La hora fin se actualiza automáticamente. Puedes ajustarla en el paso de servicio.</span>
       </div>
     </div>
 
@@ -2465,9 +2465,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <span class="sum-total-val" id="s-price">$15.000</span>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:7px">
-        <input type="checkbox" id="wsp-check" checked style="accent-color:var(--a);width:14px;height:14px">
-        <label for="wsp-check" style="font-size:12px;color:var(--t2);cursor:pointer">Enviar confirmación por WhatsApp al cliente</label>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <input type="checkbox" id="wsp-check" checked style="accent-color:var(--a);width:14px;height:14px">
+          <label for="wsp-check" style="font-size:12px;color:var(--t2);cursor:pointer">Enviar confirmación por WhatsApp al cliente</label>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <input type="checkbox" id="email-check" checked style="accent-color:var(--a);width:14px;height:14px">
+          <label for="email-check" style="font-size:12px;color:var(--t2);cursor:pointer">Enviar confirmación por email al cliente</label>
+        </div>
       </div>
     </div>
 
@@ -2647,6 +2653,7 @@ function openModal() {
   _loadModalEspecialistas();
   _loadModalServicios();
   _loadModalPacientes();
+  _loadModalHorario();   // horas dinámicas según horario configurado
   goStep(1);
 }
 
@@ -2714,18 +2721,56 @@ function closeModal() {
   document.getElementById('modal-ov').classList.remove('open');
   clearModalErr();
 }
+
+let _modalPresetTime = null;
+
 function openModalWithTime(fecha, hora) {
-  openModal();
   const hoy = new Date().toISOString().split('T')[0];
-  // No abrir en fechas pasadas
   if (fecha < hoy) return;
-  const fEl = document.getElementById('ms-fecha');
-  if (fEl) fEl.value = fecha;
-  const parts = hora.split(':');
-  const hrEl = document.getElementById('ms-hora');
-  const mmEl = document.getElementById('ms-min');
-  if (hrEl) hrEl.value = parts[0];
-  if (mmEl) mmEl.value = parts[1] || '00';
+  _modalPresetTime = { fecha, hora };
+  openModal();
+}
+
+async function _loadModalHorario() {
+  const cid = await getClienteId();
+  const sel = document.getElementById('ms-hora');
+  if (!sel) return;
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=horario_negocio&limit=1`, { headers: _SH });
+    const [data] = await r.json();
+    const h = data?.horario_negocio || {};
+    let minH = 8, maxH = 20, found = false;
+    ['lun','mar','mie','jue','vie','sab','dom'].forEach(dia => {
+      const d = h[dia];
+      if (d?.activo && Array.isArray(d.bloques)) {
+        d.bloques.forEach(b => {
+          if (b.desde) { const bh = parseInt(b.desde); if (!found || bh < minH) { minH = bh; found = true; } }
+          if (b.hasta) { const bh = parseInt(b.hasta); if (bh > maxH) maxH = bh; }
+        });
+      }
+    });
+    sel.innerHTML = '';
+    for (let i = minH; i < maxH; i++) {
+      const o = document.createElement('option');
+      o.value = String(i).padStart(2,'0');
+      o.textContent = String(i).padStart(2,'0');
+      sel.appendChild(o);
+    }
+  } catch(_) { /* fallback: ya tiene opciones por defecto */ }
+
+  // Aplicar tiempo preseleccionado si viene de click en calendario
+  if (_modalPresetTime) {
+    const fEl = document.getElementById('ms-fecha');
+    if (fEl) fEl.value = _modalPresetTime.fecha;
+    const [hh, mm] = _modalPresetTime.hora.split(':');
+    sel.value = hh;
+    const mmEl = document.getElementById('ms-min');
+    if (mmEl) mmEl.value = mm || '00';
+    _modalPresetTime = null;
+  } else {
+    // Seleccionar primera hora disponible
+    if (sel.options.length) sel.selectedIndex = 0;
+  }
   _recalcFin();
 }
 function goStep(n) {
@@ -2774,7 +2819,8 @@ function prevStep() { if (curStep > 1) goStep(curStep - 1); }
 
 function _recalcFin() {
   const activeDur = document.querySelector('.dur-btn.on');
-  const d = activeDur ? parseInt(activeDur.id.replace('db','')) : 60;
+  if (!activeDur || activeDur.id === 'dbcx') return; // modo personalizado: no tocar
+  const d = parseInt(activeDur.id.replace('db',''));
   if (!isNaN(d)) setDur(d);
 }
 
@@ -2787,11 +2833,36 @@ function setDur(d) {
   const key = d === 'c' ? 'cx' : d + '';
   const b = document.getElementById('db' + key);
   if (b) b.classList.add('on');
-  if (d !== 'c') {
-    const hh = parseInt(document.getElementById('ms-hora')?.value || '12');
-    const mm = parseInt(document.getElementById('ms-min')?.value  || '0');
-    const m  = hh * 60 + mm + d;
-    document.getElementById('fin-time').value = String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+
+  const finEl  = document.getElementById('fin-time');
+  const lbl    = document.getElementById('fin-time-lbl');
+  const infoTxt = document.getElementById('fin-time-info-txt');
+
+  if (d === 'c') {
+    // Modo personalizado: hora fin editable
+    if (finEl) {
+      finEl.removeAttribute('readonly');
+      finEl.style.background = '';
+      finEl.style.cursor     = '';
+      finEl.style.color      = '';
+      setTimeout(() => { finEl.focus(); finEl.select(); }, 50);
+    }
+    if (lbl)     lbl.textContent     = 'Hora fin (ingresa la hora de término)';
+    if (infoTxt) infoTxt.textContent = 'Escribe la hora en que termina la cita, ej: 10:45';
+  } else {
+    // Modo automático
+    if (finEl) {
+      finEl.setAttribute('readonly','');
+      finEl.style.background = 'rgba(108,92,228,0.04)';
+      finEl.style.cursor     = 'default';
+      finEl.style.color      = 'var(--t2)';
+      const hh = parseInt(document.getElementById('ms-hora')?.value || '12');
+      const mm = parseInt(document.getElementById('ms-min')?.value  || '0');
+      const m  = hh * 60 + mm + d;
+      finEl.value = String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+    }
+    if (lbl)     lbl.textContent     = 'Hora fin (calculada automáticamente)';
+    if (infoTxt) infoTxt.textContent = 'La hora fin se actualiza automáticamente. Puedes ajustarla en el paso de servicio.';
   }
 }
 
@@ -2918,7 +2989,7 @@ async function saveReservation() {
     const r = await fetch('/api/crear-cita', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion })
+      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, enviar_email: document.getElementById('email-check')?.checked !== false })
     });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || 'Error al crear la cita');
@@ -4368,9 +4439,9 @@ function renderWeekBody() {
                   '<button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button>' +
                   '</div>';
       }
-      // Slot vacío en fecha futura → clickeable para nueva reserva
-      var slotClick = (!isPast && !evHtml) ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="Nueva reserva a las ' + HOURS[s] + '"' : '';
-      var slotCursor = (!isPast && !evHtml) ? 'cursor:pointer' : '';
+      // Todo slot futuro es clickeable para nueva reserva (los eventos ya tienen stopPropagation)
+      var slotClick = !isPast ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"' : '';
+      var slotCursor = !isPast ? 'cursor:pointer' : '';
       html += '<div class="slot"' + slotClick + (slotCursor ? ' style="' + slotCursor + '"' : '') + '>' + evHtml + '</div>';
     }
     html += '</div>';
