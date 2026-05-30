@@ -3111,11 +3111,23 @@ async function cancelarProxCita() {
   } catch(e) { toastErr('Error al cancelar la cita'); }
 }
 function reagendarProxCita() {
-  const fecha = window._fichaProxFecha;
-  const hora  = window._fichaProxHora;
+  const fecha    = window._fichaProxFecha;
+  const hora     = window._fichaProxHora;
+  // Leer datos del paciente desde el panel de ficha antes de cerrarlo
+  const nombre   = document.getElementById('fp-name')?.textContent?.trim() || '';
+  const emailRaw = document.getElementById('fpi-email')?.textContent?.trim() || '';
+  const telRaw   = document.getElementById('fpi-tel')?.textContent?.trim() || '';
+  const email    = emailRaw === '—' ? '' : emailRaw;
+  const tel      = telRaw   === '—' ? '' : telRaw;
   closeFicha();
   if (fecha && hora) openModalWithTime(fecha, hora);
   else openModal();
+  // openModal() llama removePt() internamente — selectPt() después lo re-aplica
+  if (nombre) {
+    const initials = nombre.split(' ').slice(0,2).map(w => w[0]||'').join('').toUpperCase();
+    const meta = [email, tel].filter(Boolean).join(' · ') || nombre;
+    selectPt(nombre, initials, meta, email, tel);
+  }
 }
 function fpTab(btn, id) {
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
