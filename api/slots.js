@@ -1,6 +1,69 @@
+import crypto from 'crypto';
+
+const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+
+function verifySessionToken(token) {
+  if (!token) return null;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return null;
+  const payload = token.slice(0, dot);
+  const sig     = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  if (sig !== expected) return null;
+  const parts = payload.split(':');
+  if (parts.length < 3) return null;
+  const [cliente_id, rol, expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return { cliente_id, rol };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
+
+  // — Rama admin: proxy autenticado de citas —
+  const sessionToken = req.headers['x-session-token'];
+  if (sessionToken) {
+    const s = verifySessionToken(sessionToken);
+    if (!s) return res.status(401).json({ error: 'No autorizado' });
+
+    let cliente_id = s.cliente_id;
+    const overrideId = req.headers['x-override-cliente-id'];
+    if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
+      cliente_id = overrideId;
+    }
+
+    try {
+      const { select, order, limit, id, nombre } = req.query;
+      if (id && !/^[0-9a-f-]{36}$/i.test(id)) {
+        return res.status(400).json({ error: 'ID inválido' });
+      }
+      const parts = [`cliente_id=eq.${cliente_id}`];
+      if (id)     parts.push(`id=eq.${id}`);
+      if (nombre) parts.push(`nombre_paciente=ilike.${encodeURIComponent(nombre)}`);
+      parts.push(`select=${select || '*,especialistas(id,nombre)'}`);
+      parts.push(`order=${order   || 'fecha.desc,hora.desc'}`);
+      if (limit) parts.push(`limit=${Math.min(parseInt(limit) || 100, 2000)}`);
+
+      const url = `${SUPABASE_URL}/rest/v1/citas?${parts.join('&')}`;
+      const r   = await fetch(url, { headers: sh });
+      const data = await r.json();
+      if (!r.ok) {
+        console.error('slots/citas error:', r.status, JSON.stringify(data));
+        return res.status(500).json({ error: 'Error al obtener citas' });
+      }
+      return res.status(200).json(data);
+    } catch (e) {
+      console.error('slots/citas exception:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
+  // — Rama pública: slots disponibles —
   const { especialista_id, fecha } = req.query;
   if (!especialista_id || !fecha) return res.status(400).json({ error: 'Faltan parámetros' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).json({ error: 'Fecha inválida' });
@@ -8,10 +71,6 @@ export default async function handler(req, res) {
   if (isNaN(new Date(fy, fm - 1, fd).getTime()) || fm < 1 || fm > 12 || fd < 1 || fd > 31) {
     return res.status(400).json({ error: 'Fecha inválida' });
   }
-
-  const URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
-  const KEY = process.env.SUPABASE_SERVICE_KEY;
-  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
   function generarSlots(desde, hasta, min = 30) {
     const r = []; let [h, m] = desde.split(':').map(Number);
@@ -25,7 +84,7 @@ export default async function handler(req, res) {
 
   try {
     const [esp] = await fetch(
-      `${URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
+      `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
       { headers: sh }
     ).then(r => r.json());
 
@@ -37,7 +96,7 @@ export default async function handler(req, res) {
 
     const todos = generarSlots(dia.bloques[0].desde, dia.bloques[0].hasta);
     const citas = await fetch(
-      `${URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
+      `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
       { headers: sh }
     ).then(r => r.json());
 

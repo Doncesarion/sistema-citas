@@ -2978,7 +2978,7 @@ async function saveReservation() {
   const srvOpt = srvSel?.options[srvSel.selectedIndex];
   const servicio = srvOpt?.dataset?.nombre || srvOpt?.text?.split(' ·')[0] || 'Consulta';
   const precio   = parseInt(srvSel?.value) || 0;
-  const duracion = srvOpt?.dataset?.dur ? `${srvOpt.dataset.dur} min` : null;
+  const duracion = srvOpt?.dataset?.dur ? parseInt(srvOpt.dataset.dur) : null;
 
   // 5. Llamar API
   const cid = await getClienteId();
@@ -3073,7 +3073,7 @@ async function loadFichaData(nombre) {
   if (!cid || !nombre) return;
   try {
     const r = await fetch(
-      `/api/citas-get?nombre=${encodeURIComponent(nombre)}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=100`,
+      `/api/slots?nombre=${encodeURIComponent(nombre)}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=100`,
       { headers: _citasH() }
     );
     const citas = await r.json();
@@ -5905,7 +5905,7 @@ async function cargarCitasSupabase() {
     }
 
     // 3. Traer todas las citas (con datos del especialista)
-    const r2 = await fetch(`/api/citas-get?select=*,especialistas(id,nombre)&order=fecha.asc,hora.asc`, { headers: _citasH() });
+    const r2 = await fetch(`/api/slots?select=*,especialistas(id,nombre)&order=fecha.asc,hora.asc`, { headers: _citasH() });
     const citas = await r2.json();
     if (!Array.isArray(citas)) return;
 
@@ -6054,7 +6054,7 @@ async function getClienteId() {
 async function cargarVentas() {
   const cid = await getClienteId();
   if (!cid) return;
-  const r = await fetch(`/api/citas-get?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
+  const r = await fetch(`/api/slots?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
   const citas = await r.json();
   if (!Array.isArray(citas)) return;
   _allVentas  = citas;
@@ -6132,7 +6132,7 @@ function openRegistrarPago() {
       return;
     }
     // Traer citas sin pago (estado_pago pendiente o nulo) o todas si no hay filtro
-    return fetch(`/api/citas-get?select=id,nombre_paciente,servicio,fecha,hora,precio,estado_pago&order=fecha.desc,hora.desc&limit=100`, { headers: _citasH() })
+    return fetch(`/api/slots?select=id,nombre_paciente,servicio,fecha,hora,precio,estado_pago&order=fecha.desc,hora.desc&limit=100`, { headers: _citasH() })
       .then(r => r.json())
       .then(citas => {
         if (!Array.isArray(citas) || !citas.length) {
@@ -7168,7 +7168,7 @@ async function cargarReportes(force) {
   if (loading) loading.style.display = 'inline';
   const cid = await getClienteId();
   if (!cid) { if (loading) loading.style.display = 'none'; return; }
-  const r = await fetch(`/api/citas-get?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
+  const r = await fetch(`/api/slots?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
   const citas = await r.json();
   if (!Array.isArray(citas)) { if (loading) loading.style.display = 'none'; return; }
   _allReportes = citas;
@@ -7548,7 +7548,7 @@ async function loadClientesView() {
 
   try {
     // Citas con datos de paciente (agrupa por nombre_paciente)
-    const r = await fetch(`/api/citas-get?select=nombre_paciente,email_paciente,tel_paciente,fecha,precio,estado&order=fecha.desc`, { headers: _citasH() });
+    const r = await fetch(`/api/slots?select=nombre_paciente,email_paciente,tel_paciente,fecha,precio,estado&order=fecha.desc`, { headers: _citasH() });
     const citas = await r.json();
     if (!Array.isArray(citas)) throw new Error('respuesta inválida');
 

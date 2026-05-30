@@ -107,7 +107,7 @@ export default async function handler(req, res) {
           servicio:       servicio       || 'Consulta',
           fecha,
           hora,
-          duracion:       duracion       || null,
+          duracion:       duracion ? (parseInt(duracion) || null) : null,
           precio:         precio         || null,
           estado: 'reservada'
         })
