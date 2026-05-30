@@ -2750,7 +2750,7 @@ async function _loadModalHorario() {
       }
     });
     sel.innerHTML = '';
-    for (let i = minH; i < maxH; i++) {
+    for (let i = minH; i <= maxH; i++) {
       const o = document.createElement('option');
       o.value = String(i).padStart(2,'0');
       o.textContent = String(i).padStart(2,'0');
