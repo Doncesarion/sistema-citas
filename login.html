@@ -321,7 +321,7 @@ function loginSubmit() {
         document.getElementById('modal-cambiar').style.display = 'flex';
         document.getElementById('new-pass1').focus();
       } else {
-        window.location.href = '/admin';
+        window.location.href = data.rol === 'superadmin' ? '/accesos' : '/admin';
       }
     } else {
       document.getElementById('btn-text').style.display = 'block';
