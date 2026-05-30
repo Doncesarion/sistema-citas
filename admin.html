@@ -1270,7 +1270,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div id="dia-head-col" class="chc today" style="padding:12px"><span class="dn">3</span>Sábado — Hoy</div>
       </div>
       <div class="cal-body" style="grid-template-columns:48px 1fr">
-        <div class="time-col">
+        <div class="time-col" id="dia-time-col">
           <div class="tslot" style="height:52px"></div>
           <div class="tslot">09:00</div><div class="tslot">10:00</div><div class="tslot">11:00</div>
           <div class="tslot">12:00</div><div class="tslot">13:00</div><div class="tslot">14:00</div>
@@ -2727,7 +2727,7 @@ let _modalPresetTime = null;
 function openModalWithTime(fecha, hora) {
   const hoy = new Date().toISOString().split('T')[0];
   if (fecha < hoy) return;
-  _modalPresetTime = { fecha, hora };
+  _modalPresetTime = { fecha, hora: hora || null };
   openModal();
 }
 
@@ -2762,10 +2762,12 @@ async function _loadModalHorario() {
   if (_modalPresetTime) {
     const fEl = document.getElementById('ms-fecha');
     if (fEl) fEl.value = _modalPresetTime.fecha;
-    const [hh, mm] = _modalPresetTime.hora.split(':');
-    sel.value = hh;
-    const mmEl = document.getElementById('ms-min');
-    if (mmEl) mmEl.value = mm || '00';
+    if (_modalPresetTime.hora) {
+      const [hh, mm] = _modalPresetTime.hora.split(':');
+      sel.value = hh;
+      const mmEl = document.getElementById('ms-min');
+      if (mmEl) mmEl.value = mm || '00';
+    }
     _modalPresetTime = null;
   } else {
     // Seleccionar primera hora disponible
@@ -4262,6 +4264,7 @@ function setEstadoReserva(estado) {
 
 // Vista del calendario
 let currentCalView = 'semana';
+let _calHoras = null; // horas del calendario según horario_negocio
 
 // Navigate mini calendar day → vista Día
 // ── Constantes de navegación ──
@@ -4314,12 +4317,17 @@ function renderDiaView(date) {
   // Columna de slots de la vista día
   const dcol = document.getElementById('dia-dcol');
   if (dcol) {
-    const SLOTS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+    const SLOTS = _calHoras || ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+    // Actualizar columna de horas
+    const timeCol = document.getElementById('dia-time-col');
+    if (timeCol) timeCol.innerHTML = '<div class="tslot" style="height:52px"></div>' + SLOTS.map(h => `<div class="tslot">${h}</div>`).join('');
     const evByHour = {};
     events.forEach(ev => {
       const t = (ev.lbl.match(/\d{2}:\d{2}/) || [''])[0];
       if (t) { const h = parseInt(t.split(':')[0]); evByHour[h] = evByHour[h] || []; evByHour[h].push(ev); }
     });
+    const diaFecha = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const diaIsPast = diaFecha < new Date().toISOString().split('T')[0];
     let html = `<div class="slot" style="height:52px;position:relative">${isToday?'<div class="now-line" style="top:34px"><div class="now-dot"></div><div class="now-track"></div></div>':''}</div>`;
     SLOTS.forEach(slotTime => {
       const slotEvs = evByHour[parseInt(slotTime)] || [];
@@ -4328,9 +4336,10 @@ function renderDiaView(date) {
         const full  = evNombreFull(abrev);
         const ini   = evIniciales(full);
         const hEnd  = `${String(parseInt(slotTime)+1).padStart(2,'0')}:00`;
-        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:8px;height:44px" onclick="openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:8px;height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
       }).join('');
-      html += `<div class="slot">${evHtml}</div>`;
+      const slotClick = !diaIsPast ? ` onclick="openModalWithTime('${diaFecha}','${slotTime}')" title="+ Nueva reserva a las ${slotTime}" style="cursor:pointer"` : '';
+      html += `<div class="slot"${slotClick}>${evHtml}</div>`;
     });
     dcol.innerHTML = html;
     dcol.className = 'dcol' + (isToday ? ' today-col' : '');
@@ -4384,7 +4393,7 @@ function renderWeekBody() {
   var body = document.getElementById('semana-body');
   if (!body) return;
   var today = new Date();
-  var HOURS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+  var HOURS = _calHoras || ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
 
   // Columna de horas
   var html = '<div class="time-col"><div class="tslot" style="height:52px"></div>';
@@ -4524,46 +4533,52 @@ function renderLista() {
 
   const TAG_MAP   = {'ev-p':'tp','ev-g':'tg','ev-a':'ta','ev-r':'tr','ev-b':'tp','ev-t':'tg'};
   const TAG_LABEL = {'ev-p':'Reservada','ev-g':'Confirmada','ev-a':'Pendiente','ev-r':'Inasistencia','ev-b':'Reservada','ev-t':'Confirmada'};
+  const todayStr  = new Date().toISOString().split('T')[0];
 
-  // Recopilar días con citas en el rango
+  // Mostrar los 7 días del rango siempre (con o sin citas)
   const sections = [];
   for (let i = 0; i <= 6; i++) {
     const d = new Date(listaStart);
     d.setDate(listaStart.getDate() + i);
     const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    const events = mesEvents[key] || [];
-    if (events.length) sections.push({date: d, events});
-  }
-
-  if (!sections.length) {
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3);font-size:13px">Sin citas en este período</div>';
-    return;
+    sections.push({ date: d, events: mesEvents[key] || [] });
   }
 
   container.innerHTML = sections.map(({date, events}) => {
     const dd = date.getDate(), mm = date.getMonth();
     const isToday = date.toDateString() === DEMO_TODAY.toDateString();
     const dow = date.getDay();
+    const fechaStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const isPast   = fechaStr < todayStr;
     const headStyle = isToday
       ? 'font-size:11px;font-weight:600;color:var(--a);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px'
-      : 'font-size:11px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px';
+      : 'font-size:11px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px';
     const badge = isToday
       ? `<span style="background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">${dd}</span>`
       : '';
     const dayLabel = `${DOW_LONG[dow]} ${dd} de ${MON_LONG_LC[mm]}${isToday ? ' — Hoy' : ''}`;
+    const addBtn = !isPast
+      ? `<button onclick="event.stopPropagation();openModalWithTime('${fechaStr}',null)" style="margin-left:auto;font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--a);color:var(--a);background:transparent;cursor:pointer;flex-shrink:0;line-height:1.6">+ Reservar</button>`
+      : '';
 
-    const rows = events.map(ev => {
-      const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
-      const full  = evNombreFull(abrev);
-      const ini   = evIniciales(full);
-      const time  = (ev.lbl.match(/\d{2}:\d{2}/) || [''])[0];
-      const color = EV_COLORS[ev.cls] || 'var(--a)';
-      const tagCls = TAG_MAP[ev.cls] || 'tn';
-      const tagLbl = TAG_LABEL[ev.cls] || 'Reservada';
-      return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
-    }).join('');
+    let body;
+    if (!events.length) {
+      body = `<div style="font-size:12px;color:var(--t3);padding:10px 14px;border:1px solid var(--b1);border-radius:var(--rl)">Sin citas este día</div>`;
+    } else {
+      const rows = events.map(ev => {
+        const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
+        const full  = evNombreFull(abrev);
+        const ini   = evIniciales(full);
+        const time  = (ev.lbl.match(/\d{2}:\d{2}/) || [''])[0];
+        const color = EV_COLORS[ev.cls] || 'var(--a)';
+        const tagCls = TAG_MAP[ev.cls] || 'tn';
+        const tagLbl = TAG_LABEL[ev.cls] || 'Reservada';
+        return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
+      }).join('');
+      body = `<div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--b1);border-radius:var(--rl);background:var(--b1);box-shadow:var(--sh1)">${rows}</div>`;
+    }
 
-    return `<div><div style="${headStyle}">${badge}${dayLabel}</div><div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--b1);border-radius:var(--rl);background:var(--b1);box-shadow:var(--sh1)">${rows}</div></div>`;
+    return `<div><div style="${headStyle}">${badge}${dayLabel}${addBtn}</div>${body}</div>`;
   }).join('');
 }
 
@@ -5856,6 +5871,27 @@ async function cargarCitasSupabase() {
   try {
     const cid = await getClienteId();
     if (!cid) return;
+
+    // Cargar horario_negocio una vez para el calendario dinámico
+    if (!_calHoras) {
+      try {
+        const rH = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=horario_negocio&limit=1`, { headers: _SH });
+        const [hData] = await rH.json();
+        const h = hData?.horario_negocio || {};
+        let minH = 8, maxH = 20;
+        ['lun','mar','mie','jue','vie','sab','dom'].forEach(dia => {
+          const d = h[dia];
+          if (d?.activo && Array.isArray(d.bloques)) {
+            d.bloques.forEach(b => {
+              if (b.desde) { const bh = parseInt(b.desde); if (bh < minH) minH = bh; }
+              if (b.hasta) { const bh = parseInt(b.hasta); if (bh > maxH) maxH = bh; }
+            });
+          }
+        });
+        _calHoras = [];
+        for (let i = minH; i <= maxH; i++) _calHoras.push(String(i).padStart(2,'0') + ':00');
+      } catch(_) {}
+    }
 
     // 2. Traer especialistas activos y construir dropdown
     const rEsp = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id,nombre,especialidad&order=nombre.asc`, { headers: _SH });
