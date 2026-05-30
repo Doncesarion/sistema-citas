@@ -4159,6 +4159,7 @@ async function saveHorario() {
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ horario_negocio: h })
     });
+    _calHoras = null; // invalidar cache para que el calendario recalcule el rango de horas
     toast('✓ Horario guardado');
   } catch(e) { console.error('saveHorario error', e); toast('⚠ Error al guardar horario'); }
 }
