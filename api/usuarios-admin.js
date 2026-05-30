@@ -66,7 +66,18 @@ export default async function handler(req, res) {
     const expires = Date.now() + 8 * 60 * 60 * 1000;
     const payload = String(expires);
     const sig = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
-    return res.status(200).json({ token: `${payload}.${sig}` });
+
+    // También generar attempo_session_token para que slots.js reconozca al superadmin
+    let session_token = null;
+    const SESSION_SECRET = process.env.SESSION_SECRET;
+    if (SESSION_SECRET) {
+      const sesExpires = Date.now() + 24 * 60 * 60 * 1000;
+      const sesPayload = `sa:superadmin:${sesExpires}`;
+      const sesSig = crypto.createHmac('sha256', SESSION_SECRET).update(sesPayload).digest('hex');
+      session_token = `${sesPayload}.${sesSig}`;
+    }
+
+    return res.status(200).json({ token: `${payload}.${sig}`, session_token });
   }
 
   // ── Cambio de contraseña forzado (primer ingreso) — sin SA token ──────────

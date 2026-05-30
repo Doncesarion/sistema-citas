@@ -376,6 +376,7 @@ async function saLogin() {
     }
     saToken = data.token;
     localStorage.setItem('sa_token', saToken);
+    if (data.session_token) localStorage.setItem('attempo_session_token', data.session_token);
     errEl.style.display = 'none';
     document.getElementById('sa-login').classList.add('hidden');
     init();
@@ -387,6 +388,7 @@ async function saLogin() {
 function saLogout() {
   saToken = null;
   localStorage.removeItem('sa_token');
+  localStorage.removeItem('attempo_session_token');
   document.getElementById('sa-login').classList.remove('hidden');
   document.getElementById('sa-user').value = '';
   document.getElementById('sa-pass').value = '';
