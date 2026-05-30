@@ -2481,7 +2481,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="sum-title">Resumen de la reserva</div>
         <div class="sum-row"><span class="sum-lbl">Fecha y hora</span><span class="sum-val">Sáb 3 mayo · 12:00 – 13:00</span></div>
         <div class="sum-row"><span class="sum-lbl">Cliente</span><span class="sum-val" id="s-cli">—</span></div>
-        <div class="sum-row"><span class="sum-lbl">Profesional</span><span class="sum-val">cesar salinas</span></div>
+        <div class="sum-row"><span class="sum-lbl">Profesional</span><span class="sum-val" id="s-prof">—</span></div>
         <div class="sum-row"><span class="sum-lbl">Servicio</span><span class="sum-val" id="s-srv">Consulta Médica</span></div>
         <div class="sum-sep"></div>
         <div class="sum-row" style="margin-top:4px">
@@ -2694,6 +2694,8 @@ async function _loadModalEspecialistas() {
     sel.innerHTML = Array.isArray(esps) && esps.length
       ? esps.map(e => `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre}${e.especialidad ? ' — ' + e.especialidad : ''}</option>`).join('')
       : '<option value="">Sin profesionales activos</option>';
+    sel.onchange = () => { const sp = document.getElementById('s-prof'); if(sp) sp.textContent = sel.options[sel.selectedIndex]?.dataset?.nombre || sel.options[sel.selectedIndex]?.text?.split(' —')[0] || '—'; };
+    sel.dispatchEvent(new Event('change'));
   } catch(_) { sel.innerHTML = '<option value="">Error al cargar</option>'; }
 }
 
@@ -3099,10 +3101,9 @@ async function cancelarProxCita() {
   const cid = await getClienteId();
   if (!cid) return;
   try {
-    const r = await fetch('/api/cancelar-cita', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ..._citasH() },
-      body: JSON.stringify({ cita_id: id, cliente_id: cid })
+    const r = await fetch(`/api/slots?id=${id}`, {
+      method: 'DELETE',
+      headers: _citasH()
     });
     const d = await r.json().catch(() => ({}));
     if (r.ok && d.ok) {

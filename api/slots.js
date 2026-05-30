@@ -20,13 +20,42 @@ function verifySessionToken(token) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).end();
+  if (req.method !== 'GET' && req.method !== 'DELETE') return res.status(405).end();
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
-
-  // — Rama admin: proxy autenticado de citas —
   const sessionToken = req.headers['x-session-token'];
+
+  // — DELETE: cancelar una cita —
+  if (req.method === 'DELETE') {
+    const s = verifySessionToken(sessionToken);
+    if (!s) return res.status(401).json({ error: 'No autorizado' });
+    let cliente_id = s.cliente_id;
+    const overrideId = req.headers['x-override-cliente-id'];
+    if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
+      cliente_id = overrideId;
+    }
+    const { id } = req.query;
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID inválido' });
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
+        method: 'PATCH',
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ estado: 'cancelada' })
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        console.error('slots DELETE error:', r.status, JSON.stringify(err));
+        return res.status(500).json({ error: 'No se pudo cancelar la cita' });
+      }
+      return res.json({ ok: true });
+    } catch(e) {
+      console.error('slots DELETE exception:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
+  // — GET: proxy admin o slots públicos —
   if (sessionToken) {
     const s = verifySessionToken(sessionToken);
     if (!s) return res.status(401).json({ error: 'No autorizado' });
