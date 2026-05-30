@@ -1250,6 +1250,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
       <div class="rp-sep"></div>
+      <!-- Banner motivacional -->
+      <div id="insight-card" style="display:none;background:linear-gradient(135deg,rgba(108,92,228,0.07),rgba(108,92,228,0.02));border:1px solid rgba(108,92,228,0.14);border-radius:var(--rl);padding:10px 12px;margin-bottom:10px">
+        <div id="insight-ico" style="font-size:15px;margin-bottom:3px">✨</div>
+        <div id="insight-msg" style="font-size:11.5px;color:var(--t1);line-height:1.55;font-weight:500"></div>
+      </div>
       <div class="up-section" id="rp-citas-hoy">
         <div class="up-title" id="rp-citas-hoy-title">Citas de hoy</div>
         <div style="color:var(--t3);font-size:12px;padding:6px 0">Cargando...</div>
@@ -1629,25 +1634,51 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
     <!-- Panel: General -->
     <div id="cfg-general">
-      <div class="vh" style="margin-bottom:16px">Configuración del negocio</div>
-      <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1)">
+      <div class="vh" style="margin-bottom:16px">Configuración</div>
+
+      <!-- Grupo: Tu negocio -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Tu negocio</div>
+      <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div class="cfg-row" onclick="openCfgModal('negocio')"><div><div class="cfg-t">Mi negocio</div><div class="cfg-s">Nombre, logo, descripción y dirección del local</div></div><span style="color:var(--t4)">›</span></div>
         <div style="height:1px;background:var(--b1)"></div>
-        <div class="cfg-row" onclick="openCfgModal('sitio')"><div><div class="cfg-t">Sitio web de reservas</div><div class="cfg-s">Reservas en línea, horarios, política de cancelación</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
+        <div class="cfg-row" onclick="showCfg('profesionales',document.getElementById('ctab-profesionales'))"><div><div class="cfg-t">Profesionales y roles</div><div class="cfg-s">Gestiona tu equipo y permisos de acceso</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tp">Activos</span><span style="color:var(--t4)">›</span></div></div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="showCfg('horarios',document.getElementById('ctab-horarios'))"><div><div class="cfg-t">Horarios de atención</div><div class="cfg-s">Días y franjas horarias disponibles para reservas</div></div><span style="color:var(--t4)">›</span></div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="showCfg('servicios',document.getElementById('ctab-servicios'))"><div><div class="cfg-t">Servicios</div><div class="cfg-s">Catálogo de servicios, duración y precios</div></div><span style="color:var(--t4)">›</span></div>
+      </div>
+
+      <!-- Grupo: Reservas y comunicación -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Reservas y comunicación</div>
+      <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
+        <div class="cfg-row" onclick="openCfgModal('sitio')"><div><div class="cfg-t">Sitio web de reservas</div><div class="cfg-s">Link de reservas en línea y política de cancelación</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="openCfgModal('recordatorios')"><div><div class="cfg-t">Recordatorios automáticos</div><div class="cfg-s">WhatsApp y email antes de cada cita</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
-        <div style="height:1px;background:var(--b1)"></div>
-        <div class="cfg-row" onclick="toast('Abriendo configuración de pagos...')"><div><div class="cfg-t">Pagos online</div><div class="cfg-s">Webpay, tarjetas de crédito y débito, datos bancarios</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag ta">Sin configurar</span><span style="color:var(--t4)">›</span></div></div>
-        <div class="cfg-row" onclick="showCfg('facturacion',document.getElementById('ctab-facturacion'))"><div><div class="cfg-t">Facturación</div><div class="cfg-s">Tipo de boleta, RUT emisor, razón social y numeración</div></div><span style="color:var(--t4)">›</span></div>
-        <div style="height:1px;background:var(--b1)"></div>
-        <div class="cfg-row" onclick="showCfg('profesionales',document.getElementById('ctab-profesionales'))"><div><div class="cfg-t">Profesionales y roles</div><div class="cfg-s">Gestiona tu equipo, horarios y permisos de acceso</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tp">3 activos</span><span style="color:var(--t4)">›</span></div></div>
-        <div style="height:1px;background:var(--b1)"></div>
-        <div class="cfg-row" onclick="openCfgModal('integraciones')"><div><div class="cfg-t">Integraciones</div><div class="cfg-s">Google Calendar, API pública para desarrolladores</div></div><span style="color:var(--t4)">›</span></div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="showCfg('chatbot',document.getElementById('ctab-chatbot'))">
           <div><div class="cfg-t">Chatbot IA</div><div class="cfg-s">Asistente virtual para WhatsApp, Facebook e Instagram</div></div>
           <div style="display:flex;align-items:center;gap:8px"><span class="tag" id="chatbot-status-tag" style="background:rgba(108,92,228,0.1);color:#6C5CE4;border:1px solid rgba(108,92,228,0.2);font-size:10px;padding:2px 8px;border-radius:100px;font-weight:600">Configurar</span><span style="color:var(--t4)">›</span></div>
         </div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="showCfg('canales',document.getElementById('ctab-canales'))"><div><div class="cfg-t">Canales conectados</div><div class="cfg-s">WhatsApp, Messenger e Instagram del negocio</div></div><span style="color:var(--t4)">›</span></div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="showCfg('notificaciones',document.getElementById('ctab-notificaciones'))"><div><div class="cfg-t">Notificaciones del equipo</div><div class="cfg-s">Alertas por email a profesionales y administradores</div></div><span style="color:var(--t4)">›</span></div>
+      </div>
+
+      <!-- Grupo: Finanzas -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Finanzas</div>
+      <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
+        <div class="cfg-row" onclick="toast('Abriendo configuración de pagos...')"><div><div class="cfg-t">Pagos online</div><div class="cfg-s">Webpay, tarjetas de crédito y débito, datos bancarios</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag ta">Sin configurar</span><span style="color:var(--t4)">›</span></div></div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="showCfg('facturacion',document.getElementById('ctab-facturacion'))"><div><div class="cfg-t">Boletas y facturación</div><div class="cfg-s">RUT emisor, razón social y numeración</div></div><span style="color:var(--t4)">›</span></div>
+      </div>
+
+      <!-- Grupo: Avanzado -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Avanzado</div>
+      <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
+        <div class="cfg-row" onclick="openCfgModal('integraciones')"><div><div class="cfg-t">Integraciones</div><div class="cfg-s">Google Calendar, API pública para desarrolladores</div></div><span style="color:var(--t4)">›</span></div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="openPrivacyInfo()"><div><div class="cfg-t">Privacidad y datos</div><div class="cfg-s">Política de privacidad y manejo de datos de pacientes</div></div><span style="color:var(--t4)">›</span></div>
       </div>
     </div>
 
@@ -4741,6 +4772,35 @@ function clearModalErr() {
   if (el) el.style.display = 'none';
 }
 
+function openPrivacyInfo() {
+  const existing = document.getElementById('privacy-modal-ov');
+  if (existing) { existing.classList.add('open'); return; }
+  const ov = document.createElement('div');
+  ov.id = 'privacy-modal-ov';
+  ov.className = 'overlay open';
+  ov.style.zIndex = '9900';
+  ov.onclick = e => { if (e.target === ov) ov.classList.remove('open'); };
+  ov.innerHTML = `
+    <div class="modal" style="max-width:480px">
+      <div class="modal-head">
+        <span class="modal-title">Privacidad y datos</span>
+        <button class="mclose" onclick="document.getElementById('privacy-modal-ov').classList.remove('open')">×</button>
+      </div>
+      <div class="mbody" style="gap:14px;font-size:13px;color:var(--t2);line-height:1.65">
+        <p><strong style="color:var(--t1)">Política de privacidad</strong><br>
+        Attempo almacena los datos de tus pacientes (nombre, email, teléfono) exclusivamente para la gestión de citas. No se comparten con terceros ni se usan con fines publicitarios.</p>
+        <p><strong style="color:var(--t1)">Manejo de datos</strong><br>
+        Los datos se guardan en servidores seguros con cifrado en reposo y en tránsito (SSL). Solo tú y tu equipo tienen acceso a la información de tu negocio.</p>
+        <p><strong style="color:var(--t1)">Eliminación de datos</strong><br>
+        Puedes solicitar la eliminación de todos los datos de tu cuenta en cualquier momento escribiendo a <a href="mailto:soporte@attempo.cl" style="color:var(--a)">soporte@attempo.cl</a>.</p>
+        <p><strong style="color:var(--t1)">Contacto</strong><br>
+        Para dudas, soporte técnico o reportar un problema: <a href="mailto:soporte@attempo.cl" style="color:var(--a)">soporte@attempo.cl</a></p>
+      </div>
+      <div class="mfoot"><button class="btn-a" onclick="document.getElementById('privacy-modal-ov').classList.remove('open')">Entendido</button></div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
 /* ════ CONFIG MODALS ════ */
 function openCfgModal(key) {
   const ov = document.getElementById('cfg-' + key + '-ov');
@@ -5810,7 +5870,48 @@ async function cargarCitasSupabase() {
     const hoy = citasHoy.length;
     const navSpan = document.getElementById('nav-citas-hoy');
     if (navSpan) navSpan.textContent = hoy > 0 ? `En línea · ${hoy} cita${hoy!==1?'s':''} hoy` : 'En línea';
+
+    // 7. Banner motivacional
+    _updateInsight(citas);
   } catch(e) { console.warn('Supabase load error:', e); }
+}
+
+function _updateInsight(citas) {
+  const card = document.getElementById('insight-card');
+  const msg  = document.getElementById('insight-msg');
+  const ico  = document.getElementById('insight-ico');
+  if (!card || !msg || !ico) return;
+
+  const noCancel = c => !['cancelada','canceled','cancelled'].includes(c.estado);
+  const now = new Date();
+  const thisM = now.getMonth() + 1, thisY = now.getFullYear();
+  const lastM = thisM === 1 ? 12 : thisM - 1;
+  const lastY = thisM === 1 ? thisY - 1 : thisY;
+
+  const citasMes  = citas.filter(c => { const [y,m] = c.fecha.split('-').map(Number); return y===thisY && m===thisM && noCancel(c); });
+  const citasAnt  = citas.filter(c => { const [y,m] = c.fecha.split('-').map(Number); return y===lastY && m===lastM && noCancel(c); });
+  const total     = citas.filter(noCancel).length;
+  const pacientes = new Set(citas.filter(noCancel).map(c => (c.nombre_paciente||'').toLowerCase().trim())).size;
+
+  let message = '', icon = '✨';
+
+  if (citasMes.length > 0 && citasAnt.length > 0) {
+    const pct = Math.round((citasMes.length - citasAnt.length) / citasAnt.length * 100);
+    if (pct >= 20) { message = `Este mes llevas un ${pct}% más de reservas que el mes anterior. ¡Sigue así!`; icon = '📈'; }
+    else if (pct > 0) { message = `Ya llevas ${citasMes.length} reservas este mes, ${pct}% más que el mes anterior.`; icon = '✨'; }
+    else if (pct < -10) { message = `¿Activaste los recordatorios automáticos? Ayudan a reducir las inasistencias.`; icon = '💡'; }
+  }
+
+  if (!message) {
+    if (total >= 500 && total % 100 < 5)     { message = `¡Superaste las ${Math.floor(total/100)*100} reservas totales! Gran hito.`; icon = '🎉'; }
+    else if (pacientes >= 100 && pacientes % 50 < 3) { message = `Ya tienes más de ${Math.floor(pacientes/50)*50} pacientes registrados. ¡Tu comunidad crece!`; icon = '👥'; }
+    else if (citasMes.length > 0)             { message = `Este mes llevas ${citasMes.length} reserva${citasMes.length!==1?'s':''} programada${citasMes.length!==1?'s':''}.`; icon = '📅'; }
+    else { card.style.display = 'none'; return; }
+  }
+
+  ico.textContent  = icon;
+  msg.textContent  = message;
+  card.style.display = 'block';
 }
 
 /* ════ VENTAS: carga y registrar pago ════ */
@@ -7616,11 +7717,10 @@ async function sendHelp() {
 .help-fu-timer{font-size:10px;color:var(--t4);margin-top:2px}
 </style>
 
-<button id="help-btn" onclick="toggleHelp()" title="Asistente de ayuda Attia">
+<button id="help-btn" onclick="toggleHelp()" title="Ayuda rápida — Attia">
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
-    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <path d="M8 10h.01M12 10h.01M16 10h.01"/>
   </svg>
 </button>
 
@@ -7628,10 +7728,8 @@ async function sendHelp() {
   <div class="help-header">
     <div class="help-av">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-        <path d="M21 17a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
-        <path d="M3 17a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-        <path d="M3 11a9 9 0 0 1 9-9"/>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <path d="M8 10h.01M12 10h.01M16 10h.01"/>
       </svg>
     </div>
     <div style="flex:1">
@@ -7646,12 +7744,19 @@ async function sendHelp() {
   </div>
   <div class="help-msgs" id="help-msgs"></div>
   <div class="help-chips" id="help-chips">
+    <button class="hchip" onclick="helpChip('¿Cómo modifico o cancelo una reserva existente?')">Modificar reserva</button>
+    <button class="hchip" onclick="helpChip('¿Dónde puedo ver el total de mis reservas del mes?')">Ver total de reservas</button>
+    <button class="hchip" onclick="helpChip('¿Cómo descargo la base de datos de mis clientes?')">Descargar clientes</button>
     <button class="hchip" onclick="helpChip('¿Cómo agrego un profesional?')">Agregar profesional</button>
     <button class="hchip" onclick="helpChip('¿Cómo configuro los horarios?')">Horarios de atención</button>
     <button class="hchip" onclick="helpChip('¿Cómo comparto el link de reservas?')">Link de reservas</button>
     <button class="hchip" onclick="helpChip('¿Cómo conecto Google Calendar?')">Google Calendar</button>
     <button class="hchip" onclick="helpChip('¿Cómo agrego servicios al catálogo?')">Agregar servicios</button>
     <button class="hchip" onclick="helpChip('¿Cómo funcionan los recordatorios automáticos?')">Recordatorios</button>
+  </div>
+  <div style="padding:6px 13px 2px;font-size:10.5px;color:var(--t3);text-align:center;flex-shrink:0;border-top:1px solid var(--b1)">
+    Soporte: <a href="mailto:soporte@attempo.cl" style="color:var(--a);text-decoration:none">soporte@attempo.cl</a>
+    &nbsp;·&nbsp;<a href="#" onclick="openPrivacyInfo();return false" style="color:var(--a);text-decoration:none">Privacidad</a>
   </div>
   <div class="help-foot">
     <input id="help-input" placeholder="Escribe tu duda..." onkeydown="if(event.key==='Enter'){event.preventDefault();sendHelp()}">
