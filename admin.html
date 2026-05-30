@@ -2444,6 +2444,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="fg">
         <label class="fl">Profesional a cargo</label>
         <select class="fs" id="ms-prof"><option value="">Cargando...</option></select>
+        <div id="ms-prof-empty" style="display:none;font-size:11px;color:var(--t3);margin-top:5px;padding:6px 10px;background:rgba(108,92,228,0.04);border:1px solid var(--b1);border-radius:6px">No hay profesionales activos. Ve a <b>Configuración → Profesionales</b> para agregar uno.</div>
       </div>
       <input type="hidden" id="_pt-email" value="">
       <input type="hidden" id="_pt-tel" value="">
@@ -2691,9 +2692,12 @@ async function _loadModalEspecialistas() {
   try {
     const r = await fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id,nombre,especialidad&order=nombre.asc`, { headers: _SH });
     const esps = await r.json();
-    sel.innerHTML = Array.isArray(esps) && esps.length
+    const hasEsps = Array.isArray(esps) && esps.length;
+    sel.innerHTML = hasEsps
       ? esps.map(e => `<option value="${e.id}" data-nombre="${e.nombre}">${e.nombre}${e.especialidad ? ' — ' + e.especialidad : ''}</option>`).join('')
       : '<option value="">Sin profesionales activos</option>';
+    const emptyEl = document.getElementById('ms-prof-empty');
+    if (emptyEl) emptyEl.style.display = hasEsps ? 'none' : 'block';
     sel.onchange = () => { const sp = document.getElementById('s-prof'); if(sp) sp.textContent = sel.options[sel.selectedIndex]?.dataset?.nombre || sel.options[sel.selectedIndex]?.text?.split(' —')[0] || '—'; };
     sel.dispatchEvent(new Event('change'));
   } catch(_) { sel.innerHTML = '<option value="">Error al cargar</option>'; }
@@ -4777,20 +4781,24 @@ function renderMesGrid() {
   }
 
   // Current month days
+  const todayMesStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   for (let d = 1; d <= totalDays; d++) {
     const key = `${y}-${m}-${d}`;
     const events = mesEvents[key] || [];
     const cellDate = new Date(y, m, d);
     const isToday = cellDate.toDateString() === today.toDateString();
+    const fechaDStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPastDay = fechaDStr < todayMesStr;
     let cellStyle = 'background:#fff;padding:8px;min-height:90px;cursor:pointer;transition:background .12s';
     if (isToday) cellStyle = 'background:rgba(108,92,228,0.04);padding:8px;min-height:90px;cursor:pointer;outline:1px solid rgba(108,92,228,0.2)';
+    const addBtn = !isPastDay ? `<button onclick="event.stopPropagation();openModalWithTime('${fechaDStr}',null)" title="Nueva reserva" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--a);color:var(--a);background:transparent;cursor:pointer;font-size:14px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.45;transition:opacity .12s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.45'">+</button>` : '';
     let dayNumHtml = '';
     if (isToday) {
-      dayNumHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><div style="width:22px;height:22px;background:linear-gradient(135deg,var(--a),var(--a3));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff">${d}</div><span style="font-size:9px;color:var(--a);font-weight:700;letter-spacing:.04em">HOY</span></div>`;
+      dayNumHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><div style="width:22px;height:22px;background:linear-gradient(135deg,var(--a),var(--a3));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff">${d}</div><div style="display:flex;align-items:center;gap:4px"><span style="font-size:9px;color:var(--a);font-weight:700;letter-spacing:.04em">HOY</span>${addBtn}</div></div>`;
     } else {
-      dayNumHtml = `<div style="font-size:12px;color:var(--t2);margin-bottom:${events.length?'5':'0'}px">${d}</div>`;
+      dayNumHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${events.length?'5':'0'}px"><div style="font-size:12px;color:var(--t2)">${d}</div>${addBtn}</div>`;
     }
-    let evHtml = events.map((ev,i) => `<div class="ev ${ev.cls}" style="position:static;height:auto;padding:2px 6px;font-size:10px;${i<events.length-1?'margin-bottom:2px':''}"><div class="evn">${ev.lbl}</div></div>`).join('');
+    let evHtml = events.map((ev,i) => `<div class="ev ${ev.cls}" onclick="event.stopPropagation();openFicha('${(ev.nombre||ev.lbl).replace(/'/g,"\\'").replace(/"/g,'&quot;')}','','')" style="position:static;height:auto;padding:2px 6px;font-size:10px;cursor:pointer;${i<events.length-1?'margin-bottom:2px':''}"><div class="evn">${ev.lbl}</div></div>`).join('');
     html += `<div style="${cellStyle}" onclick="goToDay(${d},'${MON_SHORT[m]}')" onmouseover="if(!this.style.outline)this.style.background='rgba(108,92,228,0.02)'" onmouseout="if(!this.style.outline)this.style.background='#fff'">${dayNumHtml}${evHtml}</div>`;
   }
 
