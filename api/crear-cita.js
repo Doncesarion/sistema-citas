@@ -109,15 +109,16 @@ export default async function handler(req, res) {
           hora,
           duracion:       duracion       || null,
           precio:         precio         || null,
-          estado: 'pending'
+          estado: 'reservada'
         })
       });
 
       const data = await r.json();
       if (!r.ok) {
-        console.error('crear-cita error:', r.status, JSON.stringify(data));
-        console.error('crear-cita supabase error:', JSON.stringify(data));
-      return res.status(500).json({ error: 'Error al crear la cita' });
+        console.error('crear-cita supabase error:', r.status, JSON.stringify(data));
+        const isDup = data?.code === '23505';
+        const msg   = isDup ? 'Ya existe una cita en ese horario' : 'Error al crear la cita';
+        return res.status(isDup ? 409 : 500).json({ error: msg });
       }
       cita = data[0];
     }
