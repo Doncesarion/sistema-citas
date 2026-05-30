@@ -19,34 +19,18 @@ function verifySessionToken(token) {
   return { cliente_id, rol };
 }
 
-function verifySAToken(token) {
-  if (!token) return false;
-  const secret = process.env.SA_SECRET;
-  if (!secret) return false;
-  const dot = token.lastIndexOf('.');
-  if (dot === -1) return false;
-  const payload  = token.slice(0, dot);
-  const sig      = token.slice(dot + 1);
-  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-  if (sig !== expected) return false;
-  if (Date.now() > parseInt(payload)) return false;
-  return true;
-}
 
 function authenticate(req) {
-  // Sesión normal (usuario logueado)
   const sessionToken = req.headers['x-session-token'];
-  if (sessionToken) {
-    const s = verifySessionToken(sessionToken);
-    if (s) return { cliente_id: s.cliente_id };
+  if (!sessionToken) return null;
+  const s = verifySessionToken(sessionToken);
+  if (!s) return null;
+  // Superadmin puede indicar un cliente_id diferente (impersonación)
+  const overrideId = req.headers['x-override-cliente-id'];
+  if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
+    return { cliente_id: overrideId };
   }
-  // Impersonación (superadmin entrando al panel de otro cliente)
-  const saToken   = req.headers['x-sa-token'];
-  const clienteId = req.headers['x-cliente-id'];
-  if (saToken && clienteId && verifySAToken(saToken)) {
-    return { cliente_id: clienteId };
-  }
-  return null;
+  return { cliente_id: s.cliente_id };
 }
 
 export default async function handler(req, res) {

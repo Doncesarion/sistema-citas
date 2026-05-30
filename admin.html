@@ -5856,10 +5856,9 @@ const _SH   = { apikey: _SKEY, Authorization: `Bearer ${_SKEY}` };
 // Headers para /api/citas-get — usa service role en el servidor, nunca expone datos de pacientes al anon key
 function _citasH() {
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  if (u._impersonando) {
-    return { 'x-sa-token': localStorage.getItem('sa_token') || '', 'x-cliente-id': u.cliente_id || '' };
-  }
-  return { 'x-session-token': localStorage.getItem('attempo_session_token') || '' };
+  const h = { 'x-session-token': localStorage.getItem('attempo_session_token') || '' };
+  if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
+  return h;
 }
 
 // Colores por especialista (iniciales → clase css)
