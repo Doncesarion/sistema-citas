@@ -3012,19 +3012,7 @@ async function saveReservation() {
 // Formato CLP
 const clp = n => '$' + n.toLocaleString('es-CL');
 
-const clientData = {
-  'Juana Pérez':    {av:'JP', since:'enero 2026',   citas:3, gasto:45000,  asist:'100%', email:'juana.perez@email.com',  tel:'+56 9 9999 9999'},
-  'Juan Pérez':     {av:'JP', since:'mayo 2026',    citas:1, gasto:12000,  asist:'100%', email:'juan.perez@email.com',   tel:'+56 9 9999 9990'},
-  'Camila González':{av:'CG', since:'enero 2026',   citas:5, gasto:75000,  asist:'100%', email:'camila.g@email.com',     tel:'+56 9 8765 4321'},
-  'prueba prueba':  {av:'PP', since:'abril 2026',   citas:1, gasto:15000,  asist:'100%', email:'Sin email',              tel:'Sin teléfono'},
-  'Pedro Rojas':    {av:'PR', since:'marzo 2026',   citas:2, gasto:44000,  asist:'100%', email:'pedro.r@email.com',      tel:'+56 9 7654 3210'},
-  'Ana Soto':       {av:'AS', since:'febrero 2026', citas:4, gasto:60000,  asist: '75%', email:'ana.soto@email.com',     tel:'+56 9 6543 2109'},
-  'Valentina Fuentes':{av:'VF',since:'enero 2026',  citas:6, gasto:210000, asist:'100%', email:'vale.f@email.com',       tel:'+56 9 5432 1098'},
-  'Diego Rivas':    {av:'DR', since:'abril 2026',   citas:2, gasto:24000,  asist: '50%', email:'diego.r@email.com',      tel:'+56 9 4321 0987'},
-  'Sofía Lagos':    {av:'SL', since:'marzo 2026',   citas:3, gasto:45000,  asist:'100%', email:'sofia.l@email.com',      tel:'+56 9 3210 9876'},
-  'Martín Arce':    {av:'MA', since:'febrero 2026', citas:4, gasto:60000,  asist:'100%', email:'martin.a@email.com',     tel:'+56 9 2109 8765'},
-  'Carla Bravo':    {av:'CB', since:'enero 2026',   citas:5, gasto:175000, asist:'100%', email:'carla.b@email.com',      tel:'+56 9 1098 7654'},
-};
+const clientData = {}; // vacío — los datos reales vienen de Supabase via _clientesDataMap
 
 let _fichaCurrentNombre = '';
 
@@ -4333,7 +4321,7 @@ function renderDiaView(date) {
       const slotEvs = evByHour[parseInt(slotTime)] || [];
       const evHtml = slotEvs.map(ev => {
         const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
-        const full  = evNombreFull(abrev);
+        const full  = ev.nombre || evNombreFull(abrev);
         const ini   = evIniciales(full);
         const hEnd  = `${String(parseInt(slotTime)+1).padStart(2,'0')}:00`;
         return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:8px;height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openModal()">↺ Reagendar</button></div>`;
@@ -4437,7 +4425,7 @@ function renderWeekBody() {
       for (var ev = 0; ev < slotEvs.length; ev++) {
         var cur   = slotEvs[ev];
         var abrev = cur.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
-        var full  = evNombreFull(abrev);
+        var full  = cur.nombre || evNombreFull(abrev);
         var ini   = evIniciales(full);
         var hr    = parseInt(HOURS[s].split(':')[0]);
         var hEnd  = (hr + 1 < 10 ? '0' : '') + (hr + 1) + ':00';
@@ -4567,7 +4555,7 @@ function renderLista() {
     } else {
       const rows = events.map(ev => {
         const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
-        const full  = evNombreFull(abrev);
+        const full  = ev.nombre || evNombreFull(abrev);
         const ini   = evIniciales(full);
         const time  = (ev.lbl.match(/\d{2}:\d{2}/) || [''])[0];
         const color = EV_COLORS[ev.cls] || 'var(--a)';
@@ -4961,7 +4949,11 @@ function handleLogoUpload(input) {
       const w = img.width * scale, h = img.height * scale;
       ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
       const compressed = canvas.toDataURL('image/jpeg', 0.8);
-      try { localStorage.setItem('attempo_logo', compressed); } catch(err) {}
+      try {
+        const _u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+        const _logoKey = 'attempo_logo_' + (_u.cliente_id || 'default');
+        localStorage.setItem(_logoKey, compressed);
+      } catch(err) {}
       applyLogo(compressed);
       toast('✓ Logo actualizado');
     };
@@ -4973,7 +4965,9 @@ function handleLogoUpload(input) {
 
 document.addEventListener('DOMContentLoaded', function() {
   try {
-    const saved = localStorage.getItem('attempo_logo');
+    const _u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    const _logoKey = 'attempo_logo_' + (_u.cliente_id || 'default');
+    const saved = localStorage.getItem(_logoKey) || localStorage.getItem('attempo_logo');
     if (saved) applyLogo(saved);
   } catch(e) {}
 
@@ -5920,7 +5914,7 @@ async function cargarCitasSupabase() {
       const cls_   = espIdx >= 0 ? (['ev-p','ev-g','ev-a','ev-b','ev-t','ev-r'][espIdx % 6]) : profColor(espNom);
       if (!mesEvents[key]) mesEvents[key] = [];
       if (!mesEvents[key].some(e => e.lbl === lbl)) {
-        mesEvents[key].push({ cls: cls_, lbl, id: c.id, espId, real: true });
+        mesEvents[key].push({ cls: cls_, lbl, nombre: c.nombre_paciente.trim(), id: c.id, espId, real: true });
       }
     });
 
