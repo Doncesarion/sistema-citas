@@ -6308,8 +6308,13 @@ async function saveCanal(canal) {
   } catch(e) { toast('Error al guardar canal'); }
 }
 
+function _factKey(k) {
+  const cid = _ventasCid || JSON.parse(localStorage.getItem('attempo_user')||'{}').cliente_id || 'default';
+  return `${k}_${cid}`;
+}
+
 function cargarFacturacion() {
-  try { _factConfig = JSON.parse(localStorage.getItem('attempo_facturacion') || '{}'); } catch(e) { _factConfig = {}; }
+  try { _factConfig = JSON.parse(localStorage.getItem(_factKey('attempo_facturacion')) || '{}'); } catch(e) { _factConfig = {}; }
   const g  = id => document.getElementById(id);
   const fc = _factConfig;
   if (g('fact-honorarios')) g('fact-honorarios').checked = (fc.tipo || 'honorarios') === 'honorarios';
@@ -6318,7 +6323,7 @@ function cargarFacturacion() {
   if (g('fact-razon'))      g('fact-razon').value  = fc.razon || '';
   if (g('fact-giro'))       g('fact-giro').value   = fc.giro  || '';
   if (g('fact-dir'))        g('fact-dir').value    = fc.dir   || '';
-  const folio = Number(localStorage.getItem('attempo_folio') || fc.folio_ini || 1);
+  const folio = Number(localStorage.getItem(_factKey('attempo_folio')) || fc.folio_ini || 1);
   if (g('fact-folio-display')) g('fact-folio-display').textContent = folio;
   if (g('fact-folio-ini'))     g('fact-folio-ini').value = fc.folio_ini || 1;
 }
@@ -6333,16 +6338,16 @@ function guardarFacturacion() {
     dir:       g('fact-dir')?.value.trim()    || '',
     folio_ini: parseInt(g('fact-folio-ini')?.value || '1')
   };
-  localStorage.setItem('attempo_facturacion', JSON.stringify(_factConfig));
-  const folioActual = Number(localStorage.getItem('attempo_folio') || 0);
-  if (folioActual < _factConfig.folio_ini) localStorage.setItem('attempo_folio', _factConfig.folio_ini);
+  localStorage.setItem(_factKey('attempo_facturacion'), JSON.stringify(_factConfig));
+  const folioActual = Number(localStorage.getItem(_factKey('attempo_folio')) || 0);
+  if (folioActual < _factConfig.folio_ini) localStorage.setItem(_factKey('attempo_folio'), _factConfig.folio_ini);
   toast('✓ Configuración de facturación guardada');
   cargarFacturacion();
 }
 
 function _nextFolio() {
-  const n = Number(localStorage.getItem('attempo_folio') || _factConfig.folio_ini || 1);
-  localStorage.setItem('attempo_folio', n + 1);
+  const n = Number(localStorage.getItem(_factKey('attempo_folio')) || _factConfig.folio_ini || 1);
+  localStorage.setItem(_factKey('attempo_folio'), n + 1);
   return n;
 }
 
@@ -6602,7 +6607,8 @@ async function saveAsignarMetodo() {
   const metodo = document.getElementById('asignar-metodo-sel').value;
   if (!metodo || !_asignarMetodoCitaId) { toast('Selecciona un método'); return; }
   try {
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_asignarMetodoCitaId}`, {
+    const cid = await getClienteId();
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_asignarMetodoCitaId}&cliente_id=eq.${cid}`, {
       method: 'PATCH',
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ metodo_pago: metodo })
@@ -6619,7 +6625,8 @@ async function saveAsignarMetodo() {
 async function eliminarVenta(citaId) {
   if (!confirm('¿Eliminar esta cita de Ventas? Esta acción no se puede deshacer.')) return;
   try {
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${citaId}`, {
+    const cid = await getClienteId();
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${citaId}&cliente_id=eq.${cid}`, {
       method: 'DELETE',
       headers: { ..._SH, Prefer: 'return=minimal' }
     });
@@ -6648,7 +6655,8 @@ async function saveEditarMonto() {
   const precio = parseInt(document.getElementById('editar-monto-input').value) || 0;
   if (!_editarMontoCitaId) return;
   try {
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_editarMontoCitaId}`, {
+    const cid = await getClienteId();
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_editarMontoCitaId}&cliente_id=eq.${cid}`, {
       method: 'PATCH',
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ precio: precio || null })
@@ -6688,7 +6696,8 @@ async function saveAsignarProf() {
   const nombre = sel.options[sel.selectedIndex]?.dataset.nombre || '';
   if (!espId || !_asignarProfCitaId) { toast('Selecciona un profesional'); return; }
   try {
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_asignarProfCitaId}`, {
+    const cid = await getClienteId();
+    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_asignarProfCitaId}&cliente_id=eq.${cid}`, {
       method: 'PATCH',
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ especialista_id: espId })
@@ -6707,7 +6716,8 @@ function _syncBoletaPrecio() {
   if (!_boletaExtraItems.length || !_currentBoletaCita?.id) return;
   const total = _boletaTotal();
   const id    = _currentBoletaCita.id;
-  fetch(`${_SURL}/rest/v1/citas?id=eq.${id}`, {
+  const cid   = _ventasCid || JSON.parse(localStorage.getItem('attempo_user')||'{}').cliente_id || '';
+  fetch(`${_SURL}/rest/v1/citas?id=eq.${id}${cid ? '&cliente_id=eq.' + cid : ''}`, {
     method: 'PATCH',
     headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
     body: JSON.stringify({ precio: total })
@@ -7480,12 +7490,16 @@ function modDragEnd(e) {
   document.querySelectorAll('.rep-module').forEach(el => el.classList.remove('drag-over'));
   _repDragSrc = null;
 }
+function _repKey(k) {
+  const cid = _ventasCid || JSON.parse(localStorage.getItem('attempo_user')||'{}').cliente_id || 'default';
+  return `${k}_${cid}`;
+}
 function saveModuleOrder() {
   const order = [...document.querySelectorAll('#rep-modules > .rep-module')].map(el => el.dataset.mod);
-  localStorage.setItem('attempo_rep_order', JSON.stringify(order));
+  localStorage.setItem(_repKey('attempo_rep_order'), JSON.stringify(order));
 }
 function restoreModuleOrder() {
-  const saved = localStorage.getItem('attempo_rep_order');
+  const saved = localStorage.getItem(_repKey('attempo_rep_order'));
   if (!saved) return;
   const order = JSON.parse(saved);
   const grid  = document.getElementById('rep-modules');
@@ -7502,10 +7516,10 @@ function toggleModulo(mod, chk) {
 function saveModuleVisibility() {
   const vis = {};
   document.querySelectorAll('.rep-module[data-mod]').forEach(el => { vis[el.dataset.mod] = el.style.display !== 'none'; });
-  localStorage.setItem('attempo_rep_vis', JSON.stringify(vis));
+  localStorage.setItem(_repKey('attempo_rep_vis'), JSON.stringify(vis));
 }
 function restoreModuleVisibility() {
-  const saved = localStorage.getItem('attempo_rep_vis');
+  const saved = localStorage.getItem(_repKey('attempo_rep_vis'));
   if (!saved) return;
   JSON.parse(saved) && Object.entries(JSON.parse(saved)).forEach(([mod, vis]) => {
     const el  = document.querySelector(`[data-mod="${mod}"]`);
