@@ -63,11 +63,12 @@ export default async function handler(req, res) {
   // ── Buscar cliente por channel ID en Supabase ─────────────────────────────
   let cliente_id = null, accessToken = null;
   try {
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id,canales_meta&limit=1`,
-      { headers: sh }
-    );
-    const [cli] = await r.json();
+    const supaUrl = `${SUPABASE_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id,canales_meta&limit=1`;
+    console.log('meta-webhook: supabase url:', supaUrl);
+    const r = await fetch(supaUrl, { headers: sh });
+    const rJson = await r.json();
+    console.log('meta-webhook: supabase resp:', JSON.stringify(rJson).slice(0, 200));
+    const [cli] = rJson;
     if (!cli) {
       console.log('meta-webhook: cliente no encontrado para', channelKey, channelValue);
       return res.status(200).end();
