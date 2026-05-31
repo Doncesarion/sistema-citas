@@ -111,8 +111,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: respuesta } })
       });
     } else if (canal === 'instagram') {
-      // Instagram DMs: usar el IG Business Account ID como sender
-      sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
+      sendRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: respuesta } })
