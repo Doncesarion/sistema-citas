@@ -18,9 +18,7 @@ export default async function handler(req, res) {
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
   const body = req.body || {};
-  const _wa_phone_id = body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
-  const _ig_entry_id = body.entry?.[0]?.id;
-  console.log('meta-webhook object:', body.object, '| wa_phone_id:', _wa_phone_id, '| ig/page entry_id:', _ig_entry_id, '| msg:', JSON.stringify(body.entry?.[0]?.messaging?.[0]?.message || body.entry?.[0]?.changes?.[0]?.value?.messages?.[0])?.slice(0,80));
+  console.log('meta-webhook object:', body.object);
 
   // ── Parsear mensaje según canal ───────────────────────────────────────────
   let canal, canal_user_id, canal_user_name, mensaje, channelKey, channelValue;
@@ -46,7 +44,6 @@ export default async function handler(req, res) {
     channelValue    = body.entry?.[0]?.id;
   } else if (body.object === 'instagram') {
     const messaging = body.entry?.[0]?.messaging?.[0];
-    console.log('ig-debug entry[0]:', JSON.stringify(body.entry?.[0])?.slice(0, 300));
     if (!messaging?.message?.text) return res.status(200).end();
     canal           = 'instagram';
     canal_user_id   = messaging.sender.id;
@@ -64,11 +61,8 @@ export default async function handler(req, res) {
   let cliente_id = null, accessToken = null;
   try {
     const supaUrl = `${SUPABASE_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id,canales_meta&limit=1`;
-    console.log('meta-webhook: supabase url:', supaUrl);
     const r = await fetch(supaUrl, { headers: sh });
-    const rJson = await r.json();
-    console.log('meta-webhook: supabase resp:', JSON.stringify(rJson).slice(0, 200));
-    const [cli] = rJson;
+    const [cli] = await r.json();
     if (!cli) {
       console.log('meta-webhook: cliente no encontrado para', channelKey, channelValue);
       return res.status(200).end();
