@@ -8,7 +8,6 @@ export default async function handler(req, res) {
     const token     = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
     const validToken = process.env.META_VERIFY_TOKEN;
-    console.log('webhook verify — received:', JSON.stringify(token), '| expected:', JSON.stringify(validToken));
     if (mode === 'subscribe' && token === validToken) {
       return res.status(200).send(challenge);
     }
@@ -47,6 +46,7 @@ export default async function handler(req, res) {
     channelValue    = body.entry?.[0]?.id;
   } else if (body.object === 'instagram') {
     const messaging = body.entry?.[0]?.messaging?.[0];
+    console.log('ig-debug entry[0]:', JSON.stringify(body.entry?.[0])?.slice(0, 300));
     if (!messaging?.message?.text) return res.status(200).end();
     canal           = 'instagram';
     canal_user_id   = messaging.sender.id;
