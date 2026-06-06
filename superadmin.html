@@ -154,6 +154,16 @@
       .stats-row{grid-template-columns:1fr}
       .stat-box-num{font-size:20px}
     }
+
+    /* MÓDULOS DE PLAN */
+    .mod-preview{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;line-height:1.8;max-height:190px;overflow-y:auto;margin-top:4px}
+    .mod-group{margin-bottom:8px}
+    .mod-group:last-child{margin-bottom:0}
+    .mod-group-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400);margin-bottom:3px}
+    .mod-item{color:var(--gray-600);display:flex;gap:6px;align-items:flex-start}
+    .mod-item.nuevo{color:var(--accent);font-weight:500}
+    .mod-item.super{color:var(--success);font-weight:500}
+    .mod-icon{flex-shrink:0;margin-top:1px}
   </style>
 </head>
 <body>
@@ -279,6 +289,15 @@
       <div class="form-group"><label class="form-label">Fecha expiración</label><input class="form-input" type="date" id="mc-expira"></div>
     </div>
     <div id="mc-precio-info" style="font-size:12px;color:var(--gray-400);margin-top:-8px;margin-bottom:12px"></div>
+    <div class="form-group" style="margin-top:8px">
+      <label class="form-label">Funcionalidades habilitadas</label>
+      <select class="form-input" id="mc-tipo-plan" onchange="actualizarModulosPreview()">
+        <option value="inicio">🌱 Inicio — Agendamiento esencial</option>
+        <option value="pro">⚡ Pro — Inicio + IA y boletas</option>
+        <option value="clinica_ia">🤖 Clínica IA — Pro + Chatbot y automatización</option>
+      </select>
+    </div>
+    <div id="mc-modulos-preview" class="mod-preview" style="display:none"></div>
     <div class="modal-btns">
       <button class="btn btn-outline" style="flex:1" onclick="cerrarModal('modal-cliente')">Cancelar</button>
       <button class="btn btn-primary" style="flex:2" onclick="guardarCliente()">Guardar cliente</button>
@@ -444,6 +463,7 @@ async function cargarClientes() {
   renderStats();
   renderAlertas();
   renderTabla(todosClientes);
+  cargarTiposPlanes();
 }
 
 let periodoActual = 'mes';
@@ -596,11 +616,13 @@ function renderTabla(lista) {
           const barColor = esPermanente?'#7c3aed':diasRestantes<=3?'#dc2626':diasRestantes<=7?'#d97706':'#16a34a';
           const tagClass = !c.activo?'tag-inactivo':vencido?'tag-vencido':c.plan==='permanente'?'tag-permanente':c.plan==='anual'?'tag-anual':c.plan==='mensual'?'tag-mensual':'tag-demo';
           const tagLabel = !c.activo?'Inactivo':vencido?'Vencido':c.plan==='permanente'?'♾️ Permanente':c.plan==='anual'?'⭐ Anual':c.plan==='mensual'?'📅 Mensual':'🕐 Demo';
+          const tipoLabels = { inicio:'🌱 Inicio', pro:'⚡ Pro', clinica_ia:'🤖 Clínica IA' };
+          const tipoBadge = tipoLabels[c.tipo_plan] ? `<span style="font-size:10px;color:var(--gray-400);display:block;margin-top:3px;font-weight:500">${tipoLabels[c.tipo_plan]}</span>` : '';
           return `<tr>
             <td><div style="font-weight:600;color:var(--black)">${c.nombre_negocio}</div><div style="font-size:11px;color:var(--gray-400)">${c.contacto_nombre||''}</div></td>
             <td style="font-size:12px">${c.email}</td>
             <td style="font-size:12px;color:var(--gray-500)">${c.rubro||'—'}</td>
-            <td><span class="tag ${tagClass}">${tagLabel}</span></td>
+            <td><span class="tag ${tagClass}">${tagLabel}</span>${tipoBadge}</td>
             <td>
               <div style="font-size:13px;font-weight:600;color:${barColor}">${esPermanente?'∞':''+diasRestantes+'d'}</div>
               <div class="dias-bar"><div class="dias-fill" style="width:${pct}%;background:${barColor}"></div></div>
@@ -650,6 +672,8 @@ function abrirModalNuevo() {
   document.getElementById('mc-email').value = '';
   document.getElementById('mc-pass').value = '';
   document.getElementById('mc-plan').value = 'demo';
+  document.getElementById('mc-tipo-plan').value = 'inicio';
+  actualizarModulosPreview();
   document.getElementById('modal-cliente-title').textContent = 'Nuevo cliente demo';
   actualizarFechaExpiracion();
   abrirModal('modal-cliente');
@@ -676,6 +700,8 @@ function editarCliente(id) {
   document.getElementById('mc-email').value = c.email;
   document.getElementById('mc-pass').value = '';
   document.getElementById('mc-plan').value = c.plan;
+  document.getElementById('mc-tipo-plan').value = c.tipo_plan || 'inicio';
+  actualizarModulosPreview();
   const expiraEl = document.getElementById('mc-expira');
   if (c.plan === 'permanente') {
     expiraEl.value = '';
@@ -796,6 +822,7 @@ async function guardarCliente() {
   const rubro      = rubroSel === 'otro'
     ? (document.getElementById('mc-rubro-otro').value.trim() || 'otro')
     : rubroSel;
+  const tipoPlan  = document.getElementById('mc-tipo-plan').value;
 
   if (!negocio||!email) { alert('Completa nombre del negocio y email'); return; }
   if (!id && !pass) { alert('Ingresa una contraseña inicial'); return; }
@@ -812,6 +839,7 @@ async function guardarCliente() {
     contacto_nombre: contacto,
     contacto_tel: tel,
     rubro,
+    tipo_plan: tipoPlan,
     activo: true,
     updated_at: new Date().toISOString(),
   };
@@ -999,6 +1027,96 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 document.getElementById('mp-plan')?.addEventListener('change', function(){
   document.getElementById('mp-monto').value = this.value==='anual'?'269100':'29900';
 });
+
+// ═══════════════════════════════════════════
+// MÓDULOS POR TIPO DE PLAN
+// ═══════════════════════════════════════════
+const PLAN_MODULOS = {
+  inicio: {
+    features: [
+      'Perfil de agendamiento online',
+      'Agenda y calendario digital',
+      'Servicios ilimitados',
+      'Recordatorios por correo y WhatsApp',
+      'Pagos por transferencia y WebPay',
+      'Evaluaciones en tu perfil',
+      'Fichas clínicas',
+      'Marcar citas como pagadas',
+      'Soporte vía chat',
+    ]
+  },
+  pro: {
+    extras: [
+      'Sin costo en transferencias',
+      'Transcriptor IA de consultas',
+      'Integración con FONASA',
+      'Emisión de boletas electrónicas',
+      'Pagos en dólares',
+      'Vitrina de talleres y contenido',
+    ]
+  },
+  clinica_ia: {
+    extras: [
+      'Chatbot IA en WhatsApp 24/7',
+      'Cobro automático por WhatsApp',
+      'Recuperación de citas por IA',
+      'WhatsApps de confirmación automáticos',
+      'WhatsApp de evaluación post-cita',
+      'Reportes avanzados',
+      'Personalización de colores del perfil',
+      'Correos masivos ilimitados',
+      'Recetas médicas electrónicas',
+      'Soporte prioritario (chat, correo y WhatsApp)',
+    ]
+  }
+};
+
+function actualizarModulosPreview() {
+  const tipo = document.getElementById('mc-tipo-plan')?.value || 'inicio';
+  const el = document.getElementById('mc-modulos-preview');
+  if (!el) return;
+
+  const mkItems = (items, cls) => items.map(f =>
+    `<div class="mod-item ${cls}"><span class="mod-icon">${cls ? '＋' : '✓'}</span>${f}</div>`
+  ).join('');
+
+  let html = `<div class="mod-group">
+    <div class="mod-group-title">🌱 Inicio</div>
+    ${mkItems(PLAN_MODULOS.inicio.features, '')}
+  </div>`;
+
+  if (tipo === 'pro' || tipo === 'clinica_ia') {
+    html += `<div class="mod-group">
+      <div class="mod-group-title" style="color:var(--accent)">⚡ Pro — adicional</div>
+      ${mkItems(PLAN_MODULOS.pro.extras, 'nuevo')}
+    </div>`;
+  }
+
+  if (tipo === 'clinica_ia') {
+    html += `<div class="mod-group">
+      <div class="mod-group-title" style="color:var(--success)">🤖 Clínica IA — adicional</div>
+      ${mkItems(PLAN_MODULOS.clinica_ia.extras, 'super')}
+    </div>`;
+  }
+
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+async function cargarTiposPlanes() {
+  try {
+    const r = await fetch(
+      `${SUPA_URL}/rest/v1/clientes_sistema?select=id,tipo_plan`,
+      { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
+    );
+    const data = await r.json();
+    if (!Array.isArray(data)) return;
+    const mapa = {};
+    data.forEach(x => { mapa[x.id] = x.tipo_plan; });
+    todosClientes = todosClientes.map(c => ({ ...c, tipo_plan: mapa[c.id] || 'inicio' }));
+    renderTabla(todosClientes);
+  } catch(e) { /* silencioso */ }
+}
 </script>
 </body>
 </html>
