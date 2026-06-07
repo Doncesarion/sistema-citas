@@ -829,15 +829,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bmulti-banner svg{flex-shrink:0;color:var(--amber)}
 .bmulti-link{color:var(--a);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font);font-size:12px;padding:0;text-decoration:underline;text-underline-offset:2px}
 .bmulti-link:hover{opacity:.8}
-.bitem-canales{display:flex;gap:3px;margin-top:4px}
-.bitem-canal-pill{display:inline-flex;align-items:center;gap:2px;padding:2px 6px 2px 4px;border-radius:8px;font-size:9.5px;font-weight:700;color:#fff;line-height:1}
-.breply-canal-bar{display:flex;align-items:center;gap:6px;padding:8px 14px 0;flex-wrap:wrap}
-.breply-canal-label{font-size:11px;color:var(--t3);font-weight:500;flex-shrink:0;line-height:1.5}
-.breply-canal-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;border:1.5px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .12s;line-height:1}
-.breply-canal-btn:hover{border-color:var(--a);color:var(--a)}
-.breply-canal-btn.active{color:#fff;border-color:transparent}
-.breply-desvincular{font-size:9px;opacity:0.5;margin-left:2px;cursor:pointer;color:inherit;line-height:1;display:inline}
-.breply-desvincular:hover{opacity:1}
+.bitem-canal-btns{display:flex;gap:3px;flex-shrink:0;align-items:center}
+.bitem-canal-btn{width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s;opacity:.72;position:relative}
+.bitem-canal-btn:hover{transform:scale(1.12);opacity:1}
+.bitem-canal-btn.activo{opacity:1}
+.bitem-canal-dot-unread{position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--surface-hi)}
 
 /* ─ Input ─ */
 .bthread-input{padding:10px 16px 14px;background:#fff;border-top:1px solid rgba(108,92,228,.1);flex-shrink:0;box-shadow:0 -1px 8px rgba(108,92,228,.06)}
@@ -1937,7 +1933,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="bmulti-banner" id="bmulti-banner" style="display:none"></div>
         <div class="bthread-msgs" id="bthread-msgs"></div>
         <div class="bthread-input">
-          <div class="breply-canal-bar" id="breply-canal-bar" style="display:none"></div>
           <div class="bbot-banner" id="bbot-banner">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span>El bot está activo y responde automáticamente. Para escribir tú, páusalo primero.</span>
@@ -8387,9 +8382,7 @@ let _bMsgs        = [];          // mensajes del hilo actual
 let _bFiltroCanal = 'todos';
 let _bPollTimer   = null;
 let _bMsgPollTimer = null;
-let _bInited         = false;
-let _bContactoActual = null;  // { contacto_id, conversaciones:[...] } en vista unificada
-let _bReplyConvId    = null;  // conv_id seleccionada para responder en modo unificado
+let _bInited      = false;
 const PLAN_LIMITE = { inicio: 0, pro: 2000, 'clinica_ia': 5000 };
 
 // ── Helpers avatar ─────────────────────────────────────────────────────────────
@@ -8489,11 +8482,12 @@ function renderListaBandeja() {
       const latest = grupo.reduce((a, b) => (a.ultimo_mensaje_at || '') > (b.ultimo_mensaje_at || '') ? a : b);
       items.push({
         isGroup: true, key: c.contacto_id, contacto_id: c.contacto_id,
+        primaryId: latest.id,
         nombre: latest.canal_user_name || latest.canal_user_id || '?',
         fotoUrl: latest.canal_user_photo, ultimoMensaje: latest.ultimo_mensaje,
         ultimoAt: latest.ultimo_mensaje_at,
         noLeidos: grupo.reduce((s, x) => s + (x.no_leidos || 0), 0),
-        canales: [...new Set(grupo.map(x => x.canal))]
+        grupo
       });
     } else {
       items.push({
@@ -8507,39 +8501,54 @@ function renderListaBandeja() {
   }
   items.sort((a, b) => (b.ultimoAt || '') > (a.ultimoAt || '') ? 1 : -1);
 
-  const activeKey = _bContactoActual?.contacto_id || (_bConvActual && !_bContactoActual ? _bConvActual.id : null);
-
   container.innerHTML = items.map(item => {
-    const activa = item.key === activeKey ? ' on' : '';
+    const isActive = item.isGroup
+      ? item.grupo.some(c => c.id === _bConvActual?.id)
+      : item.id === _bConvActual?.id;
+    const activa = isActive ? ' on' : '';
     const color  = bAvatarColor(item.nombre);
     const inits  = bInitials(item.nombre);
     const tiempo = formatBTiempo(item.ultimoAt);
-    const unread = item.noLeidos > 0
-      ? `<span class="bitem-unread">${item.noLeidos > 99 ? '99+' : item.noLeidos}</span>` : '';
     const fotoHtml = item.fotoUrl ? `<img class="bav-photo" src="${escH(item.fotoUrl)}" alt="" onerror="this.style.display='none'">` : '';
-    const onclick = item.isGroup
-      ? `abrirContactoUnificado('${item.contacto_id}')`
-      : `abrirConversacion('${item.id}')`;
 
-    let avBadge = '', bodyExtra = '';
     if (item.isGroup) {
-      const pills = item.canales.map(canal => {
-        const bg  = _B_CANAL_BG[canal] || '#888';
-        const svg = _B_CANAL_SVG[canal] || '';
-        const lbl = { whatsapp:'WA', instagram:'IG', messenger:'MSG' }[canal] || canal;
-        return `<span class="bitem-canal-pill" style="background:${bg}">${svg}${lbl}</span>`;
+      // Item agrupado: botones de canal clickeables en row1, un click por canal
+      const canalBtns = item.grupo.map(conv => {
+        const bg      = _B_CANAL_BG[conv.canal] || '#888';
+        const svg     = _B_CANAL_SVG[conv.canal] || '';
+        const isActivo = conv.id === _bConvActual?.id;
+        const unreadDot = (conv.no_leidos || 0) > 0
+          ? '<span class="bitem-canal-dot-unread"></span>' : '';
+        return `<button class="bitem-canal-btn${isActivo ? ' activo' : ''}" style="background:${bg}" onclick="event.stopPropagation();abrirConversacion('${conv.id}')" title="${_CHAN_LABEL[conv.canal] || conv.canal}">${svg}${unreadDot}</button>`;
       }).join('');
-      bodyExtra = `<div class="bitem-canales">${pills}</div>`;
-    } else {
-      const chBg  = _B_CANAL_BG[item.canales[0]] || '#888';
-      const chSvg = _B_CANAL_SVG[item.canales[0]] || '';
-      avBadge = `<div class="bitem-badge-ch" style="background:${chBg}">${chSvg}</div>`;
+      const totalUnread = item.noLeidos > 0
+        ? `<span class="bitem-unread" style="margin-left:auto">${item.noLeidos > 99 ? '99+' : item.noLeidos}</span>` : '';
+      return `<div class="bitem${activa}" onclick="abrirConversacion('${item.primaryId}')">
+        <div class="bitem-av">
+          <div class="bitem-circle" style="background:${color}">${inits}${fotoHtml}</div>
+        </div>
+        <div class="bitem-body">
+          <div class="bitem-row1">
+            <span class="bitem-name">${escH(item.nombre)}</span>
+            <div class="bitem-canal-btns">${canalBtns}</div>
+          </div>
+          <div class="bitem-row2">
+            <span class="bitem-preview">${escH(item.ultimoMensaje || '')}</span>
+            <span class="bitem-time" style="flex-shrink:0">${tiempo}</span>${totalUnread}
+          </div>
+        </div>
+      </div>`;
     }
 
-    return `<div class="bitem${activa}" onclick="${onclick}">
+    // Item individual (sin grupo)
+    const chBg  = _B_CANAL_BG[item.canales[0]] || '#888';
+    const chSvg = _B_CANAL_SVG[item.canales[0]] || '';
+    const unread = item.noLeidos > 0
+      ? `<span class="bitem-unread">${item.noLeidos > 99 ? '99+' : item.noLeidos}</span>` : '';
+    return `<div class="bitem${activa}" onclick="abrirConversacion('${item.id}')">
       <div class="bitem-av">
         <div class="bitem-circle" style="background:${color}">${inits}${fotoHtml}</div>
-        ${avBadge}
+        <div class="bitem-badge-ch" style="background:${chBg}">${chSvg}</div>
       </div>
       <div class="bitem-body">
         <div class="bitem-row1">
@@ -8550,7 +8559,6 @@ function renderListaBandeja() {
           <span class="bitem-preview">${escH(item.ultimoMensaje || '')}</span>
           ${unread}
         </div>
-        ${bodyExtra}
       </div>
     </div>`;
   }).join('');
@@ -8573,8 +8581,6 @@ function actualizarBadgeNav() {
 
 // ── Abrir conversación ────────────────────────────────────────────────────────
 window.abrirConversacion = async function(id) {
-  _bContactoActual = null;
-  _bReplyConvId    = null;
   _bConvActual = _bConvs.find(c => c.id === id);
   if (!_bConvActual) return;
 
@@ -8630,9 +8636,6 @@ window.abrirConversacion = async function(id) {
   // Detectar mismo contacto en otros canales
   detectarMultiCanal();
 
-  // Selector de canal (ocultar en vista individual)
-  renderCanalSelector();
-
   // Nombre — cerrar cualquier edición previa
   cancelarEditNombre();
   document.getElementById('bthread-name').textContent = nombre;
@@ -8651,54 +8654,31 @@ window.abrirConversacion = async function(id) {
   // Poll mensajes activo
   clearInterval(_bMsgPollTimer);
   _bMsgPollTimer = setInterval(() => {
-    if (_bContactoActual) {
-      cargarMensajesHilo(null, true);
-    } else if (_bConvActual?.id === id) {
-      cargarMensajesHilo(id, true);
-    }
+    if (_bConvActual?.id === id) cargarMensajesHilo(id, true);
   }, 8000);
 };
 
 // ── Cargar mensajes del hilo ──────────────────────────────────────────────────
 async function cargarMensajesHilo(conv_id, silent = false) {
   try {
-    if (_bContactoActual) {
-      // Modo unificado: cargar mensajes de todas las convs del contacto
-      const r = await fetch(`/api/bandeja?contacto_id=${encodeURIComponent(_bContactoActual.contacto_id)}`, {
-        headers: _bandejaH()
-      });
-      if (!r.ok) return;
-      const data = await r.json();
-      _bMsgs = data.mensajes || [];
-      if (data.conversaciones) {
-        _bContactoActual.conversaciones = data.conversaciones;
-        // Actualizar no_leidos en lista local
-        for (const conv of data.conversaciones) {
-          const convL = _bConvs.find(c => c.id === conv.id);
-          if (convL) { convL.no_leidos = 0; }
-        }
-      }
-    } else {
-      // Modo individual
-      const r = await fetch(`/api/bandeja?id=${conv_id}`, {
-        headers: _bandejaH()
-      });
-      if (!r.ok) return;
-      const data = await r.json();
-      _bMsgs = data.mensajes || [];
-      if (data.conversacion) {
-        _bConvActual = { ..._bConvActual, ...data.conversacion };
-        actualizarEstadoUI(_bConvActual.estado || 'abierto');
-        const photoEl = document.getElementById('bthread-photo');
-        if (photoEl && _bConvActual.canal_user_photo) {
-          photoEl.src = _bConvActual.canal_user_photo;
-          photoEl.style.display = 'block';
-        }
-        const convL = _bConvs.find(c => c.id === conv_id);
-        if (convL && _bConvActual.canal_user_photo) convL.canal_user_photo = _bConvActual.canal_user_photo;
-      }
-    }
+    const r = await fetch(`/api/bandeja?id=${conv_id}`, {
+      headers: _bandejaH()
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    _bMsgs = data.mensajes || [];
     renderHilo(silent);
+    if (data.conversacion) {
+      _bConvActual = { ..._bConvActual, ...data.conversacion };
+      actualizarEstadoUI(_bConvActual.estado || 'abierto');
+      const photoEl = document.getElementById('bthread-photo');
+      if (photoEl && _bConvActual.canal_user_photo) {
+        photoEl.src = _bConvActual.canal_user_photo;
+        photoEl.style.display = 'block';
+      }
+      const convL = _bConvs.find(c => c.id === conv_id);
+      if (convL && _bConvActual.canal_user_photo) convL.canal_user_photo = _bConvActual.canal_user_photo;
+    }
   } catch (e) {
     console.error('bandeja: error cargando mensajes', e);
   }
@@ -8718,16 +8698,12 @@ function renderHilo(silent = false) {
     ? `<img src="${escH(convFoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0" onerror="this.style.display='none'">` : '';
   const avatarHtml = `<div class="bmsg-av" style="background:${convColor}">${convInits}${fotoAvHtml}</div>`;
 
-  const isUnified = !!_bContactoActual;
   let lastDay = '';
   cont.innerHTML = _bMsgs.map(m => {
     const fecha = new Date(m.created_at);
     const dia   = fecha.toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' });
     const hora  = fecha.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
     const rolLabel = m.rol === 'bot' ? 'Attia' : m.rol === 'admin' ? 'Tú' : '';
-    const canalDot = (isUnified && m.canal)
-      ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${_B_CANAL_BG[m.canal]||'#888'};margin-right:4px;flex-shrink:0;vertical-align:middle"></span>`
-      : '';
     let html = '';
     if (dia !== lastDay) { lastDay = dia; html += `<div class="bday-sep">${dia}</div>`; }
     if (m.rol === 'usuario') {
@@ -8735,12 +8711,12 @@ function renderHilo(silent = false) {
         ${avatarHtml}
         <div class="bmsg-content">
           <div class="bmsg">${escH(m.contenido)}</div>
-          <div class="bmsg-meta">${canalDot}${hora}</div>
+          <div class="bmsg-meta">${hora}</div>
         </div>
       </div>`;
     } else {
       html += `<div class="bmsg-wrap ${m.rol}">
-        <div class="bmsg-rolabel">${canalDot}${rolLabel}</div>
+        <div class="bmsg-rolabel">${rolLabel}</div>
         <div class="bmsg">${escH(m.contenido)}</div>
         <div class="bmsg-meta">${hora}</div>
       </div>`;
@@ -8906,17 +8882,19 @@ function detectarMultiCanal() {
   const banner = document.getElementById('bmulti-banner');
   if (!banner || !_bConvActual) return;
 
-  // En modo unificado: mostrar info de canales vinculados con opción de desvincular
-  if (_bContactoActual) {
-    const convs = _bContactoActual.conversaciones;
-    if (convs.length < 2) { banner.style.display = 'none'; return; }
-    const info = convs.map(c => {
-      const lbl = _CHAN_LABEL[c.canal] || c.canal;
-      return `<span>${lbl}</span> <button class="bmulti-link" onclick="desvincularConversacion('${c.id}')">Desvincular</button>`;
-    }).join(' · ');
-    banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Vista unificada: ${info}</span>`;
-    banner.style.display = 'flex';
-    return;
+  // Si la conv ya está vinculada: mostrar los otros canales del grupo con opción desvincular
+  if (_bConvActual.contacto_id) {
+    const grupo = _bConvs.filter(c => c.contacto_id === _bConvActual.contacto_id && c.id !== _bConvActual.id);
+    if (grupo.length > 0) {
+      const linkSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+      const info = grupo.map(c => {
+        const lbl = _CHAN_LABEL[c.canal] || c.canal;
+        return `<button class="bmulti-link" onclick="abrirConversacion('${c.id}')">${lbl}</button> <button class="bmulti-link" onclick="desvincularConversacion('${c.id}')">Desvincular</button>`;
+      }).join(' · ');
+      banner.innerHTML = `${linkSvg}<span>Vinculado con: ${info}</span>`;
+      banner.style.display = 'flex';
+      return;
+    }
   }
 
   const nombreActual = _bConvActual.canal_user_name || '';
@@ -8941,120 +8919,6 @@ function detectarMultiCanal() {
   banner.style.display = 'flex';
 }
 
-// ── Vista unificada de contacto ───────────────────────────────────────────────
-window.abrirContactoUnificado = async function(contacto_id) {
-  let data;
-  try {
-    const r = await fetch(`/api/bandeja?contacto_id=${encodeURIComponent(contacto_id)}`, {
-      headers: _bandejaH()
-    });
-    if (!r.ok) { toast('Error al cargar contacto', 3000); return; }
-    data = await r.json();
-  } catch(e) {
-    toast('Error al cargar contacto', 3000);
-    return;
-  }
-  const convs = data.conversaciones || [];
-  if (!convs.length) return;
-
-  const sorted = [...convs].sort((a, b) => (b.ultimo_mensaje_at||'') > (a.ultimo_mensaje_at||'') ? 1 : -1);
-  const primary = sorted[0];
-
-  _bContactoActual = { contacto_id, conversaciones: convs };
-  _bConvActual     = primary;
-  _bReplyConvId    = primary.id;
-  _bMsgs           = data.mensajes || [];
-
-  // Actualizar UI lista
-  document.querySelectorAll('.bitem').forEach(el => el.classList.remove('on'));
-  document.querySelectorAll('.bitem').forEach(el => {
-    if (el.getAttribute('onclick')?.includes(contacto_id)) el.classList.add('on');
-  });
-
-  // Mostrar hilo
-  document.getElementById('bthread-empty').style.display = 'none';
-  const main = document.getElementById('bthread-main');
-  main.style.display = 'flex';
-  main.style.flexDirection = 'column';
-  main.style.height = '100%';
-
-  // Header
-  const nombre = primary.canal_user_name || primary.canal_user_id || '?';
-  const circle  = document.getElementById('bthread-circle');
-  const photoEl = document.getElementById('bthread-photo');
-  if (circle) { circle.style.background = bAvatarColor(nombre); circle.textContent = bInitials(nombre); }
-  if (photoEl) {
-    if (primary.canal_user_photo) { photoEl.src = primary.canal_user_photo; photoEl.style.display = 'block'; }
-    else { photoEl.style.display = 'none'; photoEl.src = ''; }
-  }
-
-  // Badges multi-canal en header
-  const badgeEl = document.getElementById('bthread-channel-badge');
-  if (badgeEl) {
-    const uniqueCanales = [...new Set(convs.map(c => c.canal))];
-    badgeEl.innerHTML = uniqueCanales.map(ch => _CHAN_BADGE[ch] || ch).join(' ');
-  }
-
-  // Thread class: usar el canal de la conv seleccionada para responder
-  const threadEl = document.getElementById('bthread');
-  if (threadEl) { threadEl.style.background = ''; threadEl.className = 'bthread ' + (_CH_CLASS[primary.canal] || ''); }
-  const msgsEl = document.getElementById('bthread-msgs');
-  if (msgsEl) msgsEl.style.background = '';
-
-  actualizarEstadoUI(primary.estado || 'abierto');
-  cancelarEditNombre();
-  document.getElementById('bthread-name').textContent = nombre;
-  cancelarEliminarConv();
-  document.getElementById('blist').classList.add('hidden');
-
-  for (const conv of convs) {
-    const convL = _bConvs.find(c => c.id === conv.id);
-    if (convL) convL.no_leidos = 0;
-  }
-  actualizarBadgeNav();
-
-  renderCanalSelector();
-  detectarMultiCanal();
-  renderHilo();
-
-  clearInterval(_bMsgPollTimer);
-  _bMsgPollTimer = setInterval(() => {
-    if (_bContactoActual?.contacto_id === contacto_id) cargarMensajesHilo(null, true);
-  }, 8000);
-};
-
-// ── Selector de canal para responder ─────────────────────────────────────────
-function renderCanalSelector() {
-  const bar = document.getElementById('breply-canal-bar');
-  if (!bar) return;
-  if (!_bContactoActual || _bContactoActual.conversaciones.length < 2) {
-    bar.style.display = 'none';
-    return;
-  }
-  bar.style.display = 'flex';
-  bar.innerHTML = '<span class="breply-canal-label">Responder por:</span>' +
-    _bContactoActual.conversaciones.map(conv => {
-      const isActive = _bReplyConvId === conv.id;
-      const bg = _B_CANAL_BG[conv.canal] || '#888';
-      const lbl = _CHAN_LABEL[conv.canal] || conv.canal;
-      const svg = _B_CANAL_SVG[conv.canal] || '';
-      const style = isActive ? `background:${bg};border-color:${bg};` : '';
-      return `<button class="breply-canal-btn${isActive ? ' active' : ''}" style="${style}" onclick="seleccionarCanalReply('${conv.id}')">${svg} ${lbl}<span class="breply-desvincular" onclick="event.stopPropagation();desvincularConversacion('${conv.id}')" title="Desvincular">×</span></button>`;
-    }).join('');
-}
-
-window.seleccionarCanalReply = function(conv_id) {
-  _bReplyConvId = conv_id;
-  const conv = _bContactoActual?.conversaciones.find(c => c.id === conv_id);
-  if (conv) {
-    const threadEl = document.getElementById('bthread');
-    if (threadEl) { threadEl.style.background = ''; threadEl.className = 'bthread ' + (_CH_CLASS[conv.canal] || ''); }
-    const msgsEl = document.getElementById('bthread-msgs');
-    if (msgsEl) msgsEl.style.background = '';
-  }
-  renderCanalSelector();
-};
-
 // ── Vincular / Desvincular contactos ─────────────────────────────────────────
 window.vincularContactos = async function(ids) {
   if (!Array.isArray(ids)) return;
@@ -9065,17 +8929,17 @@ window.vincularContactos = async function(ids) {
       body: JSON.stringify({ ids })
     });
     if (!r.ok) { toast('Error al vincular', 3000); return; }
-    const data = await r.json();
-    toast('Contacto unificado', 2500);
+    toast('Contacto vinculado — aparece agrupado en la lista', 2500);
     await cargarConversaciones();
-    abrirContactoUnificado(data.contacto_id);
+    // Reabrir la conv actual (ahora tendrá contacto_id y el banner mostrará el otro canal)
+    if (_bConvActual) abrirConversacion(_bConvActual.id);
   } catch(e) {
     toast('Error al vincular', 3000);
   }
 };
 
 window.desvincularConversacion = async function(conv_id) {
-  const prevContactoId = _bContactoActual?.contacto_id;
+  const currentId = _bConvActual?.id;
   try {
     const r = await fetch(`/api/bandeja?action=unlink&id=${conv_id}`, {
       method: 'PATCH',
@@ -9083,16 +8947,8 @@ window.desvincularConversacion = async function(conv_id) {
     });
     if (!r.ok) { toast('Error al desvincular', 3000); return; }
     toast('Conversación desvinculada', 2500);
-    _bContactoActual = null;
-    _bReplyConvId    = null;
     await cargarConversaciones();
-    // Reabrir grupo si quedan 2+ o conv individual si queda 1
-    if (prevContactoId) {
-      const remaining = _bConvs.filter(c => c.contacto_id === prevContactoId);
-      if (remaining.length >= 2) { abrirContactoUnificado(prevContactoId); return; }
-      if (remaining.length === 1) { abrirConversacion(remaining[0].id); return; }
-    }
-    abrirConversacion(conv_id);
+    if (currentId) abrirConversacion(currentId);
   } catch(e) {
     toast('Error al desvincular', 3000);
   }
@@ -9112,7 +8968,6 @@ window.cancelarEliminarConv = function() {
 window.confirmarEliminarConv = async function() {
   if (!_bConvActual) return;
   const id = _bConvActual.id;
-  const prevContactoId = _bContactoActual?.contacto_id;
   try {
     const r = await fetch(`/api/bandeja?id=${id}`, {
       method: 'DELETE',
@@ -9121,9 +8976,7 @@ window.confirmarEliminarConv = async function() {
     if (!r.ok) { toast('Error al eliminar', 3000); return; }
 
     _bConvs = _bConvs.filter(c => c.id !== id);
-    _bConvActual     = null;
-    _bContactoActual = null;
-    _bReplyConvId    = null;
+    _bConvActual = null;
     _bMsgs = [];
 
     document.getElementById('bthread-empty').style.display = '';
@@ -9134,14 +8987,6 @@ window.confirmarEliminarConv = async function() {
     renderListaBandeja();
     actualizarBadgeNav();
     toast('Conversación eliminada', 2500);
-
-    // Si era parte de un grupo unificado, reabrir el grupo restante
-    if (prevContactoId) {
-      await cargarConversaciones();
-      const remaining = _bConvs.filter(c => c.contacto_id === prevContactoId);
-      if (remaining.length >= 2) abrirContactoUnificado(prevContactoId);
-      else if (remaining.length === 1) abrirConversacion(remaining[0].id);
-    }
   } catch (e) {
     toast('Error al eliminar', 3000);
   }
@@ -9193,22 +9038,20 @@ window.enviarRespuestaBandeja = async function() {
   const contenido = input.value.trim();
   if (!contenido) return;
 
-  const convId = _bReplyConvId || _bConvActual.id;
-  const replyConv = _bContactoActual?.conversaciones.find(c => c.id === convId) || _bConvActual;
   const btn = document.getElementById('binput-send-btn');
   btn.disabled = true;
   input.value = '';
   input.style.height = '';
 
   // Optimistic render
-  _bMsgs.push({ rol: 'admin', contenido, created_at: new Date().toISOString(), canal: replyConv.canal || null });
+  _bMsgs.push({ rol: 'admin', contenido, created_at: new Date().toISOString() });
   renderHilo();
 
   try {
     const r = await fetch('/api/bandeja', {
       method: 'POST',
       headers: _bandejaH({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ conversacion_id: convId, contenido })
+      body: JSON.stringify({ conversacion_id: _bConvActual.id, contenido })
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
