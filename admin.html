@@ -8268,6 +8268,13 @@ function sesToken() {
   return localStorage.getItem('attempo_session_token') || '';
 }
 
+function _bandejaH(extra = {}) {
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  const h = { 'x-session-token': sesToken(), ...extra };
+  if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
+  return h;
+}
+
 function planActual() {
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
   return (u.tipo_plan || u.plan || 'inicio').toLowerCase().replace(' ', '_');
@@ -8286,7 +8293,7 @@ window.initBandeja = async function() {
 async function cargarConversaciones() {
   try {
     const r = await fetch('/api/bandeja', {
-      headers: { 'x-session-token': sesToken() }
+      headers: _bandejaH()
     });
     if (!r.ok) return;
     _bConvs = await r.json();
@@ -8416,7 +8423,7 @@ window.abrirConversacion = async function(id) {
 async function cargarMensajesHilo(conv_id, silent = false) {
   try {
     const r = await fetch(`/api/bandeja?id=${conv_id}`, {
-      headers: { 'x-session-token': sesToken() }
+      headers: _bandejaH()
     });
     if (!r.ok) return;
     const data = await r.json();
@@ -8493,7 +8500,7 @@ window.toggleBotBandeja = async function() {
   try {
     await fetch(`/api/bandeja?id=${_bConvActual.id}&action=toggle-bot`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-session-token': sesToken() },
+      headers: _bandejaH({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ pausa: nuevaPausa })
     });
   } catch (e) {
@@ -8520,7 +8527,7 @@ window.enviarRespuestaBandeja = async function() {
   try {
     const r = await fetch('/api/bandeja', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-session-token': sesToken() },
+      headers: _bandejaH({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ conversacion_id: _bConvActual.id, contenido })
     });
     if (!r.ok) {
@@ -8573,7 +8580,7 @@ async function cargarStatsIA() {
 
   try {
     const r = await fetch('/api/bandeja?action=stats', {
-      headers: { 'x-session-token': sesToken() }
+      headers: _bandejaH()
     });
     if (!r.ok) return;
     const { msg_ia_mes } = await r.json();

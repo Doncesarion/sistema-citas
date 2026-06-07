@@ -15,9 +15,10 @@ function verifySessionToken(token) {
   const parts = payload.split(':');
   if (parts.length < 3) return null;
   const cliente_id = parts[0];
+  const rol        = parts[1];
   const expires    = parts[2];
   if (Date.now() > parseInt(expires)) return null;
-  return { cliente_id };
+  return { cliente_id, rol };
 }
 
 export default async function handler(req, res) {
@@ -29,7 +30,11 @@ export default async function handler(req, res) {
   const session = verifySessionToken(req.headers['x-session-token']);
   if (!session) return res.status(401).json({ error: 'No autorizado' });
 
-  const { cliente_id } = session;
+  let { cliente_id } = session;
+  if (session.rol === 'superadmin') {
+    const override = req.headers['x-override-cliente-id'];
+    if (override) cliente_id = override;
+  }
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const shJ = { ...sh, 'Content-Type': 'application/json' };
