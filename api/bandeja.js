@@ -258,10 +258,12 @@ export default async function handler(req, res) {
 
     let updated = 0;
 
-    // Paso 1: resolver nombres via API de Meta para Instagram y Messenger
+    // Paso 1: resolver nombres Y siempre refrescar fotos de IG/Messenger
+    // (las URLs del CDN de Meta expiran en 24-72h, hay que renovarlas siempre)
     const apiConvs = allConvs.filter(c => c.canal === 'instagram' || c.canal === 'messenger');
     for (const conv of apiConvs) {
-      if (tieneNombre(conv.canal_user_name) && conv.canal_user_photo) continue; // ya tiene todo
+      // Siempre intentar refrescar la foto; el nombre solo si aún es numérico
+      const yaConNombre = tieneNombre(conv.canal_user_name);
       const token = conv.canal === 'messenger' ? meta.fb_token : meta.ig_token;
       if (!token) continue;
 
@@ -275,7 +277,7 @@ export default async function handler(req, res) {
           else if (nd1.first_name) nombre = [nd1.first_name, nd1.last_name].filter(Boolean).join(' ');
           if (nd1.profile_pic) foto = nd1.profile_pic;
 
-          // Intento 2: endpoint /conversations (retorna nombre del participante)
+          // Intento 2: endpoint /conversations si sigue sin nombre
           if (!nombre && meta.fb_page_id) {
             try {
               const nr2 = await fetch(`https://graph.facebook.com/v20.0/${meta.fb_page_id}/conversations?user_id=${conv.canal_user_id}&fields=participants&access_token=${token}`);
@@ -285,6 +287,7 @@ export default async function handler(req, res) {
             } catch(_) {}
           }
         } else {
+          // Instagram
           const nr = await fetch(`https://graph.instagram.com/v21.0/${conv.canal_user_id}?fields=name,profile_pic&access_token=${token}`);
           const nd = await nr.json();
           if (nd.name) nombre = nd.name;
@@ -293,22 +296,21 @@ export default async function handler(req, res) {
       } catch(_) { continue; }
 
       const patch = {};
-      if (nombre && !tieneNombre(conv.canal_user_name)) patch.canal_user_name = nombre;
-      if (foto   && !conv.canal_user_photo)             patch.canal_user_photo = foto;
+      if (nombre && !yaConNombre)              patch.canal_user_name  = nombre;
+      if (foto   && foto !== conv.canal_user_photo) patch.canal_user_photo = foto; // siempre URL fresca
       if (Object.keys(patch).length) {
         await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv.id}`, {
           method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
           body: JSON.stringify(patch)
         });
-        // Actualizar en memoria para el paso 2
         if (patch.canal_user_name)  conv.canal_user_name  = patch.canal_user_name;
         if (patch.canal_user_photo) conv.canal_user_photo = patch.canal_user_photo;
         updated++;
       }
     }
 
-    // Paso 2: propagar nombre/foto del mejor canal a los demás del mismo contacto_id
-    // (ej. WhatsApp muestra el nombre de Instagram del mismo contacto vinculado)
+    // Paso 2: propagar mejor nombre/foto a los demás canales del mismo contacto_id
+    // Prioridad de foto: Instagram > Messenger (URLs más estables)
     const grupos = {};
     for (const c of allConvs) {
       if (c.contacto_id) {
@@ -318,13 +320,15 @@ export default async function handler(req, res) {
     }
     for (const grupo of Object.values(grupos)) {
       if (grupo.length < 2) continue;
-      // Buscar el mejor nombre (no vacío, no numérico) y la mejor foto del grupo
       const mejorNombre = grupo.find(c => tieneNombre(c.canal_user_name))?.canal_user_name;
-      const mejorFoto   = grupo.find(c => c.canal_user_photo)?.canal_user_photo;
+      // Preferir foto de Instagram (URLs más duraderas), luego Messenger
+      const fotoIG  = grupo.find(c => c.canal === 'instagram'  && c.canal_user_photo)?.canal_user_photo;
+      const fotoMsg = grupo.find(c => c.canal === 'messenger'  && c.canal_user_photo)?.canal_user_photo;
+      const mejorFoto = fotoIG || fotoMsg;
       for (const conv of grupo) {
         const patch = {};
-        if (mejorNombre && !tieneNombre(conv.canal_user_name)) patch.canal_user_name  = mejorNombre;
-        if (mejorFoto   && !conv.canal_user_photo)             patch.canal_user_photo = mejorFoto;
+        if (mejorNombre && !tieneNombre(conv.canal_user_name))   patch.canal_user_name  = mejorNombre;
+        if (mejorFoto   && mejorFoto !== conv.canal_user_photo)  patch.canal_user_photo = mejorFoto;
         if (!Object.keys(patch).length) continue;
         await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv.id}`, {
           method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },

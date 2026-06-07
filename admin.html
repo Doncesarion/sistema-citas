@@ -8582,7 +8582,7 @@ function renderListaBandeja() {
     const color  = bAvatarColor(item.nombre);
     const inits  = bInitials(item.nombre);
     const tiempo = formatBTiempo(item.ultimoAt);
-    const fotoHtml = item.fotoUrl ? `<img class="bav-photo" src="${escH(item.fotoUrl)}" alt="" onerror="this.style.display='none'">` : '';
+    const fotoHtml = item.fotoUrl ? `<img class="bav-photo" src="${escH(item.fotoUrl)}" alt="" onerror="this.style.display='none';if(!window._bAutoSyncPending){window._bAutoSyncPending=true;fetch('/api/bandeja?action=sync-contacts',{method:'POST',headers:_bandejaH()}).then(()=>cargarConversaciones()).catch(()=>{}).finally(()=>{window._bAutoSyncPending=false;})}">` : '';
 
     if (item.isGroup) {
       // Item agrupado: botones de canal clickeables en row1, un click por canal
@@ -8683,8 +8683,23 @@ window.abrirConversacion = async function(id) {
   const fotoUrl = _bConvActual.canal_user_photo || null;
   if (circle) { circle.style.background = color; circle.textContent = inits; }
   if (photoEl) {
-    if (fotoUrl) { photoEl.src = fotoUrl; photoEl.style.display = 'block'; }
-    else         { photoEl.style.display = 'none'; photoEl.src = ''; }
+    if (fotoUrl) {
+      photoEl.src = fotoUrl;
+      photoEl.style.display = 'block';
+      photoEl.onerror = function() {
+        this.style.display = 'none';
+        // URL expirada — lanzar sync en background para renovarla
+        if (!window._bAutoSyncPending) {
+          window._bAutoSyncPending = true;
+          fetch('/api/bandeja?action=sync-contacts', { method: 'POST', headers: _bandejaH() })
+            .then(() => cargarConversaciones())
+            .catch(() => {})
+            .finally(() => { window._bAutoSyncPending = false; });
+        }
+      };
+    } else {
+      photoEl.style.display = 'none'; photoEl.src = '';
+    }
   }
 
   // Badge de canal coloreado
