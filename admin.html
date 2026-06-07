@@ -8999,10 +8999,10 @@ window.toggleMultiDrop = function(e) {
   }
 };
 
-function closeMultiDrop() {
+window.closeMultiDrop = function() {
   const menu = document.getElementById('bmulti-drop-menu');
   if (menu) menu.classList.remove('open');
-}
+};
 
 // ── Vincular / Desvincular contactos ─────────────────────────────────────────
 window.vincularContactos = async function(ids) {
