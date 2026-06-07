@@ -236,6 +236,57 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, created_at: ahora });
   }
 
+  // ── GET ?action=test-meta&psid=xxx — diagnóstico de token Messenger ──────────
+  if (req.method === 'GET' && req.query.action === 'test-meta') {
+    const psid = (req.query.psid || '').trim();
+    const rk = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`,
+      { headers: sh }
+    );
+    const [cli] = await rk.json();
+    const meta  = cli?.canales_meta || {};
+    const token = meta.fb_token;
+    const pageId = meta.fb_page_id;
+
+    if (!token) return res.status(200).json({ ok: false, error: 'fb_token no configurado en canales_meta' });
+
+    const result = { token_presente: true, page_id: pageId || null, psid_probado: psid || null, intentos: [] };
+
+    // Intento 1: token debugger — permisos del token
+    try {
+      const td = await fetch(`https://graph.facebook.com/v20.0/debug_token?input_token=${token}&access_token=${token}`);
+      const tdData = await td.json();
+      result.token_info = {
+        valido:    tdData?.data?.is_valid,
+        app_id:    tdData?.data?.app_id,
+        tipo:      tdData?.data?.type,
+        expira:    tdData?.data?.expires_at ? new Date(tdData.data.expires_at * 1000).toISOString() : 'nunca',
+        permisos:  tdData?.data?.scopes || [],
+        error:     tdData?.error || null
+      };
+    } catch(e) { result.token_info = { error: e.message }; }
+
+    // Intento 2: perfil del PSID (si se pasó)
+    if (psid) {
+      try {
+        const nr1 = await fetch(`https://graph.facebook.com/v20.0/${psid}?fields=name,first_name,last_name,profile_pic&access_token=${token}`);
+        const nd1 = await nr1.json();
+        result.intentos.push({ metodo: 'GET /{psid}?fields=name,...', respuesta: nd1 });
+      } catch(e) { result.intentos.push({ metodo: 'GET /{psid}', error: e.message }); }
+
+      // Intento 3: conversations participants (si hay page_id)
+      if (pageId) {
+        try {
+          const nr2 = await fetch(`https://graph.facebook.com/v20.0/${pageId}/conversations?user_id=${psid}&fields=participants&access_token=${token}`);
+          const nd2 = await nr2.json();
+          result.intentos.push({ metodo: `GET /${pageId}/conversations?user_id=${psid}`, respuesta: nd2 });
+        } catch(e) { result.intentos.push({ metodo: 'GET /page/conversations', error: e.message }); }
+      }
+    }
+
+    return res.status(200).json(result);
+  }
+
   // ── POST ?action=sync-contacts — obtener nombres/fotos retroactivos ─────────
   if (req.method === 'POST' && req.query.action === 'sync-contacts') {
     // Traer todas las convs (todos los canales) para poder propagar nombres después
