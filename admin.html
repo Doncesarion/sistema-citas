@@ -844,11 +844,28 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bch-ms .bday-sep{background:transparent;color:#999;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 0}
 .bch-ms .binput-send{background:#0084ff;box-shadow:0 2px 8px rgba(0,132,255,.35)}
 .bch-ms .binput-area:focus{border-color:#0084ff;box-shadow:0 0 0 3px rgba(0,132,255,.12)}
-/* ─ Banner multi-canal (mismo contacto en otro canal) ─ */
-.bmulti-banner{padding:7px 18px;background:#fffbeb;border-bottom:1px solid rgba(217,119,6,.2);font-size:12px;color:#92400e;display:flex;align-items:center;gap:7px;flex-shrink:0;flex-wrap:wrap}
-.bmulti-banner svg{flex-shrink:0;color:var(--amber)}
-.bmulti-link{color:var(--a);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font);font-size:12px;padding:0;text-decoration:underline;text-underline-offset:2px}
-.bmulti-link:hover{opacity:.8}
+/* ─ Dropdown multi-canal en cabecera del chat ─ */
+.bmulti-drop-wrap{position:relative;display:inline-flex;align-items:center}
+.bmulti-drop-btn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--b2);background:var(--surface-hi);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);transition:all .12s;position:relative;flex-shrink:0}
+.bmulti-drop-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.bmulti-drop-btn.has-match{border-color:var(--amber);color:var(--amber)}
+.bmulti-drop-btn.has-match:hover{background:rgba(245,158,11,.08)}
+.bmulti-drop-dot{position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:50%;background:var(--amber);border:1.5px solid var(--surface-hi);display:none}
+.bmulti-drop-btn.has-match .bmulti-drop-dot{display:block}
+.bmulti-drop-menu{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface-hi);border:1px solid var(--b2);border-radius:10px;box-shadow:var(--sh2);min-width:180px;padding:6px 0;z-index:200;display:none}
+.bmulti-drop-menu.open{display:block}
+.bmulti-drop-title{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;padding:4px 12px 5px;border-bottom:1px solid var(--b1)}
+.bmulti-drop-row{display:flex;align-items:center;gap:7px;padding:6px 12px}
+.bmulti-drop-row-badge{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--t1);flex:1;min-width:0}
+.bmulti-drop-icon{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bmulti-drop-action{font-size:11px;color:var(--a);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font);padding:0;white-space:nowrap}
+.bmulti-drop-action:hover{opacity:.75}
+.bmulti-drop-action.unlink{color:var(--t3)}
+.bmulti-drop-action.unlink:hover{color:var(--red)}
+.bmulti-drop-sep{height:1px;background:var(--b1);margin:4px 0}
+.bmulti-drop-merge-row{padding:6px 12px}
+.bmulti-drop-merge-btn{width:100%;padding:5px 0;border-radius:6px;border:none;background:var(--adim);font-size:11.5px;font-weight:600;color:var(--a);font-family:var(--font);cursor:pointer;transition:background .12s}
+.bmulti-drop-merge-btn:hover{background:rgba(109,40,217,.1)}
 .bitem-canal-btns{display:flex;gap:3px;flex-shrink:0;align-items:center}
 .bitem-canal-btn{width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s;opacity:.72;position:relative}
 .bitem-canal-btn:hover{transform:scale(1.12);opacity:1}
@@ -1918,7 +1935,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 </button>
               </div>
             </div>
-            <div id="bthread-channel-badge"></div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <div id="bthread-channel-badge" style="display:inline-flex"></div>
+              <div class="bmulti-drop-wrap" id="bmulti-drop-wrap" style="display:none">
+                <button class="bmulti-drop-btn" id="bmulti-drop-btn" onclick="toggleMultiDrop(event)" title="Canales vinculados">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  <span class="bmulti-drop-dot"></span>
+                </button>
+                <div class="bmulti-drop-menu" id="bmulti-drop-menu"></div>
+              </div>
+            </div>
           </div>
           <div class="bthread-actions">
             <button class="bdel-btn" id="bdel-btn" onclick="iniciarEliminarConv()" title="Eliminar conversación">
@@ -1953,7 +1979,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             </button>
           </div>
         </div>
-        <div class="bmulti-banner" id="bmulti-banner" style="display:none"></div>
         <div class="bthread-msgs" id="bthread-msgs"></div>
         <div class="bthread-input">
           <div class="bbot-banner" id="bbot-banner">
@@ -8902,44 +8927,81 @@ function _nombresSimilares(a, b) {
 }
 
 function detectarMultiCanal() {
-  const banner = document.getElementById('bmulti-banner');
-  if (!banner || !_bConvActual) return;
+  const wrap = document.getElementById('bmulti-drop-wrap');
+  const btn  = document.getElementById('bmulti-drop-btn');
+  const menu = document.getElementById('bmulti-drop-menu');
+  if (!wrap || !_bConvActual) return;
 
-  // Si la conv ya está vinculada: mostrar los otros canales del grupo con opción desvincular
+  // Si la conv ya está vinculada: mostrar los otros canales del grupo
   if (_bConvActual.contacto_id) {
     const grupo = _bConvs.filter(c => c.contacto_id === _bConvActual.contacto_id && c.id !== _bConvActual.id);
     if (grupo.length > 0) {
-      const linkSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
-      const info = grupo.map(c => {
-        const lbl = _CHAN_LABEL[c.canal] || c.canal;
-        return `<button class="bmulti-link" onclick="abrirConversacion('${c.id}')">${lbl}</button> <button class="bmulti-link" onclick="desvincularConversacion('${c.id}')">Desvincular</button>`;
-      }).join(' · ');
-      banner.innerHTML = `${linkSvg}<span>Vinculado con: ${info}</span>`;
-      banner.style.display = 'flex';
+      btn.classList.remove('has-match');
+      const rows = grupo.map(c => {
+        const bg  = _B_CANAL_BG[c.canal]  || '#888';
+        const svg = _B_CANAL_SVG[c.canal] || '';
+        const lbl = _CHAN_LABEL[c.canal]   || c.canal;
+        return `<div class="bmulti-drop-row">
+          <span class="bmulti-drop-row-badge">
+            <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${escH(lbl)}
+          </span>
+          <button class="bmulti-drop-action" onclick="closeMultiDrop();abrirConversacion('${c.id}')">Abrir</button>
+          <button class="bmulti-drop-action unlink" onclick="closeMultiDrop();desvincularConversacion('${c.id}')">✕</button>
+        </div>`;
+      }).join('');
+      menu.innerHTML = `<div class="bmulti-drop-title">Vinculado con</div>${rows}`;
+      wrap.style.display = 'inline-flex';
       return;
     }
   }
 
+  // Si no está vinculada, buscar posibles coincidencias por nombre
   const nombreActual = _bConvActual.canal_user_name || '';
-  if (!nombreActual || /^\d+$/.test(nombreActual.trim())) { banner.style.display = 'none'; return; }
+  if (!nombreActual || /^\d+$/.test(nombreActual.trim())) { wrap.style.display = 'none'; return; }
 
-  // Buscar en TODOS los canales (incluye mismo canal — podría haber duplicados)
   const otros = _bConvs.filter(c =>
     c.id !== _bConvActual.id &&
+    !c.contacto_id &&
     _nombresSimilares(c.canal_user_name || '', nombreActual)
   );
 
-  if (!otros.length) { banner.style.display = 'none'; return; }
+  if (!otros.length) { wrap.style.display = 'none'; return; }
 
-  const links = otros.map(c => {
-    const canalLabel = _CHAN_LABEL[c.canal] || c.canal;
-    const nombreOtro = c.canal_user_name || c.canal_user_id;
-    return `<button class="bmulti-link" onclick="abrirConversacion('${c.id}')">${escH(nombreOtro)} (${canalLabel})</button>`;
-  }).join(' · ');
+  btn.classList.add('has-match');
+  const rows = otros.map(c => {
+    const bg  = _B_CANAL_BG[c.canal]  || '#888';
+    const svg = _B_CANAL_SVG[c.canal] || '';
+    const lbl = _CHAN_LABEL[c.canal]   || c.canal;
+    const nombre = escH(c.canal_user_name || c.canal_user_id || '');
+    return `<div class="bmulti-drop-row">
+      <span class="bmulti-drop-row-badge">
+        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
+      </span>
+    </div>`;
+  }).join('');
 
   const idsToMerge = JSON.stringify([_bConvActual.id, ...otros.map(c => c.id)]);
-  banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Posible mismo contacto en: ${links}</span><button class="bmulti-link" data-ids='${escH(idsToMerge)}' onclick="vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular →</button>`;
-  banner.style.display = 'flex';
+  menu.innerHTML = `<div class="bmulti-drop-title">Posible mismo contacto</div>${rows}
+    <div class="bmulti-drop-sep"></div>
+    <div class="bmulti-drop-merge-row">
+      <button class="bmulti-drop-merge-btn" data-ids='${escH(idsToMerge)}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular canales →</button>
+    </div>`;
+  wrap.style.display = 'inline-flex';
+}
+
+window.toggleMultiDrop = function(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('bmulti-drop-menu');
+  if (!menu) return;
+  const open = menu.classList.toggle('open');
+  if (open) {
+    setTimeout(() => document.addEventListener('click', closeMultiDrop, { once: true }), 0);
+  }
+};
+
+function closeMultiDrop() {
+  const menu = document.getElementById('bmulti-drop-menu');
+  if (menu) menu.classList.remove('open');
 }
 
 // ── Vincular / Desvincular contactos ─────────────────────────────────────────
