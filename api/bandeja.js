@@ -179,6 +179,58 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, created_at: ahora });
   }
 
+  // ── POST ?action=sync-contacts — obtener nombres/fotos retroactivos ─────────
+  if (req.method === 'POST' && req.query.action === 'sync-contacts') {
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=in.(instagram,messenger)&select=id,canal,canal_user_id,canal_user_name`,
+      { headers: sh }
+    );
+    const convs = await rc.json();
+    if (!Array.isArray(convs) || !convs.length) return res.status(200).json({ ok: true, updated: 0 });
+
+    const rk = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`,
+      { headers: sh }
+    );
+    const [cli] = await rk.json();
+    const meta = cli?.canales_meta || {};
+
+    let updated = 0;
+    for (const conv of convs) {
+      // Solo procesar los que aún no tienen nombre real
+      if (conv.canal_user_name && conv.canal_user_name !== conv.canal_user_id) continue;
+      const token = conv.canal === 'messenger' ? meta.fb_token : meta.ig_token;
+      if (!token) continue;
+
+      let nombre = null, foto = null;
+      try {
+        if (conv.canal === 'messenger') {
+          const nr = await fetch(`https://graph.facebook.com/v20.0/${conv.canal_user_id}?fields=first_name,last_name,profile_pic&access_token=${token}`);
+          const nd = await nr.json();
+          if (nd.first_name) nombre = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
+          if (nd.profile_pic) foto = nd.profile_pic;
+        } else {
+          const nr = await fetch(`https://graph.instagram.com/v21.0/${conv.canal_user_id}?fields=name,profile_pic&access_token=${token}`);
+          const nd = await nr.json();
+          if (nd.name) nombre = nd.name;
+          if (nd.profile_pic) foto = nd.profile_pic;
+        }
+      } catch(_) { continue; }
+
+      if (nombre || foto) {
+        const patch = {};
+        if (nombre) patch.canal_user_name = nombre;
+        if (foto)   patch.canal_user_photo = foto;
+        await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv.id}`, {
+          method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+          body: JSON.stringify(patch)
+        });
+        updated++;
+      }
+    }
+    return res.status(200).json({ ok: true, updated });
+  }
+
   // ── PATCH ?id=xxx&action=update-name — editar nombre del contacto ─────────
   if (req.method === 'PATCH' && req.query.id && req.query.action === 'update-name') {
     const conv_id = req.query.id;

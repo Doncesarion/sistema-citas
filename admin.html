@@ -686,12 +686,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bandeja-wrap{display:flex;height:100%;overflow:hidden;position:relative}
 
 /* ─ Lista ─ */
-.blist{width:320px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;background:#fff;overflow:hidden}
-.blist-head{padding:14px 16px 10px;flex-shrink:0}
-.blist-title{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:10px}
+.blist{width:330px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;background:var(--surface-hi);overflow:hidden}
+.blist-head{padding:14px 16px 10px;flex-shrink:0;border-bottom:1px solid var(--b1)}
+.blist-head-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.blist-title{font-size:15px;font-weight:700;color:var(--t1);letter-spacing:-.02em}
+.blist-sync-btn{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;border:1.5px solid var(--b2);background:none;cursor:pointer;color:var(--t3);font-size:11px;font-weight:500;font-family:var(--font);transition:all .12s}
+.blist-sync-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.blist-sync-btn.syncing{color:var(--a);border-color:var(--a);background:var(--adim);pointer-events:none}
 .blist-search-wrap{position:relative;margin-bottom:10px}
 .blist-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none;display:flex}
-.blist-search{width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--b2);border-radius:22px;font-size:13px;font-family:var(--font);color:var(--t1);background:#f4f5f7;outline:none;transition:all .15s;box-sizing:border-box}
+.blist-search{width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--b2);border-radius:22px;font-size:13px;font-family:var(--font);color:var(--t1);background:var(--bg);outline:none;transition:all .15s;box-sizing:border-box}
 .blist-search:focus{border-color:var(--a);background:#fff}
 .blist-filters{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px}
 .blist-filters::-webkit-scrollbar{display:none}
@@ -705,13 +709,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .blist-empty b{display:block;font-size:14px;color:var(--t2);margin-bottom:6px}
 
 /* ─ Item conversación ─ */
-.bitem{padding:11px 16px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.05);transition:background .1s;display:flex;align-items:center;gap:12px}
-.bitem:hover{background:#f6f7fb}
-.bitem.on{background:rgba(108,92,228,0.07)}
-.bitem-av{position:relative;flex-shrink:0;width:48px;height:48px}
-.bitem-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden}
+.bitem{padding:11px 16px 11px 14px;cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s;display:flex;align-items:center;gap:12px;border-left:3px solid transparent}
+.bitem:hover{background:var(--adim)}
+.bitem.on{background:rgba(108,92,228,0.08);border-left-color:var(--a)}
+.bitem-av{position:relative;flex-shrink:0;width:46px;height:46px}
+.bitem-circle{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden}
 .bav-photo{width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0}
-.bitem-badge-ch{position:absolute;bottom:-1px;right:-1px;width:18px;height:18px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff}
+.bitem-badge-ch{position:absolute;bottom:-1px;right:-1px;width:18px;height:18px;border-radius:50%;border:2px solid var(--surface-hi);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff}
 .bitem-body{flex:1;min-width:0}
 .bitem-row1{display:flex;align-items:baseline;margin-bottom:3px}
 .bitem-name{font-size:13.5px;font-weight:600;color:var(--t1);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -721,61 +725,63 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bitem-unread{background:var(--a);color:#fff;font-size:10px;font-weight:700;min-width:19px;height:19px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
 
 /* ─ Hilo ─ */
-.bthread{flex:1;display:flex;flex-direction:column;min-width:0;background:#f0f2f5}
-.bthread-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;flex-direction:column;gap:12px;background:#f4f5f9}
-.bthread-empty svg{opacity:.2}
-.bthread-head{padding:10px 16px;border-bottom:1px solid rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;background:#fff;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.bthread{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.bthread-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;flex-direction:column;gap:14px;background:var(--bg)}
+.bthread-empty svg{opacity:.15;color:var(--a)}
+.bthread-empty span{color:var(--t3);font-size:13.5px}
+.bthread-head{padding:12px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px;background:var(--surface-hi);flex-shrink:0;box-shadow:var(--sh1)}
 .bback-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--t2);flex-shrink:0;padding:0}
 .bback-btn:hover{background:var(--adim)}
-.bthread-av{position:relative;flex-shrink:0;width:42px;height:42px}
-.bthread-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden}
-.bthread-badge-ch{position:absolute;bottom:-1px;right:-1px;width:16px;height:16px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff}
+.bthread-av{position:relative;flex-shrink:0;width:44px;height:44px}
+.bthread-circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden}
+.bthread-badge-ch{position:absolute;bottom:-1px;right:-1px;width:17px;height:17px;border-radius:50%;border:2px solid var(--surface-hi);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff}
 .bthread-info{flex:1;min-width:0}
 .bthread-name-wrap{display:flex;flex-direction:column;min-width:0;gap:2px}
 .bthread-name-display{display:flex;align-items:center;gap:5px;min-width:0}
-.bthread-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bthread-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
 .bname-edit-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;background:none;cursor:pointer;color:var(--t3);display:flex;align-items:center;justify-content:center;padding:0;transition:all .12s}
 .bname-edit-btn:hover{background:var(--adim);color:var(--a)}
 .bthread-name-edit{display:none;align-items:center;gap:4px}
-.bname-input{flex:1;border:1.5px solid var(--a);border-radius:8px;padding:3px 8px;font-size:13.5px;font-weight:600;font-family:var(--font);color:var(--t1);outline:none;min-width:0;max-width:180px}
+.bname-input{flex:1;border:1.5px solid var(--a);border-radius:8px;padding:3px 8px;font-size:13.5px;font-weight:600;font-family:var(--font);color:var(--t1);outline:none;min-width:0;max-width:180px;background:#fff}
 .bname-save-btn,.bname-cancel-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
-.bname-save-btn{background:#10b981;color:#fff}.bname-save-btn:hover{background:#059669}
-.bname-cancel-btn{background:#f1f5f9;color:var(--t2)}.bname-cancel-btn:hover{background:#e2e8f0}
+.bname-save-btn{background:var(--green);color:#fff}.bname-save-btn:hover{opacity:.85}
+.bname-cancel-btn{background:var(--b2);color:var(--t2)}.bname-cancel-btn:hover{background:var(--b3)}
 .bthread-sub{font-size:11.5px;color:var(--t3);margin-top:1px}
 .bthread-actions{display:flex;align-items:center;gap:8px}
-.bbot-toggle{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid #e5e7eb;background:#fff;cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);transition:all .15s;color:#374151}
-.bbot-toggle.active{border-color:#10b981;color:#059669;background:#f0fdf4}
-.bbot-toggle.paused{border-color:#f59e0b;color:#d97706;background:#fffbeb}
+.bbot-toggle{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--b2);background:var(--bg);cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);transition:all .15s;color:var(--t2)}
+.bbot-toggle.active{border-color:var(--green);color:var(--green);background:var(--gdim)}
+.bbot-toggle.paused{border-color:var(--amber);color:var(--amber);background:var(--adm2)}
 
 /* ─ Mensajes ─ */
-.bthread-msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:3px}
+.bthread-msgs{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:3px}
 .bthread-msgs::-webkit-scrollbar{width:4px}
-.bthread-msgs::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
-.bmsg-wrap{display:flex;flex-direction:column;max-width:76%;margin-bottom:4px}
+.bthread-msgs::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.bmsg-wrap{display:flex;flex-direction:column;max-width:74%;margin-bottom:4px}
 .bmsg-wrap.usuario{align-self:flex-start}
 .bmsg-wrap.bot,.bmsg-wrap.admin{align-self:flex-end;align-items:flex-end}
-.bmsg{padding:9px 14px;font-size:13.5px;line-height:1.5;word-break:break-word}
-.bmsg-wrap.usuario .bmsg{background:#fff;color:var(--t1);border-radius:0 16px 16px 16px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
-.bmsg-wrap.bot .bmsg{background:var(--a);color:#fff;border-radius:16px 0 16px 16px}
-.bmsg-wrap.admin .bmsg{background:#1d4ed8;color:#fff;border-radius:16px 0 16px 16px}
+.bmsg{padding:9px 14px;font-size:13.5px;line-height:1.55;word-break:break-word}
+.bmsg-wrap.usuario .bmsg{background:var(--surface-hi);color:var(--t1);border-radius:4px 18px 18px 18px;box-shadow:var(--sh1)}
+.bmsg-wrap.bot .bmsg{background:linear-gradient(135deg,var(--a) 0%,var(--a3) 100%);color:#fff;border-radius:18px 4px 18px 18px}
+.bmsg-wrap.admin .bmsg{background:linear-gradient(135deg,#3730a3 0%,#1d4ed8 100%);color:#fff;border-radius:18px 4px 18px 18px}
 .bmsg-meta{font-size:11px;color:var(--t3);margin-top:3px;padding:0 4px}
-.bmsg-rolabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;padding:0 4px;color:var(--t3)}
+.bmsg-wrap.bot .bmsg-meta,.bmsg-wrap.admin .bmsg-meta{color:var(--t3)}
+.bmsg-rolabel{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;padding:0 4px;color:var(--t3)}
 .bmsg-wrap.bot .bmsg-rolabel,.bmsg-wrap.admin .bmsg-rolabel{text-align:right}
-.bday-sep{align-self:center;background:rgba(0,0,0,.1);color:#555;font-size:11px;padding:3px 14px;border-radius:12px;margin:8px 0;flex-shrink:0}
+.bday-sep{align-self:center;background:var(--b2);color:var(--t3);font-size:11px;font-weight:500;padding:3px 14px;border-radius:12px;margin:10px 0;flex-shrink:0}
 
 /* ─ Input ─ */
-.bthread-input{padding:10px 14px 12px;background:#fff;border-top:1px solid rgba(0,0,0,.07);flex-shrink:0}
+.bthread-input{padding:10px 16px 14px;background:var(--surface-hi);border-top:1px solid var(--b1);flex-shrink:0}
 .binput-row{display:flex;gap:8px;align-items:flex-end}
-.binput-area{flex:1;resize:none;border:1.5px solid var(--b2);border-radius:22px;padding:9px 15px;font-size:13px;font-family:var(--font);color:var(--t1);background:#f4f5f7;outline:none;transition:all .15s;max-height:120px;min-height:42px;line-height:1.45}
-.binput-area:focus{border-color:var(--a);background:#fff}
-.binput-send{width:42px;height:42px;border-radius:50%;background:var(--a);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
-.binput-send:hover{background:var(--a3);transform:scale(1.06)}
-.binput-send:disabled{background:#cbd5e1;cursor:not-allowed;transform:none}
-.bbot-banner{display:none;align-items:center;gap:8px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e}
-.bbot-banner svg{flex-shrink:0;color:#f59e0b}
-.bbot-banner span{flex:1;line-height:1.4}
-.bbot-banner-btn{flex-shrink:0;padding:4px 10px;border-radius:8px;border:1.5px solid #f59e0b;background:#fff;color:#b45309;font-size:11.5px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .12s;white-space:nowrap}
-.bbot-banner-btn:hover{background:#fef3c7}
+.binput-area{flex:1;resize:none;border:1.5px solid var(--b2);border-radius:22px;padding:9px 16px;font-size:13px;font-family:var(--font);color:var(--t1);background:var(--bg);outline:none;transition:all .15s;max-height:120px;min-height:42px;line-height:1.45}
+.binput-area:focus{border-color:var(--a);background:#fff;box-shadow:0 0 0 3px var(--adim)}
+.binput-send{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;box-shadow:var(--sh2)}
+.binput-send:hover{transform:scale(1.06);box-shadow:var(--sh3)}
+.binput-send:disabled{background:#cbd5e1;cursor:not-allowed;transform:none;box-shadow:none}
+.bbot-banner{display:none;align-items:center;gap:8px;background:rgba(217,119,6,0.07);border:1.5px solid rgba(217,119,6,0.25);border-radius:var(--rl);padding:9px 13px;margin-bottom:9px;font-size:12px;color:#92400e}
+.bbot-banner svg{flex-shrink:0;color:var(--amber)}
+.bbot-banner span{flex:1;line-height:1.4;color:var(--t2)}
+.bbot-banner-btn{flex-shrink:0;padding:4px 10px;border-radius:var(--r);border:1.5px solid var(--amber);background:#fff;color:var(--amber);font-size:11.5px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .12s;white-space:nowrap}
+.bbot-banner-btn:hover{background:var(--adm2)}
 
 /* ─ Sidebar counter ─ */
 .sb-msg-counter{padding:10px 14px 0;border-top:1px solid var(--b1);margin-top:auto;flex-shrink:0}
@@ -1767,7 +1773,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <!-- Lista de conversaciones -->
     <div class="blist" id="blist">
       <div class="blist-head">
-        <div class="blist-title">Bandeja de mensajes</div>
+        <div class="blist-head-top">
+          <div class="blist-title">Bandeja</div>
+          <button class="blist-sync-btn" id="blist-sync-btn" onclick="sincronizarContactos()" title="Actualizar nombres y fotos">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span id="blist-sync-txt">Sincronizar</span>
+          </button>
+        </div>
         <div class="blist-search-wrap">
           <span class="blist-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input class="blist-search" type="search" placeholder="Buscar contacto..." id="bsearch" oninput="filtrarBandeja()">
@@ -8541,6 +8553,34 @@ function actualizarBotUI(pausado) {
     if (banner) banner.style.display = 'flex';
   }
 }
+
+// ── Sincronizar nombres y fotos de contactos existentes ──────────────────────
+window.sincronizarContactos = async function() {
+  const btn = document.getElementById('blist-sync-btn');
+  const txt = document.getElementById('blist-sync-txt');
+  if (!btn) return;
+  btn.classList.add('syncing');
+  if (txt) txt.textContent = 'Sincronizando...';
+
+  try {
+    const r = await fetch('/api/bandeja?action=sync-contacts', {
+      method: 'POST',
+      headers: _bandejaH()
+    });
+    const data = await r.json();
+    if (data.updated > 0) {
+      await cargarConversaciones();
+      toast(`${data.updated} contacto${data.updated !== 1 ? 's' : ''} actualizado${data.updated !== 1 ? 's' : ''}`, 3000);
+    } else {
+      toast('Todo al día, sin cambios', 2500);
+    }
+  } catch(e) {
+    toast('Error al sincronizar', 3000);
+  } finally {
+    btn.classList.remove('syncing');
+    if (txt) txt.textContent = 'Sincronizar';
+  }
+};
 
 // ── Editar nombre del contacto ────────────────────────────────────────────────
 window.editarNombreContacto = function() {
