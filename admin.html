@@ -725,52 +725,58 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bitem-unread{background:var(--a);color:#fff;font-size:10px;font-weight:700;min-width:19px;height:19px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
 
 /* ─ Hilo ─ */
-.bthread{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
-.bthread-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;flex-direction:column;gap:14px;background:var(--bg)}
+.bthread{flex:1;display:flex;flex-direction:column;min-width:0;background:#ede8f5}
+.bthread-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;flex-direction:column;gap:14px;background:#ede8f5}
 .bthread-empty svg{opacity:.15;color:var(--a)}
 .bthread-empty span{color:var(--t3);font-size:13.5px}
-.bthread-head{padding:12px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px;background:var(--surface-hi);flex-shrink:0;box-shadow:var(--sh1)}
+.bthread-head{padding:14px 20px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:14px;background:var(--surface-hi);flex-shrink:0;box-shadow:0 1px 0 var(--b1),0 2px 8px rgba(108,92,228,0.05)}
 .bback-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--t2);flex-shrink:0;padding:0}
 .bback-btn:hover{background:var(--adim)}
-.bthread-av{position:relative;flex-shrink:0;width:44px;height:44px}
-.bthread-circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden}
-.bthread-badge-ch{position:absolute;bottom:-1px;right:-1px;width:17px;height:17px;border-radius:50%;border:2px solid var(--surface-hi);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff}
+.bthread-av{position:relative;flex-shrink:0;width:46px;height:46px}
+.bthread-circle{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .bthread-info{flex:1;min-width:0}
-.bthread-name-wrap{display:flex;flex-direction:column;min-width:0;gap:2px}
-.bthread-name-display{display:flex;align-items:center;gap:5px;min-width:0}
-.bthread-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
-.bname-edit-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;background:none;cursor:pointer;color:var(--t3);display:flex;align-items:center;justify-content:center;padding:0;transition:all .12s}
+.bthread-name-wrap{display:flex;flex-direction:column;min-width:0;gap:4px}
+.bthread-name-display{display:flex;align-items:center;gap:6px;min-width:0}
+.bthread-name{font-size:15px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
+.bname-edit-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;background:none;cursor:pointer;color:var(--t4);display:flex;align-items:center;justify-content:center;padding:0;transition:all .12s}
 .bname-edit-btn:hover{background:var(--adim);color:var(--a)}
 .bthread-name-edit{display:none;align-items:center;gap:4px}
-.bname-input{flex:1;border:1.5px solid var(--a);border-radius:8px;padding:3px 8px;font-size:13.5px;font-weight:600;font-family:var(--font);color:var(--t1);outline:none;min-width:0;max-width:180px;background:#fff}
+.bname-input{flex:1;border:1.5px solid var(--a);border-radius:8px;padding:3px 8px;font-size:13.5px;font-weight:600;font-family:var(--font);color:var(--t1);outline:none;min-width:0;max-width:200px;background:#fff}
 .bname-save-btn,.bname-cancel-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .bname-save-btn{background:var(--green);color:#fff}.bname-save-btn:hover{opacity:.85}
 .bname-cancel-btn{background:var(--b2);color:var(--t2)}.bname-cancel-btn:hover{background:var(--b3)}
-.bthread-sub{font-size:11.5px;color:var(--t3);margin-top:1px}
+/* Canal badge — pill coloreado */
+.bchan-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 7px;border-radius:20px;font-size:11.5px;font-weight:600;width:fit-content}
+.bchan-badge svg{flex-shrink:0}
+.bchan-wa{background:#dcfce7;color:#15803d}
+.bchan-ig{background:linear-gradient(135deg,#fdf2f8,#ede9fe);color:#7c3aed}
+.bchan-ms{background:#eff6ff;color:#1d4ed8}
 .bthread-actions{display:flex;align-items:center;gap:8px}
 .bbot-toggle{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--b2);background:var(--bg);cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);transition:all .15s;color:var(--t2)}
 .bbot-toggle.active{border-color:var(--green);color:var(--green);background:var(--gdim)}
 .bbot-toggle.paused{border-color:var(--amber);color:var(--amber);background:var(--adm2)}
 
 /* ─ Mensajes ─ */
-.bthread-msgs{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:3px}
+.bthread-msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:2px;background:#ede8f5}
 .bthread-msgs::-webkit-scrollbar{width:4px}
-.bthread-msgs::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
-.bmsg-wrap{display:flex;flex-direction:column;max-width:74%;margin-bottom:4px}
-.bmsg-wrap.usuario{align-self:flex-start}
-.bmsg-wrap.bot,.bmsg-wrap.admin{align-self:flex-end;align-items:flex-end}
-.bmsg{padding:9px 14px;font-size:13.5px;line-height:1.55;word-break:break-word}
-.bmsg-wrap.usuario .bmsg{background:var(--surface-hi);color:var(--t1);border-radius:4px 18px 18px 18px;box-shadow:var(--sh1)}
-.bmsg-wrap.bot .bmsg{background:linear-gradient(135deg,var(--a) 0%,var(--a3) 100%);color:#fff;border-radius:18px 4px 18px 18px}
-.bmsg-wrap.admin .bmsg{background:linear-gradient(135deg,#3730a3 0%,#1d4ed8 100%);color:#fff;border-radius:18px 4px 18px 18px}
-.bmsg-meta{font-size:11px;color:var(--t3);margin-top:3px;padding:0 4px}
-.bmsg-wrap.bot .bmsg-meta,.bmsg-wrap.admin .bmsg-meta{color:var(--t3)}
-.bmsg-rolabel{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;padding:0 4px;color:var(--t3)}
+.bthread-msgs::-webkit-scrollbar-thumb{background:rgba(108,92,228,.2);border-radius:2px}
+.bmsg-wrap{display:flex;margin-bottom:2px}
+.bmsg-wrap.usuario{flex-direction:row;align-items:flex-end;gap:7px;align-self:flex-start;max-width:78%}
+.bmsg-wrap.bot,.bmsg-wrap.admin{flex-direction:column;align-items:flex-end;align-self:flex-end;max-width:78%}
+.bmsg-wrap.usuario .bmsg-content{display:flex;flex-direction:column}
+.bmsg-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.bmsg{padding:8px 13px;font-size:13.5px;line-height:1.5;word-break:break-word}
+.bmsg-wrap.usuario .bmsg{background:#fff;color:var(--t1);border-radius:0 14px 14px 14px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.bmsg-wrap.bot .bmsg{background:linear-gradient(135deg,var(--a) 0%,var(--a3) 100%);color:#fff;border-radius:14px 0 14px 14px}
+.bmsg-wrap.admin .bmsg{background:linear-gradient(135deg,#4f46e5 0%,#6c5ce4 100%);color:#fff;border-radius:14px 0 14px 14px}
+.bmsg-meta{font-size:10.5px;color:rgba(0,0,0,.38);margin-top:3px;padding:0 3px}
+.bmsg-wrap.bot .bmsg-meta,.bmsg-wrap.admin .bmsg-meta{text-align:right;color:var(--t3)}
+.bmsg-rolabel{font-size:10px;font-weight:600;letter-spacing:.04em;margin-bottom:2px;padding:0 3px;color:var(--a);opacity:.7}
 .bmsg-wrap.bot .bmsg-rolabel,.bmsg-wrap.admin .bmsg-rolabel{text-align:right}
-.bday-sep{align-self:center;background:var(--b2);color:var(--t3);font-size:11px;font-weight:500;padding:3px 14px;border-radius:12px;margin:10px 0;flex-shrink:0}
+.bday-sep{align-self:center;background:rgba(108,92,228,.12);color:var(--t2);font-size:11px;font-weight:500;padding:3px 14px;border-radius:12px;margin:10px 0;flex-shrink:0;backdrop-filter:blur(4px)}
 
 /* ─ Input ─ */
-.bthread-input{padding:10px 16px 14px;background:var(--surface-hi);border-top:1px solid var(--b1);flex-shrink:0}
+.bthread-input{padding:10px 16px 14px;background:#fff;border-top:1px solid rgba(108,92,228,.1);flex-shrink:0;box-shadow:0 -1px 8px rgba(108,92,228,.06)}
 .binput-row{display:flex;gap:8px;align-items:flex-end}
 .binput-area{flex:1;resize:none;border:1.5px solid var(--b2);border-radius:22px;padding:9px 16px;font-size:13px;font-family:var(--font);color:var(--t1);background:var(--bg);outline:none;transition:all .15s;max-height:120px;min-height:42px;line-height:1.45}
 .binput-area:focus{border-color:var(--a);background:#fff;box-shadow:0 0 0 3px var(--adim)}
@@ -1810,7 +1816,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div class="bthread-av">
             <div class="bthread-circle" id="bthread-circle"></div>
             <img class="bav-photo" id="bthread-photo" style="display:none" alt="" onerror="this.style.display='none'">
-            <div class="bthread-badge-ch" id="bthread-badge-ch"></div>
           </div>
           <div class="bthread-info">
             <div class="bthread-name-wrap">
@@ -1830,11 +1835,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 </button>
               </div>
             </div>
-            <div class="bthread-sub" id="bthread-sub">—</div>
+            <div id="bthread-channel-badge"></div>
           </div>
           <div class="bthread-actions">
             <button class="bbot-toggle active" id="bbot-toggle" onclick="toggleBotBandeja()">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
+              <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
               <span id="bbot-label">Bot activo</span>
             </button>
           </div>
@@ -8441,29 +8446,28 @@ window.abrirConversacion = async function(id) {
   const chBg   = _B_CANAL_BG[_bConvActual.canal]  || '#888';
   const chSvg  = _B_CANAL_SVG[_bConvActual.canal] || '';
 
-  // Avatar: foto si disponible, iniciales si no
-  const circle   = document.getElementById('bthread-circle');
-  const photoEl  = document.getElementById('bthread-photo');
-  const fotoUrl  = _bConvActual.canal_user_photo || null;
-  if (circle) {
-    circle.style.background = color;
-    circle.textContent = fotoUrl ? '' : inits;
-  }
+  // Avatar: siempre iniciales de fondo + foto encima si disponible
+  const circle  = document.getElementById('bthread-circle');
+  const photoEl = document.getElementById('bthread-photo');
+  const fotoUrl = _bConvActual.canal_user_photo || null;
+  if (circle) { circle.style.background = color; circle.textContent = inits; }
   if (photoEl) {
     if (fotoUrl) { photoEl.src = fotoUrl; photoEl.style.display = 'block'; }
-    else           { photoEl.style.display = 'none'; photoEl.src = ''; }
+    else         { photoEl.style.display = 'none'; photoEl.src = ''; }
   }
 
-  const badgeCh = document.getElementById('bthread-badge-ch');
-  if (badgeCh) { badgeCh.style.background = chBg; badgeCh.innerHTML = chSvg; }
+  // Badge de canal coloreado
+  const _CHAN_BADGE = {
+    whatsapp:  `<span class="bchan-badge bchan-wa"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</span>`,
+    instagram: `<span class="bchan-badge bchan-ig"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>Instagram</span>`,
+    messenger: `<span class="bchan-badge bchan-ms"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26 6.559-6.963 3.13 3.26 5.889-3.26-6.56 6.963z"/></svg>Messenger</span>`
+  };
+  const badgeEl = document.getElementById('bthread-channel-badge');
+  if (badgeEl) badgeEl.innerHTML = _CHAN_BADGE[_bConvActual.canal] || _bConvActual.canal;
 
   // Nombre — cerrar cualquier edición previa
   cancelarEditNombre();
   document.getElementById('bthread-name').textContent = nombre;
-
-  const canalTexto = { whatsapp:'WhatsApp', instagram:'Instagram', messenger:'Messenger' }[_bConvActual.canal] || _bConvActual.canal;
-  const subId = _bConvActual.canal_user_id || '';
-  document.getElementById('bthread-sub').textContent = canalTexto + (subId && subId !== nombre ? ' · ' + subId : '');
 
   // En móvil: ocultar lista, mostrar hilo
   document.getElementById('blist').classList.add('hidden');
@@ -8508,19 +8512,37 @@ function renderHilo(silent = false) {
   if (!cont) return;
   const wasAtBottom = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 80;
 
+  const convNombre = _bConvActual?.canal_user_name || _bConvActual?.canal_user_id || '?';
+  const convFoto   = _bConvActual?.canal_user_photo || null;
+  const convColor  = bAvatarColor(convNombre);
+  const convInits  = bInitials(convNombre);
+  const avatarHtml = convFoto
+    ? `<div class="bmsg-av" style="background:${convColor}"><img src="${escH(convFoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0" onerror="this.style.display='none'"></div>`
+    : `<div class="bmsg-av" style="background:${convColor}">${convInits}</div>`;
+
   let lastDay = '';
   cont.innerHTML = _bMsgs.map(m => {
     const fecha = new Date(m.created_at);
     const dia   = fecha.toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' });
     const hora  = fecha.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
-    const rolLabel = m.rol === 'bot' ? 'Bot' : m.rol === 'admin' ? 'Tú' : '';
+    const rolLabel = m.rol === 'bot' ? 'Attia' : m.rol === 'admin' ? 'Tú' : '';
     let html = '';
     if (dia !== lastDay) { lastDay = dia; html += `<div class="bday-sep">${dia}</div>`; }
-    html += `<div class="bmsg-wrap ${m.rol}">
-      ${m.rol !== 'usuario' ? `<div class="bmsg-rolabel">${rolLabel}</div>` : ''}
-      <div class="bmsg">${escH(m.contenido)}</div>
-      <div class="bmsg-meta">${hora}</div>
-    </div>`;
+    if (m.rol === 'usuario') {
+      html += `<div class="bmsg-wrap usuario">
+        ${avatarHtml}
+        <div class="bmsg-content">
+          <div class="bmsg">${escH(m.contenido)}</div>
+          <div class="bmsg-meta">${hora}</div>
+        </div>
+      </div>`;
+    } else {
+      html += `<div class="bmsg-wrap ${m.rol}">
+        <div class="bmsg-rolabel">${rolLabel}</div>
+        <div class="bmsg">${escH(m.contenido)}</div>
+        <div class="bmsg-meta">${hora}</div>
+      </div>`;
+    }
     return html;
   }).join('');
 
