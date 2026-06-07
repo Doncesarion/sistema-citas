@@ -8218,8 +8218,7 @@ let _bInited      = false;
 const PLAN_LIMITE = { inicio: 0, pro: 2000, 'clinica_ia': 5000 };
 
 function sesToken() {
-  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  return u.token || '';
+  return localStorage.getItem('attempo_session_token') || '';
 }
 
 function planActual() {
