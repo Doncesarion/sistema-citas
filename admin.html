@@ -707,6 +707,26 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .blist-items::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 .blist-empty{padding:50px 20px;text-align:center;color:var(--t3);font-size:13px;line-height:1.7}
 .blist-empty b{display:block;font-size:14px;color:var(--t2);margin-bottom:6px}
+.blist-tabs{display:flex;gap:1px;background:var(--adim);border-radius:var(--r);padding:2px;margin-bottom:10px}
+.blist-tab{flex:1;padding:5px 8px;border-radius:4px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:500;font-family:var(--font);color:var(--t3);transition:all .12s;text-align:center;white-space:nowrap}
+.blist-tab.on{background:#fff;color:var(--t1);font-weight:600;box-shadow:var(--sh1)}
+.blist-tab:hover:not(.on){color:var(--t2)}
+.breporte{flex:1;overflow-y:auto;padding:14px 16px;display:none;flex-direction:column;gap:16px}
+.breporte.show{display:flex}
+.brep-summary-box{background:var(--adim);border-radius:var(--rl);padding:12px 14px;font-size:13px;color:var(--t2);border:1px solid var(--b1)}
+.brep-summary-box strong{color:var(--t1);font-size:15px}
+.brep-section{display:flex;flex-direction:column;gap:9px}
+.brep-section-title{font-size:10.5px;font-weight:700;color:var(--t3);letter-spacing:.07em;text-transform:uppercase;padding-bottom:2px;border-bottom:1px solid var(--b1)}
+.brep-row{display:flex;align-items:center;gap:8px}
+.brep-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.brep-label{font-size:12.5px;color:var(--t2);flex:1;min-width:0}
+.brep-bar-wrap{width:72px;height:5px;background:var(--b1);border-radius:3px;flex-shrink:0;overflow:hidden}
+.brep-bar{height:100%;border-radius:3px;transition:width .4s ease}
+.brep-count{font-size:13px;font-weight:600;color:var(--t1);min-width:20px;text-align:right;flex-shrink:0}
+.brep-pct{font-size:11px;color:var(--t3);min-width:30px;text-align:right;flex-shrink:0}
+.brep-alert{background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.15);border-radius:var(--rl);padding:10px 13px;font-size:12.5px;color:#991b1b;display:flex;align-items:center;gap:8px}
+.brep-alert svg{flex-shrink:0;color:var(--red)}
+.brep-ok{background:var(--gdim);border:1px solid rgba(22,163,74,.2);border-radius:var(--rl);padding:10px 13px;font-size:12.5px;color:#166534;display:flex;align-items:center;gap:8px}
 
 /* ─ Item conversación ─ */
 .bitem{padding:11px 16px 11px 14px;cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s;display:flex;align-items:center;gap:12px;border-left:3px solid transparent}
@@ -1840,23 +1860,26 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <div class="blist" id="blist">
       <div class="blist-head">
         <div class="blist-head-top">
-          <div class="blist-title">Bandeja</div>
+          <div class="blist-tabs">
+            <button class="blist-tab on" id="btab-lista" onclick="switchBandejaTab('lista',this)">Conversaciones</button>
+            <button class="blist-tab" id="btab-reporte" onclick="switchBandejaTab('reporte',this)">Reporte</button>
+          </div>
           <button class="blist-sync-btn" id="blist-sync-btn" onclick="sincronizarContactos()" title="Actualizar nombres y fotos">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            <span id="blist-sync-txt">Sincronizar</span>
           </button>
         </div>
-        <div class="blist-search-wrap">
+        <div class="blist-search-wrap" id="blist-search-wrap">
           <span class="blist-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input class="blist-search" type="search" placeholder="Buscar contacto..." id="bsearch" oninput="filtrarBandeja()">
         </div>
-        <div class="blist-filters">
+        <div class="blist-filters" id="blist-filters">
           <button class="bfilt on" data-canal="todos" onclick="filtrarBandejaCanal('todos',this)">Todos</button>
           <button class="bfilt" data-canal="whatsapp" onclick="filtrarBandejaCanal('whatsapp',this)">WhatsApp</button>
           <button class="bfilt" data-canal="instagram" onclick="filtrarBandejaCanal('instagram',this)">Instagram</button>
           <button class="bfilt" data-canal="messenger" onclick="filtrarBandejaCanal('messenger',this)">Messenger</button>
         </div>
       </div>
+      <div class="breporte" id="breporte"></div>
       <div class="blist-items" id="blist-items">
         <div class="blist-empty" id="blist-empty">Cargando conversaciones...</div>
       </div>
@@ -8953,6 +8976,83 @@ window.desvincularConversacion = async function(conv_id) {
     toast('Error al desvincular', 3000);
   }
 };
+
+// ── Reporte tab ─────────────────────────────────────────────────────────────
+window.switchBandejaTab = function(tab, btn) {
+  document.querySelectorAll('.blist-tab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const isReporte = tab === 'reporte';
+  const searchWrap = document.getElementById('blist-search-wrap');
+  const filters    = document.getElementById('blist-filters');
+  const items      = document.getElementById('blist-items');
+  const reporteEl  = document.getElementById('breporte');
+  if (searchWrap) searchWrap.style.display = isReporte ? 'none' : '';
+  if (filters)    filters.style.display    = isReporte ? 'none' : '';
+  if (items)      items.style.display      = isReporte ? 'none' : '';
+  if (isReporte) { reporteEl.classList.add('show'); renderReporteBandeja(); }
+  else            { reporteEl.classList.remove('show'); }
+};
+
+function renderReporteBandeja() {
+  const el = document.getElementById('breporte');
+  if (!el) return;
+  const convs = Array.isArray(_bConvs) ? _bConvs : [];
+  const total = convs.length;
+
+  // Por canal
+  const canales = ['whatsapp','instagram','messenger'];
+  const porCanal = {};
+  canales.forEach(c => porCanal[c] = 0);
+  convs.forEach(c => { if (porCanal[c.canal] !== undefined) porCanal[c.canal]++; });
+
+  // Por estado
+  const estados = ['abierta','cotizando','cerrada'];
+  const estLabels = { abierta:'Abierta', cotizando:'Cotizando', cerrada:'Cerrada' };
+  const estColors = { abierta:'#a78bfa', cotizando:'#f59e0b', cerrada:'#6b7280' };
+  const porEstado = {};
+  estados.forEach(e => porEstado[e] = 0);
+  convs.forEach(c => { const k = c.estado || 'abierta'; if (porEstado[k] !== undefined) porEstado[k]++; else porEstado['abierta']++; });
+
+  // Sin respuesta (no_leidos > 0 del lado del cliente)
+  const sinRespuesta = convs.filter(c => (c.no_leidos || 0) > 0).length;
+
+  const maxCanal = Math.max(...Object.values(porCanal), 1);
+  const maxEst   = Math.max(...Object.values(porEstado), 1);
+
+  const canalColors = { whatsapp:'#25d366', instagram:'#e1306c', messenger:'#0084ff' };
+  const canalLabels = { whatsapp:'WhatsApp', instagram:'Instagram', messenger:'Messenger' };
+
+  function barRow(label, count, max, color) {
+    const pct = total > 0 ? Math.round(count / total * 100) : 0;
+    const barW = max > 0 ? Math.round(count / max * 100) : 0;
+    return `<div class="brep-row">
+      <span class="brep-dot" style="background:${color}"></span>
+      <span class="brep-label">${label}</span>
+      <div class="brep-bar-wrap"><div class="brep-bar" style="width:${barW}%;background:${color}"></div></div>
+      <span class="brep-count">${count}</span>
+      <span class="brep-pct">${pct}%</span>
+    </div>`;
+  }
+
+  const canalRows = canales.map(c => barRow(canalLabels[c], porCanal[c], maxCanal, canalColors[c])).join('');
+  const estadoRows = estados.map(e => barRow(estLabels[e], porEstado[e], maxEst, estColors[e])).join('');
+
+  const alertaHtml = sinRespuesta > 0
+    ? `<div class="brep-alert"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${sinRespuesta} conversación${sinRespuesta>1?'es':''} sin responder</span></div>`
+    : `<div class="brep-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Todo respondido</span></div>`;
+
+  el.innerHTML = `
+    <div class="brep-summary-box">Total de conversaciones: <strong>${total}</strong></div>
+    ${alertaHtml}
+    <div class="brep-section">
+      <div class="brep-section-title">Por canal</div>
+      ${canalRows}
+    </div>
+    <div class="brep-section">
+      <div class="brep-section-title">Por estado</div>
+      ${estadoRows}
+    </div>`;
+}
 
 // ── Eliminar conversación ────────────────────────────────────────────────────
 window.iniciarEliminarConv = function() {
