@@ -33,6 +33,47 @@ export default async function handler(req, res) {
   const sh   = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const shJ  = { ...sh, 'Content-Type': 'application/json' };
 
+  // ── GET /api/bandeja?action=stats — contador msg IA del mes ──────────────
+  // (debe ir ANTES del bloque genérico !id)
+  if (req.method === 'GET' && req.query.action === 'stats') {
+    const now  = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/mensajes?cliente_id=eq.${cliente_id}&rol=eq.bot&created_at=gte.${from}&select=id`,
+      { headers: sh }
+    );
+    const data = await r.json();
+    return res.status(200).json({ msg_ia_mes: Array.isArray(data) ? data.length : 0 });
+  }
+
+  // ── PATCH /api/bandeja?id=xxx&action=toggle-bot — pausar/reanudar bot ────
+  if (req.method === 'PATCH' && req.query.id && req.query.action === 'toggle-bot') {
+    const conv_id = req.query.id;
+    const { pausa } = req.body || {};
+
+    // Verificar que la conversación pertenece al cliente
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}&cliente_id=eq.${cliente_id}&limit=1&select=canal,canal_user_id`,
+      { headers: sh }
+    );
+    const [conv] = await rc.json();
+    if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' });
+
+    const pausaVal = pausa === true || pausa === 'true';
+
+    // Actualizar pausa_bot en chat_sessions
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}`,
+      {
+        method: 'PATCH',
+        headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify({ pausa_bot: pausaVal })
+      }
+    );
+
+    return res.status(200).json({ ok: true, pausa_bot: pausaVal });
+  }
+
   // ── GET /api/bandeja — lista de conversaciones ────────────────────────────
   if (req.method === 'GET' && !req.query.id) {
     const r = await fetch(
@@ -54,7 +95,18 @@ export default async function handler(req, res) {
     const [conv] = await rc.json();
     if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' });
 
-    // Marcar como leído
+    // Leer pausa_bot real desde chat_sessions
+    let pausa_bot = false;
+    try {
+      const rs = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=pausa_bot&limit=1`,
+        { headers: sh }
+      );
+      const [sess] = await rs.json();
+      pausa_bot = sess?.pausa_bot || false;
+    } catch (_) {}
+
+    // Marcar como leído (en paralelo)
     await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}`, {
         method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
@@ -71,19 +123,10 @@ export default async function handler(req, res) {
       { headers: sh }
     );
     const msgs = await rm.json();
-    return res.status(200).json({ conversacion: conv, mensajes: Array.isArray(msgs) ? msgs : [] });
-  }
-
-  // ── GET /api/bandeja?action=stats — contador msg IA del mes ──────────────
-  if (req.method === 'GET' && req.query.action === 'stats') {
-    const now  = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/mensajes?cliente_id=eq.${cliente_id}&rol=eq.bot&created_at=gte.${from}&select=id`,
-      { headers: sh }
-    );
-    const data = await r.json();
-    return res.status(200).json({ msg_ia_mes: Array.isArray(data) ? data.length : 0 });
+    return res.status(200).json({
+      conversacion: { ...conv, pausa_bot },
+      mensajes: Array.isArray(msgs) ? msgs : []
+    });
   }
 
   return res.status(405).end();

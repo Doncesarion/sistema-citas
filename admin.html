@@ -8421,16 +8421,10 @@ window.toggleBotBandeja = async function() {
   _bConvActual.pausa_bot = nuevaPausa;
 
   try {
-    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-    await fetch('/api/pausa-bot', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${u.token || ''}` },
-      body: JSON.stringify({
-        cliente_id: u.id || u.cliente_id,
-        canal: _bConvActual.canal,
-        canal_user_id: _bConvActual.canal_user_id,
-        pausa: nuevaPausa
-      })
+    await fetch(`/api/bandeja?id=${_bConvActual.id}&action=toggle-bot`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': sesToken() },
+      body: JSON.stringify({ pausa: nuevaPausa })
     });
   } catch (e) {
     console.error('bandeja: error toggling bot', e);
