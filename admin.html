@@ -755,6 +755,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bbot-toggle{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--b2);background:var(--bg);cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);transition:all .15s;color:var(--t2)}
 .bbot-toggle.active{border-color:var(--green);color:var(--green);background:var(--gdim)}
 .bbot-toggle.paused{border-color:var(--amber);color:var(--amber);background:var(--adm2)}
+/* ─ Eliminar conversación ─ */
+.bdel-btn{width:32px;height:32px;border-radius:var(--r);border:none;background:none;cursor:pointer;color:var(--t4);display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0}
+.bdel-btn:hover{background:var(--rdim);color:var(--red)}
+.bdel-confirm{display:none;align-items:center;gap:5px}
+.bdel-confirm.show{display:flex}
+.bdel-confirm-txt{font-size:11.5px;color:#991b1b;font-weight:600;white-space:nowrap}
+.bdel-yes-btn{padding:4px 10px;border-radius:var(--r);border:none;background:var(--red);color:#fff;font-size:11.5px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity .1s}
+.bdel-yes-btn:hover{opacity:.85}
+.bdel-no-btn{padding:4px 10px;border-radius:var(--r);border:1.5px solid var(--b2);background:none;color:var(--t2);font-size:11.5px;cursor:pointer;font-family:var(--font);transition:background .1s}
+.bdel-no-btn:hover{background:var(--adim)}
 /* ─ Estado conversación ─ */
 .bestado-wrap{position:relative}
 .bestado-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1.5px solid var(--b2);background:var(--bg);cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);color:var(--t2);transition:all .12s;white-space:nowrap}
@@ -1875,6 +1885,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <div id="bthread-channel-badge"></div>
           </div>
           <div class="bthread-actions">
+            <button class="bdel-btn" id="bdel-btn" onclick="iniciarEliminarConv()" title="Eliminar conversación">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+            <span class="bdel-confirm" id="bdel-confirm">
+              <span class="bdel-confirm-txt">¿Eliminar?</span>
+              <button class="bdel-yes-btn" onclick="confirmarEliminarConv()">Sí</button>
+              <button class="bdel-no-btn" onclick="cancelarEliminarConv()">No</button>
+            </span>
             <div class="bestado-wrap" id="bestado-wrap">
               <button class="bestado-badge abierto" id="bestado-badge" onclick="toggleEstadoDrop(event)">
                 <svg width="7" height="7" viewBox="0 0 8 8" id="bestado-dot"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
@@ -8520,6 +8538,9 @@ window.abrirConversacion = async function(id) {
   const badgeEl = document.getElementById('bthread-channel-badge');
   if (badgeEl) badgeEl.innerHTML = _CHAN_BADGE[_bConvActual.canal] || _bConvActual.canal;
 
+  // Resetear confirmación de eliminación
+  cancelarEliminarConv();
+
   // Canal — clase nativa por red social (CSS maneja fondos y colores)
   const _CH_CLASS = { whatsapp: 'bch-wa', instagram: 'bch-ig', messenger: 'bch-ms' };
   const threadEl = document.getElementById('bthread');
@@ -8754,6 +8775,44 @@ window.toggleBotBandeja = async function() {
     });
   } catch (e) {
     console.error('bandeja: error toggling bot', e);
+  }
+};
+
+// ── Eliminar conversación ────────────────────────────────────────────────────
+window.iniciarEliminarConv = function() {
+  document.getElementById('bdel-btn').style.display = 'none';
+  document.getElementById('bdel-confirm').classList.add('show');
+};
+
+window.cancelarEliminarConv = function() {
+  document.getElementById('bdel-btn').style.display = '';
+  document.getElementById('bdel-confirm').classList.remove('show');
+};
+
+window.confirmarEliminarConv = async function() {
+  if (!_bConvActual) return;
+  const id = _bConvActual.id;
+  try {
+    const r = await fetch(`/api/bandeja?id=${id}`, {
+      method: 'DELETE',
+      headers: _bandejaH()
+    });
+    if (!r.ok) { toast('Error al eliminar', 3000); return; }
+
+    _bConvs = _bConvs.filter(c => c.id !== id);
+    _bConvActual = null;
+    _bMsgs = [];
+
+    document.getElementById('bthread-empty').style.display = '';
+    document.getElementById('bthread-main').style.display = 'none';
+    const threadEl = document.getElementById('bthread');
+    if (threadEl) { threadEl.className = 'bthread'; threadEl.style.background = ''; }
+
+    renderListaBandeja();
+    actualizarBadgeNav();
+    toast('Conversación eliminada', 2500);
+  } catch (e) {
+    toast('Error al eliminar', 3000);
   }
 };
 

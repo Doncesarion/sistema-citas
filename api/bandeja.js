@@ -23,7 +23,7 @@ function verifySessionToken(token) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-session-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -318,6 +318,30 @@ export default async function handler(req, res) {
       }
     );
     return res.status(200).json({ ok: true, pausa_bot: pausaVal });
+  }
+
+  // ── DELETE ?id=xxx — eliminar conversación y sus mensajes ───────────────────
+  if (req.method === 'DELETE' && req.query.id) {
+    const conv_id = req.query.id;
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}&cliente_id=eq.${cliente_id}&limit=1&select=id,canal,canal_user_id`,
+      { headers: sh }
+    );
+    const [conv] = await rc.json();
+    if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' });
+
+    await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv_id}`, {
+        method: 'DELETE', headers: sh
+      }),
+      fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}`, {
+        method: 'DELETE', headers: sh
+      })
+    ]);
+    await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}`, {
+      method: 'DELETE', headers: sh
+    });
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(405).end();
