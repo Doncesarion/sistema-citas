@@ -179,6 +179,27 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, created_at: ahora });
   }
 
+  // ── PATCH ?id=xxx&action=update-name — editar nombre del contacto ─────────
+  if (req.method === 'PATCH' && req.query.id && req.query.action === 'update-name') {
+    const conv_id = req.query.id;
+    const nombre  = (req.body?.nombre || '').trim();
+    if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}&cliente_id=eq.${cliente_id}&limit=1&select=id`,
+      { headers: sh }
+    );
+    const [conv] = await rc.json();
+    if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' });
+
+    await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}`, {
+      method: 'PATCH',
+      headers: { ...shJ, Prefer: 'return=minimal' },
+      body: JSON.stringify({ canal_user_name: nombre })
+    });
+    return res.status(200).json({ ok: true });
+  }
+
   // ── PATCH ?id=xxx&action=toggle-bot — pausar/reanudar bot ────────────────
   if (req.method === 'PATCH' && req.query.id && req.query.action === 'toggle-bot') {
     const conv_id  = req.query.id;

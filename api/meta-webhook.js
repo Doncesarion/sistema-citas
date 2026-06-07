@@ -72,6 +72,21 @@ export default async function handler(req, res) {
     accessToken = canal === 'whatsapp'  ? meta.wa_token
                 : canal === 'messenger' ? meta.fb_token
                 :                        meta.ig_token;
+
+    // Obtener nombre real para Instagram y Messenger
+    if (canal === 'messenger' && accessToken) {
+      try {
+        const nr = await fetch(`https://graph.facebook.com/v20.0/${canal_user_id}?fields=first_name,last_name&access_token=${accessToken}`);
+        const nd = await nr.json();
+        if (nd.first_name) canal_user_name = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
+      } catch(_) {}
+    } else if (canal === 'instagram' && accessToken) {
+      try {
+        const nr = await fetch(`https://graph.instagram.com/v21.0/${canal_user_id}?fields=name&access_token=${accessToken}`);
+        const nd = await nr.json();
+        if (nd.name) canal_user_name = nd.name;
+      } catch(_) {}
+    }
   } catch (e) {
     console.error('meta-webhook: error buscando cliente:', e.message);
     return res.status(200).end();

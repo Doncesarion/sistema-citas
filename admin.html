@@ -709,7 +709,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bitem:hover{background:#f6f7fb}
 .bitem.on{background:rgba(108,92,228,0.07)}
 .bitem-av{position:relative;flex-shrink:0;width:48px;height:48px}
-.bitem-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;position:absolute;inset:0}
+.bitem-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden}
+.bav-photo{width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0}
 .bitem-badge-ch{position:absolute;bottom:-1px;right:-1px;width:18px;height:18px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff}
 .bitem-body{flex:1;min-width:0}
 .bitem-row1{display:flex;align-items:baseline;margin-bottom:3px}
@@ -727,10 +728,19 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bback-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--t2);flex-shrink:0;padding:0}
 .bback-btn:hover{background:var(--adim)}
 .bthread-av{position:relative;flex-shrink:0;width:42px;height:42px}
-.bthread-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;position:absolute;inset:0}
+.bthread-circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;position:absolute;inset:0;overflow:hidden}
 .bthread-badge-ch{position:absolute;bottom:-1px;right:-1px;width:16px;height:16px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#fff}
 .bthread-info{flex:1;min-width:0}
+.bthread-name-wrap{display:flex;flex-direction:column;min-width:0;gap:2px}
+.bthread-name-display{display:flex;align-items:center;gap:5px;min-width:0}
 .bthread-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bname-edit-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;background:none;cursor:pointer;color:var(--t3);display:flex;align-items:center;justify-content:center;padding:0;transition:all .12s}
+.bname-edit-btn:hover{background:var(--adim);color:var(--a)}
+.bthread-name-edit{display:none;align-items:center;gap:4px}
+.bname-input{flex:1;border:1.5px solid var(--a);border-radius:8px;padding:3px 8px;font-size:13.5px;font-weight:600;font-family:var(--font);color:var(--t1);outline:none;min-width:0;max-width:180px}
+.bname-save-btn,.bname-cancel-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.bname-save-btn{background:#10b981;color:#fff}.bname-save-btn:hover{background:#059669}
+.bname-cancel-btn{background:#f1f5f9;color:var(--t2)}.bname-cancel-btn:hover{background:#e2e8f0}
 .bthread-sub{font-size:11.5px;color:var(--t3);margin-top:1px}
 .bthread-actions{display:flex;align-items:center;gap:8px}
 .bbot-toggle{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid #e5e7eb;background:#fff;cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);transition:all .15s;color:#374151}
@@ -761,7 +771,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .binput-send{width:42px;height:42px;border-radius:50%;background:var(--a);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .binput-send:hover{background:var(--a3);transform:scale(1.06)}
 .binput-send:disabled{background:#cbd5e1;cursor:not-allowed;transform:none}
-.bbot-warn{font-size:11px;color:var(--t3);margin-top:6px;text-align:center}
+.bbot-banner{display:none;align-items:center;gap:8px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e}
+.bbot-banner svg{flex-shrink:0;color:#f59e0b}
+.bbot-banner span{flex:1;line-height:1.4}
+.bbot-banner-btn{flex-shrink:0;padding:4px 10px;border-radius:8px;border:1.5px solid #f59e0b;background:#fff;color:#b45309;font-size:11.5px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .12s;white-space:nowrap}
+.bbot-banner-btn:hover{background:#fef3c7}
 
 /* ─ Sidebar counter ─ */
 .sb-msg-counter{padding:10px 14px 0;border-top:1px solid var(--b1);margin-top:auto;flex-shrink:0}
@@ -1783,10 +1797,27 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           </button>
           <div class="bthread-av">
             <div class="bthread-circle" id="bthread-circle"></div>
+            <img class="bav-photo" id="bthread-photo" style="display:none" alt="" onerror="this.style.display='none'">
             <div class="bthread-badge-ch" id="bthread-badge-ch"></div>
           </div>
           <div class="bthread-info">
-            <div class="bthread-name" id="bthread-name">—</div>
+            <div class="bthread-name-wrap">
+              <div class="bthread-name-display" id="bthread-name-display">
+                <span class="bthread-name" id="bthread-name">—</span>
+                <button class="bname-edit-btn" id="bname-edit-btn" onclick="editarNombreContacto()" title="Editar nombre del contacto">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              </div>
+              <div class="bthread-name-edit" id="bthread-name-edit">
+                <input class="bname-input" id="bname-input" type="text" maxlength="80" placeholder="Nombre del contacto">
+                <button class="bname-save-btn" onclick="guardarNombreContacto()" title="Guardar">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </button>
+                <button class="bname-cancel-btn" onclick="cancelarEditNombre()" title="Cancelar">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
             <div class="bthread-sub" id="bthread-sub">—</div>
           </div>
           <div class="bthread-actions">
@@ -1798,6 +1829,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
         <div class="bthread-msgs" id="bthread-msgs"></div>
         <div class="bthread-input">
+          <div class="bbot-banner" id="bbot-banner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>El bot está activo y responde automáticamente. Para escribir tú, páusalo primero.</span>
+            <button class="bbot-banner-btn" onclick="toggleBotBandeja()">Pausar bot</button>
+          </div>
           <div class="binput-row">
             <textarea class="binput-area" id="binput" placeholder="Escribe un mensaje..." rows="1"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespuestaBandeja()}"
@@ -1806,7 +1842,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
           </div>
-          <div class="bbot-warn">Responder aquí <strong>no</strong> pausa el bot — usa el botón para pausarlo primero.</div>
         </div>
       </div>
     </div>
@@ -8335,9 +8370,10 @@ function renderListaBandeja() {
     const chSvg  = _B_CANAL_SVG[c.canal] || '';
     const unread = c.no_leidos > 0
       ? `<span class="bitem-unread">${c.no_leidos > 99 ? '99+' : c.no_leidos}</span>` : '';
+    const foto = c.canal_user_photo ? `<img class="bav-photo" src="${escH(c.canal_user_photo)}" alt="" onerror="this.style.display='none'">` : '';
     return `<div class="bitem${activa}" onclick="abrirConversacion('${c.id}')">
       <div class="bitem-av">
-        <div class="bitem-circle" style="background:${color}">${inits}</div>
+        <div class="bitem-circle" style="background:${color}">${foto || inits}</div>
         <div class="bitem-badge-ch" style="background:${chBg}">${chSvg}</div>
       </div>
       <div class="bitem-body">
@@ -8393,13 +8429,30 @@ window.abrirConversacion = async function(id) {
   const inits  = bInitials(nombre);
   const chBg   = _B_CANAL_BG[_bConvActual.canal]  || '#888';
   const chSvg  = _B_CANAL_SVG[_bConvActual.canal] || '';
-  const circle = document.getElementById('bthread-circle');
-  if (circle) { circle.style.background = color; circle.textContent = inits; }
+
+  // Avatar: foto si disponible, iniciales si no
+  const circle   = document.getElementById('bthread-circle');
+  const photoEl  = document.getElementById('bthread-photo');
+  const fotoUrl  = _bConvActual.canal_user_photo || null;
+  if (circle) {
+    circle.style.background = color;
+    circle.textContent = fotoUrl ? '' : inits;
+  }
+  if (photoEl) {
+    if (fotoUrl) { photoEl.src = fotoUrl; photoEl.style.display = 'block'; }
+    else           { photoEl.style.display = 'none'; photoEl.src = ''; }
+  }
+
   const badgeCh = document.getElementById('bthread-badge-ch');
   if (badgeCh) { badgeCh.style.background = chBg; badgeCh.innerHTML = chSvg; }
+
+  // Nombre — cerrar cualquier edición previa
+  cancelarEditNombre();
   document.getElementById('bthread-name').textContent = nombre;
+
   const canalTexto = { whatsapp:'WhatsApp', instagram:'Instagram', messenger:'Messenger' }[_bConvActual.canal] || _bConvActual.canal;
-  document.getElementById('bthread-sub').textContent = canalTexto + ' · ' + (_bConvActual.canal_user_id || '');
+  const subId = _bConvActual.canal_user_id || '';
+  document.getElementById('bthread-sub').textContent = canalTexto + (subId && subId !== nombre ? ' · ' + subId : '');
 
   // En móvil: ocultar lista, mostrar hilo
   document.getElementById('blist').classList.add('hidden');
@@ -8473,19 +8526,76 @@ async function cargarEstadoBot(conv_id) {
 }
 
 function actualizarBotUI(pausado) {
-  const btn   = document.getElementById('bbot-toggle');
-  const label = document.getElementById('bbot-label');
+  const btn    = document.getElementById('bbot-toggle');
+  const label  = document.getElementById('bbot-label');
+  const banner = document.getElementById('bbot-banner');
   if (!btn) return;
   if (pausado) {
     btn.classList.remove('active');
     btn.classList.add('paused');
     label.textContent = 'Bot pausado';
+    if (banner) banner.style.display = 'none';
   } else {
     btn.classList.remove('paused');
     btn.classList.add('active');
     label.textContent = 'Bot activo';
+    if (banner) banner.style.display = 'flex';
   }
 }
+
+// ── Editar nombre del contacto ────────────────────────────────────────────────
+window.editarNombreContacto = function() {
+  const display = document.getElementById('bthread-name-display');
+  const edit    = document.getElementById('bthread-name-edit');
+  const input   = document.getElementById('bname-input');
+  const nombre  = document.getElementById('bthread-name').textContent;
+  if (!display || !edit || !input) return;
+  display.style.display = 'none';
+  edit.style.display    = 'flex';
+  input.value = nombre;
+  input.focus();
+  input.select();
+  input.onkeydown = e => {
+    if (e.key === 'Enter')  { e.preventDefault(); guardarNombreContacto(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelarEditNombre(); }
+  };
+};
+
+window.cancelarEditNombre = function() {
+  const display = document.getElementById('bthread-name-display');
+  const edit    = document.getElementById('bthread-name-edit');
+  if (!display || !edit) return;
+  display.style.display = '';
+  edit.style.display    = 'none';
+};
+
+window.guardarNombreContacto = async function() {
+  const input = document.getElementById('bname-input');
+  if (!input || !_bConvActual) return;
+  const nuevoNombre = input.value.trim();
+  if (!nuevoNombre) return;
+
+  try {
+    const r = await fetch(`/api/bandeja?id=${_bConvActual.id}&action=update-name`, {
+      method: 'PATCH',
+      headers: _bandejaH({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ nombre: nuevoNombre })
+    });
+    if (!r.ok) { toast('Error al guardar nombre', 3000); return; }
+
+    // Actualizar estado local
+    _bConvActual.canal_user_name = nuevoNombre;
+    const conv = _bConvs.find(c => c.id === _bConvActual.id);
+    if (conv) conv.canal_user_name = nuevoNombre;
+
+    // Actualizar header y lista
+    document.getElementById('bthread-name').textContent = nuevoNombre;
+    cancelarEditNombre();
+    renderListaBandeja();
+  } catch(e) {
+    toast('Error al guardar nombre', 3000);
+  }
+};
 
 window.volverListaBandeja = function() {
   document.getElementById('blist').classList.remove('hidden');
