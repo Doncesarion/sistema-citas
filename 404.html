@@ -5,7 +5,7 @@
   <script>
     (function() {
       var path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
-      var adminPaths = ['login','admin','superadmin','reset-password','editor','landing','configuracion','ventas','reportes','agenda','clientes','accesos','gc-callback','privacidad','terminos','gestionar-cita','attempo-booking','attempo-dashboard','chat-frame','booking','reservar'];
+      var adminPaths = ['login','admin','superadmin','reset-password','editor','landing','configuracion','ventas','reportes','agenda','clientes','accesos','bandeja','gc-callback','privacidad','terminos','gestionar-cita','attempo-booking','attempo-dashboard','chat-frame','booking','reservar'];
       var isAdmin = !path || adminPaths.indexOf(path.split('/')[0]) !== -1;
       if (isAdmin) {
         // Save the full intended path so routeFromURL() can restore it
