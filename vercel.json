@@ -15,7 +15,7 @@
       "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "https://app.attempo.cl" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PATCH, DELETE, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key, x-session-token, x-override-cliente-id" }
       ]
     }
@@ -37,6 +37,7 @@
     { "source": "/reportes",                       "destination": "/admin.html" },
     { "source": "/configuracion",                  "destination": "/admin.html" },
     { "source": "/configuracion/:sub",             "destination": "/admin.html" },
+    { "source": "/bandeja",                        "destination": "/admin.html" },
     { "source": "/gc-callback",                     "destination": "/gc-callback.html" },
     { "source": "/privacidad",                      "destination": "/privacidad.html" },
     { "source": "/terminos",                        "destination": "/terminos.html" },

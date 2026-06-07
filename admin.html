@@ -680,6 +680,84 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .ev.dimmed{opacity:.12;pointer-events:none}
 
 /* ═══════════════════════════════════════
+   BANDEJA UNIFICADA
+═══════════════════════════════════════ */
+#v-bandeja{display:none;flex:1;min-height:0;overflow:hidden}
+.bandeja-wrap{display:flex;height:100%;overflow:hidden}
+
+/* Lista de conversaciones */
+.blist{width:300px;flex-shrink:0;border-right:1px solid var(--b1);display:flex;flex-direction:column;background:var(--surface);overflow:hidden}
+.blist-head{padding:14px 14px 10px;flex-shrink:0;border-bottom:1px solid var(--b1)}
+.blist-title{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px}
+.blist-search{width:100%;padding:7px 10px;border:1px solid var(--b2);border-radius:var(--r);font-size:12px;font-family:var(--font);color:var(--t1);background:#fff;outline:none;transition:border-color .15s}
+.blist-search:focus{border-color:var(--a)}
+.blist-filters{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.bfilt{padding:3px 9px;border-radius:20px;font-size:11px;border:1px solid var(--b2);background:none;cursor:pointer;color:var(--t2);font-family:var(--font);transition:all .12s}
+.bfilt.on{background:var(--a);color:#fff;border-color:var(--a)}
+.blist-items{flex:1;overflow-y:auto;overscroll-behavior:contain}
+.blist-items::-webkit-scrollbar{width:4px}
+.blist-items::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.bitem{padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s;position:relative}
+.bitem:hover{background:var(--adim)}
+.bitem.on{background:rgba(108,92,228,0.08)}
+.bitem-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.bitem-name{font-size:13px;font-weight:500;color:var(--t1);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bitem-time{font-size:11px;color:var(--t3);flex-shrink:0}
+.bitem-preview{font-size:12px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:24px}
+.bitem-badge{position:absolute;right:12px;bottom:12px;background:var(--a);color:#fff;font-size:10px;font-weight:600;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.bchannel{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:600;flex-shrink:0}
+.bchannel.whatsapp{background:#dcfce7;color:#15803d}
+.bchannel.instagram{background:#fce7f3;color:#9d174d}
+.bchannel.messenger{background:#dbeafe;color:#1d4ed8}
+.blist-empty{padding:40px 20px;text-align:center;color:var(--t3);font-size:13px}
+
+/* Hilo de mensajes */
+.bthread{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.bthread-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;flex-direction:column;gap:10px}
+.bthread-empty svg{opacity:.3}
+.bthread-head{padding:12px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px;background:var(--surface-hi);flex-shrink:0}
+.bthread-info{flex:1;min-width:0}
+.bthread-name{font-size:14px;font-weight:600;color:var(--t1)}
+.bthread-sub{font-size:12px;color:var(--t3);margin-top:1px}
+.bthread-actions{display:flex;align-items:center;gap:8px}
+.bbot-toggle{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;border:1px solid var(--b2);background:#fff;cursor:pointer;font-size:12px;color:var(--t2);font-family:var(--font);transition:all .15s}
+.bbot-toggle:hover{border-color:var(--a);color:var(--a)}
+.bbot-toggle.paused{background:var(--adm2);border-color:var(--amber);color:var(--amber)}
+.bthread-msgs{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.bthread-msgs::-webkit-scrollbar{width:5px}
+.bthread-msgs::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+.bmsg-wrap{display:flex;flex-direction:column;max-width:72%}
+.bmsg-wrap.usuario{align-self:flex-start}
+.bmsg-wrap.bot,.bmsg-wrap.admin{align-self:flex-end;align-items:flex-end}
+.bmsg{padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.45;word-break:break-word}
+.bmsg-wrap.usuario .bmsg{background:#fff;color:var(--t1);border-radius:14px 14px 14px 4px;box-shadow:var(--sh1)}
+.bmsg-wrap.bot .bmsg{background:var(--a);color:#fff;border-radius:14px 14px 4px 14px}
+.bmsg-wrap.admin .bmsg{background:#2563EB;color:#fff;border-radius:14px 14px 4px 14px}
+.bmsg-meta{font-size:10px;color:var(--t3);margin-top:3px;padding:0 2px}
+.bmsg-rolabel{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;padding:0 2px;color:var(--t3)}
+.bthread-input{padding:12px 18px;border-top:1px solid var(--b1);background:var(--surface-hi);flex-shrink:0}
+.binput-row{display:flex;gap:8px;align-items:flex-end}
+.binput-area{flex:1;resize:none;border:1px solid var(--b2);border-radius:var(--rl);padding:9px 12px;font-size:13px;font-family:var(--font);color:var(--t1);background:#fff;outline:none;transition:border-color .15s;max-height:120px;min-height:40px;line-height:1.4}
+.binput-area:focus{border-color:var(--a)}
+.binput-send{width:38px;height:38px;border-radius:50%;background:var(--a);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.binput-send:hover{background:var(--a3);transform:scale(1.05)}
+.binput-send:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* Contador msg IA en sidebar */
+.sb-msg-counter{padding:10px 14px 0;border-top:1px solid var(--b1);margin-top:auto;flex-shrink:0}
+.sb-msg-counter-label{font-size:11px;color:var(--t3);margin-bottom:5px;display:flex;justify-content:space-between}
+.sb-msg-counter-bar{height:5px;background:var(--b1);border-radius:3px;overflow:hidden}
+.sb-msg-counter-fill{height:100%;border-radius:3px;background:var(--a);transition:width .4s ease}
+.sb-msg-counter-fill.warn{background:var(--amber)}
+.sb-msg-counter-fill.full{background:var(--red)}
+
+@media(max-width:768px){
+  .blist{width:100%;position:absolute;z-index:10;height:100%;left:0;top:0;transition:transform .2s}
+  .blist.hidden{transform:translateX(-100%)}
+  .bthread{width:100%}
+}
+
+/* ═══════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════ */
 
@@ -991,6 +1069,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ntab on"  onclick="sv('agenda',this)">Agenda</button>
       <button class="ntab"     onclick="sv('clientes',this)">Clientes</button>
       <button class="ntab"     onclick="sv('ventas',this)">Ventas</button>
+      <button class="ntab"     onclick="sv('bandeja',this)" id="ntab-bandeja" style="position:relative">Bandeja <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"     onclick="sv('reportes',this)">Reportes</button>
       <button class="ntab"     onclick="sv('config',this)">Configuración</button>
     </div>
@@ -1199,6 +1278,17 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 <!-- ── CONFIG CONTEXT ── -->
 <div id="sb-config" class="sb-ctx"></div>
+
+<!-- ── CONTADOR MSG IA ── -->
+<div class="sb-msg-counter" id="sb-msg-counter" style="display:none">
+  <div class="sb-msg-counter-label">
+    <span>Mensajes IA este mes</span>
+    <span id="sb-msg-nums">— / —</span>
+  </div>
+  <div class="sb-msg-counter-bar">
+    <div class="sb-msg-counter-fill" id="sb-msg-fill" style="width:0%"></div>
+  </div>
+</div>
 
 </aside>
 
@@ -1635,6 +1725,65 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div><!-- end rep-modules -->
   </div>
 </div><!-- end reportes -->
+
+<!-- ═══ BANDEJA ═══ -->
+<div id="v-bandeja">
+  <div class="bandeja-wrap">
+    <!-- Lista de conversaciones -->
+    <div class="blist" id="blist">
+      <div class="blist-head">
+        <div class="blist-title">Bandeja de mensajes</div>
+        <input class="blist-search" type="search" placeholder="Buscar contacto..." id="bsearch" oninput="filtrarBandeja()">
+        <div class="blist-filters">
+          <button class="bfilt on" data-canal="todos" onclick="filtrarBandejaCanal('todos',this)">Todos</button>
+          <button class="bfilt" data-canal="whatsapp" onclick="filtrarBandejaCanal('whatsapp',this)">WhatsApp</button>
+          <button class="bfilt" data-canal="instagram" onclick="filtrarBandejaCanal('instagram',this)">Instagram</button>
+          <button class="bfilt" data-canal="messenger" onclick="filtrarBandejaCanal('messenger',this)">Messenger</button>
+        </div>
+      </div>
+      <div class="blist-items" id="blist-items">
+        <div class="blist-empty" id="blist-empty">Cargando conversaciones...</div>
+      </div>
+    </div>
+
+    <!-- Hilo de mensajes -->
+    <div class="bthread" id="bthread">
+      <div class="bthread-empty" id="bthread-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Selecciona una conversación</span>
+      </div>
+      <div id="bthread-main" style="display:none;flex-direction:column;height:100%">
+        <div class="bthread-head">
+          <div id="bthread-avatar" style="width:36px;height:36px;border-radius:50%;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--a);flex-shrink:0"></div>
+          <div class="bthread-info">
+            <div class="bthread-name" id="bthread-name">—</div>
+            <div class="bthread-sub" id="bthread-sub">—</div>
+          </div>
+          <div class="bthread-actions">
+            <button class="bbot-toggle" id="bbot-toggle" onclick="toggleBotBandeja()">
+              <span id="bbot-icon">🤖</span>
+              <span id="bbot-label">Bot activo</span>
+            </button>
+          </div>
+        </div>
+        <div class="bthread-msgs" id="bthread-msgs"></div>
+        <div class="bthread-input">
+          <div class="binput-row">
+            <textarea class="binput-area" id="binput" placeholder="Escribe un mensaje..." rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespuestaBandeja()}"
+              oninput="autoResizeBinput(this)"></textarea>
+            <button class="binput-send" onclick="enviarRespuestaBandeja()" id="binput-send-btn" title="Enviar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:6px;display:flex;gap:12px">
+            <span>⚠️ Responder aquí <strong>no</strong> pausa el bot automáticamente — usa el botón "Bot activo" para pausarlo.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- end bandeja -->
 
 <!-- ═══ CONFIG ═══ -->
 <div id="v-config" style="display:none">
@@ -2622,7 +2771,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <script>
 /* ════ VIEW SWITCHING ════ */
 function sv(v, btn, skipPush) {
-  const views = ['agenda','clientes','ventas','reportes','config'];
+  const views = ['agenda','clientes','ventas','bandeja','reportes','config'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
     if (!el) return;
@@ -2642,17 +2791,18 @@ function sv(v, btn, skipPush) {
 
   // Sidebar context switch
   const sidebar = document.querySelector('aside.sb');
-  if (sidebar) sidebar.style.display = v === 'config' ? 'none' : '';
+  if (sidebar) sidebar.style.display = (v === 'config' || v === 'bandeja') ? 'none' : '';
   document.querySelectorAll('.sb-ctx').forEach(el => { el.style.display = 'none'; });
   const sbCtx = document.getElementById('sb-' + v);
   if (sbCtx) { sbCtx.style.display = 'flex'; sbCtx.style.flexDirection = 'column'; sbCtx.style.height = '100%'; }
 
-  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',reportes:'Reportes',config:'Configuración'};
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')   cargarVentas();
   if (v === 'reportes') cargarReportes();
   if (v === 'clientes') loadClientesView();
+  if (v === 'bandeja')  initBandeja();
   if (!skipPush) {
     const slug = v === 'config' ? 'configuracion' : v;
     history.pushState({ section: v }, '', '/' + slug);
@@ -8051,6 +8201,365 @@ async function sendHelp() {
     document.getElementById('help-input').focus();
   }
 }
+</script>
+
+<!-- ═══ BANDEJA UNIFICADA ═══ -->
+<script>
+(function() {
+
+// ── Estado ────────────────────────────────────────────────────────────────────
+let _bConvs       = [];          // lista completa de conversaciones
+let _bConvActual  = null;        // conversación abierta
+let _bMsgs        = [];          // mensajes del hilo actual
+let _bFiltroCanal = 'todos';
+let _bPollTimer   = null;
+let _bMsgPollTimer = null;
+let _bInited      = false;
+const PLAN_LIMITE = { inicio: 0, pro: 2000, 'clinica_ia': 5000 };
+
+function sesToken() {
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  return u.token || '';
+}
+
+function planActual() {
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  return (u.tipo_plan || u.plan || 'inicio').toLowerCase().replace(' ', '_');
+}
+
+// ── Inicializar bandeja ───────────────────────────────────────────────────────
+window.initBandeja = async function() {
+  if (_bInited) { cargarConversaciones(); return; }
+  _bInited = true;
+  await cargarConversaciones();
+  iniciarPollBandeja();
+  cargarStatsIA();
+};
+
+// ── Cargar conversaciones ─────────────────────────────────────────────────────
+async function cargarConversaciones() {
+  try {
+    const r = await fetch('/api/bandeja', {
+      headers: { 'x-session-token': sesToken() }
+    });
+    if (!r.ok) return;
+    _bConvs = await r.json();
+    renderListaBandeja();
+    actualizarBadgeNav();
+  } catch (e) {
+    console.error('bandeja: error cargando conversaciones', e);
+  }
+}
+
+// ── Render lista ──────────────────────────────────────────────────────────────
+function renderListaBandeja() {
+  const container = document.getElementById('blist-items');
+  const q = (document.getElementById('bsearch')?.value || '').toLowerCase().trim();
+
+  let convsFiltradas = _bConvs.filter(c => {
+    if (_bFiltroCanal !== 'todos' && c.canal !== _bFiltroCanal) return false;
+    if (q) {
+      const nombre = (c.canal_user_name || '').toLowerCase();
+      if (!nombre.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!convsFiltradas.length) {
+    container.innerHTML = '<div class="blist-empty">' +
+      (q || _bFiltroCanal !== 'todos' ? 'Sin resultados' : 'No hay conversaciones aún.<br>Los mensajes de WhatsApp, Instagram y Messenger aparecerán aquí.') +
+      '</div>';
+    return;
+  }
+
+  container.innerHTML = convsFiltradas.map(c => {
+    const activa = _bConvActual?.id === c.id ? ' on' : '';
+    const badge = c.no_leidos > 0
+      ? `<div class="bitem-badge">${c.no_leidos > 99 ? '99+' : c.no_leidos}</div>` : '';
+    const tiempo = formatBTiempo(c.ultimo_mensaje_at);
+    const nombre = c.canal_user_name || c.canal_user_id;
+    const iniciales = nombre.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase();
+    const canalLabel = { whatsapp:'WA', instagram:'IG', messenger:'MSG' }[c.canal] || c.canal;
+    return `<div class="bitem${activa}" onclick="abrirConversacion('${c.id}')">
+      <div class="bitem-top">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--a);flex-shrink:0">${iniciales}</div>
+        <span class="bitem-name">${escH(nombre)}</span>
+        <span class="bitem-time">${tiempo}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="bchannel ${c.canal}">${canalLabel}</span>
+        <span class="bitem-preview">${escH(c.ultimo_mensaje || '')}</span>
+      </div>
+      ${badge}
+    </div>`;
+  }).join('');
+}
+
+// ── Badge nav tab ─────────────────────────────────────────────────────────────
+function actualizarBadgeNav() {
+  const badge = document.getElementById('bandeja-badge');
+  if (!badge) return;
+  const total = _bConvs.reduce((s, c) => s + (c.no_leidos || 0), 0);
+  if (total > 0) {
+    badge.textContent = total > 99 ? '99+' : total;
+    badge.style.display = 'flex';
+    badge.style.alignItems = 'center';
+    badge.style.justifyContent = 'center';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Abrir conversación ────────────────────────────────────────────────────────
+window.abrirConversacion = async function(id) {
+  _bConvActual = _bConvs.find(c => c.id === id);
+  if (!_bConvActual) return;
+
+  // Actualizar UI lista
+  document.querySelectorAll('.bitem').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.bitem').forEach(el => {
+    if (el.getAttribute('onclick')?.includes(id)) el.classList.add('on');
+  });
+
+  // Mostrar hilo
+  document.getElementById('bthread-empty').style.display = 'none';
+  const main = document.getElementById('bthread-main');
+  main.style.display = 'flex';
+  main.style.flexDirection = 'column';
+  main.style.height = '100%';
+
+  // Header
+  const nombre = _bConvActual.canal_user_name || _bConvActual.canal_user_id;
+  const iniciales = nombre.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('bthread-avatar').textContent = iniciales;
+  document.getElementById('bthread-name').textContent = nombre;
+  const canalTexto = { whatsapp:'WhatsApp', instagram:'Instagram', messenger:'Messenger' }[_bConvActual.canal] || _bConvActual.canal;
+  document.getElementById('bthread-sub').textContent = canalTexto + ' · ' + (_bConvActual.canal_user_id || '');
+
+  // Resetear no_leidos en la lista local
+  const conv = _bConvs.find(c => c.id === id);
+  if (conv) conv.no_leidos = 0;
+  actualizarBadgeNav();
+
+  // Cargar bot state y mensajes
+  await Promise.all([cargarMensajesHilo(id), cargarEstadoBot(id)]);
+
+  // Poll mensajes activo
+  clearInterval(_bMsgPollTimer);
+  _bMsgPollTimer = setInterval(() => {
+    if (_bConvActual?.id === id) cargarMensajesHilo(id, true);
+  }, 8000);
+};
+
+// ── Cargar mensajes del hilo ──────────────────────────────────────────────────
+async function cargarMensajesHilo(conv_id, silent = false) {
+  try {
+    const r = await fetch(`/api/bandeja?id=${conv_id}`, {
+      headers: { 'x-session-token': sesToken() }
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    _bMsgs = data.mensajes || [];
+    renderHilo(silent);
+    // Actualizar estado bot desde la conversación
+    if (data.conversacion) {
+      _bConvActual = { ..._bConvActual, ...data.conversacion };
+    }
+  } catch (e) {
+    console.error('bandeja: error cargando mensajes', e);
+  }
+}
+
+// ── Render hilo de mensajes ───────────────────────────────────────────────────
+function renderHilo(silent = false) {
+  const cont = document.getElementById('bthread-msgs');
+  if (!cont) return;
+  const wasAtBottom = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 80;
+
+  cont.innerHTML = _bMsgs.map(m => {
+    const hora = new Date(m.created_at).toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+    const rolLabel = m.rol === 'bot' ? 'Bot · ' : m.rol === 'admin' ? 'Tú · ' : '';
+    return `<div class="bmsg-wrap ${m.rol}">
+      ${m.rol !== 'usuario' ? `<div class="bmsg-rolabel">${rolLabel}</div>` : ''}
+      <div class="bmsg">${escH(m.contenido)}</div>
+      <div class="bmsg-meta">${hora}</div>
+    </div>`;
+  }).join('');
+
+  if (!silent || wasAtBottom) {
+    cont.scrollTop = cont.scrollHeight;
+  }
+}
+
+// ── Estado bot ────────────────────────────────────────────────────────────────
+async function cargarEstadoBot(conv_id) {
+  // El estado pausa_bot está en chat_sessions, no en conversaciones
+  // Lo leemos de chat_sessions via pausa-bot existente
+  actualizarBotUI(_bConvActual?.pausa_bot || false);
+}
+
+function actualizarBotUI(pausado) {
+  const btn = document.getElementById('bbot-toggle');
+  const icon = document.getElementById('bbot-icon');
+  const label = document.getElementById('bbot-label');
+  if (!btn) return;
+  if (pausado) {
+    btn.classList.add('paused');
+    icon.textContent = '⏸';
+    label.textContent = 'Bot pausado';
+  } else {
+    btn.classList.remove('paused');
+    icon.textContent = '🤖';
+    label.textContent = 'Bot activo';
+  }
+}
+
+window.toggleBotBandeja = async function() {
+  if (!_bConvActual) return;
+  const nuevaPausa = !(_bConvActual.pausa_bot || false);
+  actualizarBotUI(nuevaPausa);
+  _bConvActual.pausa_bot = nuevaPausa;
+
+  try {
+    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    await fetch('/api/pausa-bot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${u.token || ''}` },
+      body: JSON.stringify({
+        cliente_id: u.id || u.cliente_id,
+        canal: _bConvActual.canal,
+        canal_user_id: _bConvActual.canal_user_id,
+        pausa: nuevaPausa
+      })
+    });
+  } catch (e) {
+    console.error('bandeja: error toggling bot', e);
+  }
+};
+
+// ── Enviar respuesta ──────────────────────────────────────────────────────────
+window.enviarRespuestaBandeja = async function() {
+  if (!_bConvActual) return;
+  const input = document.getElementById('binput');
+  const contenido = input.value.trim();
+  if (!contenido) return;
+
+  const btn = document.getElementById('binput-send-btn');
+  btn.disabled = true;
+  input.value = '';
+  input.style.height = '';
+
+  // Optimistic render
+  _bMsgs.push({ rol: 'admin', contenido, created_at: new Date().toISOString() });
+  renderHilo();
+
+  try {
+    const r = await fetch('/api/responder-mensaje', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': sesToken() },
+      body: JSON.stringify({ conversacion_id: _bConvActual.id, contenido })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('Error al enviar: ' + (err.error || r.status), 4000);
+      _bMsgs.pop();
+      input.value = contenido;
+      renderHilo();
+    }
+  } catch (e) {
+    toast('Error de red al enviar', 3000);
+    _bMsgs.pop();
+    input.value = contenido;
+    renderHilo();
+  }
+
+  btn.disabled = false;
+  input.focus();
+};
+
+// ── Filtros ───────────────────────────────────────────────────────────────────
+window.filtrarBandeja = function() { renderListaBandeja(); };
+
+window.filtrarBandejaCanal = function(canal, btn) {
+  _bFiltroCanal = canal;
+  document.querySelectorAll('.bfilt').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderListaBandeja();
+};
+
+// ── Poll automático ───────────────────────────────────────────────────────────
+function iniciarPollBandeja() {
+  clearInterval(_bPollTimer);
+  _bPollTimer = setInterval(() => {
+    const vBandeja = document.getElementById('v-bandeja');
+    if (vBandeja?.style.display !== 'none' && vBandeja?.style.display !== '') {
+      cargarConversaciones();
+    }
+  }, 15000);
+}
+
+// ── Estadísticas IA ───────────────────────────────────────────────────────────
+async function cargarStatsIA() {
+  const plan = planActual();
+  const limite = PLAN_LIMITE[plan] || 0;
+  if (limite === 0) return; // Plan Inicio no tiene bot
+
+  const counter = document.getElementById('sb-msg-counter');
+  if (counter) counter.style.display = 'block';
+
+  try {
+    const r = await fetch('/api/bandeja?action=stats', {
+      headers: { 'x-session-token': sesToken() }
+    });
+    if (!r.ok) return;
+    const { msg_ia_mes } = await r.json();
+    const pct = Math.min(100, Math.round((msg_ia_mes / limite) * 100));
+
+    const nums = document.getElementById('sb-msg-nums');
+    const fill = document.getElementById('sb-msg-fill');
+    if (nums) nums.textContent = `${msg_ia_mes.toLocaleString('es-CL')} / ${limite.toLocaleString('es-CL')}`;
+    if (fill) {
+      fill.style.width = pct + '%';
+      fill.className = 'sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
+    }
+  } catch (e) {
+    console.error('bandeja: error cargando stats IA', e);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function formatBTiempo(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const ahora = new Date();
+  const diffMs = ahora - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1)  return 'ahora';
+  if (diffMin < 60) return diffMin + 'm';
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24)   return diffH + 'h';
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7)    return diffD + 'd';
+  return d.toLocaleDateString('es-CL', { day:'numeric', month:'short' });
+}
+
+function escH(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+    .replace(/\n/g,'<br>');
+}
+
+window.autoResizeBinput = function(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+};
+
+// Cargar stats al iniciar (siempre visible en sidebar)
+window.addEventListener('load', () => { setTimeout(cargarStatsIA, 2000); });
+
+})();
 </script>
 
 

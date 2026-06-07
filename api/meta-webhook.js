@@ -77,6 +77,36 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // ── Guardar conversación y mensaje entrante ───────────────────────────────
+  let conversacion_id = null;
+  try {
+    const shJ = { ...sh, 'Content-Type': 'application/json' };
+    // Upsert conversacion vía RPC (incrementa no_leidos atómicamente)
+    const cvRpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/upsert_conversacion`, {
+      method: 'POST',
+      headers: { ...shJ },
+      body: JSON.stringify({
+        p_cliente_id:    cliente_id,
+        p_canal:         canal,
+        p_canal_user_id: canal_user_id,
+        p_canal_user_name: canal_user_name || canal_user_id,
+        p_mensaje:       mensaje.slice(0, 120)
+      })
+    });
+    if (cvRpc.ok) {
+      conversacion_id = await cvRpc.json();
+      if (conversacion_id) {
+        fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+          method: 'POST',
+          headers: { ...shJ, Prefer: 'return=minimal' },
+          body: JSON.stringify({ conversacion_id, cliente_id, rol: 'usuario', contenido: mensaje })
+        }).catch(e => console.error('meta-webhook: error guardando mensaje usuario:', e.message));
+      }
+    }
+  } catch (e) {
+    console.error('meta-webhook: error guardando conversacion:', e.message);
+  }
+
   // ── Llamar al bot IA ──────────────────────────────────────────────────────
   let respuesta = '';
   try {
@@ -86,10 +116,24 @@ export default async function handler(req, res) {
       body: JSON.stringify({ cliente_id, canal, canal_user_id, canal_user_name, mensaje })
     });
     const botData = await botRes.json();
+    if (botData.pausa) {
+      console.log('meta-webhook: bot pausado para', canal_user_id);
+      return res.status(200).end();
+    }
     respuesta = botData.respuesta || '';
   } catch (e) {
     console.error('meta-webhook: error llamando bot-chat:', e.message);
     return res.status(200).end();
+  }
+
+  // ── Guardar respuesta del bot ─────────────────────────────────────────────
+  if (respuesta && conversacion_id) {
+    const shJ = { ...sh, 'Content-Type': 'application/json' };
+    fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+      method: 'POST',
+      headers: { ...shJ, Prefer: 'return=minimal' },
+      body: JSON.stringify({ conversacion_id, cliente_id, rol: 'bot', contenido: respuesta, visto: true })
+    }).catch(e => console.error('meta-webhook: error guardando mensaje bot:', e.message));
   }
 
   console.log('meta-webhook: respuesta generada:', !!respuesta, '| accessToken:', !!accessToken, '| canal:', canal);
