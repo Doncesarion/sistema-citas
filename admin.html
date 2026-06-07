@@ -725,9 +725,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bitem-unread{background:var(--a);color:#fff;font-size:10px;font-weight:700;min-width:19px;height:19px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
 
 /* ─ Hilo ─ */
-.bthread{flex:1;display:flex;flex-direction:column;min-width:0;background:#ede8f5}
-.bthread-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;flex-direction:column;gap:14px;background:#ede8f5}
-.bthread-empty svg{opacity:.15;color:var(--a)}
+.bthread{flex:1;display:flex;flex-direction:column;min-width:0;background:#f5f5f5}
+.bthread-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:14px;flex-direction:column;gap:14px;background:#f5f5f5}
+.bthread-empty svg{opacity:.15;color:var(--t3)}
 .bthread-empty span{color:var(--t3);font-size:13.5px}
 .bthread-head{padding:14px 20px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:14px;background:var(--surface-hi);flex-shrink:0;box-shadow:0 1px 0 var(--b1),0 2px 8px rgba(108,92,228,0.05)}
 .bback-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--t2);flex-shrink:0;padding:0}
@@ -769,7 +769,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bestado-opt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
 /* ─ Mensajes ─ */
-.bthread-msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:2px;background:#ede8f5}
+.bthread-msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:2px;background:#f5f5f5}
 .bthread-msgs::-webkit-scrollbar{width:4px}
 .bthread-msgs::-webkit-scrollbar-thumb{background:rgba(108,92,228,.2);border-radius:2px}
 .bmsg-wrap{display:flex;margin-bottom:2px}
@@ -779,13 +779,38 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bmsg-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .bmsg{padding:8px 13px;font-size:13.5px;line-height:1.5;word-break:break-word}
 .bmsg-wrap.usuario .bmsg{background:#fff;color:var(--t1);border-radius:0 14px 14px 14px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.bmsg-wrap.bot .bmsg{background:linear-gradient(135deg,var(--a) 0%,var(--a3) 100%);color:#fff;border-radius:14px 0 14px 14px}
-.bmsg-wrap.admin .bmsg{background:linear-gradient(135deg,#4f46e5 0%,#6c5ce4 100%);color:#fff;border-radius:14px 0 14px 14px}
+.bmsg-wrap.bot .bmsg{background:#374151;color:#fff;border-radius:14px 0 14px 14px}
+.bmsg-wrap.admin .bmsg{background:#374151;color:#fff;border-radius:14px 0 14px 14px}
 .bmsg-meta{font-size:10.5px;color:rgba(0,0,0,.38);margin-top:3px;padding:0 3px}
-.bmsg-wrap.bot .bmsg-meta,.bmsg-wrap.admin .bmsg-meta{text-align:right;color:var(--t3)}
-.bmsg-rolabel{font-size:10px;font-weight:600;letter-spacing:.04em;margin-bottom:2px;padding:0 3px;color:var(--a);opacity:.7}
+.bmsg-wrap.bot .bmsg-meta,.bmsg-wrap.admin .bmsg-meta{text-align:right;color:rgba(255,255,255,.55)}
+.bmsg-rolabel{font-size:10px;font-weight:600;letter-spacing:.04em;margin-bottom:2px;padding:0 3px;color:var(--t3);opacity:1}
 .bmsg-wrap.bot .bmsg-rolabel,.bmsg-wrap.admin .bmsg-rolabel{text-align:right}
-.bday-sep{align-self:center;background:rgba(108,92,228,.12);color:var(--t2);font-size:11px;font-weight:500;padding:3px 14px;border-radius:12px;margin:10px 0;flex-shrink:0;backdrop-filter:blur(4px)}
+.bday-sep{align-self:center;background:rgba(0,0,0,.1);color:#555;font-size:11px;font-weight:500;padding:3px 14px;border-radius:12px;margin:10px 0;flex-shrink:0}
+/* ─ Estilos nativos por canal ─ */
+.bch-wa,.bch-wa .bthread-msgs{background:#e5ddd5}
+.bch-ig,.bch-ig .bthread-msgs{background:#fafafa}
+.bch-ms,.bch-ms .bthread-msgs{background:#e5efff}
+/* WhatsApp — burbujas salientes verdes */
+.bch-wa .bmsg-wrap.bot .bmsg,.bch-wa .bmsg-wrap.admin .bmsg{background:#d9fdd3;color:#111b21}
+.bch-wa .bmsg-wrap.bot .bmsg-meta,.bch-wa .bmsg-wrap.admin .bmsg-meta{color:rgba(0,0,0,.45)}
+.bch-wa .bmsg-wrap.bot .bmsg-rolabel,.bch-wa .bmsg-wrap.admin .bmsg-rolabel{color:#128c7e}
+.bch-wa .bday-sep{background:rgba(255,255,255,.7);color:#4a4a4a}
+.bch-wa .binput-send{background:#25d366;box-shadow:0 2px 8px rgba(37,211,102,.4)}
+.bch-wa .binput-area:focus{border-color:#25d366;box-shadow:0 0 0 3px rgba(37,211,102,.12)}
+/* Instagram — burbujas salientes con degradado IG */
+.bch-ig .bmsg-wrap.bot .bmsg,.bch-ig .bmsg-wrap.admin .bmsg{background:linear-gradient(135deg,#833ab4 0%,#c13584 50%,#fd1d1d 100%);color:#fff}
+.bch-ig .bmsg-wrap.bot .bmsg-meta,.bch-ig .bmsg-wrap.admin .bmsg-meta{color:rgba(255,255,255,.7)}
+.bch-ig .bmsg-wrap.bot .bmsg-rolabel,.bch-ig .bmsg-wrap.admin .bmsg-rolabel{color:#c13584}
+.bch-ig .bday-sep{background:rgba(0,0,0,.06);color:#666}
+.bch-ig .binput-send{background:linear-gradient(135deg,#833ab4,#fd1d1d);box-shadow:0 2px 8px rgba(193,53,132,.35)}
+.bch-ig .binput-area:focus{border-color:#c13584;box-shadow:0 0 0 3px rgba(193,53,132,.12)}
+/* Messenger — burbujas salientes azul Messenger */
+.bch-ms .bmsg-wrap.bot .bmsg,.bch-ms .bmsg-wrap.admin .bmsg{background:#0084ff;color:#fff}
+.bch-ms .bmsg-wrap.bot .bmsg-meta,.bch-ms .bmsg-wrap.admin .bmsg-meta{color:rgba(255,255,255,.7)}
+.bch-ms .bmsg-wrap.bot .bmsg-rolabel,.bch-ms .bmsg-wrap.admin .bmsg-rolabel{color:#0084ff}
+.bch-ms .bday-sep{background:rgba(0,0,0,.06);color:#666}
+.bch-ms .binput-send{background:#0084ff;box-shadow:0 2px 8px rgba(0,132,255,.35)}
+.bch-ms .binput-area:focus{border-color:#0084ff;box-shadow:0 0 0 3px rgba(0,132,255,.12)}
 
 /* ─ Input ─ */
 .bthread-input{padding:10px 16px 14px;background:#fff;border-top:1px solid rgba(108,92,228,.1);flex-shrink:0;box-shadow:0 -1px 8px rgba(108,92,228,.06)}
@@ -8495,13 +8520,15 @@ window.abrirConversacion = async function(id) {
   const badgeEl = document.getElementById('bthread-channel-badge');
   if (badgeEl) badgeEl.innerHTML = _CHAN_BADGE[_bConvActual.canal] || _bConvActual.canal;
 
-  // Canal — fondo nativo por red social
-  const _BG_CANAL = { whatsapp: '#e5ddd5', instagram: '#f9fafb', messenger: '#f0f4ff' };
-  const convBg = _BG_CANAL[_bConvActual.canal] || '#ede8f5';
+  // Canal — clase nativa por red social (CSS maneja fondos y colores)
+  const _CH_CLASS = { whatsapp: 'bch-wa', instagram: 'bch-ig', messenger: 'bch-ms' };
   const threadEl = document.getElementById('bthread');
-  const msgsEl   = document.getElementById('bthread-msgs');
-  if (threadEl) threadEl.style.background = convBg;
-  if (msgsEl)   msgsEl.style.background   = convBg;
+  if (threadEl) {
+    threadEl.style.background = '';
+    threadEl.className = 'bthread ' + (_CH_CLASS[_bConvActual.canal] || '');
+  }
+  const msgsEl = document.getElementById('bthread-msgs');
+  if (msgsEl) msgsEl.style.background = '';
 
   // Estado
   actualizarEstadoUI(_bConvActual.estado || 'abierto');
@@ -8538,10 +8565,19 @@ async function cargarMensajesHilo(conv_id, silent = false) {
     const data = await r.json();
     _bMsgs = data.mensajes || [];
     renderHilo(silent);
-    // Actualizar estado bot y status desde la conversación
+    // Actualizar estado bot, status y foto desde la conversación
     if (data.conversacion) {
       _bConvActual = { ..._bConvActual, ...data.conversacion };
       actualizarEstadoUI(_bConvActual.estado || 'abierto');
+      // Actualizar foto en header si llegó fresca del servidor
+      const photoEl = document.getElementById('bthread-photo');
+      if (photoEl && _bConvActual.canal_user_photo) {
+        photoEl.src = _bConvActual.canal_user_photo;
+        photoEl.style.display = 'block';
+      }
+      // Actualizar foto en la lista local también
+      const convL = _bConvs.find(c => c.id === conv_id);
+      if (convL && _bConvActual.canal_user_photo) convL.canal_user_photo = _bConvActual.canal_user_photo;
     }
   } catch (e) {
     console.error('bandeja: error cargando mensajes', e);

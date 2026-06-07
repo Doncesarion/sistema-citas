@@ -62,6 +62,30 @@ export default async function handler(req, res) {
     const [conv] = await rc.json();
     if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' });
 
+    // Refrescar foto de perfil (IG/Messenger — URLs de Meta CDN expiran cada ~24h)
+    if (conv.canal === 'instagram' || conv.canal === 'messenger') {
+      try {
+        const rk = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`, { headers: sh });
+        const [cli] = await rk.json();
+        const meta  = cli?.canales_meta || {};
+        const token = conv.canal === 'messenger' ? meta.fb_token : meta.ig_token;
+        if (token) {
+          const apiUrl = conv.canal === 'messenger'
+            ? `https://graph.facebook.com/v20.0/${conv.canal_user_id}?fields=profile_pic&access_token=${token}`
+            : `https://graph.instagram.com/v21.0/${conv.canal_user_id}?fields=profile_pic&access_token=${token}`;
+          const nr = await fetch(apiUrl);
+          const nd = await nr.json();
+          if (nd.profile_pic) {
+            conv.canal_user_photo = nd.profile_pic;
+            fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}`, {
+              method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+              body: JSON.stringify({ canal_user_photo: nd.profile_pic })
+            }).catch(() => {});
+          }
+        }
+      } catch (_) {}
+    }
+
     // Leer pausa_bot real desde chat_sessions
     let pausa_bot = false;
     try {

@@ -36,6 +36,7 @@ export default async function handler(req, res) {
   } else if (body.object === 'page') {
     const messaging = body.entry?.[0]?.messaging?.[0];
     if (!messaging?.message?.text) return res.status(200).end();
+    if (messaging.message.is_echo) return res.status(200).end();
     canal           = 'messenger';
     canal_user_id   = messaging.sender.id;
     canal_user_name = canal_user_id;
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
   } else if (body.object === 'instagram') {
     const messaging = body.entry?.[0]?.messaging?.[0];
     if (!messaging?.message?.text) return res.status(200).end();
+    if (messaging.message.is_echo) return res.status(200).end();
     canal           = 'instagram';
     canal_user_id   = messaging.sender.id;
     canal_user_name = canal_user_id;
