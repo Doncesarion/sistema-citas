@@ -9014,9 +9014,10 @@ window.vincularContactos = async function(ids) {
       body: JSON.stringify({ ids })
     });
     if (!r.ok) { toast('Error al vincular', 3000); return; }
-    toast('Contacto vinculado — aparece agrupado en la lista', 2500);
+    // Sincronizar nombres/fotos después de vincular para propagar el mejor nombre al grupo
+    fetch('/api/bandeja?action=sync-contacts', { method: 'POST', headers: _bandejaH() }).catch(() => {});
+    toast('Contacto vinculado', 2000);
     await cargarConversaciones();
-    // Reabrir la conv actual (ahora tendrá contacto_id y el banner mostrará el otro canal)
     if (_bConvActual) abrirConversacion(_bConvActual.id);
   } catch(e) {
     toast('Error al vincular', 3000);

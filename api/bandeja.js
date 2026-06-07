@@ -238,12 +238,13 @@ export default async function handler(req, res) {
 
   // ── POST ?action=sync-contacts — obtener nombres/fotos retroactivos ─────────
   if (req.method === 'POST' && req.query.action === 'sync-contacts') {
+    // Traer todas las convs (todos los canales) para poder propagar nombres después
     const rc = await fetch(
-      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=in.(instagram,messenger)&select=id,canal,canal_user_id,canal_user_name`,
+      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name,canal_user_photo,contacto_id`,
       { headers: sh }
     );
-    const convs = await rc.json();
-    if (!Array.isArray(convs) || !convs.length) return res.status(200).json({ ok: true, updated: 0 });
+    const allConvs = await rc.json();
+    if (!Array.isArray(allConvs) || !allConvs.length) return res.status(200).json({ ok: true, updated: 0 });
 
     const rk = await fetch(
       `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`,
@@ -252,19 +253,25 @@ export default async function handler(req, res) {
     const [cli] = await rk.json();
     const meta = cli?.canales_meta || {};
 
+    // Función auxiliar: ¿tiene nombre real (no vacío ni puramente numérico)?
+    const tieneNombre = n => n && !/^\d+$/.test(n.trim());
+
     let updated = 0;
-    for (const conv of convs) {
-      // Solo procesar los que aún no tienen nombre real
-      if (conv.canal_user_name && conv.canal_user_name !== conv.canal_user_id) continue;
+
+    // Paso 1: resolver nombres via API de Meta para Instagram y Messenger
+    const apiConvs = allConvs.filter(c => c.canal === 'instagram' || c.canal === 'messenger');
+    for (const conv of apiConvs) {
+      if (tieneNombre(conv.canal_user_name) && conv.canal_user_photo) continue; // ya tiene todo
       const token = conv.canal === 'messenger' ? meta.fb_token : meta.ig_token;
       if (!token) continue;
 
       let nombre = null, foto = null;
       try {
         if (conv.canal === 'messenger') {
-          const nr = await fetch(`https://graph.facebook.com/v20.0/${conv.canal_user_id}?fields=first_name,last_name,profile_pic&access_token=${token}`);
+          const nr = await fetch(`https://graph.facebook.com/v20.0/${conv.canal_user_id}?fields=name,first_name,last_name,profile_pic&access_token=${token}`);
           const nd = await nr.json();
-          if (nd.first_name) nombre = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
+          if (nd.name) nombre = nd.name;
+          else if (nd.first_name) nombre = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
           if (nd.profile_pic) foto = nd.profile_pic;
         } else {
           const nr = await fetch(`https://graph.instagram.com/v21.0/${conv.canal_user_id}?fields=name,profile_pic&access_token=${token}`);
@@ -274,10 +281,40 @@ export default async function handler(req, res) {
         }
       } catch(_) { continue; }
 
-      if (nombre || foto) {
+      const patch = {};
+      if (nombre && !tieneNombre(conv.canal_user_name)) patch.canal_user_name = nombre;
+      if (foto   && !conv.canal_user_photo)             patch.canal_user_photo = foto;
+      if (Object.keys(patch).length) {
+        await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv.id}`, {
+          method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+          body: JSON.stringify(patch)
+        });
+        // Actualizar en memoria para el paso 2
+        if (patch.canal_user_name)  conv.canal_user_name  = patch.canal_user_name;
+        if (patch.canal_user_photo) conv.canal_user_photo = patch.canal_user_photo;
+        updated++;
+      }
+    }
+
+    // Paso 2: propagar nombre/foto del mejor canal a los demás del mismo contacto_id
+    // (ej. WhatsApp muestra el nombre de Instagram del mismo contacto vinculado)
+    const grupos = {};
+    for (const c of allConvs) {
+      if (c.contacto_id) {
+        if (!grupos[c.contacto_id]) grupos[c.contacto_id] = [];
+        grupos[c.contacto_id].push(c);
+      }
+    }
+    for (const grupo of Object.values(grupos)) {
+      if (grupo.length < 2) continue;
+      // Buscar el mejor nombre (no vacío, no numérico) y la mejor foto del grupo
+      const mejorNombre = grupo.find(c => tieneNombre(c.canal_user_name))?.canal_user_name;
+      const mejorFoto   = grupo.find(c => c.canal_user_photo)?.canal_user_photo;
+      for (const conv of grupo) {
         const patch = {};
-        if (nombre) patch.canal_user_name = nombre;
-        if (foto)   patch.canal_user_photo = foto;
+        if (mejorNombre && !tieneNombre(conv.canal_user_name)) patch.canal_user_name  = mejorNombre;
+        if (mejorFoto   && !conv.canal_user_photo)             patch.canal_user_photo = mejorFoto;
+        if (!Object.keys(patch).length) continue;
         await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv.id}`, {
           method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
           body: JSON.stringify(patch)
@@ -285,6 +322,7 @@ export default async function handler(req, res) {
         updated++;
       }
     }
+
     return res.status(200).json({ ok: true, updated });
   }
 

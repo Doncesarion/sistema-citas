@@ -79,9 +79,11 @@ export default async function handler(req, res) {
     let canal_user_photo = null;
     if (canal === 'messenger' && accessToken) {
       try {
-        const nr = await fetch(`https://graph.facebook.com/v20.0/${canal_user_id}?fields=first_name,last_name,profile_pic&access_token=${accessToken}`);
+        // Meta Graph API: usar `name` (first_name/last_name depreciados en muchos casos)
+        const nr = await fetch(`https://graph.facebook.com/v20.0/${canal_user_id}?fields=name,first_name,last_name,profile_pic&access_token=${accessToken}`);
         const nd = await nr.json();
-        if (nd.first_name) canal_user_name = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
+        if (nd.name) canal_user_name = nd.name;
+        else if (nd.first_name) canal_user_name = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
         if (nd.profile_pic) canal_user_photo = nd.profile_pic;
       } catch(_) {}
     } else if (canal === 'instagram' && accessToken) {
