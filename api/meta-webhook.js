@@ -79,12 +79,22 @@ export default async function handler(req, res) {
     let canal_user_photo = null;
     if (canal === 'messenger' && accessToken) {
       try {
-        // Meta Graph API: usar `name` (first_name/last_name depreciados en muchos casos)
+        // Intento 1: perfil directo del PSID
         const nr = await fetch(`https://graph.facebook.com/v20.0/${canal_user_id}?fields=name,first_name,last_name,profile_pic&access_token=${accessToken}`);
         const nd = await nr.json();
         if (nd.name) canal_user_name = nd.name;
         else if (nd.first_name) canal_user_name = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
         if (nd.profile_pic) canal_user_photo = nd.profile_pic;
+
+        // Intento 2: endpoint /conversations si sigue siendo número
+        if (/^\d+$/.test(canal_user_name || '') && channelValue) {
+          try {
+            const nr2 = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/conversations?user_id=${canal_user_id}&fields=participants&access_token=${accessToken}`);
+            const nd2 = await nr2.json();
+            const participant = nd2?.data?.[0]?.participants?.data?.find(p => p.id === canal_user_id);
+            if (participant?.name) canal_user_name = participant.name;
+          } catch(_) {}
+        }
       } catch(_) {}
     } else if (canal === 'instagram' && accessToken) {
       try {

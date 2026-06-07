@@ -268,11 +268,22 @@ export default async function handler(req, res) {
       let nombre = null, foto = null;
       try {
         if (conv.canal === 'messenger') {
-          const nr = await fetch(`https://graph.facebook.com/v20.0/${conv.canal_user_id}?fields=name,first_name,last_name,profile_pic&access_token=${token}`);
-          const nd = await nr.json();
-          if (nd.name) nombre = nd.name;
-          else if (nd.first_name) nombre = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
-          if (nd.profile_pic) foto = nd.profile_pic;
+          // Intento 1: perfil directo del PSID
+          const nr1 = await fetch(`https://graph.facebook.com/v20.0/${conv.canal_user_id}?fields=name,first_name,last_name,profile_pic&access_token=${token}`);
+          const nd1 = await nr1.json();
+          if (nd1.name) nombre = nd1.name;
+          else if (nd1.first_name) nombre = [nd1.first_name, nd1.last_name].filter(Boolean).join(' ');
+          if (nd1.profile_pic) foto = nd1.profile_pic;
+
+          // Intento 2: endpoint /conversations (retorna nombre del participante)
+          if (!nombre && meta.fb_page_id) {
+            try {
+              const nr2 = await fetch(`https://graph.facebook.com/v20.0/${meta.fb_page_id}/conversations?user_id=${conv.canal_user_id}&fields=participants&access_token=${token}`);
+              const nd2 = await nr2.json();
+              const participant = nd2?.data?.[0]?.participants?.data?.find(p => p.id === conv.canal_user_id);
+              if (participant?.name) nombre = participant.name;
+            } catch(_) {}
+          }
         } else {
           const nr = await fetch(`https://graph.instagram.com/v21.0/${conv.canal_user_id}?fields=name,profile_pic&access_token=${token}`);
           const nd = await nr.json();

@@ -8955,37 +8955,50 @@ function detectarMultiCanal() {
     }
   }
 
-  // Si no está vinculada, buscar posibles coincidencias por nombre
+  // Si no está vinculada: buscar por nombre similar, o mostrar lista manual si el nombre es numérico
   const nombreActual = _bConvActual.canal_user_name || '';
-  if (!nombreActual || /^\d+$/.test(nombreActual.trim())) { wrap.style.display = 'none'; return; }
+  const esNumerico   = !nombreActual || /^\d+$/.test(nombreActual.trim());
 
-  const otros = _bConvs.filter(c =>
+  const otrosPorNombre = esNumerico ? [] : _bConvs.filter(c =>
     c.id !== _bConvActual.id &&
     !c.contacto_id &&
     _nombresSimilares(c.canal_user_name || '', nombreActual)
   );
 
-  if (!otros.length) { wrap.style.display = 'none'; return; }
+  // Si nombre es numérico (PSID/teléfono) o no hay coincidencias: mostrar todas las convs
+  // de otros canales no vinculadas para vinculación manual
+  const canalActual = _bConvActual.canal;
+  const otrosManuales = esNumerico || !otrosPorNombre.length
+    ? _bConvs.filter(c =>
+        c.id !== _bConvActual.id &&
+        !c.contacto_id &&
+        c.canal !== canalActual
+      ).slice(0, 6)
+    : [];
 
-  btn.classList.add('has-match');
-  const rows = otros.map(c => {
-    const bg  = _B_CANAL_BG[c.canal]  || '#888';
-    const svg = _B_CANAL_SVG[c.canal] || '';
-    const lbl = _CHAN_LABEL[c.canal]   || c.canal;
+  const candidatos = otrosPorNombre.length ? otrosPorNombre : otrosManuales;
+  if (!candidatos.length) { wrap.style.display = 'none'; return; }
+
+  const esSugerido = otrosPorNombre.length > 0;
+  if (esSugerido) btn.classList.add('has-match');
+  else btn.classList.remove('has-match');
+
+  const rows = candidatos.map(c => {
+    const bg     = _B_CANAL_BG[c.canal]  || '#888';
+    const svg    = _B_CANAL_SVG[c.canal] || '';
+    const lbl    = _CHAN_LABEL[c.canal]   || c.canal;
     const nombre = escH(c.canal_user_name || c.canal_user_id || '');
+    const idsOne = escH(JSON.stringify([_bConvActual.id, c.id]));
     return `<div class="bmulti-drop-row">
       <span class="bmulti-drop-row-badge">
         <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
       </span>
+      <button class="bmulti-drop-action" data-ids='${idsOne}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular</button>
     </div>`;
   }).join('');
 
-  const idsToMerge = JSON.stringify([_bConvActual.id, ...otros.map(c => c.id)]);
-  menu.innerHTML = `<div class="bmulti-drop-title">Posible mismo contacto</div>${rows}
-    <div class="bmulti-drop-sep"></div>
-    <div class="bmulti-drop-merge-row">
-      <button class="bmulti-drop-merge-btn" data-ids='${escH(idsToMerge)}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular canales →</button>
-    </div>`;
+  const titulo = esSugerido ? 'Posible mismo contacto' : 'Vincular con otro canal';
+  menu.innerHTML = `<div class="bmulti-drop-title">${titulo}</div>${rows}`;
   wrap.style.display = 'inline-flex';
 }
 
