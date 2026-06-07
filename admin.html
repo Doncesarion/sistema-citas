@@ -8492,7 +8492,32 @@ async function cargarConversaciones() {
     _bConvs = await r.json();
     renderListaBandeja();
     actualizarBadgeNav();
-    if (_bConvActual) detectarMultiCanal();
+    if (_bConvActual) {
+      // Sincronizar datos del chat abierto si cambiaron (nombre, foto)
+      const fresh = _bConvs.find(c => c.id === _bConvActual.id);
+      if (fresh) {
+        const nombreCambio = fresh.canal_user_name !== _bConvActual.canal_user_name;
+        const fotoCambio   = fresh.canal_user_photo !== _bConvActual.canal_user_photo;
+        _bConvActual = fresh;
+        if (nombreCambio) {
+          const el = document.getElementById('bthread-name');
+          if (el) el.textContent = fresh.canal_user_name || fresh.canal_user_id || '?';
+        }
+        if (fotoCambio) {
+          const photo  = document.getElementById('bthread-photo');
+          const circle = document.getElementById('bthread-circle');
+          if (fresh.canal_user_photo && photo) {
+            photo.src = fresh.canal_user_photo;
+            photo.style.display = '';
+            if (circle) circle.style.display = 'none';
+          } else if (!fresh.canal_user_photo && circle) {
+            if (photo) photo.style.display = 'none';
+            circle.style.display = '';
+          }
+        }
+      }
+      detectarMultiCanal();
+    }
   } catch (e) {
     console.error('bandeja: error cargando conversaciones', e);
   }
@@ -8816,11 +8841,11 @@ window.sincronizarContactos = async function() {
       headers: _bandejaH()
     });
     const data = await r.json();
+    await cargarConversaciones();
     if (data.updated > 0) {
-      await cargarConversaciones();
       toast(`${data.updated} contacto${data.updated !== 1 ? 's' : ''} actualizado${data.updated !== 1 ? 's' : ''}`, 3000);
     } else {
-      toast('Todo al día, sin cambios', 2500);
+      toast('Sin cambios nuevos desde Meta', 2000);
     }
   } catch(e) {
     toast('Error al sincronizar', 3000);
