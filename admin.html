@@ -4283,10 +4283,10 @@ async function saveEditProf() {
     const emailProf = data.email;
     if (darAcceso && emailProf) {
       try {
-        const inv = await fetch('/api/invitar-profesional', {
+        const inv = await fetch('/api/usuarios-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
-          body: JSON.stringify({ email: emailProf, nombre, rol: data.rol, cliente_id: cid })
+          body: JSON.stringify({ action: 'invitar', email: emailProf, nombre, rol: data.rol, cliente_id: cid })
         });
         const invData = await inv.json();
         if (invData.ya_tiene_acceso) {
@@ -4327,10 +4327,10 @@ async function reenviarInvitacion(id) {
   if (!prof?.email) { toast('Este profesional no tiene email registrado'); return; }
   const cid = await getClienteId();
   try {
-    const r = await fetch('/api/invitar-profesional', {
+    const r = await fetch('/api/usuarios-admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
-      body: JSON.stringify({ email: prof.email, nombre: prof.nombre, rol: prof.rol, cliente_id: cid, reenviar: true })
+      body: JSON.stringify({ action: 'invitar', email: prof.email, nombre: prof.nombre, rol: prof.rol, cliente_id: cid, reenviar: true })
     });
     const d = await r.json();
     toast(d.ok ? '✓ Acceso reenviado a ' + prof.email : 'Error al reenviar');
@@ -4344,10 +4344,10 @@ async function reenviarInvitacionModal() {
   if (!email) { toast('El profesional no tiene email'); return; }
   const cid = await getClienteId();
   try {
-    const r = await fetch('/api/invitar-profesional', {
+    const r = await fetch('/api/usuarios-admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
-      body: JSON.stringify({ email, nombre, rol, cliente_id: cid, reenviar: true })
+      body: JSON.stringify({ action: 'invitar', email, nombre, rol, cliente_id: cid, reenviar: true })
     });
     const d = await r.json();
     toast(d.ok ? '✓ Acceso reenviado a ' + email : 'Error al reenviar');
