@@ -829,6 +829,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bmulti-banner svg{flex-shrink:0;color:var(--amber)}
 .bmulti-link{color:var(--a);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font);font-size:12px;padding:0;text-decoration:underline;text-underline-offset:2px}
 .bmulti-link:hover{opacity:.8}
+.bitem-canales{display:flex;gap:3px;margin-top:4px}
+.bitem-canal-pill{display:inline-flex;align-items:center;gap:2px;padding:2px 6px 2px 4px;border-radius:8px;font-size:9.5px;font-weight:700;color:#fff;line-height:1}
+.breply-canal-bar{display:flex;align-items:center;gap:6px;padding:8px 14px 0;flex-wrap:wrap}
+.breply-canal-label{font-size:11px;color:var(--t3);font-weight:500;flex-shrink:0;line-height:1.5}
+.breply-canal-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;border:1.5px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .12s;line-height:1}
+.breply-canal-btn:hover{border-color:var(--a);color:var(--a)}
+.breply-canal-btn.active{color:#fff;border-color:transparent}
+.breply-desvincular{font-size:9px;opacity:0.5;margin-left:2px;cursor:pointer;color:inherit;line-height:1;display:inline}
+.breply-desvincular:hover{opacity:1}
 
 /* ─ Input ─ */
 .bthread-input{padding:10px 16px 14px;background:#fff;border-top:1px solid rgba(108,92,228,.1);flex-shrink:0;box-shadow:0 -1px 8px rgba(108,92,228,.06)}
@@ -1928,6 +1937,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="bmulti-banner" id="bmulti-banner" style="display:none"></div>
         <div class="bthread-msgs" id="bthread-msgs"></div>
         <div class="bthread-input">
+          <div class="breply-canal-bar" id="breply-canal-bar" style="display:none"></div>
           <div class="bbot-banner" id="bbot-banner">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span>El bot está activo y responde automáticamente. Para escribir tú, páusalo primero.</span>
@@ -8377,7 +8387,9 @@ let _bMsgs        = [];          // mensajes del hilo actual
 let _bFiltroCanal = 'todos';
 let _bPollTimer   = null;
 let _bMsgPollTimer = null;
-let _bInited      = false;
+let _bInited         = false;
+let _bContactoActual = null;  // { contacto_id, conversaciones:[...] } en vista unificada
+let _bReplyConvId    = null;  // conv_id seleccionada para responder en modo unificado
 const PLAN_LIMITE = { inicio: 0, pro: 2000, 'clinica_ia': 5000 };
 
 // ── Helpers avatar ─────────────────────────────────────────────────────────────
@@ -8390,11 +8402,18 @@ function bAvatarColor(str) {
 function bInitials(nombre) {
   return (nombre || '?').split(/\s+/).map(p => p[0] || '').join('').slice(0,2).toUpperCase() || '?';
 }
-const _B_CANAL_BG   = { whatsapp:'#25d366', instagram:'#c13584', messenger:'#0099ff' };
-const _B_CANAL_SVG  = {
+const _B_CANAL_BG  = { whatsapp:'#25d366', instagram:'#c13584', messenger:'#0099ff' };
+const _CH_CLASS    = { whatsapp:'bch-wa', instagram:'bch-ig', messenger:'bch-ms' };
+const _CHAN_LABEL   = { whatsapp:'WhatsApp', instagram:'Instagram', messenger:'Messenger' };
+const _B_CANAL_SVG = {
   whatsapp:  '<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>',
   instagram: '<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>',
   messenger: '<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963L10.346 11.9l-5.352 3.052L10.84 8.62l2.891 3.141 5.281-3.141-5.821 6.343z"/></svg>'
+};
+const _CHAN_BADGE = {
+  whatsapp:  `<span class="bchan-badge bchan-wa"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</span>`,
+  instagram: `<span class="bchan-badge bchan-ig"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>Instagram</span>`,
+  messenger: `<span class="bchan-badge bchan-ms"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26 6.559-6.963 3.13 3.26 5.889-3.26-6.56 6.963z"/></svg>Messenger</span>`
 };
 
 function sesToken() {
@@ -8459,31 +8478,79 @@ function renderListaBandeja() {
     return;
   }
 
-  container.innerHTML = convsFiltradas.map(c => {
-    const activa = _bConvActual?.id === c.id ? ' on' : '';
-    const tiempo = formatBTiempo(c.ultimo_mensaje_at);
-    const nombre = c.canal_user_name || c.canal_user_id || '?';
-    const color  = bAvatarColor(nombre);
-    const inits  = bInitials(nombre);
-    const chBg   = _B_CANAL_BG[c.canal]  || '#888';
-    const chSvg  = _B_CANAL_SVG[c.canal] || '';
-    const unread = c.no_leidos > 0
-      ? `<span class="bitem-unread">${c.no_leidos > 99 ? '99+' : c.no_leidos}</span>` : '';
-    const fotoHtml = c.canal_user_photo ? `<img class="bav-photo" src="${escH(c.canal_user_photo)}" alt="" onerror="this.style.display='none'">` : '';
-    return `<div class="bitem${activa}" onclick="abrirConversacion('${c.id}')">
+  // Agrupar por contacto_id
+  const items = [];
+  const seenContacto = new Set();
+  for (const c of convsFiltradas) {
+    if (c.contacto_id) {
+      if (seenContacto.has(c.contacto_id)) continue;
+      seenContacto.add(c.contacto_id);
+      const grupo = convsFiltradas.filter(x => x.contacto_id === c.contacto_id);
+      const latest = grupo.reduce((a, b) => (a.ultimo_mensaje_at || '') > (b.ultimo_mensaje_at || '') ? a : b);
+      items.push({
+        isGroup: true, key: c.contacto_id, contacto_id: c.contacto_id,
+        nombre: latest.canal_user_name || latest.canal_user_id || '?',
+        fotoUrl: latest.canal_user_photo, ultimoMensaje: latest.ultimo_mensaje,
+        ultimoAt: latest.ultimo_mensaje_at,
+        noLeidos: grupo.reduce((s, x) => s + (x.no_leidos || 0), 0),
+        canales: [...new Set(grupo.map(x => x.canal))]
+      });
+    } else {
+      items.push({
+        isGroup: false, key: c.id, id: c.id,
+        nombre: c.canal_user_name || c.canal_user_id || '?',
+        fotoUrl: c.canal_user_photo, ultimoMensaje: c.ultimo_mensaje,
+        ultimoAt: c.ultimo_mensaje_at, noLeidos: c.no_leidos || 0,
+        canales: [c.canal]
+      });
+    }
+  }
+  items.sort((a, b) => (b.ultimoAt || '') > (a.ultimoAt || '') ? 1 : -1);
+
+  const activeKey = _bContactoActual?.contacto_id || (_bConvActual && !_bContactoActual ? _bConvActual.id : null);
+
+  container.innerHTML = items.map(item => {
+    const activa = item.key === activeKey ? ' on' : '';
+    const color  = bAvatarColor(item.nombre);
+    const inits  = bInitials(item.nombre);
+    const tiempo = formatBTiempo(item.ultimoAt);
+    const unread = item.noLeidos > 0
+      ? `<span class="bitem-unread">${item.noLeidos > 99 ? '99+' : item.noLeidos}</span>` : '';
+    const fotoHtml = item.fotoUrl ? `<img class="bav-photo" src="${escH(item.fotoUrl)}" alt="" onerror="this.style.display='none'">` : '';
+    const onclick = item.isGroup
+      ? `abrirContactoUnificado('${item.contacto_id}')`
+      : `abrirConversacion('${item.id}')`;
+
+    let avBadge = '', bodyExtra = '';
+    if (item.isGroup) {
+      const pills = item.canales.map(canal => {
+        const bg  = _B_CANAL_BG[canal] || '#888';
+        const svg = _B_CANAL_SVG[canal] || '';
+        const lbl = { whatsapp:'WA', instagram:'IG', messenger:'MSG' }[canal] || canal;
+        return `<span class="bitem-canal-pill" style="background:${bg}">${svg}${lbl}</span>`;
+      }).join('');
+      bodyExtra = `<div class="bitem-canales">${pills}</div>`;
+    } else {
+      const chBg  = _B_CANAL_BG[item.canales[0]] || '#888';
+      const chSvg = _B_CANAL_SVG[item.canales[0]] || '';
+      avBadge = `<div class="bitem-badge-ch" style="background:${chBg}">${chSvg}</div>`;
+    }
+
+    return `<div class="bitem${activa}" onclick="${onclick}">
       <div class="bitem-av">
         <div class="bitem-circle" style="background:${color}">${inits}${fotoHtml}</div>
-        <div class="bitem-badge-ch" style="background:${chBg}">${chSvg}</div>
+        ${avBadge}
       </div>
       <div class="bitem-body">
         <div class="bitem-row1">
-          <span class="bitem-name">${escH(nombre)}</span>
+          <span class="bitem-name">${escH(item.nombre)}</span>
           <span class="bitem-time">${tiempo}</span>
         </div>
         <div class="bitem-row2">
-          <span class="bitem-preview">${escH(c.ultimo_mensaje || '')}</span>
+          <span class="bitem-preview">${escH(item.ultimoMensaje || '')}</span>
           ${unread}
         </div>
+        ${bodyExtra}
       </div>
     </div>`;
   }).join('');
@@ -8506,6 +8573,8 @@ function actualizarBadgeNav() {
 
 // ── Abrir conversación ────────────────────────────────────────────────────────
 window.abrirConversacion = async function(id) {
+  _bContactoActual = null;
+  _bReplyConvId    = null;
   _bConvActual = _bConvs.find(c => c.id === id);
   if (!_bConvActual) return;
 
@@ -8540,19 +8609,13 @@ window.abrirConversacion = async function(id) {
   }
 
   // Badge de canal coloreado
-  const _CHAN_BADGE = {
-    whatsapp:  `<span class="bchan-badge bchan-wa"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</span>`,
-    instagram: `<span class="bchan-badge bchan-ig"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>Instagram</span>`,
-    messenger: `<span class="bchan-badge bchan-ms"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26 6.559-6.963 3.13 3.26 5.889-3.26-6.56 6.963z"/></svg>Messenger</span>`
-  };
   const badgeEl = document.getElementById('bthread-channel-badge');
   if (badgeEl) badgeEl.innerHTML = _CHAN_BADGE[_bConvActual.canal] || _bConvActual.canal;
 
   // Resetear confirmación de eliminación
   cancelarEliminarConv();
 
-  // Canal — clase nativa por red social (CSS maneja fondos y colores)
-  const _CH_CLASS = { whatsapp: 'bch-wa', instagram: 'bch-ig', messenger: 'bch-ms' };
+  // Canal — clase nativa por red social
   const threadEl = document.getElementById('bthread');
   if (threadEl) {
     threadEl.style.background = '';
@@ -8566,6 +8629,9 @@ window.abrirConversacion = async function(id) {
 
   // Detectar mismo contacto en otros canales
   detectarMultiCanal();
+
+  // Selector de canal (ocultar en vista individual)
+  renderCanalSelector();
 
   // Nombre — cerrar cualquier edición previa
   cancelarEditNombre();
@@ -8585,34 +8651,54 @@ window.abrirConversacion = async function(id) {
   // Poll mensajes activo
   clearInterval(_bMsgPollTimer);
   _bMsgPollTimer = setInterval(() => {
-    if (_bConvActual?.id === id) cargarMensajesHilo(id, true);
+    if (_bContactoActual) {
+      cargarMensajesHilo(null, true);
+    } else if (_bConvActual?.id === id) {
+      cargarMensajesHilo(id, true);
+    }
   }, 8000);
 };
 
 // ── Cargar mensajes del hilo ──────────────────────────────────────────────────
 async function cargarMensajesHilo(conv_id, silent = false) {
   try {
-    const r = await fetch(`/api/bandeja?id=${conv_id}`, {
-      headers: _bandejaH()
-    });
-    if (!r.ok) return;
-    const data = await r.json();
-    _bMsgs = data.mensajes || [];
-    renderHilo(silent);
-    // Actualizar estado bot, status y foto desde la conversación
-    if (data.conversacion) {
-      _bConvActual = { ..._bConvActual, ...data.conversacion };
-      actualizarEstadoUI(_bConvActual.estado || 'abierto');
-      // Actualizar foto en header si llegó fresca del servidor
-      const photoEl = document.getElementById('bthread-photo');
-      if (photoEl && _bConvActual.canal_user_photo) {
-        photoEl.src = _bConvActual.canal_user_photo;
-        photoEl.style.display = 'block';
+    if (_bContactoActual) {
+      // Modo unificado: cargar mensajes de todas las convs del contacto
+      const r = await fetch(`/api/bandeja?contacto_id=${encodeURIComponent(_bContactoActual.contacto_id)}`, {
+        headers: _bandejaH()
+      });
+      if (!r.ok) return;
+      const data = await r.json();
+      _bMsgs = data.mensajes || [];
+      if (data.conversaciones) {
+        _bContactoActual.conversaciones = data.conversaciones;
+        // Actualizar no_leidos en lista local
+        for (const conv of data.conversaciones) {
+          const convL = _bConvs.find(c => c.id === conv.id);
+          if (convL) { convL.no_leidos = 0; }
+        }
       }
-      // Actualizar foto en la lista local también
-      const convL = _bConvs.find(c => c.id === conv_id);
-      if (convL && _bConvActual.canal_user_photo) convL.canal_user_photo = _bConvActual.canal_user_photo;
+    } else {
+      // Modo individual
+      const r = await fetch(`/api/bandeja?id=${conv_id}`, {
+        headers: _bandejaH()
+      });
+      if (!r.ok) return;
+      const data = await r.json();
+      _bMsgs = data.mensajes || [];
+      if (data.conversacion) {
+        _bConvActual = { ..._bConvActual, ...data.conversacion };
+        actualizarEstadoUI(_bConvActual.estado || 'abierto');
+        const photoEl = document.getElementById('bthread-photo');
+        if (photoEl && _bConvActual.canal_user_photo) {
+          photoEl.src = _bConvActual.canal_user_photo;
+          photoEl.style.display = 'block';
+        }
+        const convL = _bConvs.find(c => c.id === conv_id);
+        if (convL && _bConvActual.canal_user_photo) convL.canal_user_photo = _bConvActual.canal_user_photo;
+      }
     }
+    renderHilo(silent);
   } catch (e) {
     console.error('bandeja: error cargando mensajes', e);
   }
@@ -8632,12 +8718,16 @@ function renderHilo(silent = false) {
     ? `<img src="${escH(convFoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0" onerror="this.style.display='none'">` : '';
   const avatarHtml = `<div class="bmsg-av" style="background:${convColor}">${convInits}${fotoAvHtml}</div>`;
 
+  const isUnified = !!_bContactoActual;
   let lastDay = '';
   cont.innerHTML = _bMsgs.map(m => {
     const fecha = new Date(m.created_at);
     const dia   = fecha.toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' });
     const hora  = fecha.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
     const rolLabel = m.rol === 'bot' ? 'Attia' : m.rol === 'admin' ? 'Tú' : '';
+    const canalDot = (isUnified && m.canal)
+      ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${_B_CANAL_BG[m.canal]||'#888'};margin-right:4px;flex-shrink:0;vertical-align:middle"></span>`
+      : '';
     let html = '';
     if (dia !== lastDay) { lastDay = dia; html += `<div class="bday-sep">${dia}</div>`; }
     if (m.rol === 'usuario') {
@@ -8645,12 +8735,12 @@ function renderHilo(silent = false) {
         ${avatarHtml}
         <div class="bmsg-content">
           <div class="bmsg">${escH(m.contenido)}</div>
-          <div class="bmsg-meta">${hora}</div>
+          <div class="bmsg-meta">${canalDot}${hora}</div>
         </div>
       </div>`;
     } else {
       html += `<div class="bmsg-wrap ${m.rol}">
-        <div class="bmsg-rolabel">${rolLabel}</div>
+        <div class="bmsg-rolabel">${canalDot}${rolLabel}</div>
         <div class="bmsg">${escH(m.contenido)}</div>
         <div class="bmsg-meta">${hora}</div>
       </div>`;
@@ -8816,10 +8906,21 @@ function detectarMultiCanal() {
   const banner = document.getElementById('bmulti-banner');
   if (!banner || !_bConvActual) return;
 
+  // En modo unificado: mostrar info de canales vinculados con opción de desvincular
+  if (_bContactoActual) {
+    const convs = _bContactoActual.conversaciones;
+    if (convs.length < 2) { banner.style.display = 'none'; return; }
+    const info = convs.map(c => {
+      const lbl = _CHAN_LABEL[c.canal] || c.canal;
+      return `<span>${lbl}</span> <button class="bmulti-link" onclick="desvincularConversacion('${c.id}')">Desvincular</button>`;
+    }).join(' · ');
+    banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Vista unificada: ${info}</span>`;
+    banner.style.display = 'flex';
+    return;
+  }
+
   const nombreActual = _bConvActual.canal_user_name || '';
   if (!nombreActual || /^\d+$/.test(nombreActual.trim())) { banner.style.display = 'none'; return; }
-
-  const _CHAN_LABEL = { whatsapp: 'WhatsApp', instagram: 'Instagram', messenger: 'Messenger' };
 
   // Buscar en TODOS los canales (incluye mismo canal — podría haber duplicados)
   const otros = _bConvs.filter(c =>
@@ -8835,9 +8936,167 @@ function detectarMultiCanal() {
     return `<button class="bmulti-link" onclick="abrirConversacion('${c.id}')">${escH(nombreOtro)} (${canalLabel})</button>`;
   }).join(' · ');
 
-  banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Posible mismo contacto en: ${links} — revisa antes de agendar. Responderás por <strong>${_CHAN_LABEL[_bConvActual.canal] || _bConvActual.canal}</strong>.</span>`;
+  const idsToMerge = JSON.stringify([_bConvActual.id, ...otros.map(c => c.id)]);
+  banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Posible mismo contacto en: ${links}</span><button class="bmulti-link" data-ids='${escH(idsToMerge)}' onclick="vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular →</button>`;
   banner.style.display = 'flex';
 }
+
+// ── Vista unificada de contacto ───────────────────────────────────────────────
+window.abrirContactoUnificado = async function(contacto_id) {
+  let data;
+  try {
+    const r = await fetch(`/api/bandeja?contacto_id=${encodeURIComponent(contacto_id)}`, {
+      headers: _bandejaH()
+    });
+    if (!r.ok) { toast('Error al cargar contacto', 3000); return; }
+    data = await r.json();
+  } catch(e) {
+    toast('Error al cargar contacto', 3000);
+    return;
+  }
+  const convs = data.conversaciones || [];
+  if (!convs.length) return;
+
+  const sorted = [...convs].sort((a, b) => (b.ultimo_mensaje_at||'') > (a.ultimo_mensaje_at||'') ? 1 : -1);
+  const primary = sorted[0];
+
+  _bContactoActual = { contacto_id, conversaciones: convs };
+  _bConvActual     = primary;
+  _bReplyConvId    = primary.id;
+  _bMsgs           = data.mensajes || [];
+
+  // Actualizar UI lista
+  document.querySelectorAll('.bitem').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.bitem').forEach(el => {
+    if (el.getAttribute('onclick')?.includes(contacto_id)) el.classList.add('on');
+  });
+
+  // Mostrar hilo
+  document.getElementById('bthread-empty').style.display = 'none';
+  const main = document.getElementById('bthread-main');
+  main.style.display = 'flex';
+  main.style.flexDirection = 'column';
+  main.style.height = '100%';
+
+  // Header
+  const nombre = primary.canal_user_name || primary.canal_user_id || '?';
+  const circle  = document.getElementById('bthread-circle');
+  const photoEl = document.getElementById('bthread-photo');
+  if (circle) { circle.style.background = bAvatarColor(nombre); circle.textContent = bInitials(nombre); }
+  if (photoEl) {
+    if (primary.canal_user_photo) { photoEl.src = primary.canal_user_photo; photoEl.style.display = 'block'; }
+    else { photoEl.style.display = 'none'; photoEl.src = ''; }
+  }
+
+  // Badges multi-canal en header
+  const badgeEl = document.getElementById('bthread-channel-badge');
+  if (badgeEl) {
+    const uniqueCanales = [...new Set(convs.map(c => c.canal))];
+    badgeEl.innerHTML = uniqueCanales.map(ch => _CHAN_BADGE[ch] || ch).join(' ');
+  }
+
+  // Thread class: usar el canal de la conv seleccionada para responder
+  const threadEl = document.getElementById('bthread');
+  if (threadEl) { threadEl.style.background = ''; threadEl.className = 'bthread ' + (_CH_CLASS[primary.canal] || ''); }
+  const msgsEl = document.getElementById('bthread-msgs');
+  if (msgsEl) msgsEl.style.background = '';
+
+  actualizarEstadoUI(primary.estado || 'abierto');
+  cancelarEditNombre();
+  document.getElementById('bthread-name').textContent = nombre;
+  cancelarEliminarConv();
+  document.getElementById('blist').classList.add('hidden');
+
+  for (const conv of convs) {
+    const convL = _bConvs.find(c => c.id === conv.id);
+    if (convL) convL.no_leidos = 0;
+  }
+  actualizarBadgeNav();
+
+  renderCanalSelector();
+  detectarMultiCanal();
+  renderHilo();
+
+  clearInterval(_bMsgPollTimer);
+  _bMsgPollTimer = setInterval(() => {
+    if (_bContactoActual?.contacto_id === contacto_id) cargarMensajesHilo(null, true);
+  }, 8000);
+};
+
+// ── Selector de canal para responder ─────────────────────────────────────────
+function renderCanalSelector() {
+  const bar = document.getElementById('breply-canal-bar');
+  if (!bar) return;
+  if (!_bContactoActual || _bContactoActual.conversaciones.length < 2) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = '<span class="breply-canal-label">Responder por:</span>' +
+    _bContactoActual.conversaciones.map(conv => {
+      const isActive = _bReplyConvId === conv.id;
+      const bg = _B_CANAL_BG[conv.canal] || '#888';
+      const lbl = _CHAN_LABEL[conv.canal] || conv.canal;
+      const svg = _B_CANAL_SVG[conv.canal] || '';
+      const style = isActive ? `background:${bg};border-color:${bg};` : '';
+      return `<button class="breply-canal-btn${isActive ? ' active' : ''}" style="${style}" onclick="seleccionarCanalReply('${conv.id}')">${svg} ${lbl}<span class="breply-desvincular" onclick="event.stopPropagation();desvincularConversacion('${conv.id}')" title="Desvincular">×</span></button>`;
+    }).join('');
+}
+
+window.seleccionarCanalReply = function(conv_id) {
+  _bReplyConvId = conv_id;
+  const conv = _bContactoActual?.conversaciones.find(c => c.id === conv_id);
+  if (conv) {
+    const threadEl = document.getElementById('bthread');
+    if (threadEl) { threadEl.style.background = ''; threadEl.className = 'bthread ' + (_CH_CLASS[conv.canal] || ''); }
+    const msgsEl = document.getElementById('bthread-msgs');
+    if (msgsEl) msgsEl.style.background = '';
+  }
+  renderCanalSelector();
+};
+
+// ── Vincular / Desvincular contactos ─────────────────────────────────────────
+window.vincularContactos = async function(ids) {
+  if (!Array.isArray(ids)) return;
+  try {
+    const r = await fetch('/api/bandeja?action=merge', {
+      method: 'PATCH',
+      headers: _bandejaH({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ ids })
+    });
+    if (!r.ok) { toast('Error al vincular', 3000); return; }
+    const data = await r.json();
+    toast('Contacto unificado', 2500);
+    await cargarConversaciones();
+    abrirContactoUnificado(data.contacto_id);
+  } catch(e) {
+    toast('Error al vincular', 3000);
+  }
+};
+
+window.desvincularConversacion = async function(conv_id) {
+  const prevContactoId = _bContactoActual?.contacto_id;
+  try {
+    const r = await fetch(`/api/bandeja?action=unlink&id=${conv_id}`, {
+      method: 'PATCH',
+      headers: _bandejaH()
+    });
+    if (!r.ok) { toast('Error al desvincular', 3000); return; }
+    toast('Conversación desvinculada', 2500);
+    _bContactoActual = null;
+    _bReplyConvId    = null;
+    await cargarConversaciones();
+    // Reabrir grupo si quedan 2+ o conv individual si queda 1
+    if (prevContactoId) {
+      const remaining = _bConvs.filter(c => c.contacto_id === prevContactoId);
+      if (remaining.length >= 2) { abrirContactoUnificado(prevContactoId); return; }
+      if (remaining.length === 1) { abrirConversacion(remaining[0].id); return; }
+    }
+    abrirConversacion(conv_id);
+  } catch(e) {
+    toast('Error al desvincular', 3000);
+  }
+};
 
 // ── Eliminar conversación ────────────────────────────────────────────────────
 window.iniciarEliminarConv = function() {
@@ -8853,6 +9112,7 @@ window.cancelarEliminarConv = function() {
 window.confirmarEliminarConv = async function() {
   if (!_bConvActual) return;
   const id = _bConvActual.id;
+  const prevContactoId = _bContactoActual?.contacto_id;
   try {
     const r = await fetch(`/api/bandeja?id=${id}`, {
       method: 'DELETE',
@@ -8861,7 +9121,9 @@ window.confirmarEliminarConv = async function() {
     if (!r.ok) { toast('Error al eliminar', 3000); return; }
 
     _bConvs = _bConvs.filter(c => c.id !== id);
-    _bConvActual = null;
+    _bConvActual     = null;
+    _bContactoActual = null;
+    _bReplyConvId    = null;
     _bMsgs = [];
 
     document.getElementById('bthread-empty').style.display = '';
@@ -8872,6 +9134,14 @@ window.confirmarEliminarConv = async function() {
     renderListaBandeja();
     actualizarBadgeNav();
     toast('Conversación eliminada', 2500);
+
+    // Si era parte de un grupo unificado, reabrir el grupo restante
+    if (prevContactoId) {
+      await cargarConversaciones();
+      const remaining = _bConvs.filter(c => c.contacto_id === prevContactoId);
+      if (remaining.length >= 2) abrirContactoUnificado(prevContactoId);
+      else if (remaining.length === 1) abrirConversacion(remaining[0].id);
+    }
   } catch (e) {
     toast('Error al eliminar', 3000);
   }
@@ -8923,20 +9193,22 @@ window.enviarRespuestaBandeja = async function() {
   const contenido = input.value.trim();
   if (!contenido) return;
 
+  const convId = _bReplyConvId || _bConvActual.id;
+  const replyConv = _bContactoActual?.conversaciones.find(c => c.id === convId) || _bConvActual;
   const btn = document.getElementById('binput-send-btn');
   btn.disabled = true;
   input.value = '';
   input.style.height = '';
 
   // Optimistic render
-  _bMsgs.push({ rol: 'admin', contenido, created_at: new Date().toISOString() });
+  _bMsgs.push({ rol: 'admin', contenido, created_at: new Date().toISOString(), canal: replyConv.canal || null });
   renderHilo();
 
   try {
     const r = await fetch('/api/bandeja', {
       method: 'POST',
       headers: _bandejaH({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ conversacion_id: _bConvActual.id, contenido })
+      body: JSON.stringify({ conversacion_id: convId, contenido })
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));

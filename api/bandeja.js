@@ -120,6 +120,39 @@ export default async function handler(req, res) {
     });
   }
 
+  // ── GET ?contacto_id=xxx — vista unificada de un contacto ────────────────────
+  if (req.method === 'GET' && req.query.contacto_id) {
+    const contacto_id = req.query.contacto_id;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contacto_id)) {
+      return res.status(400).json({ error: 'ID inválido' });
+    }
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?contacto_id=eq.${contacto_id}&cliente_id=eq.${cliente_id}&order=ultimo_mensaje_at.desc&select=*`,
+      { headers: sh }
+    );
+    const conversaciones = await rc.json();
+    if (!Array.isArray(conversaciones) || !conversaciones.length) {
+      return res.status(404).json({ error: 'Contacto no encontrado' });
+    }
+    const ids = conversaciones.map(c => c.id);
+    const rm = await fetch(
+      `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=in.(${ids.join(',')})&order=created_at.asc&limit=500&select=*`,
+      { headers: sh }
+    );
+    const mensajes = await rm.json();
+    const canalMap = Object.fromEntries(conversaciones.map(c => [c.id, c.canal]));
+    const mensajesConCanal = (Array.isArray(mensajes) ? mensajes : []).map(m => ({
+      ...m, canal: canalMap[m.conversacion_id] || null
+    }));
+    for (const conv of conversaciones) {
+      fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv.id}`, {
+        method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify({ no_leidos: 0 })
+      }).catch(() => {});
+    }
+    return res.status(200).json({ conversaciones, mensajes: mensajesConCanal });
+  }
+
   // ── GET — lista de conversaciones ─────────────────────────────────────────
   if (req.method === 'GET') {
     const r = await fetch(
@@ -340,6 +373,47 @@ export default async function handler(req, res) {
     ]);
     await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}`, {
       method: 'DELETE', headers: sh
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── PATCH ?action=merge — unificar conversaciones bajo un contacto_id ────────
+  if (req.method === 'PATCH' && req.query.action === 'merge') {
+    const ids = req.body?.ids;
+    if (!Array.isArray(ids) || ids.length < 2) {
+      return res.status(400).json({ error: 'Se requieren al menos 2 IDs' });
+    }
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!ids.every(id => uuidRe.test(id))) return res.status(400).json({ error: 'IDs inválidos' });
+
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?id=in.(${ids.join(',')})&cliente_id=eq.${cliente_id}&select=id,contacto_id`,
+      { headers: sh }
+    );
+    const convs = await rc.json();
+    if (!Array.isArray(convs) || convs.length !== ids.length) {
+      return res.status(403).json({ error: 'Acceso denegado o IDs inválidos' });
+    }
+    const existingCid = convs.find(c => c.contacto_id)?.contacto_id;
+    const contacto_id = existingCid || crypto.randomUUID();
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?id=in.(${ids.join(',')})`,
+      { method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' }, body: JSON.stringify({ contacto_id }) }
+    );
+    return res.status(200).json({ ok: true, contacto_id });
+  }
+
+  // ── PATCH ?action=unlink&id=xxx — desvincular conversación ──────────────────
+  if (req.method === 'PATCH' && req.query.action === 'unlink' && req.query.id) {
+    const conv_id = req.query.id;
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}&cliente_id=eq.${cliente_id}&limit=1&select=id`,
+      { headers: sh }
+    );
+    const [conv] = await rc.json();
+    if (!conv) return res.status(404).json({ error: 'No encontrada' });
+    await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}`, {
+      method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' }, body: JSON.stringify({ contacto_id: null })
     });
     return res.status(200).json({ ok: true });
   }
