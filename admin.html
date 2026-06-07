@@ -8448,7 +8448,7 @@ window.enviarRespuestaBandeja = async function() {
   renderHilo();
 
   try {
-    const r = await fetch('/api/responder-mensaje', {
+    const r = await fetch('/api/bandeja', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-session-token': sesToken() },
       body: JSON.stringify({ conversacion_id: _bConvActual.id, contenido })

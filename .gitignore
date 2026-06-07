@@ -1,3 +1,9 @@
 config.js
 .vercel
 .env*.local
+.env*
+*.bak
+attempo 2/
+files/
+supabase/.temp/
+attempo-project-brief.md
