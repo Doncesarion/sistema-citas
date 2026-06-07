@@ -73,18 +73,21 @@ export default async function handler(req, res) {
                 : canal === 'messenger' ? meta.fb_token
                 :                        meta.ig_token;
 
-    // Obtener nombre real para Instagram y Messenger
+    // Obtener nombre real y foto de perfil para Instagram y Messenger
+    let canal_user_photo = null;
     if (canal === 'messenger' && accessToken) {
       try {
-        const nr = await fetch(`https://graph.facebook.com/v20.0/${canal_user_id}?fields=first_name,last_name&access_token=${accessToken}`);
+        const nr = await fetch(`https://graph.facebook.com/v20.0/${canal_user_id}?fields=first_name,last_name,profile_pic&access_token=${accessToken}`);
         const nd = await nr.json();
         if (nd.first_name) canal_user_name = [nd.first_name, nd.last_name].filter(Boolean).join(' ');
+        if (nd.profile_pic) canal_user_photo = nd.profile_pic;
       } catch(_) {}
     } else if (canal === 'instagram' && accessToken) {
       try {
-        const nr = await fetch(`https://graph.instagram.com/v21.0/${canal_user_id}?fields=name&access_token=${accessToken}`);
+        const nr = await fetch(`https://graph.instagram.com/v21.0/${canal_user_id}?fields=name,profile_pic&access_token=${accessToken}`);
         const nd = await nr.json();
         if (nd.name) canal_user_name = nd.name;
+        if (nd.profile_pic) canal_user_photo = nd.profile_pic;
       } catch(_) {}
     }
   } catch (e) {
@@ -116,6 +119,15 @@ export default async function handler(req, res) {
           headers: { ...shJ, Prefer: 'return=minimal' },
           body: JSON.stringify({ conversacion_id, cliente_id, rol: 'usuario', contenido: mensaje })
         }).catch(e => console.error('meta-webhook: error guardando mensaje usuario:', e.message));
+
+        // Actualizar foto de perfil si se obtuvo
+        if (canal_user_photo) {
+          fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conversacion_id}`, {
+            method: 'PATCH',
+            headers: { ...shJ, Prefer: 'return=minimal' },
+            body: JSON.stringify({ canal_user_photo })
+          }).catch(() => {});
+        }
       }
     }
   } catch (e) {
