@@ -755,6 +755,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bbot-toggle{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--b2);background:var(--bg);cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);transition:all .15s;color:var(--t2)}
 .bbot-toggle.active{border-color:var(--green);color:var(--green);background:var(--gdim)}
 .bbot-toggle.paused{border-color:var(--amber);color:var(--amber);background:var(--adm2)}
+/* ─ Estado conversación ─ */
+.bestado-wrap{position:relative}
+.bestado-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1.5px solid var(--b2);background:var(--bg);cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font);color:var(--t2);transition:all .12s;white-space:nowrap}
+.bestado-badge:hover{border-color:var(--a);color:var(--a)}
+.bestado-badge.abierto{border-color:rgba(22,163,74,.35);color:var(--green);background:var(--gdim)}
+.bestado-badge.cotizando{border-color:rgba(217,119,6,.35);color:var(--amber);background:var(--adm2)}
+.bestado-badge.cerrado{border-color:rgba(100,116,139,.3);color:#64748b;background:#f1f5f9}
+.bestado-drop{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border-radius:var(--rl);box-shadow:var(--sh3);border:1px solid var(--b2);z-index:500;min-width:150px;padding:5px;display:none}
+.bestado-drop.open{display:block}
+.bestado-opt{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:500;color:var(--t1);border:none;background:none;width:100%;text-align:left;font-family:var(--font);transition:background .1s}
+.bestado-opt:hover{background:var(--adim)}
+.bestado-opt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
 /* ─ Mensajes ─ */
 .bthread-msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:2px;background:#ede8f5}
@@ -1838,6 +1850,24 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <div id="bthread-channel-badge"></div>
           </div>
           <div class="bthread-actions">
+            <div class="bestado-wrap" id="bestado-wrap">
+              <button class="bestado-badge abierto" id="bestado-badge" onclick="toggleEstadoDrop(event)">
+                <svg width="7" height="7" viewBox="0 0 8 8" id="bestado-dot"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
+                <span id="bestado-label">Abierto</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="bestado-drop" id="bestado-drop">
+                <button class="bestado-opt" onclick="cambiarEstadoConv('abierto')">
+                  <span class="bestado-opt-dot" style="background:var(--green)"></span>Abierto
+                </button>
+                <button class="bestado-opt" onclick="cambiarEstadoConv('cotizando')">
+                  <span class="bestado-opt-dot" style="background:var(--amber)"></span>Cotizando
+                </button>
+                <button class="bestado-opt" onclick="cambiarEstadoConv('cerrado')">
+                  <span class="bestado-opt-dot" style="background:#64748b"></span>Cerrado
+                </button>
+              </div>
+            </div>
             <button class="bbot-toggle active" id="bbot-toggle" onclick="toggleBotBandeja()">
               <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
               <span id="bbot-label">Bot activo</span>
@@ -8386,10 +8416,10 @@ function renderListaBandeja() {
     const chSvg  = _B_CANAL_SVG[c.canal] || '';
     const unread = c.no_leidos > 0
       ? `<span class="bitem-unread">${c.no_leidos > 99 ? '99+' : c.no_leidos}</span>` : '';
-    const foto = c.canal_user_photo ? `<img class="bav-photo" src="${escH(c.canal_user_photo)}" alt="" onerror="this.style.display='none'">` : '';
+    const fotoHtml = c.canal_user_photo ? `<img class="bav-photo" src="${escH(c.canal_user_photo)}" alt="" onerror="this.style.display='none'">` : '';
     return `<div class="bitem${activa}" onclick="abrirConversacion('${c.id}')">
       <div class="bitem-av">
-        <div class="bitem-circle" style="background:${color}">${foto || inits}</div>
+        <div class="bitem-circle" style="background:${color}">${inits}${fotoHtml}</div>
         <div class="bitem-badge-ch" style="background:${chBg}">${chSvg}</div>
       </div>
       <div class="bitem-body">
@@ -8465,6 +8495,17 @@ window.abrirConversacion = async function(id) {
   const badgeEl = document.getElementById('bthread-channel-badge');
   if (badgeEl) badgeEl.innerHTML = _CHAN_BADGE[_bConvActual.canal] || _bConvActual.canal;
 
+  // Canal — fondo nativo por red social
+  const _BG_CANAL = { whatsapp: '#e5ddd5', instagram: '#f9fafb', messenger: '#f0f4ff' };
+  const convBg = _BG_CANAL[_bConvActual.canal] || '#ede8f5';
+  const threadEl = document.getElementById('bthread');
+  const msgsEl   = document.getElementById('bthread-msgs');
+  if (threadEl) threadEl.style.background = convBg;
+  if (msgsEl)   msgsEl.style.background   = convBg;
+
+  // Estado
+  actualizarEstadoUI(_bConvActual.estado || 'abierto');
+
   // Nombre — cerrar cualquier edición previa
   cancelarEditNombre();
   document.getElementById('bthread-name').textContent = nombre;
@@ -8497,9 +8538,10 @@ async function cargarMensajesHilo(conv_id, silent = false) {
     const data = await r.json();
     _bMsgs = data.mensajes || [];
     renderHilo(silent);
-    // Actualizar estado bot desde la conversación
+    // Actualizar estado bot y status desde la conversación
     if (data.conversacion) {
       _bConvActual = { ..._bConvActual, ...data.conversacion };
+      actualizarEstadoUI(_bConvActual.estado || 'abierto');
     }
   } catch (e) {
     console.error('bandeja: error cargando mensajes', e);
@@ -8516,9 +8558,9 @@ function renderHilo(silent = false) {
   const convFoto   = _bConvActual?.canal_user_photo || null;
   const convColor  = bAvatarColor(convNombre);
   const convInits  = bInitials(convNombre);
-  const avatarHtml = convFoto
-    ? `<div class="bmsg-av" style="background:${convColor}"><img src="${escH(convFoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0" onerror="this.style.display='none'"></div>`
-    : `<div class="bmsg-av" style="background:${convColor}">${convInits}</div>`;
+  const fotoAvHtml = convFoto
+    ? `<img src="${escH(convFoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0" onerror="this.style.display='none'">` : '';
+  const avatarHtml = `<div class="bmsg-av" style="background:${convColor}">${convInits}${fotoAvHtml}</div>`;
 
   let lastDay = '';
   cont.innerHTML = _bMsgs.map(m => {
@@ -8678,6 +8720,45 @@ window.toggleBotBandeja = async function() {
     console.error('bandeja: error toggling bot', e);
   }
 };
+
+// ── Estado de la conversación ────────────────────────────────────────────────
+function actualizarEstadoUI(estado) {
+  const badge = document.getElementById('bestado-badge');
+  const label = document.getElementById('bestado-label');
+  if (!badge || !label) return;
+  badge.className = 'bestado-badge ' + (estado || 'abierto');
+  const labels = { abierto: 'Abierto', cotizando: 'Cotizando', cerrado: 'Cerrado' };
+  label.textContent = labels[estado] || 'Abierto';
+}
+
+window.toggleEstadoDrop = function(e) {
+  e.stopPropagation();
+  const drop = document.getElementById('bestado-drop');
+  if (!drop) return;
+  drop.classList.toggle('open');
+};
+
+window.cambiarEstadoConv = async function(nuevoEstado) {
+  if (!_bConvActual) return;
+  document.getElementById('bestado-drop')?.classList.remove('open');
+  actualizarEstadoUI(nuevoEstado);
+  _bConvActual.estado = nuevoEstado;
+  const conv = _bConvs.find(c => c.id === _bConvActual.id);
+  if (conv) conv.estado = nuevoEstado;
+  try {
+    await fetch(`/api/bandeja?id=${_bConvActual.id}&action=update-estado`, {
+      method: 'PATCH',
+      headers: _bandejaH({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+  } catch (e) {
+    console.error('bandeja: error actualizando estado', e);
+  }
+};
+
+document.addEventListener('click', () => {
+  document.getElementById('bestado-drop')?.classList.remove('open');
+});
 
 // ── Enviar respuesta ──────────────────────────────────────────────────────────
 window.enviarRespuestaBandeja = async function() {

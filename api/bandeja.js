@@ -252,6 +252,27 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── PATCH ?id=xxx&action=update-estado — cambiar estado conversación ────────
+  if (req.method === 'PATCH' && req.query.id && req.query.action === 'update-estado') {
+    const conv_id = req.query.id;
+    const estado  = req.body?.estado;
+    if (!['abierto', 'cotizando', 'cerrado'].includes(estado)) {
+      return res.status(400).json({ error: 'Estado inválido' });
+    }
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}&cliente_id=eq.${cliente_id}&limit=1&select=id`,
+      { headers: sh }
+    );
+    const [conv] = await rc.json();
+    if (!conv) return res.status(404).json({ error: 'Conversación no encontrada' });
+    await fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}`, {
+      method: 'PATCH',
+      headers: { ...shJ, Prefer: 'return=minimal' },
+      body: JSON.stringify({ estado })
+    });
+    return res.status(200).json({ ok: true, estado });
+  }
+
   // ── PATCH ?id=xxx&action=toggle-bot — pausar/reanudar bot ────────────────
   if (req.method === 'PATCH' && req.query.id && req.query.action === 'toggle-bot') {
     const conv_id  = req.query.id;
