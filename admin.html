@@ -797,30 +797,38 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bmsg-wrap.bot .bmsg-rolabel,.bmsg-wrap.admin .bmsg-rolabel{text-align:right}
 .bday-sep{align-self:center;background:rgba(0,0,0,.1);color:#555;font-size:11px;font-weight:500;padding:3px 14px;border-radius:12px;margin:10px 0;flex-shrink:0}
 /* ─ Estilos nativos por canal ─ */
-.bch-wa,.bch-wa .bthread-msgs{background:#e5ddd5}
-.bch-ig,.bch-ig .bthread-msgs{background:#fafafa}
-.bch-ms,.bch-ms .bthread-msgs{background:#e5efff}
-/* WhatsApp — burbujas salientes verdes */
-.bch-wa .bmsg-wrap.bot .bmsg,.bch-wa .bmsg-wrap.admin .bmsg{background:#d9fdd3;color:#111b21}
+/* WhatsApp: fondo beige clásico, burbujas con cola */
+.bch-wa,.bch-wa .bthread-msgs{background:#efeae2}
+.bch-wa .bmsg-wrap.usuario .bmsg{background:#fff;border-radius:0 14px 14px 14px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.bch-wa .bmsg-wrap.bot .bmsg,.bch-wa .bmsg-wrap.admin .bmsg{background:#d9fdd3;color:#111b21;border-radius:14px 0 14px 14px}
 .bch-wa .bmsg-wrap.bot .bmsg-meta,.bch-wa .bmsg-wrap.admin .bmsg-meta{color:rgba(0,0,0,.45)}
 .bch-wa .bmsg-wrap.bot .bmsg-rolabel,.bch-wa .bmsg-wrap.admin .bmsg-rolabel{color:#128c7e}
-.bch-wa .bday-sep{background:rgba(255,255,255,.7);color:#4a4a4a}
+.bch-wa .bday-sep{background:rgba(255,255,255,.75);color:#54656f;border-radius:8px;font-size:10.5px}
 .bch-wa .binput-send{background:#25d366;box-shadow:0 2px 8px rgba(37,211,102,.4)}
 .bch-wa .binput-area:focus{border-color:#25d366;box-shadow:0 0 0 3px rgba(37,211,102,.12)}
-/* Instagram — burbujas salientes con degradado IG */
-.bch-ig .bmsg-wrap.bot .bmsg,.bch-ig .bmsg-wrap.admin .bmsg{background:linear-gradient(135deg,#833ab4 0%,#c13584 50%,#fd1d1d 100%);color:#fff}
+/* Instagram: fondo blanco, burbujas redondeadas sin cola */
+.bch-ig,.bch-ig .bthread-msgs{background:#fff}
+.bch-ig .bmsg-wrap.usuario .bmsg{background:#efefef;color:#1c1e21;border-radius:18px 18px 18px 4px;box-shadow:none}
+.bch-ig .bmsg-wrap.bot .bmsg,.bch-ig .bmsg-wrap.admin .bmsg{background:linear-gradient(135deg,#833ab4 0%,#c13584 50%,#fd1d1d 100%);color:#fff;border-radius:18px 18px 4px 18px}
 .bch-ig .bmsg-wrap.bot .bmsg-meta,.bch-ig .bmsg-wrap.admin .bmsg-meta{color:rgba(255,255,255,.7)}
 .bch-ig .bmsg-wrap.bot .bmsg-rolabel,.bch-ig .bmsg-wrap.admin .bmsg-rolabel{color:#c13584}
-.bch-ig .bday-sep{background:rgba(0,0,0,.06);color:#666}
+.bch-ig .bday-sep{background:transparent;color:#999;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 0}
 .bch-ig .binput-send{background:linear-gradient(135deg,#833ab4,#fd1d1d);box-shadow:0 2px 8px rgba(193,53,132,.35)}
 .bch-ig .binput-area:focus{border-color:#c13584;box-shadow:0 0 0 3px rgba(193,53,132,.12)}
-/* Messenger — burbujas salientes azul Messenger */
-.bch-ms .bmsg-wrap.bot .bmsg,.bch-ms .bmsg-wrap.admin .bmsg{background:#0084ff;color:#fff}
+/* Messenger: fondo blanco, burbujas redondeadas sin cola */
+.bch-ms,.bch-ms .bthread-msgs{background:#fff}
+.bch-ms .bmsg-wrap.usuario .bmsg{background:#f0f0f0;color:#1c1e21;border-radius:18px 18px 18px 4px;box-shadow:none}
+.bch-ms .bmsg-wrap.bot .bmsg,.bch-ms .bmsg-wrap.admin .bmsg{background:#0084ff;color:#fff;border-radius:18px 18px 4px 18px}
 .bch-ms .bmsg-wrap.bot .bmsg-meta,.bch-ms .bmsg-wrap.admin .bmsg-meta{color:rgba(255,255,255,.7)}
 .bch-ms .bmsg-wrap.bot .bmsg-rolabel,.bch-ms .bmsg-wrap.admin .bmsg-rolabel{color:#0084ff}
-.bch-ms .bday-sep{background:rgba(0,0,0,.06);color:#666}
+.bch-ms .bday-sep{background:transparent;color:#999;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 0}
 .bch-ms .binput-send{background:#0084ff;box-shadow:0 2px 8px rgba(0,132,255,.35)}
 .bch-ms .binput-area:focus{border-color:#0084ff;box-shadow:0 0 0 3px rgba(0,132,255,.12)}
+/* ─ Banner multi-canal (mismo contacto en otro canal) ─ */
+.bmulti-banner{padding:7px 18px;background:#fffbeb;border-bottom:1px solid rgba(217,119,6,.2);font-size:12px;color:#92400e;display:flex;align-items:center;gap:7px;flex-shrink:0;flex-wrap:wrap}
+.bmulti-banner svg{flex-shrink:0;color:var(--amber)}
+.bmulti-link{color:var(--a);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font);font-size:12px;padding:0;text-decoration:underline;text-underline-offset:2px}
+.bmulti-link:hover{opacity:.8}
 
 /* ─ Input ─ */
 .bthread-input{padding:10px 16px 14px;background:#fff;border-top:1px solid rgba(108,92,228,.1);flex-shrink:0;box-shadow:0 -1px 8px rgba(108,92,228,.06)}
@@ -1917,6 +1925,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             </button>
           </div>
         </div>
+        <div class="bmulti-banner" id="bmulti-banner" style="display:none"></div>
         <div class="bthread-msgs" id="bthread-msgs"></div>
         <div class="bthread-input">
           <div class="bbot-banner" id="bbot-banner">
@@ -8423,6 +8432,7 @@ async function cargarConversaciones() {
     _bConvs = await r.json();
     renderListaBandeja();
     actualizarBadgeNav();
+    if (_bConvActual) detectarMultiCanal();
   } catch (e) {
     console.error('bandeja: error cargando conversaciones', e);
   }
@@ -8553,6 +8563,9 @@ window.abrirConversacion = async function(id) {
 
   // Estado
   actualizarEstadoUI(_bConvActual.estado || 'abierto');
+
+  // Detectar mismo contacto en otros canales
+  detectarMultiCanal();
 
   // Nombre — cerrar cualquier edición previa
   cancelarEditNombre();
@@ -8777,6 +8790,32 @@ window.toggleBotBandeja = async function() {
     console.error('bandeja: error toggling bot', e);
   }
 };
+
+// ── Detectar mismo contacto en otros canales ─────────────────────────────────
+function detectarMultiCanal() {
+  const banner = document.getElementById('bmulti-banner');
+  if (!banner || !_bConvActual) return;
+
+  const nombre = (_bConvActual.canal_user_name || '').trim().toLowerCase();
+  const esNumerico = /^\d+$/.test(nombre);
+  if (!nombre || esNumerico) { banner.style.display = 'none'; return; }
+
+  const _CHAN_LABEL = { whatsapp: 'WhatsApp', instagram: 'Instagram', messenger: 'Messenger' };
+  const otros = _bConvs.filter(c =>
+    c.id !== _bConvActual.id &&
+    c.canal !== _bConvActual.canal &&
+    (c.canal_user_name || '').trim().toLowerCase() === nombre
+  );
+
+  if (!otros.length) { banner.style.display = 'none'; return; }
+
+  const links = otros.map(c =>
+    `<button class="bmulti-link" onclick="abrirConversacion('${c.id}')">${_CHAN_LABEL[c.canal] || c.canal}</button>`
+  ).join(' y ');
+
+  banner.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Este contacto también escribe por ${links} — revisa antes de agendar para evitar duplicados. Estás respondiendo por <strong>${_CHAN_LABEL[_bConvActual.canal]}</strong>.</span>`;
+  banner.style.display = 'flex';
+}
 
 // ── Eliminar conversación ────────────────────────────────────────────────────
 window.iniciarEliminarConv = function() {
