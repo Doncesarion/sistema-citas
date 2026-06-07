@@ -6634,7 +6634,6 @@ function routeFromURL() {
 }
 
 window.addEventListener('popstate', routeFromURL);
-routeFromURL();
 
 // Cargar booking slug desde Supabase al iniciar
 (async function() {
@@ -8741,6 +8740,9 @@ window.autoResizeBinput = function(el) {
 window.addEventListener('load', () => { setTimeout(cargarStatsIA, 2000); });
 
 })();
+
+// Iniciar routing después de que todas las funciones estén definidas
+routeFromURL();
 </script>
 
 
