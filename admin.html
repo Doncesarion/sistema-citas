@@ -9482,6 +9482,112 @@ window.addEventListener('load', () => { setTimeout(cargarStatsIA, 2000); });
 // Iniciar routing — ocultar body hasta que la vista correcta esté lista
 routeFromURL();
 (function(){ const s = document.getElementById('pre-route-style'); if (s) s.remove(); })();
+
+// ── Soporte widget (cliente → César) ─────────────────────────────────────────
+let _hSoportePoll = null;
+
+function switchHelpTab(tab) {
+  const isS = tab === 'soporte';
+  const htAttia = document.getElementById('htab-attia');
+  const htSop = document.getElementById('htab-soporte');
+  if (htAttia) { htAttia.style.background = !isS ? 'rgba(255,255,255,0.15)' : 'none'; htAttia.style.color = !isS ? '#fff' : 'rgba(255,255,255,0.55)'; }
+  if (htSop) { htSop.style.background = isS ? 'rgba(255,255,255,0.15)' : 'none'; htSop.style.color = isS ? '#fff' : 'rgba(255,255,255,0.55)'; }
+  // Show/hide Attia content
+  ['help-msgs','help-chips','help-attia-footer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = isS ? 'none' : ''; });
+  const intBtn = document.getElementById('help-intervenir-btn');
+  if (intBtn) intBtn.style.display = isS ? 'none' : '';
+  const helpFoot = document.querySelector('.help-foot');
+  if (helpFoot) helpFoot.style.display = isS ? 'none' : '';
+  // Show/hide soporte panel
+  const sp = document.getElementById('help-soporte-wrap');
+  const sf = document.getElementById('help-soporte-foot');
+  if (sp) sp.style.display = isS ? 'flex' : 'none';
+  if (sf) sf.style.display = isS ? 'flex' : 'none';
+  if (isS) {
+    cargarSoporteMsgsCliente();
+    startSoportePoll();
+    const badge = document.getElementById('htab-soporte-badge');
+    if (badge) { badge.style.display = 'none'; badge.textContent = ''; }
+  } else {
+    stopSoportePoll();
+  }
+}
+
+function _soporteHeaders() {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  return { 'x-session-token': tok, 'Content-Type': 'application/json' };
+}
+
+function _soporteClienteId() {
+  try {
+    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    return u.cliente_id || '';
+  } catch(e) { return ''; }
+}
+
+async function cargarSoporteMsgsCliente() {
+  const cliente_id = _soporteClienteId();
+  if (!cliente_id) return;
+  try {
+    const r = await fetch(`/api/usuarios-admin?action=soporte-msgs&cliente_id=${encodeURIComponent(cliente_id)}`, {
+      headers: { 'x-session-token': localStorage.getItem('attempo_session_token') || '' }
+    });
+    if (!r.ok) return;
+    const msgs = await r.json();
+    renderSoporteMsgsCliente(msgs);
+  } catch(e) {}
+}
+
+function renderSoporteMsgsCliente(msgs) {
+  const el = document.getElementById('help-soporte-wrap');
+  if (!el) return;
+  if (!Array.isArray(msgs) || !msgs.length) {
+    el.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--t3);margin-top:20px;padding:0 8px">Escríbenos tu consulta y César te responderá a la brevedad.</div>';
+    return;
+  }
+  let html = '';
+  let saJoined = false;
+  for (const m of msgs) {
+    const isSA = m.remitente === 'superadmin';
+    if (isSA && !saJoined) {
+      saJoined = true;
+      html += `<div class="hs-joined">César Salinas se unió al chat</div>`;
+    }
+    const time = new Date(m.created_at).toLocaleString('es-CL', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    html += `<div style="display:flex;flex-direction:column;align-items:${isSA ? 'flex-start' : 'flex-end'}">
+      <div class="hsmsg ${isSA ? 'cli' : 'sa'}">${escH(m.contenido)}</div>
+      <div class="hsmsg-time" style="align-self:${isSA ? 'flex-start' : 'flex-end'}">${isSA ? 'Attempo · ' : ''}${time}</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function enviarSoporteMsg() {
+  const inp = document.getElementById('help-soporte-input');
+  const contenido = inp?.value?.trim();
+  if (!contenido) return;
+  const cliente_id = _soporteClienteId();
+  if (!cliente_id) return;
+  inp.value = '';
+  inp.disabled = true;
+  try {
+    await fetch('/api/usuarios-admin?action=soporte-send', {
+      method: 'POST',
+      headers: _soporteHeaders(),
+      body: JSON.stringify({ cliente_id, contenido, remitente: 'cliente' })
+    });
+    await cargarSoporteMsgsCliente();
+  } catch(e) {}
+  inp.disabled = false;
+  inp.focus();
+}
+
+function startSoportePoll() {
+  stopSoportePoll();
+  _hSoportePoll = setInterval(cargarSoporteMsgsCliente, 20000);
+}
+function stopSoportePoll() { if (_hSoportePoll) { clearInterval(_hSoportePoll); _hSoportePoll = null; } }
 </script>
 
 
@@ -9525,6 +9631,14 @@ routeFromURL();
 .hchip-no{color:var(--t3);border-color:var(--b1)}
 .hchip-no:hover{background:rgba(220,38,38,0.06);color:var(--red);border-color:rgba(220,38,38,0.2)}
 .help-fu-timer{font-size:10px;color:var(--t4);margin-top:2px}
+/* Soporte chat widget */
+#help-soporte-wrap{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.hsmsg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.55;word-break:break-word}
+.hsmsg.cli{background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.1);color:var(--t1);border-radius:12px 12px 12px 2px;align-self:flex-start}
+.hsmsg.sa{background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;border-radius:12px 12px 2px 12px;align-self:flex-end}
+.hsmsg-time{font-size:10px;color:var(--t3);margin-top:2px}
+.hs-joined{text-align:center;font-size:11px;color:var(--t3);padding:4px 0;display:flex;align-items:center;gap:8px}
+.hs-joined::before,.hs-joined::after{content:'';flex:1;height:1px;background:var(--b1)}
 </style>
 
 <button id="help-btn" onclick="toggleHelp()" title="Ayuda rápida — Attia">
@@ -9536,15 +9650,15 @@ routeFromURL();
 
 <div id="help-panel">
   <div class="help-header">
-    <div class="help-av">
+    <div class="help-av" id="help-av">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         <path d="M8 10h.01M12 10h.01M16 10h.01"/>
       </svg>
     </div>
-    <div style="flex:1">
-      <div class="help-title">Attia</div>
-      <div class="help-sub">Asistente de ayuda · Attempo</div>
+    <div style="flex:1;display:flex;gap:0">
+      <button id="htab-attia" onclick="switchHelpTab('attia')" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Attia</button>
+      <button id="htab-soporte" onclick="switchHelpTab('soporte')" style="background:none;border:none;color:rgba(255,255,255,0.55);padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:5px">Soporte <span id="htab-soporte-badge" style="display:none;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:14px;height:14px;border-radius:7px;line-height:14px;text-align:center;padding:0 3px"></span></button>
     </div>
     <button id="help-intervenir-btn" onclick="toggleIntervenir()" title="Escribir como Attia">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -9564,7 +9678,15 @@ routeFromURL();
     <button class="hchip" onclick="helpChip('¿Cómo agrego servicios al catálogo?')">Agregar servicios</button>
     <button class="hchip" onclick="helpChip('¿Cómo funcionan los recordatorios automáticos?')">Recordatorios</button>
   </div>
-  <div style="padding:6px 13px 2px;font-size:10.5px;color:var(--t3);text-align:center;flex-shrink:0;border-top:1px solid var(--b1)">
+  <!-- Soporte chat -->
+  <div id="help-soporte-wrap" style="display:none;flex:1;overflow-y:auto;padding:13px;flex-direction:column;gap:8px;scroll-behavior:smooth"></div>
+  <div id="help-soporte-foot" style="display:none;gap:8px;padding:10px 13px;border-top:1px solid var(--b1);flex-shrink:0;align-items:center">
+    <input id="help-soporte-input" placeholder="Escribe tu consulta..." style="flex:1;border:1px solid var(--b1);border-radius:20px;padding:8px 14px;font-size:12.5px;font-family:var(--font);background:var(--surface-hi);color:var(--t1);outline:none" onkeydown="if(event.key==='Enter')enviarSoporteMsg()">
+    <button onclick="enviarSoporteMsg()" style="width:33px;height:33px;border-radius:50%;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+  <div id="help-attia-footer" style="padding:6px 13px 2px;font-size:10.5px;color:var(--t3);text-align:center;flex-shrink:0;border-top:1px solid var(--b1)">
     Soporte: <a href="mailto:soporte@attempo.cl" style="color:var(--a);text-decoration:none">soporte@attempo.cl</a>
     &nbsp;·&nbsp;<a href="#" onclick="openPrivacyInfo();return false" style="color:var(--a);text-decoration:none">Privacidad</a>
   </div>

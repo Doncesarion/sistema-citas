@@ -22,6 +22,23 @@ function verifySessionToken(token, expectedClienteId) {
   return true;
 }
 
+function getClienteIdFromToken(token) {
+  if (!token) return null;
+  const SECRET = process.env.SESSION_SECRET;
+  if (!SECRET) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  if (sig !== expected) return null;
+  const parts = payload.split(':');
+  if (parts.length !== 3) return null;
+  const [clienteId, , expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return clienteId;
+}
+
 const ROL_LABELS = {
   admin:    'Administrador general',
   staff:    'Staff / Profesional',
@@ -214,6 +231,87 @@ export default async function handler(req, res) {
     );
     if (!rUpd.ok) return res.status(500).json({ error: 'Error al actualizar contraseña' });
     return res.status(200).json({ ok: true });
+  }
+
+  // ── Soporte routes (own auth — bypass SA gate) ───────────────────────────
+  const _SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+  const _SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const _sh = { apikey: _SUPA_KEY, Authorization: `Bearer ${_SUPA_KEY}`, 'Content-Type': 'application/json' };
+
+  // GET ?action=soporte-list — SA: all clients with last msg + unread count
+  if (req.method === 'GET' && req.query.action === 'soporte-list') {
+    const saToken = req.headers['x-sa-token'];
+    if (!verifyToken(saToken)) return res.status(401).json({ error: 'No autorizado' });
+    const [rMsgs, rCli] = await Promise.all([
+      fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?order=created_at.desc&select=id,cliente_id,remitente,contenido,leido,created_at`, { headers: _sh }),
+      fetch(`${_SUPA_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio`, { headers: _sh })
+    ]);
+    const msgs = await rMsgs.json();
+    const clientes = await rCli.json();
+    const cliMap = {};
+    for (const c of (Array.isArray(clientes) ? clientes : [])) cliMap[c.id] = c.nombre_negocio || '—';
+    const convs = {};
+    for (const m of (Array.isArray(msgs) ? msgs : [])) {
+      if (!convs[m.cliente_id]) convs[m.cliente_id] = { cliente_id: m.cliente_id, negocio_nombre: cliMap[m.cliente_id] || '—', ultimo_msg: m.contenido, ultimo_at: m.created_at, ultimo_remitente: m.remitente, sin_leer: 0 };
+      if (m.remitente === 'cliente' && !m.leido) convs[m.cliente_id].sin_leer++;
+    }
+    return res.status(200).json(Object.values(convs).sort((a, b) => new Date(b.ultimo_at) - new Date(a.ultimo_at)));
+  }
+
+  // GET ?action=soporte-msgs&cliente_id=xxx
+  if (req.method === 'GET' && req.query.action === 'soporte-msgs') {
+    const { cliente_id } = req.query;
+    if (!cliente_id) return res.status(400).json({ error: 'Falta cliente_id' });
+    const saToken = req.headers['x-sa-token'];
+    const sesToken = req.headers['x-session-token'];
+    const isSA = verifyToken(saToken);
+    const cidFromToken = !isSA ? getClienteIdFromToken(sesToken) : null;
+    if (!isSA && cidFromToken !== cliente_id) return res.status(401).json({ error: 'No autorizado' });
+    if (isSA) {
+      await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.cliente&leido=eq.false`,
+        { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ leido: true }) });
+    }
+    const r = await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&order=created_at.asc&limit=200`, { headers: _sh });
+    return res.status(200).json(await r.json());
+  }
+
+  // POST ?action=soporte-send
+  if (req.method === 'POST' && req.query.action === 'soporte-send') {
+    const { cliente_id, contenido, remitente } = req.body || {};
+    if (!cliente_id || !contenido || !remitente) return res.status(400).json({ error: 'Datos incompletos' });
+    const saToken = req.headers['x-sa-token'];
+    const sesToken = req.headers['x-session-token'];
+    const isSA = verifyToken(saToken);
+    if (!isSA) {
+      const cid = getClienteIdFromToken(sesToken);
+      if (cid !== cliente_id || remitente !== 'cliente') return res.status(401).json({ error: 'No autorizado' });
+    } else if (remitente !== 'superadmin') {
+      return res.status(400).json({ error: 'Remitente inválido' });
+    }
+    const r = await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes`,
+      { method: 'POST', headers: { ..._sh, Prefer: 'return=representation' },
+        body: JSON.stringify({ cliente_id, contenido: contenido.trim(), remitente }) });
+    if (!r.ok) return res.status(500).json({ error: 'Error al guardar' });
+    const [msg] = await r.json();
+    if (isSA) {
+      await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.cliente&leido=eq.false`,
+        { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ leido: true }) });
+    }
+    return res.status(200).json({ ok: true, msg });
+  }
+
+  // GET ?action=soporte-unread — client: check unread SA messages
+  if (req.method === 'GET' && req.query.action === 'soporte-unread') {
+    const sesToken = req.headers['x-session-token'];
+    const cliente_id = getClienteIdFromToken(sesToken);
+    if (!cliente_id) return res.status(401).json({ error: 'No autorizado' });
+    const r = await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.superadmin&leido=eq.false&select=id`, { headers: _sh });
+    const msgs = await r.json();
+    if (Array.isArray(msgs) && msgs.length) {
+      await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.superadmin&leido=eq.false`,
+        { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ leido: true }) });
+    }
+    return res.status(200).json({ unread: Array.isArray(msgs) ? msgs.length : 0 });
   }
 
   // ── Todas las demás rutas requieren token válido ───────────────────────────

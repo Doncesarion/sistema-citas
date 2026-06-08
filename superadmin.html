@@ -198,6 +198,13 @@
   </span>
 </div>
 
+<!-- TABS SUPERADMIN -->
+<div style="display:flex;gap:0;border-bottom:1px solid #e5e7eb;background:#fff;padding:0 24px;flex-shrink:0">
+  <button id="satab-clientes" onclick="saSwitchTab('clientes')" style="padding:12px 20px;font-size:13px;font-weight:600;color:#6C5CE4;border:none;background:none;cursor:pointer;border-bottom:2px solid #6C5CE4;margin-bottom:-1px;font-family:inherit">Clientes</button>
+  <button id="satab-mensajes" onclick="saSwitchTab('mensajes')" style="padding:12px 20px;font-size:13px;font-weight:500;color:#6b7280;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;display:flex;align-items:center;gap:6px">Mensajes <span id="sa-msg-badge" style="display:none;background:#DC2626;color:#fff;font-size:10px;font-weight:700;min-width:17px;height:17px;border-radius:9px;line-height:17px;text-align:center;padding:0 4px"></span></button>
+</div>
+
+<div id="sa-panel-clientes">
 <div class="main">
 
   <!-- STATS -->
@@ -240,6 +247,29 @@
     </div>
   </div>
 
+</div>
+</div><!-- /sa-panel-clientes -->
+
+<!-- MENSAJES SOPORTE -->
+<div id="sa-panel-mensajes" style="display:none;flex:1;overflow:hidden;height:calc(100vh - 108px)">
+  <div style="display:flex;height:100%;overflow:hidden">
+    <!-- Lista de conversaciones -->
+    <div style="width:280px;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;background:#fff;flex-shrink:0">
+      <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-size:13px;font-weight:700;color:#111827">Conversaciones</div>
+      <div id="sa-conv-list" style="flex:1;overflow-y:auto"></div>
+    </div>
+    <!-- Hilo de chat -->
+    <div style="flex:1;display:flex;flex-direction:column;background:#f9fafb">
+      <div id="sa-chat-header" style="padding:14px 18px;border-bottom:1px solid #e5e7eb;background:#fff;font-size:13px;font-weight:600;color:#111827;display:none">—</div>
+      <div id="sa-chat-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="text-align:center;color:#9ca3af;font-size:13px;margin-top:40px">Selecciona una conversación</div>
+      </div>
+      <div id="sa-chat-foot" style="display:none;padding:12px 16px;border-top:1px solid #e5e7eb;background:#fff;display:flex;gap:8px">
+        <input id="sa-msg-input" placeholder="Escribe una respuesta..." style="flex:1;border:1px solid #d1d5db;border-radius:8px;padding:9px 14px;font-size:13px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saSendMsg()}">
+        <button onclick="saSendMsg()" style="padding:9px 16px;background:#6C5CE4;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Enviar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL NUEVO / EDITAR CLIENTE -->
@@ -476,6 +506,8 @@ async function init() {
     showToast('⚠️ Error conectando a Supabase: ' + e.message);
   }
   actualizarFechaExpiracion();
+  // Cargar badge de mensajes sin leer en background
+  cargarSoporteList();
 }
 
 function setConn(estado) {
@@ -1153,6 +1185,128 @@ async function cargarTiposPlanes() {
     renderTabla(todosClientes);
   } catch(e) { /* silencioso */ }
 }
+
+// ── Soporte mensajes superadmin ───────────────────────────────────────────────
+let _saConvs = [];
+let _saClienteActual = null;
+let _saPollTimer = null;
+
+function saSwitchTab(tab) {
+  const isMsg = tab === 'mensajes';
+  document.getElementById('sa-panel-clientes').style.display = isMsg ? 'none' : '';
+  document.getElementById('sa-panel-mensajes').style.display = isMsg ? 'flex' : 'none';
+  document.getElementById('satab-clientes').style.cssText = !isMsg
+    ? 'padding:12px 20px;font-size:13px;font-weight:600;color:#6C5CE4;border:none;background:none;cursor:pointer;border-bottom:2px solid #6C5CE4;margin-bottom:-1px;font-family:inherit'
+    : 'padding:12px 20px;font-size:13px;font-weight:500;color:#6b7280;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit';
+  document.getElementById('satab-mensajes').style.cssText = isMsg
+    ? 'padding:12px 20px;font-size:13px;font-weight:600;color:#6C5CE4;border:none;background:none;cursor:pointer;border-bottom:2px solid #6C5CE4;margin-bottom:-1px;font-family:inherit;display:flex;align-items:center;gap:6px'
+    : 'padding:12px 20px;font-size:13px;font-weight:500;color:#6b7280;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;display:flex;align-items:center;gap:6px';
+  if (isMsg) { cargarSoporteList(); startSaConvPoll(); } else { stopSaConvPoll(); }
+}
+
+function getSaToken() {
+  try { return localStorage.getItem('sa_token') || ''; } catch(e) { return ''; }
+}
+
+async function cargarSoporteList() {
+  try {
+    const r = await fetch('/api/usuarios-admin?action=soporte-list', { headers: { 'x-sa-token': getSaToken() } });
+    if (!r.ok) return;
+    _saConvs = await r.json();
+    renderSaConvList();
+    const total = _saConvs.reduce((s, c) => s + (c.sin_leer || 0), 0);
+    const badge = document.getElementById('sa-msg-badge');
+    if (badge) { badge.style.display = total > 0 ? 'inline-block' : 'none'; badge.textContent = total; }
+  } catch(e) {}
+}
+
+function renderSaConvList() {
+  const el = document.getElementById('sa-conv-list');
+  if (!el) return;
+  if (!_saConvs.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px">Sin mensajes aún</div>'; return; }
+  el.innerHTML = _saConvs.map(c => {
+    const isActive = _saClienteActual === c.cliente_id;
+    const since = new Date(c.ultimo_at).toLocaleString('es-CL', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    return `<div onclick="saAbrirConv('${escSA(c.cliente_id)}')" style="padding:13px 16px;cursor:pointer;border-bottom:1px solid #f3f4f6;background:${isActive ? '#f5f3ff' : '#fff'};${isActive ? 'border-left:3px solid #6C5CE4' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:13px;font-weight:600;color:#111827;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escSA(c.negocio_nombre)}</span>
+        ${c.sin_leer ? `<span style="background:#DC2626;color:#fff;font-size:10px;font-weight:700;min-width:17px;height:17px;border-radius:9px;line-height:17px;text-align:center;padding:0 4px;flex-shrink:0">${c.sin_leer}</span>` : ''}
+      </div>
+      <div style="font-size:11.5px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.ultimo_remitente === 'superadmin' ? 'Tú: ' : ''}${escSA(c.ultimo_msg)}</div>
+      <div style="font-size:10.5px;color:#9ca3af;margin-top:3px">${since}</div>
+    </div>`;
+  }).join('');
+}
+
+async function saAbrirConv(cliente_id) {
+  _saClienteActual = cliente_id;
+  renderSaConvList();
+  const conv = _saConvs.find(c => c.cliente_id === cliente_id);
+  const header = document.getElementById('sa-chat-header');
+  const foot = document.getElementById('sa-chat-foot');
+  if (header) { header.textContent = conv?.negocio_nombre || '—'; header.style.display = ''; }
+  if (foot) foot.style.display = 'flex';
+  await cargarSoporteMsgs(cliente_id);
+  document.getElementById('sa-msg-input')?.focus();
+}
+
+async function cargarSoporteMsgs(cliente_id) {
+  try {
+    const r = await fetch(`/api/usuarios-admin?action=soporte-msgs&cliente_id=${encodeURIComponent(cliente_id)}`, { headers: { 'x-sa-token': getSaToken() } });
+    if (!r.ok) return;
+    const msgs = await r.json();
+    renderSaMsgs(msgs);
+    const conv = _saConvs.find(c => c.cliente_id === cliente_id);
+    if (conv) { conv.sin_leer = 0; renderSaConvList(); }
+    const total = _saConvs.reduce((s, c) => s + (c.sin_leer || 0), 0);
+    const badge = document.getElementById('sa-msg-badge');
+    if (badge) { badge.style.display = total > 0 ? 'inline-block' : 'none'; badge.textContent = total; }
+  } catch(e) {}
+}
+
+function renderSaMsgs(msgs) {
+  const el = document.getElementById('sa-chat-msgs');
+  if (!el) return;
+  if (!Array.isArray(msgs) || !msgs.length) { el.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:13px;margin-top:40px">Sin mensajes aún. El cliente aún no ha escrito.</div>'; return; }
+  el.innerHTML = msgs.map(m => {
+    const isSA = m.remitente === 'superadmin';
+    const time = new Date(m.created_at).toLocaleString('es-CL', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    return `<div style="display:flex;flex-direction:column;align-items:${isSA ? 'flex-end' : 'flex-start'}">
+      <div style="max-width:72%;padding:10px 14px;border-radius:${isSA ? '14px 14px 2px 14px' : '14px 14px 14px 2px'};background:${isSA ? '#6C5CE4' : '#fff'};color:${isSA ? '#fff' : '#111827'};font-size:13px;line-height:1.55;box-shadow:0 1px 3px rgba(0,0,0,0.08);word-break:break-word">${escSA(m.contenido)}</div>
+      <span style="font-size:10.5px;color:#9ca3af;margin-top:3px">${isSA ? 'César · ' : ''}${time}</span>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function saSendMsg() {
+  if (!_saClienteActual) return;
+  const inp = document.getElementById('sa-msg-input');
+  const contenido = inp?.value?.trim();
+  if (!contenido) return;
+  inp.value = '';
+  try {
+    await fetch('/api/usuarios-admin?action=soporte-send', {
+      method: 'POST',
+      headers: { 'x-sa-token': getSaToken(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: _saClienteActual, contenido, remitente: 'superadmin' })
+    });
+    await cargarSoporteMsgs(_saClienteActual);
+    await cargarSoporteList();
+  } catch(e) {}
+}
+
+function startSaConvPoll() {
+  stopSaConvPoll();
+  _saPollTimer = setInterval(() => {
+    cargarSoporteList();
+    if (_saClienteActual) cargarSoporteMsgs(_saClienteActual);
+  }, 15000);
+}
+
+function stopSaConvPoll() { if (_saPollTimer) { clearInterval(_saPollTimer); _saPollTimer = null; } }
+
+function escSA(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 </body>
 </html>
