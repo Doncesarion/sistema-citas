@@ -8,11 +8,24 @@
       var adminPaths = ['login','admin','superadmin','reset-password','editor','landing','configuracion','ventas','reportes','agenda','clientes','accesos','bandeja','gc-callback','privacidad','terminos','gestionar-cita','attempo-booking','attempo-dashboard','chat-frame','booking','reservar'];
       var isAdmin = !path || adminPaths.indexOf(path.split('/')[0]) !== -1;
       if (isAdmin) {
-        // Save the full intended path so routeFromURL() can restore it
-        try { sessionStorage.setItem('attempo_return_to', window.location.pathname); } catch(e) {}
-        if (localStorage.getItem('attempo_user')) {
-          window.location.replace('/admin');
+        var isLoggedIn = !!localStorage.getItem('attempo_user');
+        if (isLoggedIn) {
+          // Cargar admin.html en el mismo URL sin redirigir — evita flash de /admin
+          fetch('/admin')
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+              document.open('text/html', 'replace');
+              document.write(html);
+              document.close();
+            })
+            .catch(function() {
+              // Fallback: redirect clásico
+              try { sessionStorage.setItem('attempo_return_to', window.location.pathname); } catch(e) {}
+              window.location.replace('/admin');
+            });
         } else {
+          // Para login sí redirigimos (necesita flujo de retorno)
+          try { sessionStorage.setItem('attempo_return_to', window.location.pathname); } catch(e) {}
           window.location.replace('/login');
         }
       } else {
