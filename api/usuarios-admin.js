@@ -91,6 +91,10 @@ function timingSafeStringEqual(a, b) {
 }
 
 export default async function handler(req, res) {
+  const _SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+  const _KEY = process.env.SUPABASE_SERVICE_KEY;
+  const _sh  = { apikey: _KEY, Authorization: `Bearer ${_KEY}`, 'Content-Type': 'application/json' };
+
   // ── POST login: genera token SA (no requiere autenticación previa) ─────────
   if (req.method === 'POST' && req.body?.action === 'login') {
     const { user, pass } = req.body;
