@@ -1211,13 +1211,13 @@ function getSaToken() {
 async function cargarSoporteList() {
   try {
     const r = await fetch('/api/usuarios-admin?action=soporte-list', { headers: { 'x-sa-token': getSaToken() } });
-    if (!r.ok) return;
+    if (!r.ok) { const err = await r.json().catch(()=>({})); console.error('[sa soporte-list] error:', r.status, err); return; }
     _saConvs = await r.json();
     renderSaConvList();
     const total = _saConvs.reduce((s, c) => s + (c.sin_leer || 0), 0);
     const badge = document.getElementById('sa-msg-badge');
     if (badge) { badge.style.display = total > 0 ? 'inline-block' : 'none'; badge.textContent = total; }
-  } catch(e) {}
+  } catch(e) { console.error('[sa soporte-list] excepción:', e); }
 }
 
 function renderSaConvList() {
@@ -1253,7 +1253,7 @@ async function saAbrirConv(cliente_id) {
 async function cargarSoporteMsgs(cliente_id) {
   try {
     const r = await fetch(`/api/usuarios-admin?action=soporte-msgs&cliente_id=${encodeURIComponent(cliente_id)}`, { headers: { 'x-sa-token': getSaToken() } });
-    if (!r.ok) return;
+    if (!r.ok) { const err = await r.json().catch(()=>({})); console.error('[sa soporte-msgs] error:', r.status, err); return; }
     const msgs = await r.json();
     renderSaMsgs(msgs);
     const conv = _saConvs.find(c => c.cliente_id === cliente_id);
@@ -1286,14 +1286,15 @@ async function saSendMsg() {
   if (!contenido) return;
   inp.value = '';
   try {
-    await fetch('/api/usuarios-admin?action=soporte-send', {
+    const r = await fetch('/api/usuarios-admin?action=soporte-send', {
       method: 'POST',
       headers: { 'x-sa-token': getSaToken(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ cliente_id: _saClienteActual, contenido, remitente: 'superadmin' })
     });
+    if (!r.ok) { const err = await r.json().catch(()=>({})); console.error('[sa soporte-send] error:', r.status, err); inp.value = contenido; return; }
     await cargarSoporteMsgs(_saClienteActual);
     await cargarSoporteList();
-  } catch(e) {}
+  } catch(e) { console.error('[sa soporte-send] excepción:', e); inp.value = contenido; }
 }
 
 function startSaConvPoll() {

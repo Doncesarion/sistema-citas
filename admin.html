@@ -9532,10 +9532,14 @@ async function cargarSoporteMsgsCliente() {
     const r = await fetch(`/api/usuarios-admin?action=soporte-msgs&cliente_id=${encodeURIComponent(cliente_id)}`, {
       headers: { 'x-session-token': localStorage.getItem('attempo_session_token') || '' }
     });
-    if (!r.ok) return;
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      console.error('[soporte-msgs] error:', r.status, err);
+      return;
+    }
     const msgs = await r.json();
     renderSoporteMsgsCliente(msgs);
-  } catch(e) {}
+  } catch(e) { console.error('[soporte-msgs] excepción:', e); }
 }
 
 function renderSoporteMsgsCliente(msgs) {
@@ -9568,17 +9572,26 @@ async function enviarSoporteMsg() {
   const contenido = inp?.value?.trim();
   if (!contenido) return;
   const cliente_id = _soporteClienteId();
-  if (!cliente_id) return;
+  if (!cliente_id) { console.error('[soporte] sin cliente_id'); return; }
   inp.value = '';
   inp.disabled = true;
   try {
-    await fetch('/api/usuarios-admin?action=soporte-send', {
+    const r = await fetch('/api/usuarios-admin?action=soporte-send', {
       method: 'POST',
       headers: _soporteHeaders(),
       body: JSON.stringify({ cliente_id, contenido, remitente: 'cliente' })
     });
-    await cargarSoporteMsgsCliente();
-  } catch(e) {}
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      console.error('[soporte-send] error:', r.status, err);
+      inp.value = contenido;
+    } else {
+      await cargarSoporteMsgsCliente();
+    }
+  } catch(e) {
+    console.error('[soporte-send] excepción:', e);
+    inp.value = contenido;
+  }
   inp.disabled = false;
   inp.focus();
 }

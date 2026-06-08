@@ -291,7 +291,11 @@ export default async function handler(req, res) {
     const r = await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes`,
       { method: 'POST', headers: { ..._sh, Prefer: 'return=representation' },
         body: JSON.stringify({ cliente_id, contenido: contenido.trim(), remitente }) });
-    if (!r.ok) return res.status(500).json({ error: 'Error al guardar' });
+    if (!r.ok) {
+      const errBody = await r.text().catch(() => '');
+      console.error('[soporte-send] Supabase error:', r.status, errBody);
+      return res.status(500).json({ error: 'Error al guardar', detail: errBody });
+    }
     const [msg] = await r.json();
     if (isSA) {
       await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.cliente&leido=eq.false`,
