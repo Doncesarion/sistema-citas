@@ -246,6 +246,11 @@ export default async function handler(req, res) {
       fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?order=created_at.desc&select=id,cliente_id,remitente,contenido,leido,created_at`, { headers: _sh }),
       fetch(`${_SUPA_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio`, { headers: _sh })
     ]);
+    if (!rMsgs.ok) {
+      const errBody = await rMsgs.text().catch(() => '');
+      console.error('[soporte-list] Supabase error:', rMsgs.status, errBody);
+      return res.status(500).json({ error: 'Error al cargar conversaciones', detail: errBody });
+    }
     const msgs = await rMsgs.json();
     const clientes = await rCli.json();
     const cliMap = {};
@@ -272,6 +277,11 @@ export default async function handler(req, res) {
         { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ leido: true }) });
     }
     const r = await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&order=created_at.asc&limit=200`, { headers: _sh });
+    if (!r.ok) {
+      const errBody = await r.text().catch(() => '');
+      console.error('[soporte-msgs] Supabase error:', r.status, errBody);
+      return res.status(500).json({ error: 'Error al cargar mensajes', detail: errBody });
+    }
     return res.status(200).json(await r.json());
   }
 
