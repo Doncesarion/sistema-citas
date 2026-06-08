@@ -727,6 +727,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .brep-alert{background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.15);border-radius:var(--rl);padding:10px 13px;font-size:12.5px;color:#991b1b;display:flex;align-items:center;gap:8px}
 .brep-alert svg{flex-shrink:0;color:var(--red)}
 .brep-ok{background:var(--gdim);border:1px solid rgba(22,163,74,.2);border-radius:var(--rl);padding:10px 13px;font-size:12.5px;color:#166534;display:flex;align-items:center;gap:8px}
+.brep-ia-box{background:var(--adim);border:1px solid rgba(109,40,217,.18);border-radius:var(--rl);padding:11px 14px;display:flex;align-items:center;gap:9px}
+.brep-ia-icon{color:var(--a);flex-shrink:0;display:flex;align-items:center}
+.brep-ia-label{font-size:12.5px;color:var(--t2);flex:1}
+.brep-ia-count{font-size:20px;color:var(--a);font-weight:700;flex-shrink:0}
 
 /* ─ Item conversación ─ */
 .bitem{padding:11px 16px 11px 14px;cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s;display:flex;align-items:center;gap:12px;border-left:3px solid transparent}
@@ -8432,6 +8436,7 @@ async function sendHelp() {
 let _bConvs       = [];          // lista completa de conversaciones
 let _bConvActual  = null;        // conversación abierta
 let _bMsgs        = [];          // mensajes del hilo actual
+let _bMsgIaCached = null;        // cache del contador de mensajes IA
 let _bFiltroCanal = 'todos';
 let _bPollTimer   = null;
 let _bMsgPollTimer = null;
@@ -9193,7 +9198,7 @@ window.switchBandejaTab = function(tab, btn) {
   else            { reporteEl.classList.remove('show'); }
 };
 
-function renderReporteBandeja() {
+async function renderReporteBandeja() {
   const el = document.getElementById('breporte');
   if (!el) return;
   const convs = Array.isArray(_bConvs) ? _bConvs : [];
@@ -9241,8 +9246,26 @@ function renderReporteBandeja() {
     ? `<div class="brep-alert"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${sinRespuesta} conversación${sinRespuesta>1?'es':''} sin responder</span></div>`
     : `<div class="brep-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Todo respondido</span></div>`;
 
+  // Mensajes IA — usar cache si ya está disponible, si no cargar
+  let msgIa = _bMsgIaCached;
+  if (msgIa === null) {
+    try {
+      const r = await fetch('/api/bandeja?action=stats', { headers: _bandejaH() });
+      if (r.ok) { const d = await r.json(); msgIa = d.msg_ia_mes ?? 0; _bMsgIaCached = msgIa; }
+    } catch(e) {}
+  }
+  const mesActual = new Date().toLocaleString('es-CL', { month: 'long' });
+  const iaHtml = msgIa !== null
+    ? `<div class="brep-ia-box">
+        <span class="brep-ia-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 0 2h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1 0-2h1a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z"/><path d="M9 14v1"/><path d="M15 14v1"/></svg></span>
+        <span class="brep-ia-label">Mensajes enviados por Attia en ${mesActual}</span>
+        <strong class="brep-ia-count">${msgIa.toLocaleString('es-CL')}</strong>
+      </div>`
+    : '';
+
   el.innerHTML = `
     <div class="brep-summary-box">Total de conversaciones: <strong>${total}</strong></div>
+    ${iaHtml}
     ${alertaHtml}
     <div class="brep-section">
       <div class="brep-section-title">Por canal</div>
@@ -9407,6 +9430,7 @@ async function cargarStatsIA() {
     });
     if (!r.ok) return;
     const { msg_ia_mes } = await r.json();
+    _bMsgIaCached = msg_ia_mes;
     const pct = Math.min(100, Math.round((msg_ia_mes / limite) * 100));
 
     const nums = document.getElementById('sb-msg-nums');
