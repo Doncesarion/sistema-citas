@@ -1193,6 +1193,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .tut-spot-next:hover{background:var(--a3)}
 </style>
 </head>
+<style id="pre-route-style">body{opacity:0}</style>
 <body>
 
 <!-- ═══ BANNER IMPERSONACIÓN ═══ -->
@@ -9454,8 +9455,9 @@ window.addEventListener('load', () => { setTimeout(cargarStatsIA, 2000); });
 
 })();
 
-// Iniciar routing después de que todas las funciones estén definidas
+// Iniciar routing — ocultar body hasta que la vista correcta esté lista
 routeFromURL();
+(function(){ const s = document.getElementById('pre-route-style'); if (s) s.remove(); })();
 </script>
 
 
