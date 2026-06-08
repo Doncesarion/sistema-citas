@@ -8970,6 +8970,7 @@ function _nombresSimilares(a, b) {
   return false;
 }
 
+// Para sugerencias automáticas (cuentas sueltas sin grupo)
 function _buildFilasVincular(candidatos) {
   return candidatos.map(c => {
     const bg     = _B_CANAL_BG[c.canal]  || '#888';
@@ -8977,15 +8978,9 @@ function _buildFilasVincular(candidatos) {
     const lbl    = _CHAN_LABEL[c.canal]   || c.canal;
     const nombre = escH(c.canal_user_name || c.canal_user_id || '');
     const idsOne = escH(JSON.stringify([_bConvActual.id, c.id]));
-    // Si la cuenta ya pertenece a un grupo, mostrar cuántos canales tiene
-    let grupoInfo = '';
-    if (c.contacto_id) {
-      const nGrupo = _bConvs.filter(x => x.contacto_id === c.contacto_id && x.id !== c.id).length;
-      if (nGrupo > 0) grupoInfo = ` <span style="font-size:10px;color:var(--a);font-weight:600">+${nGrupo}</span>`;
-    }
     return `<div class="bmulti-drop-row">
       <span class="bmulti-drop-row-badge">
-        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre}${grupoInfo} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
+        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
       </span>
       <button class="bmulti-drop-action" data-ids='${idsOne}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular</button>
     </div>`;
@@ -8994,19 +8989,60 @@ function _buildFilasVincular(candidatos) {
 
 function _buildBuscarVincularHTML(filtro) {
   const f = (filtro || '').toLowerCase().trim();
-  const todas = _bConvs.filter(c => {
+
+  // Elegibles: excluir self y miembros del mismo grupo
+  const elegibles = _bConvs.filter(c => {
     if (c.id === _bConvActual?.id) return false;
-    // Excluir sólo miembros del mismo grupo — no excluir cuentas de otros grupos
     if (_bConvActual?.contacto_id && c.contacto_id === _bConvActual.contacto_id) return false;
     return true;
   });
+
+  // Deduplicar: un solo resultado por contacto_id (o uno por conv si está suelta)
+  const seenGrupos = new Set();
+  const entradas = [];
+  for (const c of elegibles) {
+    if (c.contacto_id) {
+      if (seenGrupos.has(c.contacto_id)) continue;
+      seenGrupos.add(c.contacto_id);
+      const grupo = elegibles.filter(x => x.contacto_id === c.contacto_id);
+      // Representante: el que tiene mejor nombre (no numérico, no vacío)
+      const rep = grupo.find(x => x.canal_user_name && !/^\d+$/.test(x.canal_user_name)) || grupo[0];
+      entradas.push({ rep, grupo });
+    } else {
+      entradas.push({ rep: c, grupo: [c] });
+    }
+  }
+
+  // Filtrar por búsqueda — busca en todos los nombres del grupo
   const match = f
-    ? todas.filter(c => (c.canal_user_name || '').toLowerCase().includes(f) || (c.canal_user_id || '').toLowerCase().includes(f))
-    : todas.slice(0, 8);
-  const extra = !f && todas.length > 8
-    ? `<div class="bmulti-empty">+${todas.length - 8} más — escribe para filtrar</div>`
+    ? entradas.filter(({ grupo }) =>
+        grupo.some(g => (g.canal_user_name || '').toLowerCase().includes(f) || (g.canal_user_id || '').toLowerCase().includes(f))
+      )
+    : entradas.slice(0, 8);
+
+  const rows = match.map(({ rep, grupo }) => {
+    const bg     = _B_CANAL_BG[rep.canal]  || '#888';
+    const svg    = _B_CANAL_SVG[rep.canal] || '';
+    const nombre = escH(rep.canal_user_name || rep.canal_user_id || '');
+    const idsOne = escH(JSON.stringify([_bConvActual.id, rep.id]));
+    // Íconos de los otros canales del grupo
+    const extras = grupo.filter(x => x.id !== rep.id).map(x => {
+      const xbg  = _B_CANAL_BG[x.canal]  || '#888';
+      const xsvg = _B_CANAL_SVG[x.canal] || '';
+      return `<span class="bmulti-drop-icon" style="background:${xbg};width:13px;height:13px;flex-shrink:0">${xsvg}</span>`;
+    }).join('');
+    return `<div class="bmulti-drop-row">
+      <span class="bmulti-drop-row-badge" style="gap:4px">
+        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre}${extras ? ' '+extras : ''}
+      </span>
+      <button class="bmulti-drop-action" data-ids='${idsOne}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular</button>
+    </div>`;
+  }).join('');
+
+  const extra = !f && entradas.length > 8
+    ? `<div class="bmulti-empty">+${entradas.length - 8} más — escribe para filtrar</div>`
     : (!match.length ? `<div class="bmulti-empty">Sin resultados</div>` : '');
-  return `<div class="bmulti-search"><input class="bmulti-search-input" placeholder="Buscar contacto..." value="${escH(filtro || '')}" oninput="actualizarBuscarVincular(this.value)" onclick="event.stopPropagation()"></div>${_buildFilasVincular(match)}${extra}`;
+  return `<div class="bmulti-search"><input class="bmulti-search-input" placeholder="Buscar contacto..." value="${escH(filtro || '')}" oninput="actualizarBuscarVincular(this.value)" onclick="event.stopPropagation()"></div>${rows}${extra}`;
 }
 
 function detectarMultiCanal() {
