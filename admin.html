@@ -8977,9 +8977,15 @@ function _buildFilasVincular(candidatos) {
     const lbl    = _CHAN_LABEL[c.canal]   || c.canal;
     const nombre = escH(c.canal_user_name || c.canal_user_id || '');
     const idsOne = escH(JSON.stringify([_bConvActual.id, c.id]));
+    // Si la cuenta ya pertenece a un grupo, mostrar cuántos canales tiene
+    let grupoInfo = '';
+    if (c.contacto_id) {
+      const nGrupo = _bConvs.filter(x => x.contacto_id === c.contacto_id && x.id !== c.id).length;
+      if (nGrupo > 0) grupoInfo = ` <span style="font-size:10px;color:var(--a);font-weight:600">+${nGrupo}</span>`;
+    }
     return `<div class="bmulti-drop-row">
       <span class="bmulti-drop-row-badge">
-        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
+        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre}${grupoInfo} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
       </span>
       <button class="bmulti-drop-action" data-ids='${idsOne}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular</button>
     </div>`;
@@ -8988,7 +8994,12 @@ function _buildFilasVincular(candidatos) {
 
 function _buildBuscarVincularHTML(filtro) {
   const f = (filtro || '').toLowerCase().trim();
-  const todas = _bConvs.filter(c => c.id !== _bConvActual?.id && !c.contacto_id);
+  const todas = _bConvs.filter(c => {
+    if (c.id === _bConvActual?.id) return false;
+    // Excluir sólo miembros del mismo grupo — no excluir cuentas de otros grupos
+    if (_bConvActual?.contacto_id && c.contacto_id === _bConvActual.contacto_id) return false;
+    return true;
+  });
   const match = f
     ? todas.filter(c => (c.canal_user_name || '').toLowerCase().includes(f) || (c.canal_user_id || '').toLowerCase().includes(f))
     : todas.slice(0, 8);
@@ -9062,6 +9073,8 @@ window.toggleMultiDrop = function(e) {
 
 function _closeBMultiOutside(e) {
   const wrap = document.getElementById('bmulti-drop-wrap');
+  // Si el target ya no está en el DOM (porque innerHTML fue reemplazado), no cerrar
+  if (!document.contains(e.target)) return;
   if (wrap && wrap.contains(e.target)) return;
   const menu = document.getElementById('bmulti-drop-menu');
   if (menu) menu.classList.remove('open');
