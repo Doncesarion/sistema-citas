@@ -852,7 +852,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bmulti-drop-btn.has-match:hover{background:rgba(245,158,11,.08)}
 .bmulti-drop-dot{position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:50%;background:var(--amber);border:1.5px solid var(--surface-hi);display:none}
 .bmulti-drop-btn.has-match .bmulti-drop-dot{display:block}
-.bmulti-drop-menu{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface-hi);border:1px solid var(--b2);border-radius:10px;box-shadow:var(--sh2);min-width:180px;padding:6px 0;z-index:200;display:none}
+.bmulti-drop-menu{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface-hi);border:1px solid var(--b2);border-radius:10px;box-shadow:var(--sh2);min-width:220px;padding:6px 0;z-index:200;display:none}
 .bmulti-drop-menu.open{display:block}
 .bmulti-drop-title{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;padding:4px 12px 5px;border-bottom:1px solid var(--b1)}
 .bmulti-drop-row{display:flex;align-items:center;gap:7px;padding:6px 12px}
@@ -866,6 +866,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bmulti-drop-merge-row{padding:6px 12px}
 .bmulti-drop-merge-btn{width:100%;padding:5px 0;border-radius:6px;border:none;background:var(--adim);font-size:11.5px;font-weight:600;color:var(--a);font-family:var(--font);cursor:pointer;transition:background .12s}
 .bmulti-drop-merge-btn:hover{background:rgba(109,40,217,.1)}
+.bmulti-search{padding:5px 8px;border-bottom:1px solid var(--b1)}
+.bmulti-search-input{width:100%;padding:4px 8px;border:1.5px solid var(--b2);border-radius:5px;font-size:12px;font-family:var(--font);background:var(--surface);color:var(--t1);outline:none;box-sizing:border-box}
+.bmulti-search-input:focus{border-color:var(--a)}
+.bmulti-empty{padding:8px 12px;font-size:11.5px;color:var(--t3);text-align:center}
 .bitem-canal-btns{display:flex;gap:3px;flex-shrink:0;align-items:center}
 .bitem-canal-btn{width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s;opacity:.72;position:relative}
 .bitem-canal-btn:hover{transform:scale(1.12);opacity:1}
@@ -8966,13 +8970,44 @@ function _nombresSimilares(a, b) {
   return false;
 }
 
+function _buildFilasVincular(candidatos) {
+  return candidatos.map(c => {
+    const bg     = _B_CANAL_BG[c.canal]  || '#888';
+    const svg    = _B_CANAL_SVG[c.canal] || '';
+    const lbl    = _CHAN_LABEL[c.canal]   || c.canal;
+    const nombre = escH(c.canal_user_name || c.canal_user_id || '');
+    const idsOne = escH(JSON.stringify([_bConvActual.id, c.id]));
+    return `<div class="bmulti-drop-row">
+      <span class="bmulti-drop-row-badge">
+        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
+      </span>
+      <button class="bmulti-drop-action" data-ids='${idsOne}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular</button>
+    </div>`;
+  }).join('');
+}
+
+function _buildBuscarVincularHTML(filtro) {
+  const f = (filtro || '').toLowerCase().trim();
+  const todas = _bConvs.filter(c => c.id !== _bConvActual?.id && !c.contacto_id);
+  const match = f
+    ? todas.filter(c => (c.canal_user_name || '').toLowerCase().includes(f) || (c.canal_user_id || '').toLowerCase().includes(f))
+    : todas.slice(0, 8);
+  const extra = !f && todas.length > 8
+    ? `<div class="bmulti-empty">+${todas.length - 8} más — escribe para filtrar</div>`
+    : (!match.length ? `<div class="bmulti-empty">Sin resultados</div>` : '');
+  return `<div class="bmulti-search"><input class="bmulti-search-input" placeholder="Buscar contacto..." value="${escH(filtro || '')}" oninput="actualizarBuscarVincular(this.value)" onclick="event.stopPropagation()"></div>${_buildFilasVincular(match)}${extra}`;
+}
+
 function detectarMultiCanal() {
   const wrap = document.getElementById('bmulti-drop-wrap');
   const btn  = document.getElementById('bmulti-drop-btn');
   const menu = document.getElementById('bmulti-drop-menu');
   if (!wrap || !_bConvActual) return;
 
-  // Si la conv ya está vinculada: mostrar los otros canales del grupo
+  // Siempre mostrar el botón cuando hay una conv abierta
+  wrap.style.display = 'inline-flex';
+
+  // Si ya está vinculada: mostrar los otros canales del grupo
   if (_bConvActual.contacto_id) {
     const grupo = _bConvs.filter(c => c.contacto_id === _bConvActual.contacto_id && c.id !== _bConvActual.id);
     if (grupo.length > 0) {
@@ -8989,57 +9024,28 @@ function detectarMultiCanal() {
           <button class="bmulti-drop-action unlink" onclick="closeMultiDrop();desvincularConversacion('${c.id}')">✕</button>
         </div>`;
       }).join('');
-      menu.innerHTML = `<div class="bmulti-drop-title">Vinculado con</div>${rows}`;
-      wrap.style.display = 'inline-flex';
+      menu.innerHTML = `<div class="bmulti-drop-title">Vinculado con</div>${rows}<div class="bmulti-drop-sep"></div><div class="bmulti-drop-merge-row"><button class="bmulti-drop-merge-btn" onclick="mostrarBuscarVincular()">+ Agregar canal</button></div>`;
       return;
     }
   }
 
-  // Si no está vinculada: buscar por nombre similar, o mostrar lista manual si el nombre es numérico
+  // No vinculada: buscar por nombre similar
   const nombreActual = _bConvActual.canal_user_name || '';
   const esNumerico   = !nombreActual || /^\d+$/.test(nombreActual.trim());
-
-  const otrosPorNombre = esNumerico ? [] : _bConvs.filter(c =>
+  const sugeridos = esNumerico ? [] : _bConvs.filter(c =>
     c.id !== _bConvActual.id &&
     !c.contacto_id &&
     _nombresSimilares(c.canal_user_name || '', nombreActual)
   );
 
-  // Si nombre es numérico (PSID/teléfono) o no hay coincidencias: mostrar todas las convs
-  // de otros canales no vinculadas para vinculación manual
-  const canalActual = _bConvActual.canal;
-  const otrosManuales = esNumerico || !otrosPorNombre.length
-    ? _bConvs.filter(c =>
-        c.id !== _bConvActual.id &&
-        !c.contacto_id &&
-        c.canal !== canalActual
-      ).slice(0, 6)
-    : [];
-
-  const candidatos = otrosPorNombre.length ? otrosPorNombre : otrosManuales;
-  if (!candidatos.length) { wrap.style.display = 'none'; return; }
-
-  const esSugerido = otrosPorNombre.length > 0;
-  if (esSugerido) btn.classList.add('has-match');
-  else btn.classList.remove('has-match');
-
-  const rows = candidatos.map(c => {
-    const bg     = _B_CANAL_BG[c.canal]  || '#888';
-    const svg    = _B_CANAL_SVG[c.canal] || '';
-    const lbl    = _CHAN_LABEL[c.canal]   || c.canal;
-    const nombre = escH(c.canal_user_name || c.canal_user_id || '');
-    const idsOne = escH(JSON.stringify([_bConvActual.id, c.id]));
-    return `<div class="bmulti-drop-row">
-      <span class="bmulti-drop-row-badge">
-        <span class="bmulti-drop-icon" style="background:${bg}">${svg}</span>${nombre} <span style="font-size:10.5px;color:var(--t3)">(${escH(lbl)})</span>
-      </span>
-      <button class="bmulti-drop-action" data-ids='${idsOne}' onclick="closeMultiDrop();vincularContactos(JSON.parse(this.getAttribute('data-ids')))">Vincular</button>
-    </div>`;
-  }).join('');
-
-  const titulo = esSugerido ? 'Posible mismo contacto' : 'Vincular con otro canal';
-  menu.innerHTML = `<div class="bmulti-drop-title">${titulo}</div>${rows}`;
-  wrap.style.display = 'inline-flex';
+  if (sugeridos.length) {
+    btn.classList.add('has-match');
+    const rows = _buildFilasVincular(sugeridos);
+    menu.innerHTML = `<div class="bmulti-drop-title">Posible mismo contacto</div>${rows}<div class="bmulti-drop-sep"></div><div class="bmulti-drop-merge-row"><button class="bmulti-drop-merge-btn" onclick="mostrarBuscarVincular()">Buscar otra cuenta...</button></div>`;
+  } else {
+    btn.classList.remove('has-match');
+    menu.innerHTML = `<div class="bmulti-drop-title">Unificar con otra cuenta</div>${_buildBuscarVincularHTML('')}`;
+  }
 }
 
 window.toggleMultiDrop = function(e) {
@@ -9048,13 +9054,41 @@ window.toggleMultiDrop = function(e) {
   if (!menu) return;
   const open = menu.classList.toggle('open');
   if (open) {
-    setTimeout(() => document.addEventListener('click', closeMultiDrop, { once: true }), 0);
+    setTimeout(() => document.addEventListener('click', _closeBMultiOutside), 0);
+  } else {
+    document.removeEventListener('click', _closeBMultiOutside);
   }
 };
+
+function _closeBMultiOutside(e) {
+  const wrap = document.getElementById('bmulti-drop-wrap');
+  if (wrap && wrap.contains(e.target)) return;
+  const menu = document.getElementById('bmulti-drop-menu');
+  if (menu) menu.classList.remove('open');
+  document.removeEventListener('click', _closeBMultiOutside);
+}
 
 window.closeMultiDrop = function() {
   const menu = document.getElementById('bmulti-drop-menu');
   if (menu) menu.classList.remove('open');
+  document.removeEventListener('click', _closeBMultiOutside);
+};
+
+window.mostrarBuscarVincular = function() {
+  const menu = document.getElementById('bmulti-drop-menu');
+  if (!menu) return;
+  menu.classList.add('open');
+  menu.innerHTML = `<div class="bmulti-drop-title">Unificar con otra cuenta</div>${_buildBuscarVincularHTML('')}`;
+  setTimeout(() => { const inp = menu.querySelector('.bmulti-search-input'); if (inp) inp.focus(); }, 0);
+};
+
+window.actualizarBuscarVincular = function(val) {
+  const menu = document.getElementById('bmulti-drop-menu');
+  if (!menu) return;
+  const title = `<div class="bmulti-drop-title">Unificar con otra cuenta</div>`;
+  menu.innerHTML = title + _buildBuscarVincularHTML(val);
+  const inp = menu.querySelector('.bmulti-search-input');
+  if (inp) { inp.focus(); inp.setSelectionRange(val.length, val.length); }
 };
 
 // ── Vincular / Desvincular contactos ─────────────────────────────────────────
