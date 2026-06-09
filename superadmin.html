@@ -251,8 +251,8 @@
 </div><!-- /sa-panel-clientes -->
 
 <!-- MENSAJES SOPORTE -->
-<div id="sa-panel-mensajes" style="display:none;flex:1;overflow:hidden;height:calc(100vh - 108px)">
-  <div style="display:flex;height:100%;overflow:hidden">
+<div id="sa-panel-mensajes" style="display:none;width:100%;overflow:hidden;height:calc(100vh - 108px)">
+  <div style="display:flex;height:100%;overflow:hidden;width:100%">
     <!-- Lista de conversaciones -->
     <div style="width:280px;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;background:#fff;flex-shrink:0">
       <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-size:13px;font-weight:700;color:#111827">Conversaciones</div>
@@ -261,10 +261,10 @@
     <!-- Hilo de chat -->
     <div style="flex:1;display:flex;flex-direction:column;background:#f9fafb">
       <div id="sa-chat-header" style="padding:14px 18px;border-bottom:1px solid #e5e7eb;background:#fff;font-size:13px;font-weight:600;color:#111827;display:none">—</div>
-      <div id="sa-chat-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div id="sa-chat-msgs" style="flex:1;overflow-y:auto;padding:20px 32px;display:flex;flex-direction:column;gap:10px">
         <div style="text-align:center;color:#9ca3af;font-size:13px;margin-top:40px">Selecciona una conversación</div>
       </div>
-      <div id="sa-chat-foot" style="display:none;padding:12px 16px;border-top:1px solid #e5e7eb;background:#fff;display:flex;gap:8px">
+      <div id="sa-chat-foot" style="display:none;padding:12px 32px;border-top:1px solid #e5e7eb;background:#fff;gap:8px">
         <input id="sa-msg-input" placeholder="Escribe una respuesta..." style="flex:1;border:1px solid #d1d5db;border-radius:8px;padding:9px 14px;font-size:13px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saSendMsg()}">
         <button onclick="saSendMsg()" style="padding:9px 16px;background:#6C5CE4;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Enviar</button>
       </div>
@@ -1194,7 +1194,7 @@ let _saPollTimer = null;
 function saSwitchTab(tab) {
   const isMsg = tab === 'mensajes';
   document.getElementById('sa-panel-clientes').style.display = isMsg ? 'none' : '';
-  document.getElementById('sa-panel-mensajes').style.display = isMsg ? 'flex' : 'none';
+  document.getElementById('sa-panel-mensajes').style.display = isMsg ? 'block' : 'none';
   document.getElementById('satab-clientes').style.cssText = !isMsg
     ? 'padding:12px 20px;font-size:13px;font-weight:600;color:#6C5CE4;border:none;background:none;cursor:pointer;border-bottom:2px solid #6C5CE4;margin-bottom:-1px;font-family:inherit'
     : 'padding:12px 20px;font-size:13px;font-weight:500;color:#6b7280;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit';
