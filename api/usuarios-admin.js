@@ -331,6 +331,43 @@ export default async function handler(req, res) {
     return res.status(200).json({ unread: Array.isArray(msgs) ? msgs.length : 0 });
   }
 
+  // ── FIX TEMPORAL: corregir nombres PSID de Messenger ──────────────────────
+  if (req.method === 'POST' && req.query.action === 'fix-psid-names') {
+    if (!verifyToken(req.headers['x-sa-token'])) return res.status(401).json({ error: 'No autorizado' });
+    const SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+    const sh = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' };
+    // 1. Buscar convs messenger con nombre numérico
+    const rC = await fetch(`${SUPA_URL}/rest/v1/conversaciones?canal=eq.messenger&select=id,cliente_id,canal_user_id,canal_user_name`, { headers: sh });
+    const convs = await rC.json();
+    const psidConvs = (Array.isArray(convs) ? convs : []).filter(c => /^\d+$/.test(c.canal_user_name || ''));
+    if (!psidConvs.length) return res.status(200).json({ ok: true, actualizados: 0, msg: 'Sin PSIDs numéricos' });
+    // 2. Obtener fb_token por cliente_id
+    const clienteIds = [...new Set(psidConvs.map(c => c.cliente_id))];
+    const rCli = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?id=in.(${clienteIds.join(',')})&select=id,canales_meta`, { headers: sh });
+    const clientes = await rCli.json();
+    const tokenMap = {};
+    for (const cli of (Array.isArray(clientes) ? clientes : [])) {
+      tokenMap[cli.id] = cli.canales_meta?.fb_token;
+    }
+    // 3. Resolver nombre por Graph API y actualizar
+    let actualizados = 0;
+    const errores = [];
+    for (const conv of psidConvs) {
+      const fbToken = tokenMap[conv.cliente_id];
+      if (!fbToken) { errores.push({ id: conv.id, err: 'sin fb_token' }); continue; }
+      try {
+        const nr = await fetch(`https://graph.facebook.com/v20.0/${conv.canal_user_id}?fields=name,first_name,last_name&access_token=${fbToken}`);
+        const nd = await nr.json();
+        const nombre = nd.name || (nd.first_name ? [nd.first_name, nd.last_name].filter(Boolean).join(' ') : null);
+        if (!nombre || /^\d+$/.test(nombre)) { errores.push({ id: conv.id, psid: conv.canal_user_id, err: nd.error?.message || 'sin nombre' }); continue; }
+        await fetch(`${SUPA_URL}/rest/v1/conversaciones?id=eq.${conv.id}`, { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ canal_user_name: nombre }) });
+        actualizados++;
+      } catch(e) { errores.push({ id: conv.id, err: e.message }); }
+    }
+    return res.status(200).json({ ok: true, total: psidConvs.length, actualizados, errores });
+  }
+
   // ── Todas las demás rutas requieren token válido ───────────────────────────
   if (!verifyToken(req.headers['x-sa-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
