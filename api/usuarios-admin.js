@@ -271,8 +271,9 @@ export default async function handler(req, res) {
     const sesToken = req.headers['x-session-token'];
     const isSA = verifyToken(saToken);
     const cidFromToken = !isSA ? getClienteIdFromToken(sesToken) : null;
-    if (!isSA && cidFromToken !== cliente_id) return res.status(401).json({ error: 'No autorizado' });
-    if (isSA) {
+    const isSASession = !isSA && cidFromToken === 'sa';
+    if (!isSA && !isSASession && cidFromToken !== cliente_id) return res.status(401).json({ error: 'No autorizado' });
+    if (isSA || isSASession) {
       await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.cliente&leido=eq.false`,
         { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ leido: true }) });
     }
@@ -292,9 +293,11 @@ export default async function handler(req, res) {
     const saToken = req.headers['x-sa-token'];
     const sesToken = req.headers['x-session-token'];
     const isSA = verifyToken(saToken);
+    let isSASession = false;
     if (!isSA) {
       const cid = getClienteIdFromToken(sesToken);
-      if (cid !== cliente_id || remitente !== 'cliente') return res.status(401).json({ error: 'No autorizado' });
+      isSASession = cid === 'sa';
+      if (!isSASession && (cid !== cliente_id || remitente !== 'cliente')) return res.status(401).json({ error: 'No autorizado' });
     } else if (remitente !== 'superadmin') {
       return res.status(400).json({ error: 'Remitente inválido' });
     }
@@ -307,7 +310,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Error al guardar', detail: errBody });
     }
     const [msg] = await r.json();
-    if (isSA) {
+    if (isSA || isSASession) {
       await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.cliente&leido=eq.false`,
         { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ leido: true }) });
     }
