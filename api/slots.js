@@ -48,6 +48,7 @@ export default async function handler(req, res) {
         pregunta:  String(f.pregunta  || '').slice(0, 300),
         respuesta: String(f.respuesta || '').slice(0, 1000)
       })) : [],
+      conocimiento: String(body.conocimiento || '').slice(0, 6000),
       activo: true
     };
     try {

@@ -2414,40 +2414,51 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
       </div>
 
+      <!-- Base de conocimiento -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">Base de conocimiento</div>
+          <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">IA lo lee</span>
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Escribe aquí información adicional que el asistente puede usar: promociones activas, detalles de tratamientos, políticas de cancelación, requisitos previos, etc.</div>
+        <textarea class="fi" id="bot-conocimiento" rows="7" placeholder="Ejemplo:&#10;— Promoción junio: 20% de descuento en limpieza facial para clientes nuevos&#10;— El tratamiento de rejuvenecimiento dura 90 min y se recomienda no maquillarse después&#10;— Política de cancelación: avisar con al menos 24h de anticipación&#10;— Estacionamiento disponible en el edificio" style="resize:vertical;line-height:1.6;font-size:12.5px"></textarea>
+        <div style="font-size:11px;color:var(--t4);margin-top:6px">Máx. 6.000 caracteres. Puedes escribir con guiones, saltos de línea o como prefieras — el asistente entiende texto libre.</div>
+      </div>
+
       <!-- Canales conectados -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div style="font-size:13px;font-weight:600;color:var(--t1)">Canales de mensajería</div>
           <button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="showCfg('canales',document.getElementById('ctab-canales'))">Configurar →</button>
         </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Conecta tu bot a tus canales de atención.</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Estado actual de los canales donde responde el asistente.</div>
         <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--b1)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--b1)">
             <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:32px;height:32px;border-radius:8px;background:#25D366;display:flex;align-items:center;justify-content:center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              <div style="width:30px;height:30px;border-radius:8px;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               </div>
-              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">WhatsApp Business</div><div style="font-size:11px;color:var(--t3)">Número de teléfono dedicado via Meta API</div></div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">WhatsApp Business</div>
             </div>
-            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Próximamente</span>
+            <div id="bot-canal-wa-badge"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Cargando…</span></div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--b1)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--b1)">
             <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0866FF,#1877F2);display:flex;align-items:center;justify-content:center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
+              <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12 0C5.373 0 0 5.37 0 12c0 3.679 1.636 6.973 4.234 9.25V24l3.875-2.127A12.24 12.24 0 0012 22c6.627 0 12-4.37 12-12S18.627 0 12 0zm1.193 15.87l-3.06-3.26-5.969 3.26 6.567-6.972 3.134 3.26 5.896-3.26-6.568 6.972z"/></svg>
               </div>
-              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Facebook Messenger</div><div style="font-size:11px;color:var(--t3)">Mensajes directos de tu página de Facebook</div></div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Facebook Messenger</div>
             </div>
-            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Próximamente</span>
+            <div id="bot-canal-fb-badge"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Cargando…</span></div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
             <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF,#515BD4);display:flex;align-items:center;justify-content:center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
               </div>
-              <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Instagram Direct</div><div style="font-size:11px;color:var(--t3)">Mensajes directos de tu cuenta de Instagram</div></div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Instagram Direct</div>
             </div>
-            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Próximamente</span>
+            <div id="bot-canal-ig-badge"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Cargando…</span></div>
           </div>
         </div>
       </div>
@@ -2477,84 +2488,156 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <span>Canales de mensajería</span>
         <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
       </div>
-      <p style="font-size:12px;color:var(--t3);margin-bottom:16px">Conecta tus canales para que el chatbot IA responda y agende desde WhatsApp, Messenger e Instagram.</p>
+      <p style="font-size:12px;color:var(--t3);margin-bottom:20px">Conecta tus canales para que el chatbot IA responda y agende citas desde WhatsApp, Messenger e Instagram.</p>
 
-      <!-- URL del webhook -->
-      <div style="background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;margin-bottom:16px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">URL del Webhook (configurar en Meta)</div>
-        <code id="canal-webhook-url" style="font-size:12px;color:var(--a);word-break:break-all">https://app.attempo.cl/api/meta-webhook</code>
-        <button class="btn-sm" style="margin-top:8px" onclick="navigator.clipboard.writeText(document.getElementById('canal-webhook-url').textContent);toast('✓ Copiado')">Copiar</button>
+      <!-- Webhook URL -->
+      <div class="card" style="padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--adim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--a)" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">URL del Webhook</div>
+            <div style="font-size:11px;color:var(--t3)">Configura en Meta for Developers → Webhooks</div>
+          </div>
+        </div>
+        <div style="background:var(--adim);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <code id="canal-webhook-url" style="font-size:12px;color:var(--a);flex:1;word-break:break-all;line-height:1.4">https://app.attempo.cl/api/meta-webhook</code>
+          <button class="btn-sm" style="flex-shrink:0" onclick="navigator.clipboard.writeText(document.getElementById('canal-webhook-url').textContent);toast('✓ URL copiada')">Copiar</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(108,92,228,0.05);border:1px solid var(--b1);border-radius:var(--r)">
+          <span style="font-size:11px;color:var(--t3);white-space:nowrap">Token de verificación:</span>
+          <code style="font-size:12px;color:var(--a);font-weight:600;flex:1">attempo2024</code>
+          <button class="btn-sm" onclick="navigator.clipboard.writeText('attempo2024');toast('✓ Token copiado')">Copiar</button>
+        </div>
       </div>
 
       <!-- WhatsApp -->
-      <div style="border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="width:32px;height:32px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.107.547 4.084 1.504 5.798L0 24l6.333-1.482A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.395l-.371-.22-3.753.878.894-3.656-.242-.382A9.936 9.936 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+      <div class="card" style="margin-bottom:12px;overflow:hidden;border-left:3px solid #25D366">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px">
+          <div style="width:38px;height:38px;border-radius:10px;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(37,211,102,0.3)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.107.547 4.084 1.504 5.798L0 24l6.333-1.482A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.395l-.371-.22-3.753.878.894-3.656-.242-.382A9.936 9.936 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
           </div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--t1)">WhatsApp Business</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:var(--t1)">WhatsApp Business</div>
             <div style="font-size:11px;color:var(--t3)" id="wa-status-lbl">Sin conectar</div>
           </div>
-          <div style="margin-left:auto"><span id="wa-tag" class="tag ta">Sin conectar</span></div>
+          <span id="wa-tag" class="tag ta">Sin conectar</span>
         </div>
-        <div style="display:grid;gap:8px">
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Phone Number ID</label>
-            <input id="canal-wa-phone-id" class="fi" placeholder="Ej: 123456789012345" style="width:100%"></div>
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Access Token (permanente)</label>
-            <input id="canal-wa-token" class="fi" type="password" placeholder="EAAx..." style="width:100%"></div>
+        <div style="padding:18px">
+          <div style="display:grid;gap:14px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px;letter-spacing:.03em">Phone Number ID</label>
+              <input id="canal-wa-phone-id" class="fi" placeholder="Ej: 123456789012345">
+              <div style="font-size:11px;color:var(--t4);margin-top:4px">Disponible en Meta → WhatsApp → Configuración → API Setup</div>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px;letter-spacing:.03em">Access Token permanente</label>
+              <div class="input-rel">
+                <input id="canal-wa-token" class="fi" type="password" placeholder="EAAx...">
+                <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-wa-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div style="font-size:11px;color:var(--t4);margin-top:4px">Token permanente de Graph API (nunca expira)</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;justify-content:flex-end">
+            <button class="btn-a" onclick="saveCanal('whatsapp')">Guardar WhatsApp</button>
+          </div>
         </div>
-        <button class="btn-a" style="margin-top:10px;width:100%" onclick="saveCanal('whatsapp')">Guardar WhatsApp</button>
       </div>
 
       <!-- Messenger -->
-      <div style="border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 0C5.373 0 0 5.37 0 12c0 3.679 1.636 6.973 4.234 9.25V24l3.875-2.127A12.24 12.24 0 0012 22c6.627 0 12-4.37 12-12S18.627 0 12 0zm1.193 15.87l-3.06-3.26-5.969 3.26 6.567-6.972 3.134 3.26 5.896-3.26-6.568 6.972z"/></svg>
+      <div class="card" style="margin-bottom:12px;overflow:hidden;border-left:3px solid #0099FF">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px">
+          <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,153,255,0.25)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M12 0C5.373 0 0 5.37 0 12c0 3.679 1.636 6.973 4.234 9.25V24l3.875-2.127A12.24 12.24 0 0012 22c6.627 0 12-4.37 12-12S18.627 0 12 0zm1.193 15.87l-3.06-3.26-5.969 3.26 6.567-6.972 3.134 3.26 5.896-3.26-6.568 6.972z"/></svg>
           </div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--t1)">Facebook Messenger</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:var(--t1)">Facebook Messenger</div>
             <div style="font-size:11px;color:var(--t3)" id="fb-status-lbl">Sin conectar</div>
           </div>
-          <div style="margin-left:auto"><span id="fb-tag" class="tag ta">Sin conectar</span></div>
+          <span id="fb-tag" class="tag ta">Sin conectar</span>
         </div>
-        <div style="display:grid;gap:8px">
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Page ID</label>
-            <input id="canal-fb-page-id" class="fi" placeholder="Ej: 123456789012345" style="width:100%"></div>
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Page Access Token</label>
-            <input id="canal-fb-token" class="fi" type="password" placeholder="EAAx..." style="width:100%"></div>
+        <div style="padding:18px">
+          <div style="display:grid;gap:14px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px;letter-spacing:.03em">Page ID</label>
+              <input id="canal-fb-page-id" class="fi" placeholder="Ej: 123456789012345">
+              <div style="font-size:11px;color:var(--t4);margin-top:4px">ID numérico de tu página de Facebook</div>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px;letter-spacing:.03em">Page Access Token</label>
+              <div class="input-rel">
+                <input id="canal-fb-token" class="fi" type="password" placeholder="EAAx...">
+                <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-fb-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div style="font-size:11px;color:var(--t4);margin-top:4px">Token de página permanente. Debe ser un Page Access Token, no de usuario</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;justify-content:flex-end">
+            <button class="btn-a" onclick="saveCanal('messenger')">Guardar Messenger</button>
+          </div>
         </div>
-        <button class="btn-a" style="margin-top:10px;width:100%" onclick="saveCanal('messenger')">Guardar Messenger</button>
       </div>
 
       <!-- Instagram -->
-      <div style="border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:16px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+      <div class="card" style="margin-bottom:20px;overflow:hidden;border-left:3px solid #DD2A7B">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px">
+          <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(221,42,123,0.25)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
           </div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--t1)">Instagram DMs</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:var(--t1)">Instagram DMs</div>
             <div style="font-size:11px;color:var(--t3)" id="ig-status-lbl">Sin conectar</div>
           </div>
-          <div style="margin-left:auto"><span id="ig-tag" class="tag ta">Sin conectar</span></div>
+          <span id="ig-tag" class="tag ta">Sin conectar</span>
         </div>
-        <div style="display:grid;gap:8px">
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Instagram Account ID</label>
-            <input id="canal-ig-account-id" class="fi" placeholder="Ej: 123456789012345" style="width:100%"></div>
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Access Token</label>
-            <input id="canal-ig-token" class="fi" type="password" placeholder="EAAx..." style="width:100%"></div>
+        <div style="padding:18px">
+          <div style="display:grid;gap:14px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px;letter-spacing:.03em">Instagram Account ID</label>
+              <input id="canal-ig-account-id" class="fi" placeholder="Ej: 123456789012345">
+              <div style="font-size:11px;color:var(--t4);margin-top:4px">ID numérico de tu cuenta profesional de Instagram</div>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px;letter-spacing:.03em">Access Token</label>
+              <div class="input-rel">
+                <input id="canal-ig-token" class="fi" type="password" placeholder="EAAx...">
+                <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-ig-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div style="font-size:11px;color:var(--t4);margin-top:4px">Token vinculado a tu página de Facebook conectada</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;justify-content:flex-end">
+            <button class="btn-a" onclick="saveCanal('instagram')">Guardar Instagram</button>
+          </div>
         </div>
-        <button class="btn-a" style="margin-top:10px;width:100%" onclick="saveCanal('instagram')">Guardar Instagram</button>
       </div>
 
-      <div style="background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;font-size:12px;color:var(--t3);line-height:1.6">
-        <strong style="color:var(--t1)">¿Cómo conectar?</strong><br>
-        1. Ve a <strong>developers.facebook.com</strong> → Crea una app → Agrega WhatsApp/Messenger/Instagram<br>
-        2. Copia la URL del webhook y pégala en Meta con el token de verificación: <code style="color:var(--a)">attempo2024</code><br>
-        3. Suscríbete a los eventos: <code style="color:var(--a)">messages</code><br>
-        4. Obtén los tokens permanentes (Graph API) y pégalos aquí
+      <!-- Guía de configuración -->
+      <div class="card" style="padding:18px">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--a)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          ¿Cómo conectar?
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--adim);color:var(--a);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.55">Ve a <strong style="color:var(--t1)">developers.facebook.com</strong> → Crea una app → Agrega los productos (WhatsApp, Messenger o Instagram)</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--adim);color:var(--a);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.55">En <strong style="color:var(--t1)">Webhooks</strong>, pega la URL del webhook de arriba y el token de verificación <code style="color:var(--a);background:var(--adim);padding:1px 6px;border-radius:3px">attempo2024</code></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--adim);color:var(--a);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.55">Suscríbete al evento <code style="color:var(--a);background:var(--adim);padding:1px 6px;border-radius:3px">messages</code> para cada canal que quieras activar</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--adim);color:var(--a);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.55">Obtén los tokens permanentes desde <strong style="color:var(--t1)">Graph API Explorer</strong> y pégalos en cada canal arriba</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3941,18 +4024,48 @@ let _botTestUserId = 'admin-test-' + Date.now();
 
 async function loadBotConfig() {
   try {
-    const r = await fetch('/api/slots?resource=bot_config', { headers: _citasH() });
-    if (!r.ok) return;
-    const cfg = await r.json();
-    if (!cfg) return;
-    document.getElementById('bot-nombre').value = cfg.nombre_bot || 'Valentina';
-    document.getElementById('bot-genero').value = cfg.genero || 'femenino';
-    const tono = cfg.tono || 'informal';
-    document.getElementById('bot-tono-' + tono).checked = true;
-    if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
-    _botFaqs = Array.isArray(cfg.faqs) ? cfg.faqs : [];
-    renderFaqs();
+    const [rBot, rCli] = await Promise.all([
+      fetch('/api/slots?resource=bot_config', { headers: _citasH() }),
+      fetch('/api/slots?resource=canales_status', { headers: _citasH() }).catch(() => null)
+    ]);
+    if (rBot.ok) {
+      const cfg = await rBot.json();
+      if (cfg) {
+        document.getElementById('bot-nombre').value = cfg.nombre_bot || 'Valentina';
+        document.getElementById('bot-genero').value = cfg.genero || 'femenino';
+        const tono = cfg.tono || 'informal';
+        document.getElementById('bot-tono-' + tono).checked = true;
+        updateTonoUI(tono);
+        if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
+        const conocEl = document.getElementById('bot-conocimiento');
+        if (conocEl) conocEl.value = cfg.conocimiento || '';
+        _botFaqs = Array.isArray(cfg.faqs) ? cfg.faqs : [];
+        renderFaqs();
+      }
+    }
+    // Actualizar estado de canales en el panel chatbot
+    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    const cid = u.cliente_id;
+    if (cid) {
+      const rMeta = await fetch(`/api/slots?resource=canales_meta&cliente_id=${cid}`, { headers: _citasH() }).catch(() => null);
+      if (rMeta?.ok) {
+        const meta = await rMeta.json().catch(() => ({}));
+        _actualizarBadgesCanalesBot(meta);
+      }
+    }
   } catch(e) { console.error('loadBotConfig:', e.message); }
+}
+
+function _actualizarBadgesCanalesBot(meta) {
+  const chk = (ok) => ok
+    ? '<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(22,163,74,0.1);color:#16a34a;border:1px solid rgba(22,163,74,0.2)">✓ Conectado</span>'
+    : '<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Sin conectar</span>';
+  const waEl = document.getElementById('bot-canal-wa-badge');
+  const fbEl = document.getElementById('bot-canal-fb-badge');
+  const igEl = document.getElementById('bot-canal-ig-badge');
+  if (waEl) waEl.innerHTML = chk(!!(meta.wa_token && meta.wa_phone_number_id));
+  if (fbEl) fbEl.innerHTML = chk(!!(meta.fb_token && meta.fb_page_id));
+  if (igEl) igEl.innerHTML = chk(!!(meta.ig_token && meta.ig_account_id));
 }
 
 function renderFaqs() {
@@ -3988,12 +4101,13 @@ function removeFaq(i) {
 async function saveBotConfig() {
   const tono = document.querySelector('input[name="bot-tono"]:checked')?.value || 'informal';
   const payload = {
-    resource:   'bot_config',
-    nombre_bot: document.getElementById('bot-nombre').value.trim() || 'Valentina',
-    genero:     document.getElementById('bot-genero').value,
+    resource:     'bot_config',
+    nombre_bot:   document.getElementById('bot-nombre').value.trim() || 'Valentina',
+    genero:       document.getElementById('bot-genero').value,
     tono,
-    saludo:     document.getElementById('bot-saludo').value.trim(),
-    faqs:       _botFaqs.filter(f => f.pregunta.trim())
+    saludo:       document.getElementById('bot-saludo').value.trim(),
+    conocimiento: (document.getElementById('bot-conocimiento')?.value || '').trim(),
+    faqs:         _botFaqs.filter(f => f.pregunta.trim())
   };
   try {
     const r = await fetch('/api/slots', {
@@ -4004,6 +4118,12 @@ async function saveBotConfig() {
     if (r.ok) { toast('✓ Configuración del bot guardada'); }
     else { const err = await r.json().catch(()=>({})); toast('Error al guardar: ' + (err.error || r.status)); }
   } catch(e) { toast('Error al guardar la configuración del bot'); }
+}
+
+function updateTonoUI(tono) {
+  const lbl = { informal: document.getElementById('tono-informal-lbl'), formal: document.getElementById('tono-formal-lbl') };
+  if (lbl.informal) lbl.informal.style.borderColor = tono === 'informal' ? 'var(--a)' : 'var(--b1)';
+  if (lbl.formal)   lbl.formal.style.borderColor   = tono === 'formal'   ? 'var(--a)' : 'var(--b1)';
 }
 
 async function testBotSend() {

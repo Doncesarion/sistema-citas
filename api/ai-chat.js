@@ -105,6 +105,19 @@ export default async function handler(req, res) {
     direccionNegocio = cli?.direccion || null;
   } catch(_) {}
 
+  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '';
+  try {
+    const rb = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh });
+    const [bc] = await rb.json();
+    if (bc) {
+      nombreBot      = bc.nombre_bot   || 'Attia';
+      tonoBot        = bc.tono         || 'informal';
+      saludoBot      = bc.saludo       || '';
+      faqsBot        = Array.isArray(bc.faqs) ? bc.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
+      conocimientoBot = bc.conocimiento || '';
+    }
+  } catch(_) {}
+
   const srvTexto = serviciosCatalogo.length
     ? serviciosCatalogo.map(s => {
         const dur = s.duracion ? ` — ${s.duracion} min` : '';
@@ -143,8 +156,20 @@ export default async function handler(req, res) {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago'
   });
 
-  const systemPrompt = `Eres Attia, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. Eres una persona real detrás de la pantalla: cercana, natural y directa.
+  const tonoInstruccion = tonoBot === 'formal'
+    ? 'Usa "usted" con los clientes. Eres profesional, respetuoso y cálido.'
+    : 'Eres una persona real detrás de la pantalla: cercana, natural y directa. Usa "tú" con los clientes.';
 
+  const faqsTexto = faqsBot.length
+    ? `\nPREGUNTAS FRECUENTES (responde EXACTAMENTE con estas respuestas cuando te las hagan):\n${faqsBot.map(f => `• Si preguntan: "${f.pregunta}"\n  Responde: "${f.respuesta}"`).join('\n\n')}`
+    : '';
+
+  const conocimientoTexto = conocimientoBot.trim()
+    ? `\nINFORMACIÓN ADICIONAL DEL NEGOCIO (úsala para responder preguntas):\n${conocimientoBot.trim()}`
+    : '';
+
+  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}
+${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
 PROFESIONALES DISPONIBLES (usa el id exacto al llamar las herramientas):
 ${espTexto}
 
@@ -159,6 +184,8 @@ ${direccionNegocio || 'No disponible.'}
 
 MÉTODOS DE PAGO ACEPTADOS:
 ${pagosTexto}
+${conocimientoTexto}
+${faqsTexto}
 
 CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:
 1. Pregunta el nombre con naturalidad. Ej: "perfecto, ¿me das tu nombre para dejarlo agendado?"
@@ -175,6 +202,7 @@ CUANDO PREGUNTAN OTRA COSA:
 - Horarios generales: responde con el horario de atención que tienes arriba.
 - Dirección: responde con la dirección que tienes arriba. Si no hay, sugiere llamar al negocio.
 - Servicios: presenta el catálogo que tienes arriba.
+- Preguntas frecuentes: si hay una respuesta configurada arriba para esa pregunta, úsala exactamente.
 
 CÓMO ESCRIBIR:
 - Español chileno natural. Escribe en minúsculas como lo haría una persona en WhatsApp, solo mayúscula al inicio de oración y en nombres propios.
