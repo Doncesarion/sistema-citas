@@ -4215,11 +4215,11 @@ function renderPromociones() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha inicio (opcional)</label>
-          <input type="date" class="fi" value="${escHtml(p.fecha_inicio||'')}" oninput="_botPromos[${i}].fecha_inicio=this.value">
+          <input type="date" class="fi" value="${escHtml(p.fecha_inicio||'')}" oninput="_botPromos[${i}].fecha_inicio=this.value" onchange="_botPromos[${i}].fecha_inicio=this.value">
         </div>
         <div>
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha fin (opcional)</label>
-          <input type="date" class="fi" value="${escHtml(p.fecha_fin||'')}" oninput="_botPromos[${i}].fecha_fin=this.value">
+          <input type="date" class="fi" value="${escHtml(p.fecha_fin||'')}" oninput="_botPromos[${i}].fecha_fin=this.value" onchange="_botPromos[${i}].fecha_fin=this.value">
         </div>
       </div>
     </div>
