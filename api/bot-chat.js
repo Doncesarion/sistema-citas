@@ -65,10 +65,12 @@ export default async function handler(req, res) {
   let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [] };
   try {
     const rb = await fetch(
-      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&activo=eq.true&select=nombre_bot,tono,saludo,faqs,tipo_bot,conocimiento,promociones&limit=1`,
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=nombre_bot,tono,saludo,faqs,tipo_bot,conocimiento,promociones&limit=1`,
       { headers: sh }
     );
-    const [bc] = await rb.json();
+    const rawBotCfg = await rb.json();
+    console.log('bot-chat: bot_config raw =', JSON.stringify(rawBotCfg));
+    const [bc] = Array.isArray(rawBotCfg) ? rawBotCfg : [];
     if (bc) {
       botConfig.nombre_bot   = bc.nombre_bot   || 'Valentina';
       botConfig.tono         = bc.tono         || 'informal';
@@ -78,6 +80,7 @@ export default async function handler(req, res) {
       botConfig.conocimiento = bc.conocimiento || '';
       botConfig.promociones  = Array.isArray(bc.promociones) ? bc.promociones : [];
     }
+    console.log('bot-chat: promociones cargadas =', JSON.stringify(botConfig.promociones));
   } catch (e) {
     console.error('bot-chat: error cargando bot_config:', e.message);
   }

@@ -4123,9 +4123,8 @@ let _botTestUserId = 'admin-test-' + Date.now();
 
 async function loadBotConfig() {
   try {
-    const [rBot, rCli] = await Promise.all([
-      fetch('/api/slots?resource=bot_config', { headers: _citasH() }),
-      fetch('/api/slots?resource=canales_status', { headers: _citasH() }).catch(() => null)
+    const [rBot] = await Promise.all([
+      fetch('/api/slots?resource=bot_config', { headers: _citasH() })
     ]);
     if (rBot.ok) {
       const cfg = await rBot.json();
