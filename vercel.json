@@ -1,5 +1,11 @@
 {
   "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/send-email",
+      "schedule": "0 11 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -16,7 +22,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "https://app.attempo.cl" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PATCH, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key, x-session-token, x-override-cliente-id" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key, x-session-token, x-override-cliente-id, Authorization" }
       ]
     }
   ],

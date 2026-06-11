@@ -2025,6 +2025,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="ptab"    id="ctab-facturacion"    onclick="showCfg('facturacion',this)">Facturación</button>
         <button class="ptab"    id="ctab-chatbot"        onclick="showCfg('chatbot',this)">Chatbot IA</button>
         <button class="ptab"    id="ctab-canales"        onclick="showCfg('canales',this)">Canales</button>
+        <button class="ptab"    id="ctab-recordatorios"  onclick="showCfg('recordatorios',this)">Recordatorios</button>
       </div>
     </div>
 
@@ -2659,6 +2660,80 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <div style="font-size:12px;color:var(--t2);line-height:1.55">Obtén los tokens permanentes desde <strong style="color:var(--t1)">Graph API Explorer</strong> y pégalos en cada canal arriba</div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Panel: Recordatorios -->
+    <div id="cfg-recordatorios" style="display:none">
+      <div class="vh" style="margin-bottom:16px">
+        <span>Recordatorios automáticos</span>
+        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
+      </div>
+
+      <!-- Info cron -->
+      <div style="background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.15);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:18px;flex-shrink:0">🕗</span>
+        <div style="font-size:12px;color:var(--t2);line-height:1.55">El sistema revisa automáticamente cada día a las <strong>8:00 AM</strong> qué citas necesitan recordatorio y los envía. Con "24 horas antes" enviará los recordatorios del día siguiente cada mañana. También puedes enviarlos manualmente.</div>
+      </div>
+
+      <!-- Email -->
+      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="3" width="12" height="8" rx="1.5"/><path d="M1 4l6 4.5L13 4"/></svg>
+        Correo electrónico
+      </div>
+      <div class="card" style="padding:20px;margin-bottom:16px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px">Recordatorio por email</div>
+            <div style="font-size:12px;color:var(--t3)">Envía un email automático al cliente antes de su cita</div>
+          </div>
+          <input type="checkbox" id="rec-email-activo" checked style="accent-color:var(--a);width:16px;height:16px">
+        </div>
+        <div style="border-top:1px solid var(--b1);padding-top:14px">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Enviar con anticipación</label>
+          <select id="rec-email-tiempo" class="fs" style="width:100%">
+            <option value="24h" selected>24 horas antes</option>
+            <option value="12h">12 horas antes</option>
+            <option value="2h">2 horas antes</option>
+            <option value="1h">1 hora antes</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Asunto del email</label>
+          <input class="fi" id="rec-email-asunto" placeholder="Recordatorio: tu cita en {negocio}" style="width:100%">
+          <div style="font-size:10px;color:var(--t4);margin-top:4px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Mensaje adicional en el email (opcional)</label>
+          <textarea class="fi" id="rec-email-mensaje" rows="3" placeholder="Ej: Recuerda llegar 5 minutos antes. Si necesitas cancelar, avísanos con al menos 24 horas de anticipación." style="resize:vertical"></textarea>
+          <div style="font-size:10px;color:var(--t4);margin-top:4px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
+        </div>
+      </div>
+
+      <!-- WhatsApp (próximamente) -->
+      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.5" fill="#25D366"/><path d="M10.2 8.6c-.2-.1-1.1-.5-1.3-.6-.2-.1-.3-.1-.4.1-.1.2-.5.6-.6.7-.1.1-.2.1-.4 0-.2-.1-.8-.3-1.5-.9-.6-.5-1-1.1-1.1-1.3-.1-.2 0-.3.1-.4l.3-.4c.1-.1.1-.2.2-.3 0-.1 0-.2-.1-.3l-.6-1.3c-.1-.3-.3-.2-.4-.2h-.3c-.1 0-.3.1-.5.2-.2.2-.7.7-.7 1.6 0 1 .7 1.9.8 2 .1.1 1.4 2.2 3.5 3 .5.2.9.3 1.2.4.5.1 1 .1 1.3.1.4-.1 1.1-.5 1.3-1 .2-.5.2-.9.1-1-.1-.1-.2-.1-.4-.2z" fill="#fff"/></svg>
+        WhatsApp
+      </div>
+      <div class="card" style="padding:20px;margin-bottom:16px;opacity:0.7">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px">Recordatorio por WhatsApp</div>
+            <div style="font-size:12px;color:var(--t3)">Requiere plantilla aprobada en Meta Business Suite. Escríbenos para activarlo.</div>
+          </div>
+          <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15);white-space:nowrap">Próximamente</span>
+        </div>
+      </div>
+
+      <!-- Envío manual -->
+      <div class="card" style="padding:20px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Enviar recordatorios ahora</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Procesa y envía todos los recordatorios de email pendientes para hoy y mañana. No duplica si ya fue enviado.</div>
+        <button class="btn-sm" id="btn-enviar-rec" onclick="enviarRecordatoriosAhora()" style="color:var(--a);border-color:var(--a)">Enviar recordatorios ahora</button>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;padding-top:4px">
+        <button class="btn-a" onclick="saveRecordatorios()">Guardar configuración</button>
       </div>
     </div>
 
@@ -3909,7 +3984,8 @@ function showCfg(panel, btn, skipPush) {
   if (panel === 'servicios')     cargarServicios();
   if (panel === 'pagos')         cargarPagos();
   if (panel === 'chatbot')        loadBotConfig();
-  if (panel === 'notificaciones') loadNotificaciones();
+  if (panel === 'notificaciones')  loadNotificaciones();
+  if (panel === 'recordatorios')   loadRecordatorios();
   if (panel === 'facturacion')   cargarFacturacion();
   if (panel === 'canales')       cargarCanales();
   if (panel === 'horarios')      loadHorario();
@@ -4283,6 +4359,57 @@ async function saveNotificaciones() {
     if (r.ok) { toast('✓ Notificaciones guardadas'); }
     else { const err = await r.json().catch(()=>({})); toast('Error al guardar: ' + (err.error || r.status)); }
   } catch(e) { toast('Error al guardar las notificaciones'); }
+}
+
+/* ════ RECORDATORIOS ════ */
+async function loadRecordatorios() {
+  try {
+    const r = await fetch('/api/slots?resource=recordatorios_config', { headers: _citasH() });
+    if (!r.ok) return;
+    const cfg = await r.json();
+    if (!cfg) return;
+    const g = id => document.getElementById(id);
+    if (g('rec-email-activo'))  g('rec-email-activo').checked = cfg.email_activo !== false;
+    if (g('rec-email-tiempo') && cfg.email_tiempo) g('rec-email-tiempo').value = cfg.email_tiempo;
+    if (g('rec-email-asunto'))  g('rec-email-asunto').value   = cfg.email_asunto  || '';
+    if (g('rec-email-mensaje')) g('rec-email-mensaje').value  = cfg.email_mensaje || '';
+  } catch(e) { console.error('loadRecordatorios:', e.message); }
+}
+
+async function saveRecordatorios() {
+  const g = id => document.getElementById(id);
+  const payload = {
+    resource:      'recordatorios_config',
+    email_activo:   g('rec-email-activo')?.checked ?? true,
+    email_tiempo:   g('rec-email-tiempo')?.value   || '24h',
+    email_asunto:   (g('rec-email-asunto')?.value  || '').trim(),
+    email_mensaje:  (g('rec-email-mensaje')?.value || '').trim()
+  };
+  try {
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) toast('✓ Configuración de recordatorios guardada');
+    else { const err = await r.json().catch(()=>({})); toast('Error: ' + (err.error || r.status)); }
+  } catch(e) { toast('Error al guardar'); }
+}
+
+async function enviarRecordatoriosAhora() {
+  const btn = document.getElementById('btn-enviar-rec');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try {
+    const r = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'enviar_recordatorios' })
+    });
+    const data = await r.json().catch(()=>({}));
+    if (r.ok) toast(`✓ ${data.enviados || 0} recordatorio(s) enviado(s)`);
+    else toast('Error: ' + (data.error || r.status));
+  } catch(e) { toast('Error al enviar recordatorios'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar recordatorios ahora'; }
 }
 
 /* ════ FORMATO RUT ════ */
@@ -7009,7 +7136,7 @@ function routeFromURL() {
   const section = parts[0];
   const sub     = parts[1] || null;
   const calSubs = ['semana','dia','mes','lista'];
-  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales'];
+  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales','recordatorios'];
 
   if (!section || section === 'admin' || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);

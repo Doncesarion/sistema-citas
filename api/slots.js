@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       cliente_id = overrideId;
     }
     const body = req.body || {};
-    if (!['bot_config', 'notificaciones_config'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
+    if (!['bot_config', 'notificaciones_config', 'recordatorios_config'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
 
     // — POST notificaciones_config —
     if (body.resource === 'notificaciones_config') {
@@ -66,6 +66,34 @@ export default async function handler(req, res) {
         return res.json({ ok: true });
       } catch(e) {
         console.error('notificaciones_config save exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — POST recordatorios_config —
+    if (body.resource === 'recordatorios_config') {
+      const TIEMPOS = ['24h', '12h', '2h', '1h'];
+      const cfg = {
+        email_activo:   body.email_activo  !== false,
+        email_tiempo:   TIEMPOS.includes(body.email_tiempo)  ? body.email_tiempo  : '24h',
+        email_asunto:   String(body.email_asunto  || '').slice(0, 300),
+        email_mensaje:  String(body.email_mensaje || '').slice(0, 2000),
+        wa_activo:      body.wa_activo === true
+      };
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ recordatorios_config: cfg })
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          console.error('recordatorios_config save error:', r.status, JSON.stringify(err));
+          return res.status(500).json({ error: 'Error al guardar recordatorios' });
+        }
+        return res.json({ ok: true });
+      } catch(e) {
+        console.error('recordatorios_config save exception:', e.message);
         return res.status(500).json({ error: 'Error interno' });
       }
     }
@@ -177,6 +205,19 @@ export default async function handler(req, res) {
         return res.status(200).json(data[0]?.notificaciones_config || null);
       } catch(e) {
         console.error('notificaciones_config GET exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — GET recordatorios_config —
+    if (req.query.resource === 'recordatorios_config') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=recordatorios_config&limit=1`, { headers: sh });
+        const data = await r.json();
+        if (!r.ok) return res.status(500).json({ error: 'Error al obtener recordatorios' });
+        return res.status(200).json(data[0]?.recordatorios_config || null);
+      } catch(e) {
+        console.error('recordatorios_config GET exception:', e.message);
         return res.status(500).json({ error: 'Error interno' });
       }
     }
