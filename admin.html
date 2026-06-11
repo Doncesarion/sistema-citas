@@ -3972,11 +3972,11 @@ function updateReport(p, btn) {
 
 /* ════ CONFIG PANEL SWITCHING ════ */
 function showCfg(panel, btn, skipPush) {
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales','recordatorios'].forEach(p => {
     const el = document.getElementById('cfg-' + p);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales'].forEach(p => {
+  ['general','profesionales','horarios','notificaciones','servicios','pagos','chatbot','facturacion','canales','recordatorios'].forEach(p => {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
