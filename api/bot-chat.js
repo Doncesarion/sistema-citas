@@ -65,11 +65,10 @@ export default async function handler(req, res) {
   let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [] };
   try {
     const rb = await fetch(
-      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=nombre_bot,tono,saludo,faqs,tipo_bot,conocimiento,promociones&limit=1`,
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`,
       { headers: sh }
     );
     const rawBotCfg = await rb.json();
-    console.log('bot-chat: bot_config raw =', JSON.stringify(rawBotCfg));
     const [bc] = Array.isArray(rawBotCfg) ? rawBotCfg : [];
     if (bc) {
       botConfig.nombre_bot   = bc.nombre_bot   || 'Valentina';
