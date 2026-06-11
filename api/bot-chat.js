@@ -297,7 +297,7 @@ TRATO: Usa "${pronombre}" con el paciente. Sin markdown ni asteriscos. Máximo 2
 PRIMER MENSAJE:${esPrimerMensaje ? (saludoFinal ? `
 El paciente escribe por primera vez. Sigue esta lógica según lo que escribió:
 - Si solo saludó (ej: "hola", "buenos días") sin preguntar nada: usa este mensaje de bienvenida exacto: "${saludoFinal}"
-- Si ya hizo una pregunta (ej: "tienen promo?", "cuánto cuesta?"): saluda con UNA sola palabra o frase muy corta ("¡Hola!", "¡Hola! Claro,") y responde directamente su pregunta en el mismo mensaje. NO uses el mensaje de bienvenida completo. NO agregues otra pregunta al final.` : `
+- Si ya hizo una pregunta (ej: "tienen promo?", "cuánto cuesta?"): saluda con UNA sola frase corta ("¡Hola!", "¡Hola! Claro,") y responde directamente su pregunta en el mismo mensaje. NO uses el mensaje de bienvenida completo. La única pregunta de seguimiento permitida debe estar relacionada a lo que acaba de preguntar (ej: si preguntó por promo → "¿Te gustaría agendar una cita para aprovecharla?").` : `
 El paciente escribe por primera vez. Si solo saludó, saluda brevemente. Si ya preguntó algo, responde directamente sin rodeos.`) : ' Continúa la conversación con naturalidad.'}
 
 HOY ES: ${hoy}
@@ -316,7 +316,7 @@ INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y no hay catálogo: di que el valor lo coordina el profesional al reservar, y ofrece agendar.
 - Si preguntan por horario, disponibilidad o qué días atienden: llama SIEMPRE a ver_disponibilidad_semana. Copia el campo "texto" del resultado exactamente como viene, con cada día en su propia línea. Responde: "Contamos con disponibilidad en los siguientes horarios:" + salto de línea + [texto del resultado] + salto de línea + "¿Cuál día te acomoda mejor?"
 - Si preguntan por recordatorios o confirmaciones: al confirmar una cita, el sistema envía automáticamente un email de confirmación al paciente con todos los detalles. El negocio también puede activar recordatorios automáticos por WhatsApp y email antes de cada cita.
-- Si hay PROMOCIONES VIGENTES configuradas arriba, menciónalas cuando pregunten por descuentos, promociones o precios. Menciona la promo con naturalidad y deja que el paciente responda — no rematas con "¿te interesa agendar?" inmediatamente.
+- Si hay PROMOCIONES VIGENTES configuradas arriba, menciónalas cuando pregunten por descuentos, promociones o precios. Después de mencionar la promo, pregunta exactamente: "¿Te gustaría agendar una cita para aprovecharla?"
 - Si preguntan por teléfono, dirección u otra información que no tengas: respóndelo brevemente y ofrece agendar.
 - Si hay PREGUNTAS FRECUENTES configuradas, úsalas primero.
 - NUNCA digas "no tengo esa información" y te quedes ahí. Siempre conecta con lo que puedes hacer.
