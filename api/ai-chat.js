@@ -105,16 +105,17 @@ export default async function handler(req, res) {
     direccionNegocio = cli?.direccion || null;
   } catch(_) {}
 
-  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '';
+  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [];
   try {
     const rb = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh });
     const [bc] = await rb.json();
     if (bc) {
-      nombreBot      = bc.nombre_bot   || 'Attia';
-      tonoBot        = bc.tono         || 'informal';
-      saludoBot      = bc.saludo       || '';
-      faqsBot        = Array.isArray(bc.faqs) ? bc.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
+      nombreBot       = bc.nombre_bot   || 'Attia';
+      tonoBot         = bc.tono         || 'informal';
+      saludoBot       = bc.saludo       || '';
+      faqsBot         = Array.isArray(bc.faqs) ? bc.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
       conocimientoBot = bc.conocimiento || '';
+      promocionesBot  = Array.isArray(bc.promociones) ? bc.promociones : [];
     }
   } catch(_) {}
 
@@ -168,6 +169,21 @@ export default async function handler(req, res) {
     ? `\nINFORMACIÓN ADICIONAL DEL NEGOCIO (úsala para responder preguntas):\n${conocimientoBot.trim()}`
     : '';
 
+  // Promociones vigentes hoy
+  const _hoyAI = new Date();
+  const _hoyAIstgo = new Date(_hoyAI.toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }) + 'T12:00:00');
+  const promocionesActivasAI = promocionesBot.filter(p => {
+    if (!p.titulo?.trim()) return false;
+    const ini = p.fecha_inicio ? new Date(p.fecha_inicio + 'T00:00:00') : null;
+    const fin = p.fecha_fin    ? new Date(p.fecha_fin   + 'T23:59:59') : null;
+    if (ini && _hoyAIstgo < ini) return false;
+    if (fin && _hoyAIstgo > fin) return false;
+    return true;
+  });
+  const promosTextoAI = promocionesActivasAI.length
+    ? `\nPROMOCIONES VIGENTES HOY:\n${promocionesActivasAI.map(p => `— ${p.titulo}: ${p.descripcion}`).join('\n')}`
+    : '';
+
   const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}
 ${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
 PROFESIONALES DISPONIBLES (usa el id exacto al llamar las herramientas):
@@ -184,7 +200,7 @@ ${direccionNegocio || 'No disponible.'}
 
 MÉTODOS DE PAGO ACEPTADOS:
 ${pagosTexto}
-${conocimientoTexto}
+${conocimientoTexto}${promosTextoAI}
 ${faqsTexto}
 
 CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:

@@ -36,7 +36,41 @@ export default async function handler(req, res) {
       cliente_id = overrideId;
     }
     const body = req.body || {};
-    if (body.resource !== 'bot_config') return res.status(400).json({ error: 'Recurso no válido' });
+    if (!['bot_config', 'notificaciones_config'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
+
+    // — POST notificaciones_config —
+    if (body.resource === 'notificaciones_config') {
+      const TIEMPOS = ['24h', '12h', '2h', '1h'];
+      const cfg = {
+        wa_confirmacion:         body.wa_confirmacion         !== false,
+        wa_recordatorio:         body.wa_recordatorio         !== false,
+        wa_recordatorio_tiempo:  TIEMPOS.includes(body.wa_recordatorio_tiempo)  ? body.wa_recordatorio_tiempo  : '1h',
+        wa_aviso_profesional:    body.wa_aviso_profesional    !== false,
+        email_confirmacion:      body.email_confirmacion      !== false,
+        email_recordatorio:      body.email_recordatorio      !== false,
+        email_recordatorio_tiempo: TIEMPOS.includes(body.email_recordatorio_tiempo) ? body.email_recordatorio_tiempo : '2h',
+        email_resumen_diario:    body.email_resumen_diario    === true,
+        email_cancelacion:       body.email_cancelacion       !== false
+      };
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ notificaciones_config: cfg })
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          console.error('notificaciones_config save error:', r.status, JSON.stringify(err));
+          return res.status(500).json({ error: 'Error al guardar notificaciones' });
+        }
+        return res.json({ ok: true });
+      } catch(e) {
+        console.error('notificaciones_config save exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — POST bot_config —
     const TONOS = ['formal','informal'], GENEROS = ['femenino','masculino','neutro'];
     const payload = {
       cliente_id,
@@ -49,6 +83,12 @@ export default async function handler(req, res) {
         respuesta: String(f.respuesta || '').slice(0, 1000)
       })) : [],
       conocimiento: String(body.conocimiento || '').slice(0, 6000),
+      promociones: Array.isArray(body.promociones) ? body.promociones.slice(0, 20).map(p => ({
+        titulo:       String(p.titulo       || '').slice(0, 200),
+        descripcion:  String(p.descripcion  || '').slice(0, 1000),
+        fecha_inicio: /^\d{4}-\d{2}-\d{2}$/.test(p.fecha_inicio || '') ? p.fecha_inicio : null,
+        fecha_fin:    /^\d{4}-\d{2}-\d{2}$/.test(p.fecha_fin    || '') ? p.fecha_fin    : null
+      })) : [],
       activo: true
     };
     try {
@@ -124,6 +164,32 @@ export default async function handler(req, res) {
         return res.status(200).json(data[0] || null);
       } catch(e) {
         console.error('bot_config GET exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — GET notificaciones_config —
+    if (req.query.resource === 'notificaciones_config') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=notificaciones_config&limit=1`, { headers: sh });
+        const data = await r.json();
+        if (!r.ok) return res.status(500).json({ error: 'Error al obtener notificaciones' });
+        return res.status(200).json(data[0]?.notificaciones_config || null);
+      } catch(e) {
+        console.error('notificaciones_config GET exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — GET canales_meta —
+    if (req.query.resource === 'canales_meta') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`, { headers: sh });
+        const data = await r.json();
+        if (!r.ok) return res.status(500).json({ error: 'Error al obtener canales' });
+        return res.status(200).json(data[0]?.canales_meta || {});
+      } catch(e) {
+        console.error('canales_meta GET exception:', e.message);
         return res.status(500).json({ error: 'Error interno' });
       }
     }

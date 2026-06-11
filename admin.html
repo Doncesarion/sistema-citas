@@ -2133,18 +2133,23 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
           <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Confirmación de reserva</div><div style="font-size:12px;color:var(--t3)">Mensaje inmediato al cliente cuando confirma su cita</div></div>
-          <input type="checkbox" checked style="accent-color:var(--a);width:16px;height:16px">
+          <input type="checkbox" id="notif-wa-conf" checked style="accent-color:var(--a);width:16px;height:16px">
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Recordatorio antes de la cita</div><div style="font-size:12px;color:var(--t3)">Recordatorio automático al cliente</div></div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Recordatorio antes de la cita</div><div style="font-size:12px;color:var(--t3)">Recordatorio automático al cliente por WhatsApp</div></div>
           <div style="display:flex;align-items:center;gap:10px">
-            <select class="fs" style="font-size:12px;padding:5px 26px 5px 9px;width:auto"><option>24 horas antes</option><option>12 horas antes</option><option>2 horas antes</option><option selected>1 hora antes</option></select>
-            <input type="checkbox" checked style="accent-color:var(--a);width:16px;height:16px">
+            <select id="notif-wa-rec-t" class="fs" style="font-size:12px;padding:5px 26px 5px 9px;width:auto">
+              <option value="24h">24 horas antes</option>
+              <option value="12h">12 horas antes</option>
+              <option value="2h">2 horas antes</option>
+              <option value="1h" selected>1 hora antes</option>
+            </select>
+            <input type="checkbox" id="notif-wa-rec" checked style="accent-color:var(--a);width:16px;height:16px">
           </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Aviso al profesional por nueva reserva</div><div style="font-size:12px;color:var(--t3)">Avisa al profesional cuando un cliente agenda online</div></div>
-          <input type="checkbox" checked style="accent-color:var(--a);width:16px;height:16px">
+          <input type="checkbox" id="notif-wa-prof" checked style="accent-color:var(--a);width:16px;height:16px">
         </div>
       </div>
 
@@ -2156,27 +2161,32 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
           <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Confirmación de reserva por email</div><div style="font-size:12px;color:var(--t3)">Email automático con los detalles de la cita confirmada</div></div>
-          <input type="checkbox" checked style="accent-color:var(--a);width:16px;height:16px">
+          <input type="checkbox" id="notif-email-conf" checked style="accent-color:var(--a);width:16px;height:16px">
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
           <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Recordatorio por email</div><div style="font-size:12px;color:var(--t3)">Email recordatorio antes de la cita al cliente</div></div>
           <div style="display:flex;align-items:center;gap:10px">
-            <select class="fs" style="font-size:12px;padding:5px 26px 5px 9px;width:auto"><option>24 horas antes</option><option>12 horas antes</option><option selected>2 horas antes</option><option>1 hora antes</option></select>
-            <input type="checkbox" checked style="accent-color:var(--a);width:16px;height:16px">
+            <select id="notif-email-rec-t" class="fs" style="font-size:12px;padding:5px 26px 5px 9px;width:auto">
+              <option value="24h">24 horas antes</option>
+              <option value="12h">12 horas antes</option>
+              <option value="2h" selected>2 horas antes</option>
+              <option value="1h">1 hora antes</option>
+            </select>
+            <input type="checkbox" id="notif-email-rec" checked style="accent-color:var(--a);width:16px;height:16px">
           </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
           <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Resumen diario al profesional</div><div style="font-size:12px;color:var(--t3)">Email con las citas del día, enviado a las 7:00 AM</div></div>
-          <input type="checkbox" style="accent-color:var(--a);width:16px;height:16px">
+          <input type="checkbox" id="notif-email-resumen" style="accent-color:var(--a);width:16px;height:16px">
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Email al cancelar o reagendar</div><div style="font-size:12px;color:var(--t3)">Notifica al cliente si su cita es cancelada o modificada</div></div>
-          <input type="checkbox" checked style="accent-color:var(--a);width:16px;height:16px">
+          <input type="checkbox" id="notif-email-cancel" checked style="accent-color:var(--a);width:16px;height:16px">
         </div>
       </div>
 
       <div style="display:flex;justify-content:flex-end;padding-top:4px">
-        <button class="btn-a" onclick="toast('Notificaciones guardadas')">Guardar cambios</button>
+        <button class="btn-a" onclick="saveNotificaciones()">Guardar cambios</button>
       </div>
     </div>
 
@@ -2423,6 +2433,17 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Escribe aquí información adicional que el asistente puede usar: promociones activas, detalles de tratamientos, políticas de cancelación, requisitos previos, etc.</div>
         <textarea class="fi" id="bot-conocimiento" rows="7" placeholder="Ejemplo:&#10;— Promoción junio: 20% de descuento en limpieza facial para clientes nuevos&#10;— El tratamiento de rejuvenecimiento dura 90 min y se recomienda no maquillarse después&#10;— Política de cancelación: avisar con al menos 24h de anticipación&#10;— Estacionamiento disponible en el edificio" style="resize:vertical;line-height:1.6;font-size:12.5px"></textarea>
         <div style="font-size:11px;color:var(--t4);margin-top:6px">Máx. 6.000 caracteres. Puedes escribir con guiones, saltos de línea o como prefieras — el asistente entiende texto libre.</div>
+      </div>
+
+      <!-- Promociones -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">Promociones</div>
+          <button class="btn-sm" onclick="addPromocion()" style="font-size:11px">+ Agregar</button>
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">El asistente solo mencionará las promociones que estén vigentes según sus fechas. Si no pones fechas, la promoción siempre estará activa.</div>
+        <div id="promos-list" style="display:flex;flex-direction:column;gap:10px"></div>
+        <div id="promos-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay promociones configuradas. Haz clic en "+ Agregar" para crear una.</div>
       </div>
 
       <!-- Canales conectados -->
@@ -3887,7 +3908,8 @@ function showCfg(panel, btn, skipPush) {
   if (panel === 'profesionales') cargarProfesionales();
   if (panel === 'servicios')     cargarServicios();
   if (panel === 'pagos')         cargarPagos();
-  if (panel === 'chatbot')       loadBotConfig();
+  if (panel === 'chatbot')        loadBotConfig();
+  if (panel === 'notificaciones') loadNotificaciones();
   if (panel === 'facturacion')   cargarFacturacion();
   if (panel === 'canales')       cargarCanales();
   if (panel === 'horarios')      loadHorario();
@@ -4019,7 +4041,8 @@ async function guardarPagos() {
 }
 
 /* ═══ BOT CONFIG ═══ */
-let _botFaqs = [];
+let _botFaqs   = [];
+let _botPromos = [];
 let _botTestUserId = 'admin-test-' + Date.now();
 
 async function loadBotConfig() {
@@ -4039,8 +4062,10 @@ async function loadBotConfig() {
         if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
         const conocEl = document.getElementById('bot-conocimiento');
         if (conocEl) conocEl.value = cfg.conocimiento || '';
-        _botFaqs = Array.isArray(cfg.faqs) ? cfg.faqs : [];
+        _botFaqs   = Array.isArray(cfg.faqs)       ? cfg.faqs       : [];
+        _botPromos = Array.isArray(cfg.promociones) ? cfg.promociones : [];
         renderFaqs();
+        renderPromociones();
       }
     }
     // Actualizar estado de canales en el panel chatbot
@@ -4107,7 +4132,8 @@ async function saveBotConfig() {
     tono,
     saludo:       document.getElementById('bot-saludo').value.trim(),
     conocimiento: (document.getElementById('bot-conocimiento')?.value || '').trim(),
-    faqs:         _botFaqs.filter(f => f.pregunta.trim())
+    faqs:         _botFaqs.filter(f => f.pregunta.trim()),
+    promociones:  _botPromos.filter(p => p.titulo?.trim())
   };
   try {
     const r = await fetch('/api/slots', {
@@ -4169,6 +4195,94 @@ async function testBotSend() {
 function resetBotTest() {
   _botTestUserId = 'admin-test-' + Date.now();
   document.getElementById('bot-test-msgs').innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:20px 0">Escribe un mensaje para empezar la conversación</div>';
+}
+
+/* ════ PROMOCIONES ════ */
+function renderPromociones() {
+  const list  = document.getElementById('promos-list');
+  const empty = document.getElementById('promos-empty');
+  if (!list) return;
+  if (!_botPromos.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = _botPromos.map((p, i) => `
+    <div style="border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;background:#fafafe">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Promoción ${i+1}</span>
+        <button onclick="removePromocion(${i})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:18px;padding:0;line-height:1">×</button>
+      </div>
+      <input class="fi" placeholder="Nombre de la promoción (ej: Ciberday 2024)" value="${escHtml(p.titulo||'')}" oninput="_botPromos[${i}].titulo=this.value" style="margin-bottom:8px">
+      <textarea class="fi" rows="2" placeholder="Descripción (ej: 20% de descuento en consulta general para clientes nuevos)" style="resize:vertical;margin-bottom:8px" oninput="_botPromos[${i}].descripcion=this.value">${escHtml(p.descripcion||'')}</textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha inicio (opcional)</label>
+          <input type="date" class="fi" value="${escHtml(p.fecha_inicio||'')}" oninput="_botPromos[${i}].fecha_inicio=this.value">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha fin (opcional)</label>
+          <input type="date" class="fi" value="${escHtml(p.fecha_fin||'')}" oninput="_botPromos[${i}].fecha_fin=this.value">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addPromocion() {
+  _botPromos.push({ titulo: '', descripcion: '', fecha_inicio: '', fecha_fin: '' });
+  renderPromociones();
+  document.getElementById('promos-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function removePromocion(i) {
+  _botPromos.splice(i, 1);
+  renderPromociones();
+}
+
+/* ════ NOTIFICACIONES ════ */
+async function loadNotificaciones() {
+  try {
+    const r = await fetch('/api/slots?resource=notificaciones_config', { headers: _citasH() });
+    if (!r.ok) return;
+    const cfg = await r.json();
+    if (!cfg) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+    const sel = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set('notif-wa-conf',      cfg.wa_confirmacion);
+    set('notif-wa-rec',       cfg.wa_recordatorio);
+    sel('notif-wa-rec-t',     cfg.wa_recordatorio_tiempo);
+    set('notif-wa-prof',      cfg.wa_aviso_profesional);
+    set('notif-email-conf',   cfg.email_confirmacion);
+    set('notif-email-rec',    cfg.email_recordatorio);
+    sel('notif-email-rec-t',  cfg.email_recordatorio_tiempo);
+    set('notif-email-resumen',cfg.email_resumen_diario);
+    set('notif-email-cancel', cfg.email_cancelacion);
+  } catch(e) { console.error('loadNotificaciones:', e.message); }
+}
+
+async function saveNotificaciones() {
+  const g  = id => document.getElementById(id);
+  const chk = id => g(id)?.checked ?? true;
+  const val = id => g(id)?.value  || null;
+  const payload = {
+    resource:                  'notificaciones_config',
+    wa_confirmacion:            chk('notif-wa-conf'),
+    wa_recordatorio:            chk('notif-wa-rec'),
+    wa_recordatorio_tiempo:     val('notif-wa-rec-t'),
+    wa_aviso_profesional:       chk('notif-wa-prof'),
+    email_confirmacion:         chk('notif-email-conf'),
+    email_recordatorio:         chk('notif-email-rec'),
+    email_recordatorio_tiempo:  val('notif-email-rec-t'),
+    email_resumen_diario:       chk('notif-email-resumen'),
+    email_cancelacion:          chk('notif-email-cancel')
+  };
+  try {
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) { toast('✓ Notificaciones guardadas'); }
+    else { const err = await r.json().catch(()=>({})); toast('Error al guardar: ' + (err.error || r.status)); }
+  } catch(e) { toast('Error al guardar las notificaciones'); }
 }
 
 /* ════ FORMATO RUT ════ */

@@ -31,13 +31,16 @@ export default async function handler(req, res) {
 
   try {
     const rs = await fetch(
-      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id,messages&limit=1`,
+      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id,messages,pausa_bot&limit=1`,
       { headers: sh }
     );
     const sessions = await rs.json();
     if (Array.isArray(sessions) && sessions.length > 0) {
       sessionId = sessions[0].id;
       historial = Array.isArray(sessions[0].messages) ? sessions[0].messages : [];
+      if (sessions[0].pausa_bot) {
+        return res.status(200).json({ respuesta: '', pausa: true });
+      }
     } else {
       // Crear nueva sesión
       const rc = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions`, {
@@ -59,22 +62,131 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Cargar configuración del bot ───────────────────────────────────────
-  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [] };
+  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [] };
   try {
     const rb = await fetch(
-      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&activo=eq.true&select=nombre_bot,tono,saludo,faqs&limit=1`,
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&activo=eq.true&select=nombre_bot,tono,saludo,faqs,tipo_bot,conocimiento,promociones&limit=1`,
       { headers: sh }
     );
     const [bc] = await rb.json();
     if (bc) {
-      botConfig.nombre_bot = bc.nombre_bot || 'Valentina';
-      botConfig.tono       = bc.tono       || 'informal';
-      botConfig.saludo     = bc.saludo     || '';
-      botConfig.faqs       = Array.isArray(bc.faqs) ? bc.faqs : [];
+      botConfig.nombre_bot   = bc.nombre_bot   || 'Valentina';
+      botConfig.tono         = bc.tono         || 'informal';
+      botConfig.saludo       = bc.saludo       || '';
+      botConfig.faqs         = Array.isArray(bc.faqs) ? bc.faqs : [];
+      botConfig.tipo_bot     = bc.tipo_bot     || 'atencion';
+      botConfig.conocimiento = bc.conocimiento || '';
+      botConfig.promociones  = Array.isArray(bc.promociones) ? bc.promociones : [];
     }
   } catch (e) {
     console.error('bot-chat: error cargando bot_config:', e.message);
   }
+
+  // ── MODO VENTAS (bot de ventas attempo) ──────────────────────────────────
+  if (botConfig.tipo_bot === 'ventas') {
+    const esPrimerMsg = historial.length === 0;
+    const hoyVentas = new Date().toLocaleDateString('es-CL', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago'
+    });
+
+    const ventasSystemPrompt = `Eres Valentina del equipo de attempo. Atiendes por WhatsApp a personas interesadas en conocer la plataforma. Eres chilena, cercana y cálida.
+
+SOBRE ATTEMPO:
+attempo es una plataforma de agendamiento online para profesionales y clínicas en Chile. Sus pacientes o clientes reservan citas 24/7 desde el celular, reciben recordatorios automáticos por WhatsApp y pueden pagar con Webpay. Todo listo en 5 minutos, sin complicaciones.
+
+PLANES Y PRECIOS:
+- Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
+- Plan Pro: $44.990/mes + IVA — todo lo de Inicio + chatbot IA (Attia) que responde consultas y agenda citas en Instagram, WhatsApp y Messenger de forma automática.
+- Plan Clínica IA: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro. Para clínicas y centros.
+- Todos los planes incluyen 12 días de prueba gratis.
+
+PARA QUIÉN ES:
+Psicólogos, psiquiatras, médicos, nutricionistas, matronas, fisioterapeutas, dentistas, abogados, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
+
+LINK DE REGISTRO:
+https://app.attempo.cl/registro
+
+CÓMO RESPONDER:
+- Mensajes cortos, máximo 3-4 líneas. Nunca textos largos.
+- Una sola pregunta o idea por mensaje.
+- Tratas de tú. Usa el nombre del lead desde que lo sabes.
+- 1 a 2 emojis por mensaje máximo.
+- No digas que eres una IA ni lo confirmes si te preguntan.
+- Si no sabes algo técnico específico, di "te consulto con el equipo y te confirmo en un momento".
+- Cuando des el precio, hazlo directo, sin rodeos.
+
+FLUJO NATURAL DE CONVERSACIÓN:
+1. ${esPrimerMsg ? 'Saluda con calidez y pregunta el nombre.' : 'Continúa la conversación de forma natural.'}
+2. Pregunta qué tipo de profesional es o qué negocio tiene.
+3. Cuéntale cómo attempo ayuda puntualmente a su rubro.
+4. Responde sus dudas sin rodeos.
+5. Cuando muestre interés real, mándale el link: "Puedes probarlo 12 días gratis aquí: https://app.attempo.cl/registro 🚀"
+
+RESPUESTAS A OBJECIONES COMUNES:
+- "¿Es muy caro?" → "El Plan Inicio son $24.990 al mes + IVA, menos de $1.000 al día. Y con los recordatorios automáticos evitas que tus pacientes se olviden. La mayoría recupera el costo desde el primer mes."
+- "¿Es difícil de usar?" → "Para nada, en 5 minutos ya tienes tu agenda lista. Y si necesitas ayuda, te acompañamos en todo el proceso."
+- "¿Qué es Attia el chatbot?" → "Es tu asistente IA. Responde consultas y agenda citas automáticamente en Instagram y Messenger mientras tú atiendes. Viene incluido en el Plan Pro."
+- "¿Necesito tarjeta de crédito?" → "Sí, la prueba gratis pide una tarjeta, pero no se cobra nada hasta que terminen los 12 días. Y cancelas cuando quieras, sin costo."
+- "¿Funciona para [rubro específico]?" → Adapta la respuesta al rubro mencionado y da un ejemplo concreto de cómo attempo les ayuda.
+
+HOY ES: ${hoyVentas}`;
+
+    const MAX_MESSAGES = 20;
+    let msgs = historial.slice(-MAX_MESSAGES);
+    msgs.push({ role: 'user', content: mensaje });
+
+    let respuestaVentas = '';
+    try {
+      for (let i = 0; i < 3; i++) {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key':         ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type':      'application/json'
+          },
+          body: JSON.stringify({
+            model:      'claude-haiku-4-5-20251001',
+            max_tokens: 300,
+            system:     ventasSystemPrompt,
+            messages:   msgs
+          })
+        });
+
+        const data = await r.json();
+
+        if (r.status === 529 || data.error?.type === 'overloaded_error') {
+          if (i < 1) { await new Promise(resolve => setTimeout(resolve, 1500)); continue; }
+          respuestaVentas = 'Un momento, estoy con mucha demanda. ¿Me repites tu consulta?';
+          break;
+        }
+
+        if (!r.ok) throw new Error(data.error?.message || 'Error de Claude API');
+
+        respuestaVentas = data.content.find(b => b.type === 'text')?.text || '';
+        msgs.push({ role: 'assistant', content: respuestaVentas });
+        break;
+      }
+    } catch (err) {
+      console.error('bot-chat ventas error:', err);
+      return res.status(500).json({ error: 'Error interno: ' + err.message });
+    }
+
+    if (sessionId) {
+      fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
+        method: 'PATCH',
+        headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          messages:        msgs.slice(-MAX_MESSAGES),
+          canal_user_name: canal_user_name || null,
+          updated_at:      new Date().toISOString()
+        })
+      }).catch(e => console.error('bot-chat ventas: error guardando sesión:', e.message));
+    }
+
+    return res.status(200).json({ respuesta: respuestaVentas, cita_creada: null });
+  }
+  // ── FIN MODO VENTAS ───────────────────────────────────────────────────────
 
   // ── 3. Cargar datos del negocio ───────────────────────────────────────────
   let negocioNombre = 'el negocio';
@@ -149,6 +261,28 @@ export default async function handler(req, res) {
 
   const pronombre = botConfig.tono === 'formal' ? 'usted' : 'tú';
 
+  // Variables del saludo (reemplazar {nombre_bot} y {negocio})
+  const saludoFinal = (botConfig.saludo || '')
+    .replace(/\{nombre_bot\}/g, botConfig.nombre_bot)
+    .replace(/\{negocio\}/g, negocioNombre);
+
+  // Promociones activas hoy
+  const _hoyDateStgo = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }) + 'T12:00:00');
+  const promocionesActivas = botConfig.promociones.filter(p => {
+    if (!p.titulo?.trim()) return false;
+    const ini = p.fecha_inicio ? new Date(p.fecha_inicio + 'T00:00:00') : null;
+    const fin = p.fecha_fin    ? new Date(p.fecha_fin   + 'T23:59:59') : null;
+    if (ini && _hoyDateStgo < ini) return false;
+    if (fin && _hoyDateStgo > fin) return false;
+    return true;
+  });
+  const promosTexto = promocionesActivas.length
+    ? `\nPROMOCIONES VIGENTES (compártelas cuando pregunten por precios, descuentos o novedades):\n${promocionesActivas.map(p => `— ${p.titulo}: ${p.descripcion}`).join('\n')}`
+    : '';
+  const conocimientoTexto = botConfig.conocimiento.trim()
+    ? `\nINFORMACIÓN ADICIONAL DEL NEGOCIO (úsala para responder preguntas):\n${botConfig.conocimiento.trim()}`
+    : '';
+
   // ── 5. System prompt ──────────────────────────────────────────────────────
   const telDesdeCanal = canal === 'whatsapp' ? canal_user_id : null;
 
@@ -159,7 +293,7 @@ export default async function handler(req, res) {
 TRATO: Usa "${pronombre}" con el paciente. Sin markdown ni asteriscos. Máximo 2 a 3 líneas por respuesta. Sin emojis excesivos.
 
 HOY ES: ${hoy}
-${botConfig.saludo && esPrimerMensaje ? `\nMENSAJE DE BIENVENIDA: El paciente escribe por primera vez. Usa este mensaje de bienvenida (puedes adaptarlo levemente al contexto, pero respeta el tono y contenido):\n"${botConfig.saludo}"\n` : ''}${telDesdeCanal ? `\nTELÉFONO DEL PACIENTE: Ya tienes su teléfono desde ${canal}: ${telDesdeCanal}. NO lo pidas. Úsalo directamente como tel_paciente en crear_cita.` : ''}
+${saludoFinal && esPrimerMensaje ? `\nMENSAJE DE BIENVENIDA: El paciente escribe por primera vez. Usa este mensaje de bienvenida (puedes adaptarlo levemente al contexto, pero respeta el tono y contenido):\n"${saludoFinal}"\n` : ''}${telDesdeCanal ? `\nTELÉFONO DEL PACIENTE: Ya tienes su teléfono desde ${canal}: ${telDesdeCanal}. NO lo pidas. Úsalo directamente como tel_paciente en crear_cita.` : ''}
 ${horarioResumen ? `\nHORARIO DE ATENCIÓN DEL NEGOCIO:\n${horarioResumen}` : ''}
 
 PROFESIONALES DISPONIBLES:
@@ -167,12 +301,14 @@ ${espTexto}
 
 CATÁLOGO DE SERVICIOS (con precios y duración):
 ${srvTexto}
-${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}
+${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${promosTexto}
 
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.
 - Si preguntan por precios Y no hay catálogo: di que el valor lo coordina el profesional al reservar, y ofrece agendar.
 - Si preguntan por horario, disponibilidad o qué días atienden: llama SIEMPRE a ver_disponibilidad_semana. Copia el campo "texto" del resultado exactamente como viene, con cada día en su propia línea. Responde: "Contamos con disponibilidad en los siguientes horarios:" + salto de línea + [texto del resultado] + salto de línea + "¿Cuál día te acomoda mejor?"
+- Si preguntan por recordatorios o confirmaciones: al confirmar una cita, el sistema envía automáticamente un email de confirmación al paciente con todos los detalles. El negocio también puede activar recordatorios automáticos por WhatsApp y email antes de cada cita.
+- Si hay PROMOCIONES VIGENTES configuradas arriba, menciónalas cuando pregunten por descuentos, promociones o precios.
 - Si preguntan por teléfono, dirección u otra información que no tengas: respóndelo brevemente y ofrece agendar.
 - Si hay PREGUNTAS FRECUENTES configuradas, úsalas primero.
 - NUNCA digas "no tengo esa información" y te quedes ahí. Siempre conecta con lo que puedes hacer.
