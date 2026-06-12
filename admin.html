@@ -2680,31 +2680,33 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <div id="rmtab-content-rec">
     <div style="background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.15);border-radius:var(--r);padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start">
       <span style="font-size:16px;flex-shrink:0">🕗</span>
-      <div style="font-size:12px;color:var(--t2);line-height:1.55">El sistema envía recordatorios automáticamente cada día a las <strong>8:00 AM</strong>. Los tiempos de 30 min y 1 hora aplican a las citas del día. Email y WhatsApp se configuran de forma independiente.</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.55">Los recordatorios se envían automáticamente cada día a las <strong>8:00 AM</strong>. Puedes crear varios — cada uno con su propio horario, canal y mensaje personalizado.</div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
 
-      <!-- LEFT -->
-      <div style="display:flex;flex-direction:column;gap:16px">
+      <!-- LEFT: Lista + Formulario -->
+      <div style="display:flex;flex-direction:column;gap:14px">
 
-        <!-- Email -->
-        <div>
-          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="3" width="12" height="8" rx="1.5"/><path d="M1 4l6 4.5L13 4"/></svg>
-            Correo electrónico
-          </div>
-          <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--b1)">
-              <div>
-                <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px">Recordatorio por email</div>
-                <div style="font-size:12px;color:var(--t3)">Email automático al paciente antes de su cita</div>
-              </div>
-              <input type="checkbox" id="rec-email-activo" checked style="accent-color:var(--a);width:17px;height:17px;cursor:pointer" onchange="updateRecPreview()">
-            </div>
+        <!-- Header lista -->
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;font-weight:600;color:var(--t2)">Recordatorios programados</span>
+          <button id="btn-rec-agregar" onclick="abrirFormRec()" style="display:flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);border:1.5px solid rgba(108,92,228,0.35);background:rgba(108,92,228,0.07);color:var(--a);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(108,92,228,0.13)'" onmouseout="this.style.background='rgba(108,92,228,0.07)'">+ Agregar</button>
+        </div>
+
+        <!-- Lista de recordatorios (renderizada por JS) -->
+        <div id="rec-lista-container">
+          <div style="text-align:center;padding:28px 16px;color:var(--t3);font-size:13px;background:var(--bg2);border-radius:var(--r);border:1px dashed var(--b1)">Sin recordatorios. Haz clic en <strong>+ Agregar</strong> para crear el primero.</div>
+        </div>
+
+        <!-- Formulario inline (oculto por defecto) -->
+        <div id="rec-form" style="display:none">
+          <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px;border:2px solid rgba(108,92,228,0.22)">
+            <div style="font-size:13px;font-weight:600;color:var(--t1)" id="rec-form-titulo">Nuevo recordatorio</div>
+
             <div>
               <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">¿Cuándo enviar?</label>
-              <select id="rec-email-tiempo" class="fs" style="width:100%" onchange="updateRecPreview()">
+              <select id="rf-tiempo" class="fs" style="width:100%" onchange="updateRecPreview()">
                 <option value="24h">24 horas antes</option>
                 <option value="12h">12 horas antes</option>
                 <option value="2h">2 horas antes</option>
@@ -2712,60 +2714,55 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 <option value="30m">30 minutos antes</option>
               </select>
             </div>
-            <div>
-              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Asunto del email</label>
-              <input class="fi" id="rec-email-asunto" placeholder="Recordatorio: tu cita en {negocio}" style="width:100%" oninput="updateRecPreview()">
-              <div style="font-size:10px;color:var(--t4);margin-top:4px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Mensaje adicional <span style="font-weight:400;color:var(--t4)">(opcional)</span></label>
-              <textarea class="fi" id="rec-email-mensaje" rows="3" placeholder="Ej: Recuerda llegar 5 minutos antes. Si necesitas cancelar, avísanos con al menos 24 horas de anticipación." style="resize:vertical" oninput="updateRecPreview()"></textarea>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:2px">
-              <button class="btn-sm" id="btn-enviar-rec" onclick="enviarRecordatoriosAhora()" style="color:var(--a);border-color:rgba(108,92,228,0.3)">Enviar pendientes ahora</button>
-              <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="color:var(--t2);border-color:var(--b1)">Enviar prueba →</button>
-            </div>
-          </div>
-        </div>
 
-        <!-- WhatsApp -->
-        <div>
-          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.5" fill="#25D366"/><path d="M10.2 8.6c-.2-.1-1.1-.5-1.3-.6-.2-.1-.3-.1-.4.1-.1.2-.5.6-.6.7-.1.1-.2.1-.4 0-.2-.1-.8-.3-1.5-.9-.6-.5-1-1.1-1.1-1.3-.1-.2 0-.3.1-.4l.3-.4c.1-.1.1-.2.2-.3 0-.1 0-.2-.1-.3l-.6-1.3c-.1-.3-.3-.2-.4-.2h-.3c-.1 0-.3.1-.5.2-.2.2-.7.7-.7 1.6 0 1 .7 1.9.8 2 .1.1 1.4 2.2 3.5 3 .5.2.9.3 1.2.4.5.1 1 .1 1.3.1.4-.1 1.1-.5 1.3-1 .2-.5.2-.9.1-1-.1-.1-.2-.1-.4-.2z" fill="#fff"/></svg>
-            WhatsApp
-          </div>
-          <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--b1)">
-              <div>
-                <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px">Recordatorio por WhatsApp</div>
-                <div style="font-size:12px;color:var(--t3)">Mensaje automático al paciente</div>
+            <!-- Canal: Email -->
+            <div style="border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">
+              <label style="display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;background:rgba(108,92,228,0.02);user-select:none">
+                <input type="checkbox" id="rf-email-activo" style="accent-color:var(--a);width:15px;height:15px;cursor:pointer;flex-shrink:0" onchange="toggleRfEmail();updateRecPreview()">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="3" width="12" height="8" rx="1.5"/><path d="M1 4l6 4.5L13 4"/></svg>
+                <span style="font-size:13px;font-weight:500;color:var(--t1)">Enviar por Email</span>
+              </label>
+              <div id="rf-email-campos" style="display:none;padding:12px 14px;border-top:1px solid var(--b1);flex-direction:column;gap:10px">
+                <div>
+                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Asunto</label>
+                  <input class="fi" id="rf-email-asunto" placeholder="Recordatorio: tu cita en {negocio}" style="width:100%" oninput="updateRecPreview()">
+                </div>
+                <div>
+                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Mensaje adicional <span style="color:var(--t4);font-weight:400">(opcional)</span></label>
+                  <textarea class="fi" id="rf-email-mensaje" rows="3" placeholder="Ej: Recuerda llegar 5 minutos antes..." style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
+                  <div style="font-size:10px;color:var(--t4);margin-top:3px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
+                </div>
               </div>
-              <input type="checkbox" id="rec-wa-activo" style="accent-color:#25D366;width:17px;height:17px;cursor:pointer" onchange="updateRecPreview()">
             </div>
-            <div>
-              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">¿Cuándo enviar?</label>
-              <select id="rec-wa-tiempo" class="fs" style="width:100%" onchange="updateRecPreview()">
-                <option value="24h">24 horas antes</option>
-                <option value="12h">12 horas antes</option>
-                <option value="2h">2 horas antes</option>
-                <option value="1h">1 hora antes</option>
-                <option value="30m">30 minutos antes</option>
-              </select>
+
+            <!-- Canal: WhatsApp -->
+            <div style="border:1px solid var(--b1);border-radius:var(--r);overflow:hidden">
+              <label style="display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;background:rgba(37,211,102,0.02);user-select:none">
+                <input type="checkbox" id="rf-wa-activo" style="accent-color:#25D366;width:15px;height:15px;cursor:pointer;flex-shrink:0" onchange="toggleRfWa();updateRecPreview()">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.5" fill="#25D366"/><path d="M10.2 8.6c-.2-.1-1.1-.5-1.3-.6-.2-.1-.3-.1-.4.1-.1.2-.5.6-.6.7-.1.1-.2.1-.4 0-.2-.1-.8-.3-1.5-.9-.6-.5-1-1.1-1.1-1.3-.1-.2 0-.3.1-.4l.3-.4c.1-.1.1-.2.2-.3 0-.1 0-.2-.1-.3l-.6-1.3c-.1-.3-.3-.2-.4-.2h-.3c-.1 0-.3.1-.5.2-.2.2-.7.7-.7 1.6 0 1 .7 1.9.8 2 .1.1 1.4 2.2 3.5 3 .5.2.9.3 1.2.4.5.1 1 .1 1.3.1.4-.1 1.1-.5 1.3-1 .2-.5.2-.9.1-1-.1-.1-.2-.1-.4-.2z" fill="#fff"/></svg>
+                <span style="font-size:13px;font-weight:500;color:var(--t1)">Enviar por WhatsApp</span>
+              </label>
+              <div id="rf-wa-campos" style="display:none;padding:12px 14px;border-top:1px solid var(--b1);flex-direction:column;gap:8px">
+                <div>
+                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Mensaje</label>
+                  <textarea class="fi" id="rf-wa-mensaje" rows="3" placeholder="Hola {nombre}, tienes una cita el {fecha} a las {hora} con {profesional} en {negocio}. ¡Te esperamos!" style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
+                  <div style="font-size:10px;color:var(--t4);margin-top:3px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
+                </div>
+                <div style="padding:8px 10px;background:rgba(108,92,228,0.05);border-radius:6px;font-size:11px;color:var(--t3);line-height:1.5">ℹ️ Requiere plantilla Meta aprobada. Escríbenos a <strong>contacto@attempo.cl</strong>.</div>
+              </div>
             </div>
-            <div>
-              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Texto del mensaje</label>
-              <textarea class="fi" id="rec-wa-mensaje" rows="4" placeholder="Hola {nombre}, te recordamos que tienes una cita el {fecha} a las {hora} con {profesional} en {negocio}. ¡Te esperamos!" style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
-              <div style="font-size:10px;color:var(--t4);margin-top:4px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
-            </div>
-            <div style="padding:10px 12px;background:rgba(108,92,228,0.05);border-radius:8px;border:1px solid rgba(108,92,228,0.1);display:flex;gap:8px;align-items:flex-start">
-              <span style="font-size:13px;flex-shrink:0;margin-top:1px">ℹ️</span>
-              <div style="font-size:11px;color:var(--t3);line-height:1.55">El envío automático requiere plantilla aprobada por Meta. Escríbenos a <strong>contacto@attempo.cl</strong> para activarlo.</div>
+
+            <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:2px">
+              <button onclick="cerrarFormRec()" style="padding:7px 16px;border-radius:var(--r);border:1px solid var(--b1);background:transparent;color:var(--t2);font-size:13px;cursor:pointer">Cancelar</button>
+              <button class="btn-a" onclick="guardarRecordatorio()" style="padding:7px 20px;font-size:13px">Guardar</button>
             </div>
           </div>
         </div>
 
-        <div style="display:flex;justify-content:flex-end;padding-top:4px">
-          <button class="btn-a" onclick="saveRecordatorios()">Guardar configuración</button>
+        <!-- Acciones globales -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:2px">
+          <button class="btn-sm" id="btn-enviar-rec" onclick="enviarRecordatoriosAhora()" style="color:var(--a);border-color:rgba(108,92,228,0.3)">Enviar pendientes ahora</button>
+          <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="color:var(--t2);border-color:var(--b1)">Enviar prueba →</button>
         </div>
       </div>
 
@@ -2775,18 +2772,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <button id="rec-tab-email" onclick="setRecTab('email')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:var(--a);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s">📧 Email</button>
           <button id="rec-tab-wa" onclick="setRecTab('wa')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s">📱 WhatsApp</button>
         </div>
-        <!-- Email preview -->
         <div id="rec-pv-email">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:11px;color:var(--t4);font-weight:500">Vista previa con datos de ejemplo</span>
-          </div>
           <div style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px 8px 0 0;padding:8px 14px">
             <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Asunto</div>
             <div id="rec-pv-asunto" style="font-size:12px;font-weight:600;color:#1f2937">Recordatorio: tu cita en Tu negocio</div>
           </div>
           <iframe id="rec-pv-iframe" style="width:100%;height:500px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;display:block;background:#f5f3ff" frameborder="0" scrolling="yes"></iframe>
         </div>
-        <!-- WhatsApp preview -->
         <div id="rec-pv-wa" style="display:none">
           <div style="font-size:11px;color:var(--t4);font-weight:500;margin-bottom:14px;text-align:center">Vista previa con datos de ejemplo</div>
           <div style="max-width:290px;margin:0 auto">
@@ -2805,10 +2797,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                   </div>
                   <div style="color:rgba(255,255,255,0.75);font-size:13px;display:flex;gap:10px">📞 ⋮</div>
                 </div>
-                <div style="padding:10px;min-height:300px;background:#ECE5DD">
-                  <div style="text-align:center;margin-bottom:10px">
-                    <span style="background:rgba(255,255,255,0.72);color:#667781;font-size:9px;padding:2px 9px;border-radius:6px;font-weight:500">HOY</span>
-                  </div>
+                <div style="padding:10px;min-height:280px;background:#ECE5DD">
+                  <div style="text-align:center;margin-bottom:10px"><span style="background:rgba(255,255,255,0.72);color:#667781;font-size:9px;padding:2px 9px;border-radius:6px;font-weight:500">HOY</span></div>
                   <div style="display:flex;justify-content:flex-start">
                     <div style="background:#fff;border-radius:0 8px 8px 8px;padding:8px 10px 6px;max-width:90%;box-shadow:0 1px 2px rgba(0,0,0,0.12);position:relative">
                       <div id="rec-pv-wa-msg" style="font-size:12px;color:#111827;line-height:1.5;white-space:pre-wrap;word-break:break-word">Hola María, te recordamos que tienes una cita el martes 10 de junio a las 15:00 con Dr. Martínez en Tu negocio. ¡Te esperamos!</div>
@@ -4609,50 +4599,166 @@ async function saveNotificaciones() {
 }
 
 /* ════ RECORDATORIOS ════ */
+/* ════ RECORDATORIOS — LISTA MÚLTIPLE ════ */
+let _recLista = [];
+let _recFormIdx = null; // null = nuevo, número = editar
+
+function _tiempoLabel(t) {
+  return { '24h':'24 h antes','12h':'12 h antes','2h':'2 h antes','1h':'1 h antes','30m':'30 min antes' }[t] || t;
+}
+
 async function loadRecordatorios() {
   try {
     const r = await fetch('/api/slots?resource=recordatorios_config', { headers: _citasH() });
-    if (!r.ok) { updateRecPreview(); updatePromoPreview(); return; }
+    if (!r.ok) { renderRecLista(); updateRecPreview(); updatePromoPreview(); return; }
     const cfg = await r.json();
-    if (!cfg) { updateRecPreview(); updatePromoPreview(); return; }
-    const g = id => document.getElementById(id);
-    if (g('rec-email-activo'))  g('rec-email-activo').checked  = cfg.email_activo !== false;
-    if (g('rec-email-tiempo') && cfg.email_tiempo) g('rec-email-tiempo').value = cfg.email_tiempo;
-    if (g('rec-email-asunto'))  g('rec-email-asunto').value    = cfg.email_asunto  || '';
-    if (g('rec-email-mensaje')) g('rec-email-mensaje').value   = cfg.email_mensaje || '';
-    if (g('rec-wa-activo'))     g('rec-wa-activo').checked     = cfg.wa_activo === true;
-    if (g('rec-wa-tiempo') && cfg.wa_tiempo) g('rec-wa-tiempo').value = cfg.wa_tiempo;
-    if (g('rec-wa-mensaje') && cfg.wa_mensaje) g('rec-wa-mensaje').value = cfg.wa_mensaje;
+    if (cfg && Array.isArray(cfg.lista)) {
+      _recLista = cfg.lista;
+    } else if (cfg && (cfg.email_activo || cfg.wa_activo)) {
+      // migrar formato antiguo
+      _recLista = [{
+        id: 'rec_legacy_0',
+        activo: true,
+        tiempo: cfg.email_tiempo || '24h',
+        email_activo: cfg.email_activo !== false,
+        email_asunto: cfg.email_asunto || '',
+        email_mensaje: cfg.email_mensaje || '',
+        wa_activo: cfg.wa_activo === true,
+        wa_mensaje: cfg.wa_mensaje || ''
+      }];
+    } else {
+      _recLista = [];
+    }
+    renderRecLista();
     updateRecPreview();
     updatePromoPreview();
-    // Pre-cargar email del usuario en el campo de prueba
     const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
     const emailField = document.getElementById('promo-prueba-email');
     if (emailField && !emailField.value && u.email) emailField.value = u.email;
-  } catch(e) { console.error('loadRecordatorios:', e.message); updateRecPreview(); }
-  // Cargar lista de destinatarios para campañas
+  } catch(e) { console.error('loadRecordatorios:', e.message); renderRecLista(); updateRecPreview(); }
   loadPromoLista();
 }
 
-async function saveRecordatorios() {
+function renderRecLista() {
+  const el = document.getElementById('rec-lista-container');
+  if (!el) return;
+  if (!_recLista.length) {
+    el.innerHTML = '<div style="text-align:center;padding:28px 16px;color:var(--t3);font-size:13px;background:var(--bg2);border-radius:var(--r);border:1px dashed var(--b1)">Sin recordatorios. Haz clic en <strong>+ Agregar</strong> para crear el primero.</div>';
+    return;
+  }
+  el.innerHTML = _recLista.map((rec, i) => {
+    const canales = [rec.email_activo && '📧 Email', rec.wa_activo && '💬 WhatsApp'].filter(Boolean).join(' · ') || '<span style="color:var(--t4)">Sin canal</span>';
+    const preview = rec.email_activo ? (rec.email_asunto || 'Sin asunto') : (rec.wa_activo ? (rec.wa_mensaje || 'Sin mensaje') : '—');
+    return `<div style="display:flex;flex-direction:column;gap:0;background:var(--bg);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:11px;font-weight:600;background:rgba(108,92,228,0.1);color:var(--a);padding:2px 8px;border-radius:20px">⏰ ${_tiempoLabel(rec.tiempo)}</span>
+            <span style="font-size:12px;color:var(--t3)">${canales}</span>
+          </div>
+          <div style="font-size:12px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px">${_escH(preview)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:${rec.activo ? 'var(--a)' : 'var(--t3)'}">
+            <input type="checkbox" ${rec.activo ? 'checked' : ''} onchange="toggleRecActivo(${i})" style="accent-color:var(--a);width:14px;height:14px;cursor:pointer">
+            ${rec.activo ? 'Activo' : 'Inactivo'}
+          </label>
+          <button onclick="abrirFormRec(${i})" style="padding:4px 10px;border-radius:var(--r);border:1px solid var(--b1);background:transparent;color:var(--t2);font-size:11px;cursor:pointer" title="Editar">Editar</button>
+          <button onclick="eliminarRec(${i})" style="padding:4px 8px;border-radius:var(--r);border:1px solid rgba(239,68,68,0.2);background:transparent;color:#ef4444;font-size:11px;cursor:pointer" title="Eliminar">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirFormRec(idx) {
+  _recFormIdx = (idx !== undefined) ? idx : null;
+  const rec = idx !== undefined ? _recLista[idx] : null;
+  const titulo = document.getElementById('rec-form-titulo');
+  if (titulo) titulo.textContent = rec ? 'Editar recordatorio' : 'Nuevo recordatorio';
   const g = id => document.getElementById(id);
-  const payload = {
-    resource:      'recordatorios_config',
-    email_activo:   g('rec-email-activo')?.checked ?? true,
-    email_tiempo:   g('rec-email-tiempo')?.value   || '24h',
-    email_asunto:   (g('rec-email-asunto')?.value  || '').trim(),
-    email_mensaje:  (g('rec-email-mensaje')?.value || '').trim(),
-    wa_activo:      g('rec-wa-activo')?.checked    ?? false,
-    wa_tiempo:      g('rec-wa-tiempo')?.value      || '24h',
-    wa_mensaje:     (g('rec-wa-mensaje')?.value    || '').trim()
+  g('rf-tiempo').value = rec?.tiempo || '24h';
+  g('rf-email-activo').checked = rec?.email_activo === true;
+  g('rf-email-asunto').value   = rec?.email_asunto  || '';
+  g('rf-email-mensaje').value  = rec?.email_mensaje || '';
+  g('rf-wa-activo').checked    = rec?.wa_activo === true;
+  g('rf-wa-mensaje').value     = rec?.wa_mensaje || '';
+  toggleRfEmail(); toggleRfWa();
+  const form = document.getElementById('rec-form');
+  if (form) { form.style.display = 'block'; form.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  const agregar = document.getElementById('btn-rec-agregar');
+  if (agregar) agregar.style.display = 'none';
+  updateRecPreview();
+}
+
+function cerrarFormRec() {
+  const form = document.getElementById('rec-form');
+  if (form) form.style.display = 'none';
+  const agregar = document.getElementById('btn-rec-agregar');
+  if (agregar) agregar.style.display = 'flex';
+  _recFormIdx = null;
+}
+
+function toggleRfEmail() {
+  const checked = document.getElementById('rf-email-activo')?.checked;
+  const campos = document.getElementById('rf-email-campos');
+  if (campos) campos.style.display = checked ? 'flex' : 'none';
+}
+
+function toggleRfWa() {
+  const checked = document.getElementById('rf-wa-activo')?.checked;
+  const campos = document.getElementById('rf-wa-campos');
+  if (campos) campos.style.display = checked ? 'flex' : 'none';
+}
+
+async function guardarRecordatorio() {
+  const g = id => document.getElementById(id);
+  const emailActivo = g('rf-email-activo')?.checked === true;
+  const waActivo    = g('rf-wa-activo')?.checked === true;
+  if (!emailActivo && !waActivo) { toast('Activa al menos un canal (Email o WhatsApp)'); return; }
+  const rec = {
+    id:            _recFormIdx !== null ? (_recLista[_recFormIdx]?.id || `rec_${Date.now()}`) : `rec_${Date.now()}`,
+    activo:        true,
+    tiempo:        g('rf-tiempo')?.value || '24h',
+    email_activo:  emailActivo,
+    email_asunto:  (g('rf-email-asunto')?.value || '').trim(),
+    email_mensaje: (g('rf-email-mensaje')?.value || '').trim(),
+    wa_activo:     waActivo,
+    wa_mensaje:    (g('rf-wa-mensaje')?.value || '').trim()
   };
+  if (_recFormIdx !== null) {
+    _recLista[_recFormIdx] = rec;
+  } else {
+    _recLista.push(rec);
+  }
+  await saveRecordatorios();
+  renderRecLista();
+  cerrarFormRec();
+}
+
+function toggleRecActivo(idx) {
+  if (!_recLista[idx]) return;
+  _recLista[idx].activo = !_recLista[idx].activo;
+  saveRecordatorios();
+  renderRecLista();
+}
+
+function eliminarRec(idx) {
+  const rec = _recLista[idx];
+  if (!confirm(`¿Eliminar el recordatorio "${_tiempoLabel(rec?.tiempo)}"?`)) return;
+  _recLista.splice(idx, 1);
+  saveRecordatorios();
+  renderRecLista();
+}
+
+async function saveRecordatorios() {
   try {
     const r = await fetch('/api/slots', {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ resource: 'recordatorios_config', lista: _recLista })
     });
-    if (r.ok) toast('✓ Configuración de recordatorios guardada');
+    if (r.ok) toast('✓ Recordatorios guardados');
     else { const err = await r.json().catch(()=>({})); toast('Error: ' + (err.error || r.status)); }
   } catch(e) { toast('Error al guardar'); }
 }
@@ -4779,10 +4885,13 @@ function _recEmailHtml(asunto, mensajeExtra, vars) {
 
 function updateRecPreview() {
   const vars = _recVars();
-  const asunto  = document.getElementById('rec-email-asunto')?.value || '';
-  const mensaje = document.getElementById('rec-email-mensaje')?.value || '';
-  const waMsj   = document.getElementById('rec-wa-mensaje')?.value
-    || 'Hola {nombre}, te recordamos que tienes una cita el {fecha} a las {hora} con {profesional} en {negocio}. ¡Te esperamos!';
+  // Lee del formulario si está abierto, si no usa defaults
+  const formOpen = document.getElementById('rec-form')?.style.display !== 'none';
+  const asunto  = formOpen ? (document.getElementById('rf-email-asunto')?.value || '') : '';
+  const mensaje = formOpen ? (document.getElementById('rf-email-mensaje')?.value || '') : '';
+  const waMsj   = formOpen
+    ? (document.getElementById('rf-wa-mensaje')?.value || 'Hola {nombre}, te recordamos que tienes una cita el {fecha} a las {hora} con {profesional} en {negocio}. ¡Te esperamos!')
+    : 'Hola {nombre}, te recordamos que tienes una cita el {fecha} a las {hora} con {profesional} en {negocio}. ¡Te esperamos!';
 
   const asuntoEl = document.getElementById('rec-pv-asunto');
   if (asuntoEl) asuntoEl.textContent = _recReplace(asunto || 'Recordatorio: tu cita en {negocio}', vars);

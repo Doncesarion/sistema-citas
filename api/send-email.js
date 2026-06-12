@@ -92,93 +92,84 @@ async function procesarRecordatorios(sh, shJson) {
     const clientes = await rCli.json();
     if (!Array.isArray(clientes)) return { enviados, errores: ['Error cargando clientes'] };
 
+    // Hora mínima por timing (cron corre a las 8 AM Chile)
+    const horaMinPorTiempo = { '24h': null, '12h': '20:00', '2h': '10:00', '1h': '09:00', '30m': '08:30' };
+
     for (const cli of clientes) {
       const cfg = cli.recordatorios_config || {};
-      if (!cfg.email_activo) continue;
 
-      const tiempo = cfg.email_tiempo || '24h';
-      // Para cron diario: 24h → mañana, resto → hoy también
-      const fechas = tiempo === '24h' ? [mañanaISO] : [hoyISO, mañanaISO];
-      // Nota: 30m y 1h se tratan igual que 2h/12h (revisa hoy+mañana), ya que el cron es diario.
-      // Para envío exacto por minuto se requeriría un cron más frecuente (plan Pro).
+      // Convertir formato antiguo (plano) o nuevo (lista)
+      const lista = Array.isArray(cfg.lista) ? cfg.lista
+        : (cfg.email_activo ? [{ id: 'rec_legacy_0', activo: true, tiempo: cfg.email_tiempo || '24h',
+            email_activo: true, email_asunto: cfg.email_asunto || '', email_mensaje: cfg.email_mensaje || '',
+            wa_activo: cfg.wa_activo === true, wa_mensaje: cfg.wa_mensaje || '' }] : []);
 
-      for (const fechaTarget of fechas) {
-        try {
-          // Buscar citas de ese día sin recordatorio enviado
-          const rCitas = await fetch(
-            `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cli.id}&fecha=eq.${fechaTarget}&email_rec_enviado=eq.false&estado=neq.canceled&email_paciente=not.is.null&select=id,nombre_paciente,email_paciente,hora,servicio,fecha,especialistas(nombre)`,
-            { headers: sh }
-          );
-          const citas = await rCitas.json();
-          if (!Array.isArray(citas) || !citas.length) continue;
+      const activos = lista.filter(r => r.activo && (r.email_activo || r.wa_activo));
+      if (!activos.length) continue;
 
-          for (const cita of citas) {
-            if (!cita.email_paciente) continue;
+      for (const rec of activos) {
+        const horaMin = horaMinPorTiempo[rec.tiempo] || null;
+        const fechas  = rec.tiempo === '24h' ? [mañanaISO] : [hoyISO, mañanaISO];
 
-            const fechaFmt = new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', {
-              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-            });
-            const horaFmt = cita.hora?.slice(0, 5) || '';
-            const profNombre = cita.especialistas?.nombre || '';
-            const negocioNombre = cli.nombre_negocio || 'tu negocio';
+        for (const fechaTarget of fechas) {
+          try {
+            let url = `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cli.id}&fecha=eq.${fechaTarget}&estado=neq.canceled&email_paciente=not.is.null&select=id,nombre_paciente,email_paciente,hora,servicio,fecha,rec_enviados,email_rec_enviado,especialistas(nombre)`;
+            if (horaMin && fechaTarget === hoyISO) url += `&hora=gte.${horaMin}`;
 
-            const vars = {
-              nombre:      cita.nombre_paciente || 'Estimado/a',
-              fecha:       fechaFmt,
-              hora:        horaFmt,
-              profesional: profNombre,
-              servicio:    cita.servicio || '',
-              negocio:     negocioNombre
-            };
+            const rCitas = await fetch(url, { headers: sh });
+            const citas  = await rCitas.json();
+            if (!Array.isArray(citas) || !citas.length) continue;
 
-            const asunto = renderTemplate(
-              cfg.email_asunto || 'Recordatorio: tu cita en {negocio}',
-              vars
-            );
-            const mensajeExtra = renderTemplate(cfg.email_mensaje || '', vars);
+            for (const cita of citas) {
+              if (!cita.email_paciente) continue;
+              // Verificar si ya se envió este recordatorio
+              const recEnv = cita.rec_enviados || {};
+              const legacyEnv = rec.id === 'rec_legacy_0' && rec.email_activo && cita.email_rec_enviado === true;
+              if (recEnv[rec.id] || legacyEnv) continue;
 
-            // Enviar email
-            const emailRes = await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${resend_key}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                from: `${negocioNombre} vía Attempo <contacto@attempo.cl>`,
-                to: [cita.email_paciente],
-                subject: asunto,
-                headers: {
-                  'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
-                  'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-                },
-                html: emailRecordatorioHtml({
-                  nombre:      vars.nombre,
-                  fecha:       fechaFmt,
-                  hora:        horaFmt,
-                  profesional: profNombre,
-                  servicio:    cita.servicio || '',
-                  negocio:     negocioNombre,
-                  mensaje_extra: mensajeExtra,
-                  cita_id:     cita.id
-                })
-              })
-            });
+              const fechaFmt = new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+              });
+              const horaFmt      = cita.hora?.slice(0, 5) || '';
+              const profNombre   = cita.especialistas?.nombre || '';
+              const negocioNombre = cli.nombre_negocio || 'tu negocio';
+              const vars = { nombre: cita.nombre_paciente || 'Estimado/a', fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: cita.servicio || '', negocio: negocioNombre };
 
-            if (emailRes.ok) {
-              enviados++;
-              // Marcar como enviado
-              fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
-                method: 'PATCH',
-                headers: { ...shJson, Prefer: 'return=minimal' },
-                body: JSON.stringify({ email_rec_enviado: true })
-              }).catch(e => console.error('send-email: error marcando recordatorio:', e.message));
-            } else {
-              const errTxt = await emailRes.text().catch(() => '');
-              console.error('send-email: recordatorio email error', emailRes.status, errTxt);
-              errores.push(`cita ${cita.id}: ${emailRes.status}`);
+              let enviado = false;
+
+              // — Enviar Email —
+              if (rec.email_activo) {
+                const asunto       = renderTemplate(rec.email_asunto || 'Recordatorio: tu cita en {negocio}', vars);
+                const mensajeExtra = renderTemplate(rec.email_mensaje || '', vars);
+                const emailRes = await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${resend_key}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    from: `${negocioNombre} vía Attempo <contacto@attempo.cl>`,
+                    to: [cita.email_paciente],
+                    subject: asunto,
+                    headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+                    html: emailRecordatorioHtml({ nombre: vars.nombre, fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: vars.servicio, negocio: negocioNombre, mensaje_extra: mensajeExtra, cita_id: cita.id })
+                  })
+                });
+                if (emailRes.ok) { enviados++; enviado = true; }
+                else { const errTxt = await emailRes.text().catch(() => ''); console.error('recordatorio email error', emailRes.status, errTxt); errores.push(`cita ${cita.id}: ${emailRes.status}`); }
+              }
+
+              // — Marcar como enviado —
+              if (enviado) {
+                const nuevoRecEnv = { ...recEnv, [rec.id]: true };
+                const patch = { rec_enviados: nuevoRecEnv };
+                if (rec.id === 'rec_legacy_0') patch.email_rec_enviado = true;
+                fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+                  method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' }, body: JSON.stringify(patch)
+                }).catch(e => console.error('error marcando rec enviado:', e.message));
+              }
             }
+          } catch(e) {
+            console.error(`error procesando cliente ${cli.id} rec ${rec.id} fecha ${fechaTarget}:`, e.message);
+            errores.push(`cliente ${cli.id}: ${e.message}`);
           }
-        } catch (e) {
-          console.error(`send-email: error procesando cliente ${cli.id} fecha ${fechaTarget}:`, e.message);
-          errores.push(`cliente ${cli.id}: ${e.message}`);
         }
       }
     }
