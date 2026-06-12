@@ -316,6 +316,32 @@ export default async function handler(req, res) {
     } catch(e) { return res.status(500).json({ error: 'Error interno' }); }
   }
 
+  // — Lista de pacientes con email para selector —
+  if (body.type === 'promo_lista_pacientes') {
+    const token = req.headers['x-session-token'];
+    const dot = token.lastIndexOf('.');
+    const parts = token.slice(0, dot).split(':');
+    const cliente_id = parts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const rCitas = await fetch(
+      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null&select=email_paciente,nombre_paciente&limit=2000`,
+      { headers: sh }
+    );
+    const citas = await rCitas.json().catch(() => []);
+    const seen = new Set();
+    const pacientes = [];
+    for (const c of Array.isArray(citas) ? citas : []) {
+      const email = (c.email_paciente || '').trim().toLowerCase();
+      if (email && !seen.has(email)) {
+        seen.add(email);
+        pacientes.push({ email: c.email_paciente.trim(), nombre: c.nombre_paciente || '' });
+      }
+    }
+    pacientes.sort((a, b) => (a.nombre || a.email).localeCompare(b.nombre || b.email, 'es'));
+    return res.status(200).json({ pacientes });
+  }
+
   // — Enviar campaña a pacientes —
   if (body.type === 'promo_email') {
     if (!body.asunto || !body.mensaje) return res.status(400).json({ error: 'Faltan asunto y mensaje' });
@@ -331,20 +357,26 @@ export default async function handler(req, res) {
     );
     const [cli] = await rCli.json().catch(() => []);
     const negocio = cli?.nombre_negocio || 'Tu negocio';
-    const filtroUrl = _buildPromoFiltroUrl(body.filtro, body.periodo);
-    const rCitas = await fetch(
-      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null${filtroUrl}&select=email_paciente,nombre_paciente&limit=2000`,
-      { headers: sh }
-    );
-    const citas = await rCitas.json().catch(() => []);
-    if (!Array.isArray(citas)) return res.status(500).json({ error: 'Error al obtener pacientes' });
-    const seen = new Set();
-    const destinatarios = [];
-    for (const c of citas) {
-      const email = (c.email_paciente || '').trim().toLowerCase();
-      if (email && !seen.has(email)) { seen.add(email); destinatarios.push({ email: c.email_paciente.trim(), nombre: c.nombre_paciente || '' }); }
+
+    let destinatarios = [];
+    // Si viene lista específica del frontend, usarla directamente
+    if (Array.isArray(body.emails) && body.emails.length > 0) {
+      destinatarios = body.emails.filter(e => e?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email));
+    } else {
+      const filtroUrl = _buildPromoFiltroUrl(body.filtro, body.periodo);
+      const rCitas = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null${filtroUrl}&select=email_paciente,nombre_paciente&limit=2000`,
+        { headers: sh }
+      );
+      const citas = await rCitas.json().catch(() => []);
+      if (!Array.isArray(citas)) return res.status(500).json({ error: 'Error al obtener pacientes' });
+      const seen = new Set();
+      for (const c of citas) {
+        const email = (c.email_paciente || '').trim().toLowerCase();
+        if (email && !seen.has(email)) { seen.add(email); destinatarios.push({ email: c.email_paciente.trim(), nombre: c.nombre_paciente || '' }); }
+      }
     }
-    if (!destinatarios.length) return res.status(400).json({ error: 'No hay pacientes con email registrado para el filtro seleccionado' });
+    if (!destinatarios.length) return res.status(400).json({ error: 'No hay destinatarios seleccionados' });
     let enviados = 0;
     const errores = [];
     for (const d of destinatarios) {
