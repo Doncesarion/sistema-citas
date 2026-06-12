@@ -99,6 +99,8 @@ async function procesarRecordatorios(sh, shJson) {
       const tiempo = cfg.email_tiempo || '24h';
       // Para cron diario: 24h → mañana, resto → hoy también
       const fechas = tiempo === '24h' ? [mañanaISO] : [hoyISO, mañanaISO];
+      // Nota: 30m y 1h se tratan igual que 2h/12h (revisa hoy+mañana), ya que el cron es diario.
+      // Para envío exacto por minuto se requeriría un cron más frecuente (plan Pro).
 
       for (const fechaTarget of fechas) {
         try {
@@ -222,6 +224,169 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   }
 
+  // — Email de prueba —
+  if (body.type === 'email_prueba') {
+    const token = req.headers['x-session-token'];
+    if (!token) return res.status(401).json({ error: 'No autorizado' });
+    const dot = token.lastIndexOf('.');
+    const parts = token.slice(0, dot).split(':');
+    const cliente_id = parts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+
+    const rCli = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=email,nombre_negocio&limit=1`,
+      { headers: sh }
+    );
+    const [cli] = await rCli.json().catch(() => []);
+    if (!cli?.email) return res.status(400).json({ error: 'No hay email configurado para este negocio. Agrégalo en Configuración → General.' });
+
+    const vars = {
+      nombre:      'Cliente de prueba',
+      fecha:       new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'America/Santiago' }),
+      hora:        '15:00',
+      profesional: 'Dr. Ejemplo',
+      servicio:    'Consulta',
+      negocio:     cli.nombre_negocio || 'Tu negocio'
+    };
+    const asuntoFinal  = renderTemplate(body.asunto  || 'Recordatorio: tu cita en {negocio}', vars);
+    const mensajeFinal = renderTemplate(body.mensaje || '', vars);
+    const htmlBody = emailRecordatorioHtml({ ...vars, mensaje_extra: mensajeFinal, cita_id: null });
+
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [cli.email],
+          subject: `[Prueba] ${asuntoFinal}`,
+          html: htmlBody
+        })
+      });
+      if (!r.ok) { const err = await r.text(); console.error('email_prueba error:', err); return res.status(500).json({ error: 'Error al enviar' }); }
+      return res.status(200).json({ ok: true });
+    } catch(e) {
+      console.error('email_prueba exception:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
+  // — Email de prueba campaña —
+  if (body.type === 'promo_email_prueba') {
+    const token = req.headers['x-session-token'];
+    const dot = token.lastIndexOf('.');
+    const parts = token.slice(0, dot).split(':');
+    const cliente_id = parts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const rCli = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=email,nombre_negocio&limit=1`,
+      { headers: sh }
+    );
+    const [cli] = await rCli.json().catch(() => []);
+    if (!cli?.email) return res.status(400).json({ error: 'No hay email configurado para este negocio.' });
+    const htmlPromo = emailPromoHtml({
+      nombre:   'Cliente de prueba',
+      titulo:   body.titulo    || '¡Tenemos novedades para ti!',
+      mensaje:  body.mensaje   || 'Este es un mensaje de ejemplo de tu campaña.',
+      ctaTxt:   body.cta_texto || '',
+      ctaUrl:   body.cta_url   || '',
+      negocio:  cli.nombre_negocio || 'Tu negocio'
+    });
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [cli.email],
+          subject: `[Prueba] ${body.asunto || 'Campaña de prueba'}`,
+          html: htmlPromo
+        })
+      });
+      if (!r.ok) { const err = await r.text(); console.error('promo_prueba error:', err); return res.status(500).json({ error: 'Error al enviar' }); }
+      return res.status(200).json({ ok: true });
+    } catch(e) { return res.status(500).json({ error: 'Error interno' }); }
+  }
+
+  // — Enviar campaña a pacientes —
+  if (body.type === 'promo_email') {
+    if (!body.asunto || !body.mensaje) return res.status(400).json({ error: 'Faltan asunto y mensaje' });
+    const token = req.headers['x-session-token'];
+    const dot = token.lastIndexOf('.');
+    const parts = token.slice(0, dot).split(':');
+    const cliente_id = parts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const rCli = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio&limit=1`,
+      { headers: sh }
+    );
+    const [cli] = await rCli.json().catch(() => []);
+    const negocio = cli?.nombre_negocio || 'Tu negocio';
+    const rCitas = await fetch(
+      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null&select=email_paciente,nombre_paciente&limit=2000`,
+      { headers: sh }
+    );
+    const citas = await rCitas.json().catch(() => []);
+    if (!Array.isArray(citas)) return res.status(500).json({ error: 'Error al obtener pacientes' });
+    const seen = new Set();
+    const destinatarios = [];
+    for (const c of citas) {
+      const email = (c.email_paciente || '').trim().toLowerCase();
+      if (email && !seen.has(email)) { seen.add(email); destinatarios.push({ email: c.email_paciente.trim(), nombre: c.nombre_paciente || '' }); }
+    }
+    if (!destinatarios.length) return res.status(400).json({ error: 'No hay pacientes con email registrado' });
+    let enviados = 0;
+    const errores = [];
+    for (const d of destinatarios) {
+      const nombre = d.nombre || 'Estimado/a';
+      const htmlPromo = emailPromoHtml({
+        nombre,
+        titulo:  body.titulo   || '',
+        mensaje: (body.mensaje || '').replace(/\{nombre\}/g, nombre),
+        ctaTxt:  body.cta_texto || '',
+        ctaUrl:  body.cta_url   || '',
+        negocio
+      });
+      try {
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: `${negocio} vía Attempo <contacto@attempo.cl>`,
+            to: [d.email],
+            subject: body.asunto,
+            headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+            html: htmlPromo
+          })
+        });
+        if (r.ok) enviados++;
+        else { const err = await r.text().catch(()=>''); errores.push(`${d.email}: ${err.slice(0,80)}`); }
+      } catch(e) { errores.push(`${d.email}: ${e.message}`); }
+    }
+    return res.status(200).json({ ok: true, enviados, total: destinatarios.length, errores });
+  }
+
+  // — Obtener conteo de destinatarios para campaña —
+  if (body.type === 'promo_conteo') {
+    const token = req.headers['x-session-token'];
+    const dot = token.lastIndexOf('.');
+    const parts = token.slice(0, dot).split(':');
+    const cliente_id = parts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const rCitas = await fetch(
+      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null&select=email_paciente&limit=2000`,
+      { headers: sh }
+    );
+    const citas = await rCitas.json().catch(() => []);
+    const seen = new Set();
+    if (Array.isArray(citas)) citas.forEach(c => { const e = (c.email_paciente||'').trim().toLowerCase(); if(e) seen.add(e); });
+    return res.status(200).json({ total: seen.size });
+  }
+
   // — Envío de boleta —
   if (body.type === 'boleta') {
     const { to, negocio, folio, html_boleta } = body;
@@ -279,6 +444,39 @@ export default async function handler(req, res) {
     console.error('send-email exception:', e.message);
     return res.status(500).json({ error: 'Error al enviar email' });
   }
+}
+
+function emailPromoHtml({ nombre, titulo, mensaje, ctaTxt, ctaUrl, negocio }) {
+  function he(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  const ctaBtn = (ctaTxt && ctaUrl)
+    ? `<div style="text-align:center;margin:24px 0 8px"><a href="${he(ctaUrl)}" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.3px">${he(ctaTxt)}</a></div>`
+    : '';
+  const tituloBlock = titulo
+    ? `<h2 style="margin:0 0 16px;color:#2d2d2d;font-size:22px;font-weight:700;line-height:1.3">${he(titulo)}</h2>`
+    : '';
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<tr><td style="background:linear-gradient(135deg,#6C5CE4,#4F46E5);padding:28px 32px;text-align:center;">
+  <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px">
+  <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;">Todo a tu tiempo</p>
+</td></tr>
+<tr><td style="padding:36px 32px;">
+  ${tituloBlock}
+  <p style="margin:0 0 6px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>,</p>
+  <div style="margin:16px 0;color:#374151;font-size:14px;line-height:1.7">${he(mensaje).replace(/\n/g,'<br>')}</div>
+  ${ctaBtn}
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
+  <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Mensaje enviado por <strong>${he(negocio)}</strong> a través de <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a></p>
+  <p style="margin:0;color:#c4b5fd;font-size:11px;"><a href="mailto:contacto@attempo.cl?subject=unsubscribe" style="color:#c4b5fd;">Cancelar suscripción</a></p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
 }
 
 function buildPagoHtml(metodos_pago, datos_banco) {

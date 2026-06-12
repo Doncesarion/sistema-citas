@@ -72,13 +72,15 @@ export default async function handler(req, res) {
 
     // — POST recordatorios_config —
     if (body.resource === 'recordatorios_config') {
-      const TIEMPOS = ['24h', '12h', '2h', '1h'];
+      const TIEMPOS = ['24h', '12h', '2h', '1h', '30m'];
       const cfg = {
         email_activo:   body.email_activo  !== false,
         email_tiempo:   TIEMPOS.includes(body.email_tiempo)  ? body.email_tiempo  : '24h',
         email_asunto:   String(body.email_asunto  || '').slice(0, 300),
         email_mensaje:  String(body.email_mensaje || '').slice(0, 2000),
-        wa_activo:      body.wa_activo === true
+        wa_activo:      body.wa_activo === true,
+        wa_tiempo:      TIEMPOS.includes(body.wa_tiempo) ? body.wa_tiempo : '24h',
+        wa_mensaje:     String(body.wa_mensaje    || '').slice(0, 1000)
       };
       try {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
