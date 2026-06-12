@@ -2888,6 +2888,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             Personalizar encabezado
           </div>
           <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="promo-mostrar-header" checked onchange="togglePromoHeader();updatePromoPreview()" style="width:15px;height:15px;accent-color:var(--a);cursor:pointer">
+              <span style="font-size:13px;color:var(--t2);font-weight:500">Mostrar encabezado con logo</span>
+            </label>
+            <div id="promo-header-opciones" style="display:flex;flex-direction:column;gap:14px">
             <div style="display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:end">
               <div>
                 <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Color de fondo</label>
@@ -2897,9 +2902,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 </div>
               </div>
               <div>
-                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Subtítulo del encabezado</label>
-                <input class="fi" id="promo-header-sub" value="Todo a tu tiempo" placeholder="Todo a tu tiempo" oninput="updatePromoPreview()">
+                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Subtítulo <span style="font-weight:400;color:var(--t4)">(opcional)</span></label>
+                <input class="fi" id="promo-header-sub" value="Todo a tu tiempo" placeholder="Dejar vacío para ocultar" oninput="updatePromoPreview()">
               </div>
+            </div>
             </div>
             <div>
               <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Imagen de banner <span style="font-weight:400;color:var(--t4)">(opcional)</span></label>
@@ -4823,10 +4829,17 @@ function _getPromoParams() {
     mensaje:      document.getElementById('promo-mensaje')?.value   || '',
     ctaTxt:       document.getElementById('promo-cta-texto')?.value || '',
     ctaUrl:       document.getElementById('promo-cta-url')?.value   || '',
+    mostrarHeader: document.getElementById('promo-mostrar-header')?.checked !== false,
     headerColor:  document.getElementById('promo-header-color')?.value || '#6C5CE4',
-    headerSub:    document.getElementById('promo-header-sub')?.value   || 'Todo a tu tiempo',
+    headerSub:    document.getElementById('promo-header-sub')?.value   ?? '',
     bannerUrl:    document.getElementById('promo-banner-url')?.value   || ''
   };
+}
+
+function togglePromoHeader() {
+  const show = document.getElementById('promo-mostrar-header')?.checked;
+  const opts = document.getElementById('promo-header-opciones');
+  if (opts) opts.style.display = show ? 'flex' : 'none';
 }
 
 function syncHeaderColor(source) {
@@ -4927,11 +4940,10 @@ function _promoGetSeleccionados() {
     .map(chk => ({ email: chk.dataset.email, nombre: chk.dataset.nombre }));
 }
 
-function _promoEmailHtml({ titulo, mensaje, ctaTxt, ctaUrl, negocio, headerColor, headerSub, bannerUrl }) {
+function _promoEmailHtml({ titulo, mensaje, ctaTxt, ctaUrl, negocio, mostrarHeader, headerColor, headerSub, bannerUrl }) {
   function he(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   const nombre  = 'María García';
   const hColor  = /^#[0-9a-fA-F]{3,6}$/.test(headerColor || '') ? headerColor : '#6C5CE4';
-  const hSub    = headerSub || 'Todo a tu tiempo';
   const msgFinal = (mensaje || '').replace(/\{nombre\}/g, nombre);
   const ctaBtn = (ctaTxt && ctaUrl)
     ? `<div style="text-align:center;margin:24px 0 8px"><a href="${he(ctaUrl)}" style="display:inline-block;padding:13px 32px;background:${hColor};color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.3px">${he(ctaTxt)}</a></div>`
@@ -4942,15 +4954,17 @@ function _promoEmailHtml({ titulo, mensaje, ctaTxt, ctaUrl, negocio, headerColor
   const bannerBlock = bannerUrl
     ? `<tr><td><img src="${he(bannerUrl)}" alt="" style="width:100%;display:block;max-height:280px;object-fit:cover"></td></tr>`
     : '';
+  const headerBlock = mostrarHeader !== false
+    ? `<tr><td style="background:${hColor};padding:24px 32px;text-align:center">
+  <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="34" style="display:block;margin:0 auto${headerSub ? ' 8px' : ' 0'}">
+  ${headerSub ? `<p style="margin:0;color:rgba(255,255,255,0.85);font-size:12px">${he(headerSub)}</p>` : ''}
+</td></tr>` : '';
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif}</style></head>
 <body>
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:32px 16px">
 <tr><td align="center">
 <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10)">
-<tr><td style="background:${hColor};padding:24px 32px;text-align:center">
-  <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="34" style="display:block;margin:0 auto 8px">
-  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:12px">${he(hSub)}</p>
-</td></tr>
+${headerBlock}
 ${bannerBlock}
 <tr><td style="padding:32px">
   ${tituloBlock}
@@ -5010,16 +5024,17 @@ async function enviarPromoEmailDePrueba() {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type:         'promo_email_prueba',
-        to:           toEmail,
-        asunto:       p.asunto || 'Email de prueba',
-        titulo:       p.titulo,
-        mensaje:      p.mensaje,
-        cta_texto:    p.ctaTxt,
-        cta_url:      p.ctaUrl,
-        header_color: p.headerColor,
-        header_sub:   p.headerSub,
-        banner_url:   p.bannerUrl
+        type:           'promo_email_prueba',
+        to:             toEmail,
+        asunto:         p.asunto || 'Email de prueba',
+        titulo:         p.titulo,
+        mensaje:        p.mensaje,
+        cta_texto:      p.ctaTxt,
+        cta_url:        p.ctaUrl,
+        header_visible: p.mostrarHeader,
+        header_color:   p.headerColor,
+        header_sub:     p.headerSub,
+        banner_url:     p.bannerUrl
       })
     });
     const data = await r.json().catch(()=>({}));
@@ -5045,16 +5060,17 @@ async function confirmarEnvioCampana() {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type:         'promo_email',
-        asunto:       p.asunto,
-        titulo:       p.titulo,
-        mensaje:      p.mensaje,
-        cta_texto:    p.ctaTxt,
-        cta_url:      p.ctaUrl,
-        header_color: p.headerColor,
-        header_sub:   p.headerSub,
-        banner_url:   p.bannerUrl,
-        emails:       seleccionados
+        type:           'promo_email',
+        asunto:         p.asunto,
+        titulo:         p.titulo,
+        mensaje:        p.mensaje,
+        cta_texto:      p.ctaTxt,
+        cta_url:        p.ctaUrl,
+        header_visible: p.mostrarHeader,
+        header_color:   p.headerColor,
+        header_sub:     p.headerSub,
+        banner_url:     p.bannerUrl,
+        emails:         seleccionados
       })
     });
     const data = await r.json().catch(()=>({}));

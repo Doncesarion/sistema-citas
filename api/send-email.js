@@ -296,8 +296,9 @@ export default async function handler(req, res) {
       ctaTxt:          body.cta_texto     || '',
       ctaUrl:          body.cta_url       || '',
       negocio:         cli?.nombre_negocio || 'Tu negocio',
+      headerVisible:   body.header_visible !== false,
       headerColor:     body.header_color  || '#6C5CE4',
-      headerSubtitle:  body.header_sub    || 'Todo a tu tiempo',
+      headerSubtitle:  body.header_sub    ?? '',
       bannerUrl:       body.banner_url    || ''
     });
     try {
@@ -388,8 +389,9 @@ export default async function handler(req, res) {
         ctaTxt:         body.cta_texto     || '',
         ctaUrl:         body.cta_url       || '',
         negocio,
+        headerVisible:  body.header_visible !== false,
         headerColor:    body.header_color  || '#6C5CE4',
-        headerSubtitle: body.header_sub    || 'Todo a tu tiempo',
+        headerSubtitle: body.header_sub    ?? '',
         bannerUrl:      body.banner_url    || ''
       });
       try {
@@ -527,10 +529,10 @@ function _buildPromoFiltroUrl(filtro, periodo) {
   return `&fecha=gte.${d.toISOString().slice(0, 10)}`;
 }
 
-function emailPromoHtml({ nombre, titulo, mensaje, ctaTxt, ctaUrl, negocio, headerColor, headerSubtitle, bannerUrl }) {
+function emailPromoHtml({ nombre, titulo, mensaje, ctaTxt, ctaUrl, negocio, headerVisible, headerColor, headerSubtitle, bannerUrl }) {
   function he(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   const hColor = /^#[0-9a-fA-F]{3,6}$/.test(headerColor || '') ? headerColor : '#6C5CE4';
-  const hSub   = headerSubtitle || 'Todo a tu tiempo';
+  const hSub   = headerSubtitle || '';
   const ctaBtn = (ctaTxt && ctaUrl)
     ? `<div style="text-align:center;margin:24px 0 8px"><a href="${he(ctaUrl)}" style="display:inline-block;padding:13px 32px;background:${hColor};color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.3px">${he(ctaTxt)}</a></div>`
     : '';
@@ -540,15 +542,17 @@ function emailPromoHtml({ nombre, titulo, mensaje, ctaTxt, ctaUrl, negocio, head
   const bannerBlock = bannerUrl
     ? `<tr><td><img src="${he(bannerUrl)}" alt="" style="width:100%;display:block;max-height:280px;object-fit:cover"></td></tr>`
     : '';
+  const headerBlock = headerVisible !== false
+    ? `<tr><td style="background:${hColor};padding:28px 32px;text-align:center;">
+  <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto${hSub ? ' 8px' : ' 0'}">
+  ${hSub ? `<p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">${he(hSub)}</p>` : ''}
+</td></tr>` : '';
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:${hColor};padding:28px 32px;text-align:center;">
-  <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px">
-  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">${he(hSub)}</p>
-</td></tr>
+${headerBlock}
 ${bannerBlock}
 <tr><td style="padding:36px 32px;">
   ${tituloBlock}
