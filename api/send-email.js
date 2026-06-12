@@ -274,6 +274,10 @@ export default async function handler(req, res) {
 
   // — Email de prueba campaña —
   if (body.type === 'promo_email_prueba') {
+    const toEmail = (body.to || '').trim();
+    if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+      return res.status(400).json({ error: 'Ingresa un email válido para la prueba' });
+    }
     const token = req.headers['x-session-token'];
     const dot = token.lastIndexOf('.');
     const parts = token.slice(0, dot).split(':');
@@ -281,18 +285,20 @@ export default async function handler(req, res) {
     const overrideId = req.headers['x-override-cliente-id'];
     const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
     const rCli = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=email,nombre_negocio&limit=1`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio&limit=1`,
       { headers: sh }
     );
     const [cli] = await rCli.json().catch(() => []);
-    if (!cli?.email) return res.status(400).json({ error: 'No hay email configurado para este negocio.' });
     const htmlPromo = emailPromoHtml({
-      nombre:   'Cliente de prueba',
-      titulo:   body.titulo    || '¡Tenemos novedades para ti!',
-      mensaje:  body.mensaje   || 'Este es un mensaje de ejemplo de tu campaña.',
-      ctaTxt:   body.cta_texto || '',
-      ctaUrl:   body.cta_url   || '',
-      negocio:  cli.nombre_negocio || 'Tu negocio'
+      nombre:          'Cliente de prueba',
+      titulo:          body.titulo        || '',
+      mensaje:         body.mensaje       || 'Este es un mensaje de ejemplo de tu campaña.',
+      ctaTxt:          body.cta_texto     || '',
+      ctaUrl:          body.cta_url       || '',
+      negocio:         cli?.nombre_negocio || 'Tu negocio',
+      headerColor:     body.header_color  || '#6C5CE4',
+      headerSubtitle:  body.header_sub    || 'Todo a tu tiempo',
+      bannerUrl:       body.banner_url    || ''
     });
     try {
       const r = await fetch('https://api.resend.com/emails', {
@@ -300,13 +306,13 @@ export default async function handler(req, res) {
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Attempo <contacto@attempo.cl>',
-          to: [cli.email],
+          to: [toEmail],
           subject: `[Prueba] ${body.asunto || 'Campaña de prueba'}`,
           html: htmlPromo
         })
       });
       if (!r.ok) { const err = await r.text(); console.error('promo_prueba error:', err); return res.status(500).json({ error: 'Error al enviar' }); }
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, to: toEmail });
     } catch(e) { return res.status(500).json({ error: 'Error interno' }); }
   }
 
@@ -325,8 +331,9 @@ export default async function handler(req, res) {
     );
     const [cli] = await rCli.json().catch(() => []);
     const negocio = cli?.nombre_negocio || 'Tu negocio';
+    const filtroUrl = _buildPromoFiltroUrl(body.filtro, body.periodo);
     const rCitas = await fetch(
-      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null&select=email_paciente,nombre_paciente&limit=2000`,
+      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null${filtroUrl}&select=email_paciente,nombre_paciente&limit=2000`,
       { headers: sh }
     );
     const citas = await rCitas.json().catch(() => []);
@@ -337,18 +344,21 @@ export default async function handler(req, res) {
       const email = (c.email_paciente || '').trim().toLowerCase();
       if (email && !seen.has(email)) { seen.add(email); destinatarios.push({ email: c.email_paciente.trim(), nombre: c.nombre_paciente || '' }); }
     }
-    if (!destinatarios.length) return res.status(400).json({ error: 'No hay pacientes con email registrado' });
+    if (!destinatarios.length) return res.status(400).json({ error: 'No hay pacientes con email registrado para el filtro seleccionado' });
     let enviados = 0;
     const errores = [];
     for (const d of destinatarios) {
       const nombre = d.nombre || 'Estimado/a';
       const htmlPromo = emailPromoHtml({
         nombre,
-        titulo:  body.titulo   || '',
-        mensaje: (body.mensaje || '').replace(/\{nombre\}/g, nombre),
-        ctaTxt:  body.cta_texto || '',
-        ctaUrl:  body.cta_url   || '',
-        negocio
+        titulo:         body.titulo        || '',
+        mensaje:        (body.mensaje || '').replace(/\{nombre\}/g, nombre),
+        ctaTxt:         body.cta_texto     || '',
+        ctaUrl:         body.cta_url       || '',
+        negocio,
+        headerColor:    body.header_color  || '#6C5CE4',
+        headerSubtitle: body.header_sub    || 'Todo a tu tiempo',
+        bannerUrl:      body.banner_url    || ''
       });
       try {
         const r = await fetch('https://api.resend.com/emails', {
@@ -377,8 +387,9 @@ export default async function handler(req, res) {
     const cliente_id = parts[0];
     const overrideId = req.headers['x-override-cliente-id'];
     const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const filtroUrl = _buildPromoFiltroUrl(body.filtro, body.periodo);
     const rCitas = await fetch(
-      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null&select=email_paciente&limit=2000`,
+      `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null${filtroUrl}&select=email_paciente&limit=2000`,
       { headers: sh }
     );
     const citas = await rCitas.json().catch(() => []);
@@ -446,23 +457,37 @@ export default async function handler(req, res) {
   }
 }
 
-function emailPromoHtml({ nombre, titulo, mensaje, ctaTxt, ctaUrl, negocio }) {
+function _buildPromoFiltroUrl(filtro, periodo) {
+  if (filtro !== 'recientes') return '';
+  const d = new Date();
+  const meses = periodo === '3m' ? 3 : periodo === '6m' ? 6 : periodo === '2y' ? 24 : 12;
+  d.setMonth(d.getMonth() - meses);
+  return `&fecha=gte.${d.toISOString().slice(0, 10)}`;
+}
+
+function emailPromoHtml({ nombre, titulo, mensaje, ctaTxt, ctaUrl, negocio, headerColor, headerSubtitle, bannerUrl }) {
   function he(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  const hColor = /^#[0-9a-fA-F]{3,6}$/.test(headerColor || '') ? headerColor : '#6C5CE4';
+  const hSub   = headerSubtitle || 'Todo a tu tiempo';
   const ctaBtn = (ctaTxt && ctaUrl)
-    ? `<div style="text-align:center;margin:24px 0 8px"><a href="${he(ctaUrl)}" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.3px">${he(ctaTxt)}</a></div>`
+    ? `<div style="text-align:center;margin:24px 0 8px"><a href="${he(ctaUrl)}" style="display:inline-block;padding:13px 32px;background:${hColor};color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.3px">${he(ctaTxt)}</a></div>`
     : '';
   const tituloBlock = titulo
     ? `<h2 style="margin:0 0 16px;color:#2d2d2d;font-size:22px;font-weight:700;line-height:1.3">${he(titulo)}</h2>`
+    : '';
+  const bannerBlock = bannerUrl
+    ? `<tr><td><img src="${he(bannerUrl)}" alt="" style="width:100%;display:block;max-height:280px;object-fit:cover"></td></tr>`
     : '';
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:linear-gradient(135deg,#6C5CE4,#4F46E5);padding:28px 32px;text-align:center;">
+<tr><td style="background:${hColor};padding:28px 32px;text-align:center;">
   <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px">
-  <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;">Todo a tu tiempo</p>
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">${he(hSub)}</p>
 </td></tr>
+${bannerBlock}
 <tr><td style="padding:36px 32px;">
   ${tituloBlock}
   <p style="margin:0 0 6px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>,</p>

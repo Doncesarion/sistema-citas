@@ -2844,10 +2844,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
       <!-- LEFT: Builder -->
       <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Contenido -->
         <div>
           <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 3h12M1 7h12M1 11h8"/></svg>
-            Diseña tu email
+            Contenido del email
           </div>
           <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
             <div>
@@ -2855,7 +2857,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <input class="fi" id="promo-asunto" placeholder="Ej: ¡Promoción especial este mes!" style="width:100%" oninput="updatePromoPreview()">
             </div>
             <div>
-              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Título principal</label>
+              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Título principal del email</label>
               <input class="fi" id="promo-titulo" placeholder="Ej: ¡Tenemos novedades para ti!" style="width:100%" oninput="updatePromoPreview()">
             </div>
             <div>
@@ -2871,7 +2873,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                   <input class="fi" id="promo-cta-texto" placeholder="Ej: Reservar ahora" oninput="updatePromoPreview()">
                 </div>
                 <div>
-                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Enlace del botón</label>
+                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">URL del botón</label>
                   <input class="fi" id="promo-cta-url" type="url" placeholder="https://..." oninput="updatePromoPreview()">
                 </div>
               </div>
@@ -2879,20 +2881,83 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           </div>
         </div>
 
-        <!-- Destinatarios -->
-        <div class="card" style="padding:18px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div style="font-size:13px;font-weight:600;color:var(--t1)">Destinatarios</div>
-            <span id="promo-count-badge" style="font-size:11px;padding:2px 10px;background:rgba(108,92,228,0.1);color:var(--a);border-radius:20px;font-weight:600">—</span>
+        <!-- Personalizar header -->
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="12" height="5" rx="1.5"/><path d="M1 9h5M1 12h8"/></svg>
+            Personalizar encabezado
           </div>
-          <div style="font-size:12px;color:var(--t3)">Todos los pacientes con email registrado en tu sistema.</div>
+          <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:end">
+              <div>
+                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Color de fondo</label>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <input type="color" id="promo-header-color" value="#6C5CE4" style="width:38px;height:34px;border:1px solid var(--b1);border-radius:6px;cursor:pointer;padding:2px" oninput="syncHeaderColor('picker')">
+                  <input class="fi" id="promo-header-color-hex" value="#6C5CE4" placeholder="#6C5CE4" style="width:86px;font-family:monospace;font-size:12px" oninput="syncHeaderColor('hex')" maxlength="7">
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Subtítulo del encabezado</label>
+                <input class="fi" id="promo-header-sub" value="Todo a tu tiempo" placeholder="Todo a tu tiempo" oninput="updatePromoPreview()">
+              </div>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Imagen de banner <span style="font-weight:400;color:var(--t4)">(opcional — URL directa de imagen)</span></label>
+              <input class="fi" id="promo-banner-url" type="url" placeholder="https://ejemplo.com/imagen.jpg" oninput="updatePromoPreview()" style="width:100%">
+              <div style="font-size:10px;color:var(--t4);margin-top:4px">Se muestra bajo el encabezado. Recomendado: 600×200px · JPG o PNG</div>
+            </div>
+          </div>
         </div>
 
-        <!-- Botones -->
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn-sm" id="btn-promo-prueba" onclick="enviarPromoEmailDePrueba()" style="color:var(--t2);border-color:var(--b1)">Enviar prueba a mi correo</button>
-          <button class="btn-a" id="btn-enviar-campana" onclick="confirmarEnvioCampana()" style="flex:1;min-width:160px">📣 Enviar campaña</button>
+        <!-- Destinatarios -->
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="5" cy="4" r="2.5"/><circle cx="10" cy="5" r="2"/><path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4M10 8c1.7 0 3 1.3 3 3"/></svg>
+            Destinatarios
+          </div>
+          <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:8px 10px;border-radius:8px;border:1.5px solid var(--a);background:rgba(108,92,228,0.04)" id="promo-lbl-todos">
+              <input type="radio" name="promo-filtro" id="promo-filtro-todos" checked style="accent-color:var(--a);margin-top:2px;flex-shrink:0" onchange="setPromoFiltro('todos')">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--t1)">Todos los pacientes</div>
+                <div style="font-size:11px;color:var(--t3)">Con email registrado en tu sistema</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:8px 10px;border-radius:8px;border:1.5px solid var(--b1)" id="promo-lbl-recientes">
+              <input type="radio" name="promo-filtro" id="promo-filtro-recientes" style="accent-color:var(--a);margin-top:2px;flex-shrink:0" onchange="setPromoFiltro('recientes')">
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--t1)">Solo con citas en el período</div>
+                <div style="font-size:11px;color:var(--t3)">Pacientes activos en un rango de tiempo</div>
+                <div id="promo-periodo-box" style="display:none;margin-top:8px">
+                  <select id="promo-periodo" class="fs" onchange="loadPromoConteo()">
+                    <option value="3m">Últimos 3 meses</option>
+                    <option value="6m">Últimos 6 meses</option>
+                    <option value="1y" selected>Último año</option>
+                    <option value="2y">Últimos 2 años</option>
+                  </select>
+                </div>
+              </div>
+            </label>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--b1)">
+              <span style="font-size:12px;color:var(--t3)">Destinatarios estimados</span>
+              <span id="promo-count-badge" style="font-size:12px;padding:3px 12px;background:rgba(108,92,228,0.1);color:var(--a);border-radius:20px;font-weight:600">—</span>
+            </div>
+          </div>
         </div>
+
+        <!-- Prueba antes de enviar -->
+        <div class="card" style="padding:18px">
+          <div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:4px">Probar antes de enviar</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Envía una copia a cualquier email para revisar cómo llega.</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="fi" id="promo-prueba-email" type="email" placeholder="email@ejemplo.com" style="flex:1">
+            <button class="btn-sm" id="btn-promo-prueba" onclick="enviarPromoEmailDePrueba()" style="color:var(--a);border-color:rgba(108,92,228,0.3);white-space:nowrap">Enviar prueba</button>
+          </div>
+        </div>
+
+        <!-- Enviar campaña -->
+        <button class="btn-a" id="btn-enviar-campana" onclick="confirmarEnvioCampana()" style="width:100%;padding:12px 0;font-size:13px">📣 Enviar campaña a todos</button>
+
       </div>
 
       <!-- RIGHT: Preview -->
@@ -4552,6 +4617,10 @@ async function loadRecordatorios() {
     if (g('rec-wa-mensaje') && cfg.wa_mensaje) g('rec-wa-mensaje').value = cfg.wa_mensaje;
     updateRecPreview();
     updatePromoPreview();
+    // Pre-cargar email del usuario en el campo de prueba
+    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    const emailField = document.getElementById('promo-prueba-email');
+    if (emailField && !emailField.value && u.email) emailField.value = u.email;
   } catch(e) { console.error('loadRecordatorios:', e.message); updateRecPreview(); }
   // Cargar conteo de destinatarios para campañas
   loadPromoConteo();
@@ -4740,34 +4809,86 @@ async function enviarEmailDePrueba() {
 
 /* ════ CAMPAÑAS Y PROMOCIONES ════ */
 
-function _promoEmailHtml({ titulo, mensaje, ctaTxt, ctaUrl, negocio }) {
+function _getPromoParams() {
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  return {
+    negocio:      u.nombre_negocio || 'Tu negocio',
+    asunto:       document.getElementById('promo-asunto')?.value    || '',
+    titulo:       document.getElementById('promo-titulo')?.value    || '',
+    mensaje:      document.getElementById('promo-mensaje')?.value   || '',
+    ctaTxt:       document.getElementById('promo-cta-texto')?.value || '',
+    ctaUrl:       document.getElementById('promo-cta-url')?.value   || '',
+    headerColor:  document.getElementById('promo-header-color')?.value || '#6C5CE4',
+    headerSub:    document.getElementById('promo-header-sub')?.value   || 'Todo a tu tiempo',
+    bannerUrl:    document.getElementById('promo-banner-url')?.value   || '',
+    filtro:       document.querySelector('input[name="promo-filtro"]:checked')?.value || 'todos',
+    periodo:      document.getElementById('promo-periodo')?.value   || '1y'
+  };
+}
+
+function syncHeaderColor(source) {
+  const picker = document.getElementById('promo-header-color');
+  const hex    = document.getElementById('promo-header-color-hex');
+  if (!picker || !hex) return;
+  if (source === 'picker') {
+    hex.value = picker.value;
+  } else {
+    const v = hex.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) picker.value = v;
+  }
+  updatePromoPreview();
+}
+
+function setPromoFiltro(filtro) {
+  const lblTodos     = document.getElementById('promo-lbl-todos');
+  const lblRecientes = document.getElementById('promo-lbl-recientes');
+  const periodoBox   = document.getElementById('promo-periodo-box');
+  if (filtro === 'todos') {
+    if (lblTodos)     { lblTodos.style.borderColor = 'var(--a)'; lblTodos.style.background = 'rgba(108,92,228,0.04)'; }
+    if (lblRecientes) { lblRecientes.style.borderColor = 'var(--b1)'; lblRecientes.style.background = ''; }
+    if (periodoBox)   periodoBox.style.display = 'none';
+  } else {
+    if (lblRecientes) { lblRecientes.style.borderColor = 'var(--a)'; lblRecientes.style.background = 'rgba(108,92,228,0.04)'; }
+    if (lblTodos)     { lblTodos.style.borderColor = 'var(--b1)'; lblTodos.style.background = ''; }
+    if (periodoBox)   periodoBox.style.display = 'block';
+  }
+  loadPromoConteo();
+}
+
+function _promoEmailHtml({ titulo, mensaje, ctaTxt, ctaUrl, negocio, headerColor, headerSub, bannerUrl }) {
   function he(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  const nombre = 'María García';
+  const nombre  = 'María García';
+  const hColor  = /^#[0-9a-fA-F]{3,6}$/.test(headerColor || '') ? headerColor : '#6C5CE4';
+  const hSub    = headerSub || 'Todo a tu tiempo';
   const msgFinal = (mensaje || '').replace(/\{nombre\}/g, nombre);
   const ctaBtn = (ctaTxt && ctaUrl)
-    ? `<div style="text-align:center;margin:24px 0 8px"><a href="${he(ctaUrl)}" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.3px">${he(ctaTxt)}</a></div>`
+    ? `<div style="text-align:center;margin:24px 0 8px"><a href="${he(ctaUrl)}" style="display:inline-block;padding:13px 32px;background:${hColor};color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:.3px">${he(ctaTxt)}</a></div>`
     : '';
   const tituloBlock = titulo
     ? `<h2 style="margin:0 0 16px;color:#2d2d2d;font-size:22px;font-weight:700;line-height:1.3">${he(titulo)}</h2>`
+    : '';
+  const bannerBlock = bannerUrl
+    ? `<tr><td><img src="${he(bannerUrl)}" alt="" style="width:100%;display:block;max-height:280px;object-fit:cover"></td></tr>`
     : '';
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif}</style></head>
 <body>
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:32px 16px">
 <tr><td align="center">
 <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10)">
-<tr><td style="background:linear-gradient(135deg,#6C5CE4,#4F46E5);padding:24px 32px;text-align:center">
+<tr><td style="background:${hColor};padding:24px 32px;text-align:center">
   <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="34" style="display:block;margin:0 auto 8px">
-  <p style="margin:0;color:rgba(255,255,255,0.8);font-size:12px">Todo a tu tiempo</p>
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:12px">${he(hSub)}</p>
 </td></tr>
+${bannerBlock}
 <tr><td style="padding:32px">
   ${tituloBlock}
   <p style="margin:0 0 14px;color:#6b7280;font-size:14px">Hola <strong>${he(nombre)}</strong>,</p>
-  <div style="color:#374151;font-size:14px;line-height:1.75;white-space:pre-line">${he(msgFinal).replace(/\n/g,'<br>')}</div>
+  <div style="color:#374151;font-size:14px;line-height:1.75">${he(msgFinal).replace(/\n/g,'<br>')}</div>
   ${ctaBtn}
 </td></tr>
 <tr><td style="background:#f9f8ff;padding:14px 32px;text-align:center;border-top:1px solid #ede9fe">
   <p style="margin:0 0 4px;color:#9ca3af;font-size:11px">Mensaje enviado por <strong>${he(negocio||'Tu negocio')}</strong> a través de <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none">attempo</a></p>
-  <p style="margin:0;font-size:10px;color:#c4b5fd">Para cancelar suscripción responde con "BAJA"</p>
+  <p style="margin:0;font-size:10px;color:#c4b5fd"><a href="mailto:contacto@attempo.cl?subject=unsubscribe" style="color:#c4b5fd">Cancelar suscripción</a></p>
 </td></tr>
 </table>
 </td></tr>
@@ -4776,69 +4897,69 @@ function _promoEmailHtml({ titulo, mensaje, ctaTxt, ctaUrl, negocio }) {
 }
 
 function updatePromoPreview() {
-  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  const asunto  = document.getElementById('promo-asunto')?.value || '';
-  const titulo  = document.getElementById('promo-titulo')?.value || '';
-  const mensaje = document.getElementById('promo-mensaje')?.value || '';
-  const ctaTxt  = document.getElementById('promo-cta-texto')?.value || '';
-  const ctaUrl  = document.getElementById('promo-cta-url')?.value || '';
-  const negocio = u.nombre_negocio || 'Tu negocio';
-
+  const p = _getPromoParams();
   const asuntoEl = document.getElementById('promo-pv-asunto');
-  if (asuntoEl) asuntoEl.textContent = asunto || '(sin asunto)';
-
+  if (asuntoEl) asuntoEl.textContent = p.asunto || '(sin asunto)';
   const iframe = document.getElementById('promo-pv-iframe');
-  if (iframe) iframe.srcdoc = _promoEmailHtml({ titulo, mensaje, ctaTxt, ctaUrl, negocio });
+  if (iframe) iframe.srcdoc = _promoEmailHtml(p);
 }
 
 async function loadPromoConteo() {
   const badge = document.getElementById('promo-count-badge');
   if (!badge) return;
+  badge.textContent = '…';
+  const p = _getPromoParams();
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'promo_conteo' })
+      body: JSON.stringify({ type: 'promo_conteo', filtro: p.filtro, periodo: p.periodo })
     });
     if (r.ok) {
       const data = await r.json().catch(()=>({}));
       const n = data.total || 0;
       badge.textContent = `${n} paciente${n !== 1 ? 's' : ''}`;
-    }
-  } catch(_) {}
+    } else { badge.textContent = '—'; }
+  } catch(_) { badge.textContent = '—'; }
 }
 
 async function enviarPromoEmailDePrueba() {
+  const toEmail = (document.getElementById('promo-prueba-email')?.value || '').trim();
+  if (!toEmail) { toast('Ingresa un email para la prueba'); document.getElementById('promo-prueba-email')?.focus(); return; }
   const btn = document.getElementById('btn-promo-prueba');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  const p = _getPromoParams();
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type:       'promo_email_prueba',
-        asunto:     document.getElementById('promo-asunto')?.value || 'Email de prueba',
-        titulo:     document.getElementById('promo-titulo')?.value || '',
-        mensaje:    document.getElementById('promo-mensaje')?.value || '',
-        cta_texto:  document.getElementById('promo-cta-texto')?.value || '',
-        cta_url:    document.getElementById('promo-cta-url')?.value || ''
+        type:         'promo_email_prueba',
+        to:           toEmail,
+        asunto:       p.asunto || 'Email de prueba',
+        titulo:       p.titulo,
+        mensaje:      p.mensaje,
+        cta_texto:    p.ctaTxt,
+        cta_url:      p.ctaUrl,
+        header_color: p.headerColor,
+        header_sub:   p.headerSub,
+        banner_url:   p.bannerUrl
       })
     });
     const data = await r.json().catch(()=>({}));
-    if (r.ok) toast('✓ Email de prueba enviado a tu correo');
+    if (r.ok) toast(`✓ Prueba enviada a ${toEmail}`);
     else toast('Error: ' + (data.error || r.status));
   } catch(e) { toast('Error al enviar la prueba'); }
-  if (btn) { btn.disabled = false; btn.textContent = 'Enviar prueba a mi correo'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar prueba'; }
 }
 
 async function confirmarEnvioCampana() {
-  const asunto  = (document.getElementById('promo-asunto')?.value || '').trim();
-  const mensaje = (document.getElementById('promo-mensaje')?.value || '').trim();
-  if (!asunto) { toast('Debes escribir un asunto para la campaña'); return; }
-  if (!mensaje) { toast('Debes escribir el mensaje de la campaña'); return; }
+  const p = _getPromoParams();
+  if (!p.asunto) { toast('Debes escribir un asunto'); return; }
+  if (!p.mensaje) { toast('Debes escribir el mensaje'); return; }
   const badge = document.getElementById('promo-count-badge');
-  const n = badge ? badge.textContent : 'varios pacientes';
-  const ok = confirm(`¿Enviar esta campaña a ${n}?\n\nAsunto: "${asunto}"\n\nEsta acción enviará emails reales a todos tus pacientes.`);
+  const nTxt = badge?.textContent || 'los pacientes';
+  const ok = confirm(`¿Enviar esta campaña a ${nTxt}?\n\nAsunto: "${p.asunto}"\nFiltro: ${p.filtro === 'todos' ? 'Todos los pacientes' : `Con citas en ${p.periodo}`}\n\nEsta acción enviará emails reales. ¿Confirmas?`);
   if (!ok) return;
   const btn = document.getElementById('btn-enviar-campana');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando campaña…'; }
@@ -4847,12 +4968,17 @@ async function confirmarEnvioCampana() {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type:       'promo_email',
-        asunto,
-        titulo:     document.getElementById('promo-titulo')?.value || '',
-        mensaje,
-        cta_texto:  document.getElementById('promo-cta-texto')?.value || '',
-        cta_url:    document.getElementById('promo-cta-url')?.value || ''
+        type:         'promo_email',
+        asunto:       p.asunto,
+        titulo:       p.titulo,
+        mensaje:      p.mensaje,
+        cta_texto:    p.ctaTxt,
+        cta_url:      p.ctaUrl,
+        header_color: p.headerColor,
+        header_sub:   p.headerSub,
+        banner_url:   p.bannerUrl,
+        filtro:       p.filtro,
+        periodo:      p.periodo
       })
     });
     const data = await r.json().catch(()=>({}));
@@ -4861,7 +4987,7 @@ async function confirmarEnvioCampana() {
       if (data.errores?.length) console.warn('Errores campaña:', data.errores);
     } else toast('Error: ' + (data.error || r.status));
   } catch(e) { toast('Error al enviar la campaña'); }
-  if (btn) { btn.disabled = false; btn.textContent = '📣 Enviar campaña'; }
+  if (btn) { btn.disabled = false; btn.textContent = '📣 Enviar campaña a todos'; }
 }
 
 /* ════ FORMATO RUT ════ */
