@@ -412,6 +412,36 @@ export default async function handler(req, res) {
   }
 
   // — Obtener conteo de destinatarios para campaña —
+  // — Subir imagen banner a Supabase Storage —
+  if (body.type === 'upload_banner') {
+    const { data: b64, mime, filename } = body;
+    if (!b64 || !mime || !filename) return res.status(400).json({ error: 'Faltan datos' });
+    if (!/^image\/(jpeg|jpg|png|webp|gif)$/i.test(mime)) return res.status(400).json({ error: 'Solo se permiten imágenes JPG, PNG, WEBP o GIF' });
+    const ext = mime.split('/')[1].replace('jpeg','jpg');
+    const safeName = `banner_${Date.now()}.${ext}`;
+    let buf;
+    try { buf = Buffer.from(b64, 'base64'); } catch(_) { return res.status(400).json({ error: 'Imagen inválida' }); }
+    if (buf.length > 5 * 1024 * 1024) return res.status(400).json({ error: 'La imagen no puede superar 5 MB' });
+    const KEY = process.env.SUPABASE_SERVICE_KEY;
+    const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/promo-banners/${safeName}`, {
+      method: 'POST',
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': mime,
+        'x-upsert': 'true'
+      },
+      body: buf
+    });
+    if (!upRes.ok) {
+      const err = await upRes.text();
+      console.error('upload_banner storage error:', upRes.status, err);
+      return res.status(500).json({ error: 'Error al subir imagen. Asegúrate de que el bucket promo-banners existe y es público.' });
+    }
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/promo-banners/${safeName}`;
+    return res.status(200).json({ url: publicUrl });
+  }
+
   if (body.type === 'promo_conteo') {
     const token = req.headers['x-session-token'];
     const dot = token.lastIndexOf('.');

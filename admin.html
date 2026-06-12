@@ -2902,9 +2902,22 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               </div>
             </div>
             <div>
-              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Imagen de banner <span style="font-weight:400;color:var(--t4)">(opcional — URL directa de imagen)</span></label>
-              <input class="fi" id="promo-banner-url" type="url" placeholder="https://ejemplo.com/imagen.jpg" oninput="updatePromoPreview()" style="width:100%">
-              <div style="font-size:10px;color:var(--t4);margin-top:4px">Se muestra bajo el encabezado. Recomendado: 600×200px · JPG o PNG</div>
+              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Imagen de banner <span style="font-weight:400;color:var(--t4)">(opcional)</span></label>
+              <input type="file" id="promo-banner-file" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="uploadBannerImagen(this)">
+              <input type="hidden" id="promo-banner-url">
+              <div id="promo-banner-area" onclick="document.getElementById('promo-banner-file').click()" style="border:2px dashed rgba(108,92,228,0.3);border-radius:10px;padding:18px 16px;text-align:center;cursor:pointer;background:#faf9ff;transition:border-color 0.15s" onmouseover="this.style.borderColor='rgba(108,92,228,0.6)'" onmouseout="this.style.borderColor='rgba(108,92,228,0.3)'">
+                <div id="promo-banner-placeholder">
+                  <div style="font-size:22px;margin-bottom:4px">🖼️</div>
+                  <div style="font-size:12px;color:var(--t3);font-weight:500">Haz clic para seleccionar imagen</div>
+                  <div style="font-size:11px;color:var(--t4);margin-top:3px">JPG, PNG, WEBP — máx 5 MB · Recomendado: 600×200px</div>
+                </div>
+                <div id="promo-banner-preview" style="display:none">
+                  <img id="promo-banner-thumb" src="" alt="banner" style="max-width:100%;max-height:120px;object-fit:cover;border-radius:7px;display:block;margin:0 auto 8px">
+                  <div style="font-size:11px;color:var(--t3)">Haz clic para cambiar imagen</div>
+                </div>
+                <div id="promo-banner-loading" style="display:none;font-size:12px;color:var(--t2)">Subiendo imagen…</div>
+              </div>
+              <div id="promo-banner-error" style="display:none;font-size:11px;color:#e74c3c;margin-top:4px"></div>
             </div>
           </div>
         </div>
@@ -4830,6 +4843,45 @@ function syncHeaderColor(source) {
 }
 
 function _escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function uploadBannerImagen(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const area    = document.getElementById('promo-banner-area');
+  const loading = document.getElementById('promo-banner-loading');
+  const preview = document.getElementById('promo-banner-preview');
+  const ph      = document.getElementById('promo-banner-placeholder');
+  const thumb   = document.getElementById('promo-banner-thumb');
+  const errEl   = document.getElementById('promo-banner-error');
+  const urlInput = document.getElementById('promo-banner-url');
+  errEl.style.display = 'none';
+  ph.style.display = 'none';
+  preview.style.display = 'none';
+  loading.style.display = 'block';
+  try {
+    const buf = await file.arrayBuffer();
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    const r = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'upload_banner', data: b64, mime: file.type, filename: file.name })
+    });
+    const data = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(data.error || 'Error al subir');
+    urlInput.value = data.url;
+    thumb.src = data.url;
+    preview.style.display = 'block';
+    updatePromoPreview();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    ph.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+    input.value = '';
+  }
+}
+
 
 function _promoRenderLista(items) {
   const listaEl = document.getElementById('promo-dest-lista');
