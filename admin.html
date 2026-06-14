@@ -1225,6 +1225,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ntab"     onclick="sv('ventas',this)">Ventas</button>
       <button class="ntab"     onclick="sv('bandeja',this)" id="ntab-bandeja" style="position:relative">Bandeja <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"     onclick="sv('reportes',this)">Reportes</button>
+      <button class="ntab"     onclick="sv('liquidaciones',this)">Liquidaciones</button>
       <button class="ntab"     onclick="sv('config',this)">Configuración</button>
     </div>
   </div>
@@ -1725,6 +1726,100 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 </div>
 
 <!-- ═══ REPORTES ═══ -->
+<div id="v-liquidaciones" style="display:none">
+  <div class="vp">
+    <div class="vh">
+      Liquidaciones
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="liq-loading" style="display:none;font-size:12px;color:var(--t3)">Cargando...</span>
+      </div>
+    </div>
+
+    <!-- Controles de período -->
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+      <select id="liq-periodo" style="padding:7px 12px;border:1.5px solid var(--b1);border-radius:8px;font-size:13px;background:var(--bg);color:var(--t1);cursor:pointer"></select>
+      <button onclick="previsualizarLiquidacion()" style="padding:7px 14px;background:var(--bg);border:1.5px solid var(--b1);border-radius:8px;font-size:13px;color:var(--t1);cursor:pointer">Ver previsualización</button>
+      <button onclick="generarLiquidacion()" style="padding:7px 16px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Generar liquidación</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--b1);margin-bottom:16px">
+      <button id="liq-tab-preview" onclick="liqTab('preview')" style="padding:8px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer">Previsualización</button>
+      <button id="liq-tab-historial" onclick="liqTab('historial')" style="padding:8px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Historial</button>
+    </div>
+
+    <!-- Panel: Previsualización -->
+    <div id="liq-panel-preview">
+      <div id="liq-preview-empty" style="text-align:center;padding:40px;color:var(--t3);font-size:14px">Selecciona un período y haz clic en "Ver previsualización"</div>
+      <div id="liq-preview-wrap" style="display:none">
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:var(--bg2)">
+                <th style="padding:10px 12px;text-align:left;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Profesional</th>
+                <th style="padding:10px 12px;text-align:center;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Citas</th>
+                <th style="padding:10px 12px;text-align:right;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Monto total</th>
+                <th style="padding:10px 12px;text-align:center;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">% Prof.</th>
+                <th style="padding:10px 12px;text-align:right;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">A pagar</th>
+                <th style="padding:10px 12px;text-align:right;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Retención clínica</th>
+                <th style="padding:10px 12px;text-align:center;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">% Comisión</th>
+              </tr>
+            </thead>
+            <tbody id="liq-preview-body"></tbody>
+            <tfoot id="liq-preview-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Historial -->
+    <div id="liq-panel-historial" style="display:none">
+      <div id="liq-hist-empty" style="text-align:center;padding:40px;color:var(--t3);font-size:14px">No hay liquidaciones generadas aún</div>
+      <div id="liq-hist-wrap" style="display:none;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:var(--bg2)">
+              <th style="padding:10px 12px;text-align:left;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Período</th>
+              <th style="padding:10px 12px;text-align:left;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Profesional</th>
+              <th style="padding:10px 12px;text-align:center;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Citas</th>
+              <th style="padding:10px 12px;text-align:right;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Monto total</th>
+              <th style="padding:10px 12px;text-align:right;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">A pagar</th>
+              <th style="padding:10px 12px;text-align:center;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Estado</th>
+              <th style="padding:10px 12px;text-align:center;color:var(--t2);font-weight:600;border-bottom:1.5px solid var(--b1)">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="liq-hist-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal marcar como pagada -->
+<div id="modal-pagar-liq" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:500;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:28px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.2)">
+    <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px">Marcar como pagada</div>
+    <div id="modal-pagar-nombre" style="font-size:13px;color:var(--t3);margin-bottom:20px"></div>
+    <input type="hidden" id="modal-pagar-id">
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Fecha de pago</label>
+      <input type="date" id="modal-pagar-fecha" style="width:100%;padding:9px 12px;border:1.5px solid var(--b1);border-radius:8px;font-size:13px">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Referencia (N° transferencia)</label>
+      <input type="text" id="modal-pagar-ref" placeholder="Ej: 123456789" style="width:100%;padding:9px 12px;border:1.5px solid var(--b1);border-radius:8px;font-size:13px">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Notas (opcional)</label>
+      <textarea id="modal-pagar-notas" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid var(--b1);border-radius:8px;font-size:13px;resize:none;font-family:inherit"></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="confirmarPago()" style="flex:1;padding:10px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Confirmar pago</button>
+      <button onclick="document.getElementById('modal-pagar-liq').style.display='none'" style="padding:10px 16px;background:none;border:1.5px solid var(--b1);border-radius:8px;font-size:13px;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="v-reportes" style="display:none">
   <div class="vp">
     <div class="vh">
@@ -3437,7 +3532,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <script>
 /* ════ VIEW SWITCHING ════ */
 function sv(v, btn, skipPush) {
-  const views = ['agenda','clientes','ventas','bandeja','reportes','config'];
+  const views = ['agenda','clientes','ventas','bandeja','reportes','config','liquidaciones'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
     if (!el) return;
@@ -3465,8 +3560,9 @@ function sv(v, btn, skipPush) {
   const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
-  if (v === 'ventas')   cargarVentas();
-  if (v === 'reportes') cargarReportes();
+  if (v === 'ventas')        cargarVentas();
+  if (v === 'reportes')     cargarReportes();
+  if (v === 'liquidaciones') cargarLiquidaciones();
   if (v === 'clientes') loadClientesView();
   if (v === 'bandeja')  initBandeja();
   if (!skipPush) {
@@ -10829,6 +10925,249 @@ function startSoportePoll() {
   _hSoportePoll = setInterval(cargarSoporteMsgsCliente, 20000);
 }
 function stopSoportePoll() { if (_hSoportePoll) { clearInterval(_hSoportePoll); _hSoportePoll = null; } }
+
+/* ════════════════════════════════════════════════
+   LIQUIDACIONES
+════════════════════════════════════════════════ */
+var _liqTab = 'preview';
+var _liqPreviewData = null;
+
+function liqTab(tab) {
+  _liqTab = tab;
+  document.getElementById('liq-panel-preview').style.display  = tab === 'preview'  ? '' : 'none';
+  document.getElementById('liq-panel-historial').style.display = tab === 'historial' ? '' : 'none';
+  document.getElementById('liq-tab-preview').style.cssText   = tab === 'preview'  ? 'padding:8px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer' : 'padding:8px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer';
+  document.getElementById('liq-tab-historial').style.cssText = tab === 'historial' ? 'padding:8px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer' : 'padding:8px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer';
+  if (tab === 'historial') cargarHistorialLiquidaciones();
+}
+
+function fmtPeso(n) {
+  return '$' + Number(n || 0).toLocaleString('es-CL');
+}
+
+function getPeriodoLabel(periodo) {
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const [y, m] = periodo.split('-');
+  return meses[parseInt(m) - 1] + ' ' + y;
+}
+
+function cargarLiquidaciones() {
+  // Poblar selector de períodos (12 meses atrás + actual)
+  var sel = document.getElementById('liq-periodo');
+  sel.innerHTML = '';
+  var now = new Date();
+  for (var i = 0; i < 13; i++) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var val = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    var opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = getPeriodoLabel(val);
+    sel.appendChild(opt);
+  }
+  // Mostrar previsualización del mes actual por defecto
+  previsualizarLiquidacion();
+}
+
+async function previsualizarLiquidacion() {
+  var periodo = document.getElementById('liq-periodo').value;
+  var cid = getSesionClienteId();
+  var token = localStorage.getItem('attempo_session_token');
+  if (!cid || !token) return;
+
+  document.getElementById('liq-loading').style.display = '';
+  document.getElementById('liq-preview-empty').style.display = 'none';
+  document.getElementById('liq-preview-wrap').style.display = 'none';
+
+  try {
+    var headers = { 'x-session-token': token };
+    if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+    var r = await fetch('/api/liquidaciones?action=calcular&periodo=' + periodo, { headers });
+    var data = await r.json();
+
+    if (!data.ok || !data.resultado) {
+      document.getElementById('liq-preview-empty').textContent = data.error || 'Sin datos para este período';
+      document.getElementById('liq-preview-empty').style.display = '';
+      return;
+    }
+
+    _liqPreviewData = data;
+    var tbody = document.getElementById('liq-preview-body');
+    var tfoot = document.getElementById('liq-preview-foot');
+    tbody.innerHTML = '';
+
+    data.resultado.forEach(function(r) {
+      var tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--b1)';
+      tr.innerHTML = '<td style="padding:10px 12px;color:var(--t1);font-weight:500">' + r.nombre + '</td>' +
+        '<td style="padding:10px 12px;text-align:center;color:var(--t2)">' + r.total_citas + '</td>' +
+        '<td style="padding:10px 12px;text-align:right;color:var(--t2)">' + fmtPeso(r.monto_total) + '</td>' +
+        '<td style="padding:10px 12px;text-align:center;color:var(--t2)">' + r.comision_pct + '%</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:600;color:#16a34a">' + fmtPeso(r.monto_profesional) + '</td>' +
+        '<td style="padding:10px 12px;text-align:right;color:var(--t2)">' + fmtPeso(r.monto_clinica) + '</td>' +
+        '<td style="padding:10px 12px;text-align:center">' +
+          '<input type="number" min="0" max="100" value="' + r.comision_pct + '" ' +
+          'style="width:60px;padding:4px 8px;border:1.5px solid var(--b1);border-radius:6px;font-size:12px;text-align:center" ' +
+          'onchange="actualizarComision(\'' + r.especialista_id + '\',this.value,this)">' +
+        '</td>';
+      tbody.appendChild(tr);
+    });
+
+    var t = data.totales;
+    tfoot.innerHTML = '<tr style="background:var(--bg2);font-weight:700">' +
+      '<td style="padding:10px 12px;color:var(--t1)">TOTAL</td>' +
+      '<td style="padding:10px 12px;text-align:center;color:var(--t1)">' + t.total_citas + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;color:var(--t1)">' + fmtPeso(t.monto_total) + '</td>' +
+      '<td></td>' +
+      '<td style="padding:10px 12px;text-align:right;color:#16a34a">' + fmtPeso(t.monto_profesional) + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;color:var(--t1)">' + fmtPeso(t.monto_clinica) + '</td>' +
+      '<td></td></tr>';
+
+    document.getElementById('liq-preview-wrap').style.display = '';
+  } catch(e) {
+    document.getElementById('liq-preview-empty').textContent = 'Error al cargar datos';
+    document.getElementById('liq-preview-empty').style.display = '';
+  } finally {
+    document.getElementById('liq-loading').style.display = 'none';
+  }
+}
+
+async function generarLiquidacion() {
+  var periodo = document.getElementById('liq-periodo').value;
+  if (!confirm('¿Generar y fijar la liquidación de ' + getPeriodoLabel(periodo) + '?\n\nEsto guarda los montos actuales. No se puede deshacer.')) return;
+
+  var token = localStorage.getItem('attempo_session_token');
+  var headers = { 'x-session-token': token, 'Content-Type': 'application/json' };
+  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+
+  try {
+    var r = await fetch('/api/liquidaciones', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action: 'generar', periodo })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      alert('Liquidación generada: ' + data.generadas + ' profesional(es)');
+      liqTab('historial');
+    } else {
+      alert('Error: ' + (data.error || 'No se pudo generar'));
+    }
+  } catch(e) {
+    alert('Error de conexión');
+  }
+}
+
+async function cargarHistorialLiquidaciones() {
+  var token = localStorage.getItem('attempo_session_token');
+  var headers = { 'x-session-token': token };
+  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+  document.getElementById('liq-loading').style.display = '';
+
+  try {
+    var r = await fetch('/api/liquidaciones?action=historial', { headers });
+    var data = await r.json();
+    var lista = data.liquidaciones || [];
+
+    if (!lista.length) {
+      document.getElementById('liq-hist-empty').style.display = '';
+      document.getElementById('liq-hist-wrap').style.display = 'none';
+      return;
+    }
+
+    var tbody = document.getElementById('liq-hist-body');
+    tbody.innerHTML = '';
+    lista.forEach(function(liq) {
+      var periodoLabel = getPeriodoLabel(liq.periodo_inicio.slice(0,7));
+      var nombre = liq.especialistas?.nombre || '—';
+      var estado = liq.estado === 'pagada'
+        ? '<span style="color:#16a34a;font-weight:600">✓ Pagada</span>'
+        : '<span style="color:#d97706;font-weight:600">⏳ Pendiente</span>';
+      var acciones = liq.estado === 'pendiente'
+        ? '<button onclick="abrirModalPago(\'' + liq.id + '\',\'' + nombre + ' — ' + periodoLabel + '\',\'' + fmtPeso(liq.monto_profesional) + '\')" style="padding:5px 12px;background:var(--a);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Marcar pagada</button>'
+        : '<span style="font-size:12px;color:var(--t3)">' + (liq.fecha_pago || '') + (liq.referencia_pago ? '<br>' + liq.referencia_pago : '') + '</span>';
+
+      var tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--b1)';
+      tr.innerHTML = '<td style="padding:10px 12px;color:var(--t2)">' + periodoLabel + '</td>' +
+        '<td style="padding:10px 12px;font-weight:500;color:var(--t1)">' + nombre + '</td>' +
+        '<td style="padding:10px 12px;text-align:center;color:var(--t2)">' + liq.total_citas + '</td>' +
+        '<td style="padding:10px 12px;text-align:right;color:var(--t2)">' + fmtPeso(liq.monto_total) + '</td>' +
+        '<td style="padding:10px 12px;text-align:right;font-weight:600;color:#16a34a">' + fmtPeso(liq.monto_profesional) + '</td>' +
+        '<td style="padding:10px 12px;text-align:center">' + estado + '</td>' +
+        '<td style="padding:10px 12px;text-align:center">' + acciones + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('liq-hist-empty').style.display = 'none';
+    document.getElementById('liq-hist-wrap').style.display = '';
+  } catch(e) {
+    document.getElementById('liq-hist-empty').textContent = 'Error al cargar historial';
+    document.getElementById('liq-hist-empty').style.display = '';
+  } finally {
+    document.getElementById('liq-loading').style.display = 'none';
+  }
+}
+
+function abrirModalPago(id, label, monto) {
+  document.getElementById('modal-pagar-id').value = id;
+  document.getElementById('modal-pagar-nombre').textContent = label + ' — ' + monto;
+  document.getElementById('modal-pagar-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-pagar-ref').value = '';
+  document.getElementById('modal-pagar-notas').value = '';
+  document.getElementById('modal-pagar-liq').style.display = 'flex';
+}
+
+async function confirmarPago() {
+  var id          = document.getElementById('modal-pagar-id').value;
+  var fecha_pago  = document.getElementById('modal-pagar-fecha').value;
+  var referencia  = document.getElementById('modal-pagar-ref').value.trim();
+  var notas       = document.getElementById('modal-pagar-notas').value.trim();
+  if (!fecha_pago) { alert('Ingresa la fecha de pago'); return; }
+
+  var token = localStorage.getItem('attempo_session_token');
+  var headers = { 'x-session-token': token, 'Content-Type': 'application/json' };
+  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+
+  try {
+    var r = await fetch('/api/liquidaciones', {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ action: 'pagar', id, fecha_pago, referencia_pago: referencia, notas })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      document.getElementById('modal-pagar-liq').style.display = 'none';
+      cargarHistorialLiquidaciones();
+    } else {
+      alert('Error: ' + (data.error || 'No se pudo actualizar'));
+    }
+  } catch(e) {
+    alert('Error de conexión');
+  }
+}
+
+async function actualizarComision(especialistaId, pct, inputEl) {
+  var token = localStorage.getItem('attempo_session_token');
+  var headers = { 'x-session-token': token, 'Content-Type': 'application/json' };
+  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+
+  try {
+    var r = await fetch('/api/liquidaciones', {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ action: 'actualizar-comision', especialista_id: especialistaId, comision_pct: pct })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      inputEl.style.borderColor = '#16a34a';
+      setTimeout(function() { inputEl.style.borderColor = ''; previsualizarLiquidacion(); }, 800);
+    } else {
+      alert('Error: ' + (data.error || 'No se pudo actualizar'));
+    }
+  } catch(e) {
+    alert('Error de conexión');
+  }
+}
 </script>
 
 

@@ -14,8 +14,8 @@ async function isBookingRateLimited(ip) {
   const MAX = 20;
   const WINDOW_S = 60 * 60;
 
-  const url   = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
   if (url && token) {
     try {
       const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
