@@ -82,6 +82,59 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiados intentos. Espera 15 minutos.' });
   }
 
+  // — Verificar OTP de MFA —
+  if (req.body?.action === 'verify_mfa') {
+    const { mfa_token, otp } = req.body;
+    if (!mfa_token || !otp) return res.status(400).json({ error: 'Datos incompletos' });
+    const SECRET = process.env.SESSION_SECRET;
+    if (!SECRET) return res.status(500).json({ error: 'Servidor no configurado' });
+    const dot = mfa_token.lastIndexOf('.');
+    if (dot === -1) return res.status(401).json({ error: 'Token inválido' });
+    const mfaPayload = mfa_token.slice(0, dot);
+    const mfaSig    = mfa_token.slice(dot + 1);
+    const expected  = crypto.createHmac('sha256', SECRET).update(mfaPayload).digest('hex');
+    try {
+      const sigBuf = Buffer.from(mfaSig, 'hex');
+      const expBuf = Buffer.from(expected, 'hex');
+      if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+        return res.status(401).json({ error: 'Token inválido' });
+      }
+    } catch { return res.status(401).json({ error: 'Token inválido' }); }
+    const parts = mfaPayload.split(':');
+    if (parts.length !== 3) return res.status(401).json({ error: 'Token inválido' });
+    const [userId, storedOtpHmac, expStr] = parts;
+    if (Date.now() > parseInt(expStr)) return res.status(401).json({ error: 'Código expirado' });
+    const submittedHmac = crypto.createHmac('sha256', SECRET).update(String(otp)).digest('hex');
+    try {
+      const sBuf = Buffer.from(submittedHmac, 'hex');
+      const tBuf = Buffer.from(storedOtpHmac, 'hex');
+      if (sBuf.length !== tBuf.length || !crypto.timingSafeEqual(sBuf, tBuf)) {
+        return res.status(401).json({ error: 'Código incorrecto' });
+      }
+    } catch { return res.status(401).json({ error: 'Código incorrecto' }); }
+    const SUPABASE_URL2 = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const SUPABASE_KEY2 = process.env.SUPABASE_SERVICE_KEY;
+    const r2 = await fetch(
+      `${SUPABASE_URL2}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}&select=username,email,nombre,rol,destino,cliente_id`,
+      { headers: { apikey: SUPABASE_KEY2, Authorization: `Bearer ${SUPABASE_KEY2}` } }
+    );
+    const rows2 = await r2.json();
+    if (!rows2.length) return res.status(401).json({ error: 'Usuario no encontrado' });
+    const u2 = rows2[0];
+    const saExpires = Date.now() + 24 * 60 * 60 * 1000;
+    const sesPayload = `${u2.cliente_id || 'sa'}:${u2.rol}:${saExpires}`;
+    const sesSig = crypto.createHmac('sha256', SECRET).update(sesPayload).digest('hex');
+    return res.status(200).json({
+      ok: true,
+      usuario: u2.email || u2.username,
+      nombre: u2.nombre,
+      rol: u2.rol,
+      destino: u2.destino,
+      cliente_id: u2.cliente_id,
+      session_token: `${sesPayload}.${sesSig}`,
+    });
+  }
+
   const { usuario, password } = req.body || {};
   if (!usuario || !password) return res.status(400).json({ error: 'Datos incompletos' });
 
@@ -120,11 +173,45 @@ export default async function handler(req, res) {
     }
 
     const SESSION_SECRET = process.env.SESSION_SECRET;
+
+    // Superadmin requiere MFA — enviar OTP por email
+    if (u.rol === 'superadmin' && SESSION_SECRET) {
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      const otpHmac = crypto.createHmac('sha256', SESSION_SECRET).update(otp).digest('hex');
+      const mfaExp = Date.now() + 10 * 60 * 1000;
+      const mfaPayload = `${u.id}:${otpHmac}:${mfaExp}`;
+      const mfaSig = crypto.createHmac('sha256', SESSION_SECRET).update(mfaPayload).digest('hex');
+      const mfa_token = `${mfaPayload}.${mfaSig}`;
+      const SA_EMAIL = process.env.SA_EMAIL;
+      if (SA_EMAIL && process.env.RESEND_API_KEY) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'attempo <contacto@attempo.cl>',
+            to: [SA_EMAIL],
+            subject: 'Código de verificación superadmin — attempo',
+            html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f5f3ff;font-family:Arial,sans-serif">
+<div style="max-width:420px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
+  <div style="background:#6C5CE4;padding:24px 32px;text-align:center">
+    <p style="margin:0;color:#fff;font-size:15px;font-weight:700">attempo superadmin</p>
+  </div>
+  <div style="padding:32px;text-align:center">
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px">Tu código de verificación es:</p>
+    <p style="margin:0 0 16px;font-size:36px;font-weight:800;letter-spacing:8px;color:#2d2d2d;font-family:'Courier New',monospace">${otp}</p>
+    <p style="margin:0;color:#9ca3af;font-size:12px">Expira en 10 minutos. No compartas este código.</p>
+  </div>
+</div></body></html>`
+          })
+        }).catch(e => console.error('MFA email error:', e.message));
+      }
+      return res.status(200).json({ mfa_required: true, mfa_token });
+    }
+
     let session_token = null;
-    if (SESSION_SECRET && (u.cliente_id || u.rol === 'superadmin')) {
+    if (SESSION_SECRET && u.cliente_id) {
       const expires = Date.now() + 24 * 60 * 60 * 1000;
-      const cid     = u.cliente_id || 'sa';
-      const payload = `${cid}:${u.rol}:${expires}`;
+      const payload = `${u.cliente_id}:${u.rol}:${expires}`;
       const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
       session_token = `${payload}.${sig}`;
     }

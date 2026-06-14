@@ -242,6 +242,28 @@
   </div>
 </div>
 
+<!-- PASO MFA -->
+<div class="card" id="card-mfa" style="display:none">
+  <div class="logo-area" style="margin-bottom:20px">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#7C3AED,#4F46E5);border-radius:16px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center">
+      <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    </div>
+    <div class="brand-name">Verificación</div>
+    <div class="brand-sub">Código de un solo uso</div>
+  </div>
+  <p style="font-size:13px;color:#64748B;text-align:center;margin-bottom:24px;line-height:1.6">Enviamos un código de 6 dígitos al correo del administrador. Ingrésalo para continuar.</p>
+  <div id="mfa-error" style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;font-size:13px;color:#DC2626;margin-bottom:16px"></div>
+  <div class="form-group">
+    <label class="form-label">Código de verificación</label>
+    <input class="form-input" type="text" id="mfa-otp" placeholder="000000" maxlength="6" autocomplete="one-time-code" inputmode="numeric" style="text-align:center;font-size:22px;font-weight:700;letter-spacing:8px;font-family:'Courier New',monospace">
+  </div>
+  <button class="btn-login" id="btn-mfa" type="button">
+    <div class="spinner" id="mfa-spinner"></div>
+    <span id="mfa-btn-text">Verificar →</span>
+  </button>
+  <button type="button" onclick="cancelarMfa()" style="display:block;text-align:center;margin-top:14px;font-size:13px;color:#94A3B8;background:none;border:none;cursor:pointer;width:100%">← Volver al inicio de sesión</button>
+</div>
+
 <!-- MODAL CAMBIAR CONTRASEÑA (primer ingreso) -->
 <div class="modal-overlay" id="modal-cambiar" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px">
   <div class="modal-box" style="max-width:420px;width:100%">
@@ -282,6 +304,68 @@
   try { if(localStorage.getItem('attempo_user')) window.location.replace('/admin'); } catch(e){}
 }());
 
+var _pendingMfaToken = null;
+
+document.getElementById('mfa-otp').addEventListener('keydown', function(e){ if(e.key==='Enter') verificarMfa(); });
+document.getElementById('btn-mfa').addEventListener('click', verificarMfa);
+
+function cancelarMfa() {
+  _pendingMfaToken = null;
+  document.getElementById('card-mfa').style.display = 'none';
+  document.getElementById('card').style.display = 'block';
+  document.getElementById('mfa-error').style.display = 'none';
+  document.getElementById('password').value = '';
+  document.getElementById('usuario').focus();
+}
+
+function verificarMfa() {
+  var otp = document.getElementById('mfa-otp').value.trim();
+  if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+    var errEl = document.getElementById('mfa-error');
+    errEl.textContent = 'Ingresa el código de 6 dígitos.';
+    errEl.style.display = 'block';
+    return;
+  }
+  document.getElementById('mfa-btn-text').style.display = 'none';
+  document.getElementById('mfa-spinner').style.display  = 'block';
+  document.getElementById('btn-mfa').disabled = true;
+  document.getElementById('mfa-error').style.display = 'none';
+
+  fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'verify_mfa', mfa_token: _pendingMfaToken, otp: otp })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    document.getElementById('mfa-btn-text').style.display = 'block';
+    document.getElementById('mfa-spinner').style.display  = 'none';
+    document.getElementById('btn-mfa').disabled = false;
+    if (data.ok) {
+      localStorage.setItem('attempo_user', JSON.stringify({
+        nombre: data.nombre, rol: data.rol,
+        email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
+      }));
+      if (data.session_token) localStorage.setItem('attempo_session_token', data.session_token);
+      window.location.href = '/accesos';
+    } else {
+      var errEl = document.getElementById('mfa-error');
+      errEl.textContent = data.error || 'Código incorrecto';
+      errEl.style.display = 'block';
+      document.getElementById('mfa-otp').value = '';
+      document.getElementById('mfa-otp').focus();
+    }
+  })
+  .catch(function() {
+    document.getElementById('mfa-btn-text').style.display = 'block';
+    document.getElementById('mfa-spinner').style.display  = 'none';
+    document.getElementById('btn-mfa').disabled = false;
+    var errEl = document.getElementById('mfa-error');
+    errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+    errEl.style.display = 'block';
+  });
+}
+
 // ── ENTER KEY ──
 document.getElementById('usuario').addEventListener('keydown', function(e){ if(e.key==='Enter') loginSubmit(); });
 document.getElementById('password').addEventListener('keydown', function(e){ if(e.key==='Enter') loginSubmit(); });
@@ -306,6 +390,17 @@ function loginSubmit() {
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
+    if (data.mfa_required) {
+      _pendingMfaToken = data.mfa_token;
+      document.getElementById('btn-text').style.display = 'block';
+      document.getElementById('spinner').style.display  = 'none';
+      document.getElementById('btn-login').disabled = false;
+      document.getElementById('card').style.display = 'none';
+      document.getElementById('card-mfa').style.display = 'block';
+      document.getElementById('mfa-otp').value = '';
+      document.getElementById('mfa-otp').focus();
+      return;
+    }
     if (data.ok) {
       localStorage.setItem('attempo_user', JSON.stringify({
         nombre: data.nombre, rol: data.rol,

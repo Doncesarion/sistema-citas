@@ -23,6 +23,23 @@ function verifySessionToken(token) {
   return { cliente_id, rol };
 }
 
+async function logAudit(KEY, action, actorRole, actorClienteId, targetClienteId, details = {}) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/audit_log`, {
+      method: 'POST',
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify({ action, actor_role: actorRole, actor_cliente_id: actorClienteId, target_cliente_id: targetClienteId, details })
+    });
+  } catch (e) {
+    console.error('audit log error:', e.message);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'DELETE' && req.method !== 'POST') return res.status(405).end();
 
@@ -38,6 +55,7 @@ export default async function handler(req, res) {
     const overrideId = req.headers['x-override-cliente-id'];
     if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
       cliente_id = overrideId;
+      logAudit(KEY, 'superadmin_impersonate_post', s.rol, s.cliente_id, overrideId, { resource: req.body?.resource });
     }
     const body = req.body || {};
     if (!['bot_config', 'notificaciones_config', 'recordatorios_config'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
@@ -173,6 +191,7 @@ export default async function handler(req, res) {
     const overrideId = req.headers['x-override-cliente-id'];
     if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
       cliente_id = overrideId;
+      logAudit(KEY, 'superadmin_impersonate_delete', s.rol, s.cliente_id, overrideId, { cita_id: req.query.id });
     }
     const { id } = req.query;
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID inválido' });
@@ -203,6 +222,7 @@ export default async function handler(req, res) {
     const overrideId = req.headers['x-override-cliente-id'];
     if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
       cliente_id = overrideId;
+      logAudit(KEY, 'superadmin_impersonate_get', s.rol, s.cliente_id, overrideId, { resource: req.query.resource });
     }
 
     // — GET bot_config —
