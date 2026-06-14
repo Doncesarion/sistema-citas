@@ -3566,7 +3566,7 @@ function sv(v, btn, skipPush) {
   if (v === 'clientes') loadClientesView();
   if (v === 'bandeja')  initBandeja();
   if (!skipPush) {
-    const slug = v === 'config' ? 'configuracion' : v === 'liquidaciones' ? 'admin' : v;
+    const slug = v === 'config' ? 'configuracion' : v;
     history.pushState({ section: v }, '', '/' + slug);
   }
 }
