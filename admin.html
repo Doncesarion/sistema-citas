@@ -3566,7 +3566,7 @@ function sv(v, btn, skipPush) {
   if (v === 'clientes') loadClientesView();
   if (v === 'bandeja')  initBandeja();
   if (!skipPush) {
-    const slug = v === 'config' ? 'configuracion' : v;
+    const slug = v === 'config' ? 'configuracion' : v === 'liquidaciones' ? 'admin' : v;
     history.pushState({ section: v }, '', '/' + slug);
   }
 }
@@ -10987,7 +10987,7 @@ async function previsualizarLiquidacion() {
     var data = await r.json();
 
     if (!data.ok || !data.resultado) {
-      document.getElementById('liq-preview-empty').textContent = data.error || 'Sin datos para este período';
+      document.getElementById('liq-preview-empty').textContent = (data.error || 'Sin datos para este período') + (data.detail ? ' — ' + data.detail : '');
       document.getElementById('liq-preview-empty').style.display = '';
       return;
     }

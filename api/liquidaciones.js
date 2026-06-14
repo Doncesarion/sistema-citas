@@ -61,8 +61,27 @@ export default async function handler(req, res) {
         `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&select=id,nombre,comision_pct&order=nombre.asc`,
         { headers: sh }
       );
-      const especialistas = await rEsp.json();
-      if (!Array.isArray(especialistas)) return res.status(500).json({ error: 'Error al cargar profesionales' });
+      let especialistas;
+      if (!rEsp.ok) {
+        // Posible columna comision_pct no existe aún en schema cache — fallback
+        const rFb = await fetch(
+          `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&select=id,nombre&order=nombre.asc`,
+          { headers: sh }
+        );
+        const raw = await rFb.json();
+        if (!Array.isArray(raw)) {
+          const errBody = await rEsp.text().catch(() => '');
+          console.error('especialistas error:', rEsp.status, errBody);
+          return res.status(500).json({ error: 'Error al cargar profesionales', detail: errBody.slice(0, 300) });
+        }
+        especialistas = raw.map(e => ({ ...e, comision_pct: 70 }));
+      } else {
+        especialistas = await rEsp.json();
+        if (!Array.isArray(especialistas)) {
+          console.error('especialistas non-array:', JSON.stringify(especialistas));
+          return res.status(500).json({ error: 'Error al cargar profesionales', detail: JSON.stringify(especialistas).slice(0, 300) });
+        }
+      }
 
       // Traer citas completadas del período con precio
       const rCitas = await fetch(
@@ -150,7 +169,18 @@ export default async function handler(req, res) {
         `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&select=id,nombre,comision_pct`,
         { headers: sh }
       );
-      const especialistas = await rEsp.json();
+      let especialistas;
+      if (!rEsp.ok) {
+        const rFb = await fetch(
+          `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&select=id,nombre`,
+          { headers: sh }
+        );
+        const raw = await rFb.json();
+        if (!Array.isArray(raw)) return res.status(500).json({ error: 'Error al cargar profesionales' });
+        especialistas = raw.map(e => ({ ...e, comision_pct: 70 }));
+      } else {
+        especialistas = await rEsp.json();
+      }
 
       const rCitas = await fetch(
         `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${range.inicio}&fecha=lte.${range.fin}&estado=neq.canceled&select=especialista_id,precio`,
