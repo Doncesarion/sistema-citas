@@ -47,6 +47,7 @@
     { "source": "/configuracion",                  "destination": "/admin.html" },
     { "source": "/configuracion/:sub",             "destination": "/admin.html" },
     { "source": "/bandeja",                        "destination": "/admin.html" },
+    { "source": "/liquidaciones",                  "destination": "/admin.html" },
     { "source": "/gc-callback",                     "destination": "/gc-callback.html" },
     { "source": "/privacidad",                      "destination": "/privacidad.html" },
     { "source": "/terminos",                        "destination": "/terminos.html" },
