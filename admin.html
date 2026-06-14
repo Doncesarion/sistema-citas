@@ -342,6 +342,7 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .btn-a:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(108,92,228,0.4)}
 .btn-a:active{transform:none}
 .btn-sm{padding:5px 10px;border-radius:var(--r);border:1px solid var(--b1);background:none;color:var(--t2);font-size:12px;cursor:pointer;font-family:var(--font);transition:all .12s}
+.vchip{padding:2px 8px;border-radius:20px;background:rgba(108,92,228,0.07);border:1px solid rgba(108,92,228,0.18);color:var(--a);font-size:10.5px;cursor:pointer;font-family:monospace;line-height:1.7;transition:background .12s}.vchip:hover{background:rgba(108,92,228,0.15)}
 .btn-sm:hover{border-color:var(--b2);color:var(--t1)}
 .btn-r{padding:7px 14px;border-radius:var(--r);border:1px solid rgba(220,38,38,0.25);background:rgba(220,38,38,0.05);color:var(--red);font-size:13px;cursor:pointer;font-family:var(--font);transition:all .12s;width:100%}
 .btn-r:hover{background:rgba(220,38,38,0.1);border-color:rgba(220,38,38,0.4)}
@@ -2690,7 +2691,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <!-- Header lista -->
         <div style="display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:12px;font-weight:600;color:var(--t2)">Recordatorios programados</span>
-          <button id="btn-rec-agregar" onclick="abrirFormRec()" style="display:flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);border:1.5px solid rgba(108,92,228,0.35);background:rgba(108,92,228,0.07);color:var(--a);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(108,92,228,0.13)'" onmouseout="this.style.background='rgba(108,92,228,0.07)'">+ Agregar</button>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button onclick="cargarPlantillaBase()" style="padding:5px 11px;border-radius:var(--r);border:1px solid var(--b1);background:transparent;color:var(--t3);font-size:11px;cursor:pointer" title="Carga 4 recordatorios de ejemplo listos para usar">Cargar plantilla</button>
+            <button id="btn-rec-agregar" onclick="abrirFormRec()" style="display:flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);border:1.5px solid rgba(108,92,228,0.35);background:rgba(108,92,228,0.07);color:var(--a);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(108,92,228,0.13)'" onmouseout="this.style.background='rgba(108,92,228,0.07)'">+ Agregar</button>
+          </div>
         </div>
 
         <!-- Lista de recordatorios (renderizada por JS) -->
@@ -2725,11 +2729,26 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 <div>
                   <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Asunto</label>
                   <input class="fi" id="rf-email-asunto" placeholder="Recordatorio: tu cita en {negocio}" style="width:100%" oninput="updateRecPreview()">
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
+                    <button type="button" onclick="insertarVariable('rf-email-asunto','{nombre}')" class="vchip">{nombre}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-asunto','{fecha}')" class="vchip">{fecha}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-asunto','{hora}')" class="vchip">{hora}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-asunto','{negocio}')" class="vchip">{negocio}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-asunto','{profesional}')" class="vchip">{profesional}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-asunto','{servicio}')" class="vchip">{servicio}</button>
+                  </div>
                 </div>
                 <div>
                   <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Mensaje adicional <span style="color:var(--t4);font-weight:400">(opcional)</span></label>
                   <textarea class="fi" id="rf-email-mensaje" rows="3" placeholder="Ej: Recuerda llegar 5 minutos antes..." style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
-                  <div style="font-size:10px;color:var(--t4);margin-top:3px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
+                    <button type="button" onclick="insertarVariable('rf-email-mensaje','{nombre}')" class="vchip">{nombre}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-mensaje','{fecha}')" class="vchip">{fecha}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-mensaje','{hora}')" class="vchip">{hora}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-mensaje','{negocio}')" class="vchip">{negocio}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-mensaje','{profesional}')" class="vchip">{profesional}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-mensaje','{servicio}')" class="vchip">{servicio}</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2744,8 +2763,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <div id="rf-wa-campos" style="display:none;padding:12px 14px;border-top:1px solid var(--b1);flex-direction:column;gap:8px">
                 <div>
                   <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Mensaje</label>
-                  <textarea class="fi" id="rf-wa-mensaje" rows="3" placeholder="Hola {nombre}, tienes una cita el {fecha} a las {hora} con {profesional} en {negocio}. ¡Te esperamos!" style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
-                  <div style="font-size:10px;color:var(--t4);margin-top:3px">Variables: {nombre} {fecha} {hora} {profesional} {servicio} {negocio}</div>
+                  <textarea class="fi" id="rf-wa-mensaje" rows="5" placeholder="Hola {nombre}, tienes una cita el {fecha} a las {hora} en {negocio}. ¡Te esperamos!" style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
+                    <button type="button" onclick="insertarVariable('rf-wa-mensaje','{nombre}')" class="vchip">{nombre}</button>
+                    <button type="button" onclick="insertarVariable('rf-wa-mensaje','{fecha}')" class="vchip">{fecha}</button>
+                    <button type="button" onclick="insertarVariable('rf-wa-mensaje','{hora}')" class="vchip">{hora}</button>
+                    <button type="button" onclick="insertarVariable('rf-wa-mensaje','{negocio}')" class="vchip">{negocio}</button>
+                    <button type="button" onclick="insertarVariable('rf-wa-mensaje','{profesional}')" class="vchip">{profesional}</button>
+                    <button type="button" onclick="insertarVariable('rf-wa-mensaje','{servicio}')" class="vchip">{servicio}</button>
+                  </div>
                 </div>
                 <div style="padding:8px 10px;background:rgba(108,92,228,0.05);border-radius:6px;font-size:11px;color:var(--t3);line-height:1.5">ℹ️ Requiere plantilla Meta aprobada. Escríbenos a <strong>contacto@attempo.cl</strong>.</div>
               </div>
@@ -4602,6 +4628,60 @@ async function saveNotificaciones() {
 let _recLista = [];
 let _recFormIdx = null; // null = nuevo, número = editar
 
+function insertarVariable(fieldId, texto) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  const s = el.selectionStart ?? el.value.length;
+  const e = el.selectionEnd   ?? el.value.length;
+  el.value = el.value.substring(0, s) + texto + el.value.substring(e);
+  el.selectionStart = el.selectionEnd = s + texto.length;
+  el.focus();
+  el.dispatchEvent(new Event('input'));
+}
+
+const _REC_PLANTILLA_BASE = [
+  {
+    id: 'rec_base_0', activo: true, tiempo: '24h',
+    email_activo: true,
+    email_asunto: 'Recordatorio: tu cita en {negocio}',
+    email_mensaje: '',
+    wa_activo: false, wa_mensaje: ''
+  },
+  {
+    id: 'rec_base_1', activo: true, tiempo: '2h',
+    email_activo: true,
+    email_asunto: 'Tu cita en {negocio} comienza en 2 horas',
+    email_mensaje: '',
+    wa_activo: false, wa_mensaje: ''
+  },
+  {
+    id: 'rec_base_2', activo: true, tiempo: '24h',
+    email_activo: false, email_asunto: '', email_mensaje: '',
+    wa_activo: true,
+    wa_mensaje: 'Hola {nombre},\n\nTe escribimos de {negocio}.\nTienes una cita programada para el {fecha} a las {hora}.\n\n¿Confirmas que vas a asistir? Responde este mensaje.\n\n¡Te esperamos!'
+  },
+  {
+    id: 'rec_base_3', activo: true, tiempo: '2h',
+    email_activo: false, email_asunto: '', email_mensaje: '',
+    wa_activo: true,
+    wa_mensaje: 'Hola {nombre},\n\nTe escribimos de {negocio}.\nEste es un recordatorio de tu cita de hoy a las {hora}.\n\n¡Te esperamos!'
+  }
+];
+
+async function cargarPlantillaBase() {
+  if (!confirm('Esto reemplazará los recordatorios actuales con 4 plantillas de ejemplo (Email 24h, Email 2h, WhatsApp confirmación 24h, WhatsApp recordatorio 2h).\n\n¿Continuar?')) return;
+  _recLista = _REC_PLANTILLA_BASE.map(r => ({ ...r }));
+  try {
+    await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource: 'recordatorios_config', lista: _recLista })
+    });
+  } catch(e) {}
+  renderRecLista();
+  toast('Plantilla base cargada');
+}
+
 function _tiempoLabel(t) {
   return { '24h':'24 h antes','12h':'12 h antes','2h':'2 h antes','1h':'1 h antes','30m':'30 min antes' }[t] || t;
 }
@@ -4626,48 +4706,7 @@ async function loadRecordatorios() {
         wa_mensaje: cfg.wa_mensaje || ''
       }];
     } else {
-      _recLista = [
-        {
-          id: 'rec_default_0',
-          activo: true,
-          tiempo: '24h',
-          email_activo: true,
-          email_asunto: 'Recordatorio: tu cita en {negocio}',
-          email_mensaje: '',
-          wa_activo: false,
-          wa_mensaje: ''
-        },
-        {
-          id: 'rec_default_1',
-          activo: true,
-          tiempo: '2h',
-          email_activo: true,
-          email_asunto: 'Tu cita en {negocio} comienza en 2 horas',
-          email_mensaje: '',
-          wa_activo: false,
-          wa_mensaje: ''
-        },
-        {
-          id: 'rec_default_2',
-          activo: true,
-          tiempo: '24h',
-          email_activo: false,
-          email_asunto: '',
-          email_mensaje: '',
-          wa_activo: true,
-          wa_mensaje: 'Hola {nombre},\n\nTe escribimos de {negocio}.\nEste es un recordatorio de tu cita programada para el {fecha} a las {hora}.\n\n¿Confirmas que vas a asistir? Responde este mensaje.\n\n¡Te esperamos!'
-        },
-        {
-          id: 'rec_default_3',
-          activo: true,
-          tiempo: '2h',
-          email_activo: false,
-          email_asunto: '',
-          email_mensaje: '',
-          wa_activo: true,
-          wa_mensaje: 'Hola {nombre},\n\nTe escribimos de {negocio}.\nEste es un recordatorio de tu cita programada para hoy a las {hora}.\n\nTe esperamos en nuestra dirección. ¡Hasta pronto!'
-        }
-      ];
+      _recLista = _REC_PLANTILLA_BASE.map(r => ({ ...r }));
       try {
         await fetch('/api/slots', {
           method: 'POST',
