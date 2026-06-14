@@ -11,7 +11,11 @@ function verifySessionToken(token) {
   const payload = token.slice(0, dot);
   const sig     = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-  if (sig !== expected) return null;
+  try {
+    const sigBuf = Buffer.from(sig, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null;
+  } catch { return null; }
   const parts = payload.split(':');
   if (parts.length < 3) return null;
   const [cliente_id, rol, expires] = parts;
@@ -263,7 +267,7 @@ export default async function handler(req, res) {
       if (nombre) parts.push(`nombre_paciente=ilike.${encodeURIComponent(nombre)}`);
       parts.push(`select=${select || '*,especialistas(id,nombre)'}`);
       parts.push(`order=${order   || 'fecha.desc,hora.desc'}`);
-      if (limit) parts.push(`limit=${Math.min(parseInt(limit) || 100, 2000)}`);
+      if (limit) parts.push(`limit=${Math.min(parseInt(limit) || 50, 200)}`);
 
       const url = `${SUPABASE_URL}/rest/v1/citas?${parts.join('&')}`;
       const r   = await fetch(url, { headers: sh });
