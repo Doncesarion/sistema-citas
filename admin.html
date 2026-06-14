@@ -3557,7 +3557,7 @@ function sv(v, btn, skipPush) {
   const sbCtx = document.getElementById('sb-' + v);
   if (sbCtx) { sbCtx.style.display = 'flex'; sbCtx.style.flexDirection = 'column'; sbCtx.style.height = '100%'; }
 
-  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración'};
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración',liquidaciones:'Liquidaciones'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')        cargarVentas();
@@ -10970,9 +10970,8 @@ function cargarLiquidaciones() {
 
 async function previsualizarLiquidacion() {
   var periodo = document.getElementById('liq-periodo').value;
-  var cid = getSesionClienteId();
   var token = localStorage.getItem('attempo_session_token');
-  if (!cid || !token) return;
+  if (!token) return;
 
   document.getElementById('liq-loading').style.display = '';
   document.getElementById('liq-preview-empty').style.display = 'none';
@@ -10980,7 +10979,8 @@ async function previsualizarLiquidacion() {
 
   try {
     var headers = { 'x-session-token': token };
-    if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+    var ov = typeof _overrideClienteId !== 'undefined' ? _overrideClienteId : null;
+    if (ov) headers['x-override-cliente-id'] = ov;
     var r = await fetch('/api/liquidaciones?action=calcular&periodo=' + periodo, { headers });
     var data = await r.json();
 
@@ -11036,8 +11036,9 @@ async function generarLiquidacion() {
   if (!confirm('¿Generar y fijar la liquidación de ' + getPeriodoLabel(periodo) + '?\n\nEsto guarda los montos actuales. No se puede deshacer.')) return;
 
   var token = localStorage.getItem('attempo_session_token');
+  var ov = typeof _overrideClienteId !== 'undefined' ? _overrideClienteId : null;
   var headers = { 'x-session-token': token, 'Content-Type': 'application/json' };
-  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+  if (ov) headers['x-override-cliente-id'] = ov;
 
   try {
     var r = await fetch('/api/liquidaciones', {
@@ -11059,8 +11060,9 @@ async function generarLiquidacion() {
 
 async function cargarHistorialLiquidaciones() {
   var token = localStorage.getItem('attempo_session_token');
+  var ov = typeof _overrideClienteId !== 'undefined' ? _overrideClienteId : null;
   var headers = { 'x-session-token': token };
-  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+  if (ov) headers['x-override-cliente-id'] = ov;
   document.getElementById('liq-loading').style.display = '';
 
   try {
@@ -11125,8 +11127,9 @@ async function confirmarPago() {
   if (!fecha_pago) { alert('Ingresa la fecha de pago'); return; }
 
   var token = localStorage.getItem('attempo_session_token');
+  var ov = typeof _overrideClienteId !== 'undefined' ? _overrideClienteId : null;
   var headers = { 'x-session-token': token, 'Content-Type': 'application/json' };
-  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+  if (ov) headers['x-override-cliente-id'] = ov;
 
   try {
     var r = await fetch('/api/liquidaciones', {
@@ -11148,8 +11151,9 @@ async function confirmarPago() {
 
 async function actualizarComision(especialistaId, pct, inputEl) {
   var token = localStorage.getItem('attempo_session_token');
+  var ov = typeof _overrideClienteId !== 'undefined' ? _overrideClienteId : null;
   var headers = { 'x-session-token': token, 'Content-Type': 'application/json' };
-  if (_overrideClienteId) headers['x-override-cliente-id'] = _overrideClienteId;
+  if (ov) headers['x-override-cliente-id'] = ov;
 
   try {
     var r = await fetch('/api/liquidaciones', {
