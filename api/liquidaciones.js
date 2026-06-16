@@ -135,12 +135,26 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && req.query.action === 'historial') {
     try {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${cliente_id}&order=periodo_fin.desc,created_at.desc&limit=100&select=*,especialistas(nombre)`,
+        `${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${cliente_id}&order=periodo_fin.desc,created_at.desc&limit=100&select=*`,
         { headers: sh }
       );
       const rows = await r.json();
       if (!Array.isArray(rows)) return res.status(500).json({ error: 'Error al cargar historial' });
-      return res.json({ ok: true, liquidaciones: rows });
+
+      // Lookup nombres de especialistas manualmente (evita depender de FK en PostgREST)
+      const espIds = [...new Set(rows.map(r => r.especialista_id).filter(Boolean))];
+      const espNames = {};
+      if (espIds.length > 0) {
+        const rEsp = await fetch(
+          `${SUPABASE_URL}/rest/v1/especialistas?id=in.(${espIds.join(',')})&select=id,nombre`,
+          { headers: sh }
+        );
+        const esps = await rEsp.json();
+        if (Array.isArray(esps)) esps.forEach(e => { espNames[e.id] = e.nombre; });
+      }
+
+      const liquidaciones = rows.map(r => ({ ...r, nombre_profesional: espNames[r.especialista_id] || '—' }));
+      return res.json({ ok: true, liquidaciones });
     } catch (e) {
       console.error('liquidaciones historial error:', e.message);
       return res.status(500).json({ error: 'Error interno' });
