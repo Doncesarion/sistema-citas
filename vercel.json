@@ -1,5 +1,4 @@
 {
-  "cleanUrls": true,
   "crons": [
     {
       "path": "/api/send-email",
