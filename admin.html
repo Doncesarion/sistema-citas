@@ -11033,9 +11033,12 @@ async function previsualizarLiquidacion() {
   }
 }
 
-async function generarLiquidacion() {
+async function generarLiquidacion(force) {
   var periodo = document.getElementById('liq-periodo').value;
-  if (!confirm('¿Generar y fijar la liquidación de ' + getPeriodoLabel(periodo) + '?\n\nEsto guarda los montos actuales. No se puede deshacer.')) return;
+  var msg = force
+    ? '¿Regenerar la liquidación de ' + getPeriodoLabel(periodo) + '?\n\nSe eliminarán las liquidaciones pendientes del período y se recalcularán.'
+    : '¿Generar la liquidación de ' + getPeriodoLabel(periodo) + '?\n\nEsto guarda los montos del período actual.';
+  if (!confirm(msg)) return;
 
   var token = localStorage.getItem('attempo_session_token');
   var u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
@@ -11046,12 +11049,16 @@ async function generarLiquidacion() {
     var r = await fetch('/api/liquidaciones', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ action: 'generar', periodo })
+      body: JSON.stringify({ action: 'generar', periodo, force: !!force })
     });
     var data = await r.json();
     if (data.ok) {
       alert('Liquidación generada: ' + data.generadas + ' profesional(es)');
       liqTab('historial');
+    } else if (r.status === 409 && !data.tienePagadas) {
+      if (confirm('Ya existe una liquidación para ' + getPeriodoLabel(periodo) + '.\n\n¿Deseas regenerarla? Se eliminarán las que están pendientes de pago y se recalcularán.')) {
+        generarLiquidacion(true);
+      }
     } else {
       alert('Error: ' + (data.error || 'No se pudo generar'));
     }

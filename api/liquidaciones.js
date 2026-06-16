@@ -149,19 +149,30 @@ export default async function handler(req, res) {
 
   // ── POST action=generar ─────────────────────────────────────────────────
   if (req.method === 'POST' && req.body?.action === 'generar') {
-    const { periodo } = req.body;
+    const { periodo, force } = req.body;
     const range = getPeriodRange(periodo);
     if (!range) return res.status(400).json({ error: 'Período inválido' });
 
     try {
       // Verificar si ya existe liquidación para este período
       const rExist = await fetch(
-        `${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${cliente_id}&periodo_inicio=eq.${range.inicio}&select=id&limit=1`,
+        `${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${cliente_id}&periodo_inicio=eq.${range.inicio}&select=id,estado`,
         { headers: sh }
       );
       const exist = await rExist.json();
       if (Array.isArray(exist) && exist.length > 0) {
-        return res.status(409).json({ error: 'Ya existe una liquidación generada para este período.' });
+        if (!force) {
+          return res.status(409).json({ error: 'Ya existe una liquidación generada para este período.' });
+        }
+        const tienePagadas = exist.some(e => e.estado === 'pagada');
+        if (tienePagadas) {
+          return res.status(409).json({ error: 'Este período tiene liquidaciones ya pagadas. No se puede regenerar.', tienePagadas: true });
+        }
+        // Eliminar pendientes para regenerar
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${cliente_id}&periodo_inicio=eq.${range.inicio}`,
+          { method: 'DELETE', headers: sh }
+        );
       }
 
       // Calcular igual que en /calcular
@@ -183,7 +194,7 @@ export default async function handler(req, res) {
       }
 
       const rCitas = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${range.inicio}&fecha=lte.${range.fin}&estado=neq.canceled&select=especialista_id,precio`,
+        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${range.inicio}&fecha=lte.${range.fin}&estado=neq.canceled&estado=neq.cancelada&select=especialista_id,precio`,
         { headers: sh }
       );
       const citas = await rCitas.json();
@@ -218,7 +229,13 @@ export default async function handler(req, res) {
         });
 
       if (registros.length === 0) {
-        return res.status(400).json({ error: 'No hay citas con precio registrado en este período.' });
+        const citasConEsp = citas.filter(c => c.especialista_id).length;
+        if (citas.length === 0) {
+          return res.status(400).json({ error: 'No hay citas registradas en este período.' });
+        } else if (citasConEsp === 0) {
+          return res.status(400).json({ error: `Hay ${citas.length} cita(s) en el período pero ninguna tiene un profesional asignado.` });
+        }
+        return res.status(400).json({ error: 'No se encontraron profesionales activos con citas en este período.' });
       }
 
       const rIns = await fetch(`${SUPABASE_URL}/rest/v1/liquidaciones`, {
