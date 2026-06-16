@@ -154,7 +154,17 @@ export default async function handler(req, res) {
       }
 
       const liquidaciones = rows.map(r => ({ ...r, nombre_profesional: espNames[r.especialista_id] || '—' }));
-      return res.json({ ok: true, liquidaciones });
+
+      // Nombre del negocio para boletas
+      let nombre_negocio = '';
+      const rCli = await fetch(
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio&limit=1`,
+        { headers: sh }
+      );
+      const cli = await rCli.json();
+      if (Array.isArray(cli) && cli[0]) nombre_negocio = cli[0].nombre_negocio || '';
+
+      return res.json({ ok: true, liquidaciones, nombre_negocio });
     } catch (e) {
       console.error('liquidaciones historial error:', e.message);
       return res.status(500).json({ error: 'Error interno' });

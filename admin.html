@@ -11070,6 +11070,8 @@ async function cargarHistorialLiquidaciones() {
     var r = await fetch('/api/liquidaciones?action=historial', { headers });
     var data = await r.json();
     var lista = data.liquidaciones || [];
+    _liqNegocio = data.nombre_negocio || '';
+    _liqHistorialMap = {};
 
     if (!lista.length) {
       document.getElementById('liq-hist-empty').style.display = '';
@@ -11080,14 +11082,16 @@ async function cargarHistorialLiquidaciones() {
     var tbody = document.getElementById('liq-hist-body');
     tbody.innerHTML = '';
     lista.forEach(function(liq) {
+      _liqHistorialMap[liq.id] = liq;
       var periodoLabel = getPeriodoLabel(liq.periodo_inicio.slice(0,7));
       var nombre = liq.nombre_profesional || '—';
       var estado = liq.estado === 'pagada'
         ? '<span style="color:#16a34a;font-weight:600">✓ Pagada</span>'
         : '<span style="color:#d97706;font-weight:600">⏳ Pendiente</span>';
-      var acciones = liq.estado === 'pendiente'
+      var btnBoleta = '<button onclick="verBoleta(\'' + liq.id + '\')" style="padding:5px 10px;background:var(--bg);border:1.5px solid var(--b1);border-radius:6px;font-size:12px;color:var(--t1);cursor:pointer;margin-right:5px">Boleta</button>';
+      var acciones = btnBoleta + (liq.estado === 'pendiente'
         ? '<button onclick="abrirModalPago(\'' + liq.id + '\',\'' + nombre + ' — ' + periodoLabel + '\',\'' + fmtPeso(liq.monto_profesional) + '\')" style="padding:5px 12px;background:var(--a);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Marcar pagada</button>'
-        : '<span style="font-size:12px;color:var(--t3)">' + (liq.fecha_pago || '') + (liq.referencia_pago ? '<br>' + liq.referencia_pago : '') + '</span>';
+        : '<span style="font-size:12px;color:var(--t3)">' + (liq.fecha_pago || '') + (liq.referencia_pago ? ' · ' + liq.referencia_pago : '') + '</span>');
 
       var tr = document.createElement('tr');
       tr.style.borderBottom = '1px solid var(--b1)';
@@ -11097,7 +11101,7 @@ async function cargarHistorialLiquidaciones() {
         '<td style="padding:10px 12px;text-align:right;color:var(--t2)">' + fmtPeso(liq.monto_total) + '</td>' +
         '<td style="padding:10px 12px;text-align:right;font-weight:600;color:#16a34a">' + fmtPeso(liq.monto_profesional) + '</td>' +
         '<td style="padding:10px 12px;text-align:center">' + estado + '</td>' +
-        '<td style="padding:10px 12px;text-align:center">' + acciones + '</td>';
+        '<td style="padding:10px 12px">' + acciones + '</td>';
       tbody.appendChild(tr);
     });
 
@@ -11109,6 +11113,73 @@ async function cargarHistorialLiquidaciones() {
   } finally {
     document.getElementById('liq-loading').style.display = 'none';
   }
+}
+
+var _liqHistorialMap = {};
+var _liqNegocio = '';
+
+function verBoleta(id) {
+  var liq = _liqHistorialMap[id];
+  if (!liq) return;
+  var periodo = getPeriodoLabel(liq.periodo_inicio.slice(0,7));
+  var hoy = new Date().toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
+  var estadoHtml = liq.estado === 'pagada'
+    ? '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 18px;margin-bottom:24px"><strong style="color:#16a34a">✓ Pagada</strong>' +
+      (liq.fecha_pago ? ' el ' + liq.fecha_pago : '') +
+      (liq.referencia_pago ? ' · Ref: ' + liq.referencia_pago : '') +
+      (liq.notas ? '<br><span style="color:#555;font-size:13px">' + liq.notas + '</span>' : '') + '</div>'
+    : '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:24px"><strong style="color:#92400e">⏳ Pendiente de pago</strong></div>';
+
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>Liquidación ' + periodo + ' — ' + (liq.nombre_profesional||'') + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,sans-serif;max-width:680px;margin:40px auto;color:#1a1a2e;padding:0 20px}' +
+    'h1{color:#6C5CE4;font-size:22px;margin:0}' +
+    '.sub{color:#666;font-size:13px;margin:4px 0 0}' +
+    '.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #6C5CE4;padding-bottom:18px;margin-bottom:24px}' +
+    '.doc-info{text-align:right}' +
+    '.doc-info h2{font-size:16px;margin:0;color:#1a1a2e}' +
+    '.doc-info p{font-size:12px;color:#888;margin:4px 0 0}' +
+    '.infobox{background:#f5f3ff;border-radius:8px;padding:18px 20px;margin-bottom:24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}' +
+    '.infobox label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px}' +
+    '.infobox span{font-size:14px;font-weight:600;color:#1a1a2e}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:24px}' +
+    'th{background:#6C5CE4;color:#fff;padding:10px 12px;font-size:12px;text-align:left}' +
+    'th.r,td.r{text-align:right}' +
+    'td{padding:10px 12px;font-size:13px;border-bottom:1px solid #eee}' +
+    '.total td{font-weight:700;font-size:15px;background:#f5f3ff;border-bottom:none}' +
+    '.footer{text-align:center;color:#bbb;font-size:11px;border-top:1px solid #eee;padding-top:16px;margin-top:8px}' +
+    '@media print{button{display:none!important}body{margin:20px}}' +
+    '</style></head><body>' +
+    '<div class="header">' +
+      '<div><h1>attempo</h1><p class="sub">' + (_liqNegocio || 'Sistema de agendamiento') + '</p></div>' +
+      '<div class="doc-info"><h2>Liquidación de Honorarios</h2><p>Emitida el ' + hoy + '</p></div>' +
+    '</div>' +
+    '<div class="infobox">' +
+      '<div><label>Profesional</label><span>' + (liq.nombre_profesional||'—') + '</span></div>' +
+      '<div><label>Período</label><span>' + periodo + '</span></div>' +
+      '<div><label>Fecha inicio</label><span>' + liq.periodo_inicio + '</span></div>' +
+      '<div><label>Fecha término</label><span>' + liq.periodo_fin + '</span></div>' +
+    '</div>' +
+    '<table>' +
+      '<thead><tr><th>Concepto</th><th class="r">Monto</th></tr></thead>' +
+      '<tbody>' +
+        '<tr><td>Total citas atendidas (' + liq.total_citas + ' citas)</td><td class="r">' + fmtPeso(liq.monto_total) + '</td></tr>' +
+        '<tr><td>Retención clínica (' + (100 - (liq.comision_pct||70)) + '%)</td><td class="r">- ' + fmtPeso(liq.monto_clinica) + '</td></tr>' +
+      '</tbody>' +
+      '<tfoot><tr class="total"><td>A pagar al profesional (' + (liq.comision_pct||70) + '%)</td><td class="r">' + fmtPeso(liq.monto_profesional) + '</td></tr></tfoot>' +
+    '</table>' +
+    estadoHtml +
+    '<div style="text-align:center;margin-bottom:20px">' +
+      '<button onclick="window.print()" style="padding:10px 28px;background:#6C5CE4;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Imprimir / Guardar PDF</button>' +
+    '</div>' +
+    '<div class="footer">Generado por attempo · attempo.cl</div>' +
+    '</body></html>';
+
+  var w = window.open('', '_blank', 'width=780,height=700');
+  if (!w) { alert('El navegador bloqueó la ventana emergente. Permite las ventanas emergentes para este sitio.'); return; }
+  w.document.write(html);
+  w.document.close();
 }
 
 function abrirModalPago(id, label, monto) {
