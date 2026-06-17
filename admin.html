@@ -2760,7 +2760,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="ptab on" id="ctab-general"        onclick="showCfg('general',this)">General</button>
         <button class="ptab"    id="ctab-profesionales"  onclick="showCfg('profesionales',this)">Profesionales</button>
         <button class="ptab"    id="ctab-horarios"       onclick="showCfg('horarios',this)">Horarios</button>
-        <button class="ptab"    id="ctab-notificaciones" onclick="showCfg('notificaciones',this)">Notificaciones</button>
         <button class="ptab"    id="ctab-servicios"      onclick="showCfg('servicios',this)">Servicios</button>
         <button class="ptab"    id="ctab-pagos"          onclick="showCfg('pagos',this)">Pagos</button>
         <button class="ptab"    id="ctab-facturacion"    onclick="showCfg('facturacion',this)">Facturación</button>
@@ -2796,8 +2795,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="sv('bandeja');showBandejaTab('canales',null)"><div><div class="cfg-t">Canales conectados</div><div class="cfg-s">WhatsApp, Messenger e Instagram del negocio</div></div><span style="color:var(--t4)">›</span></div>
-        <div style="height:1px;background:var(--b1)"></div>
-        <div class="cfg-row" onclick="showCfg('notificaciones',document.getElementById('ctab-notificaciones'))"><div><div class="cfg-t">Notificaciones del equipo</div><div class="cfg-s">Alertas por email a profesionales y administradores</div></div><span style="color:var(--t4)">›</span></div>
       </div>
 
       <!-- Grupo: Finanzas -->
@@ -2858,76 +2855,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
 
     <!-- Panel: Notificaciones -->
-    <div id="cfg-notificaciones" style="display:none">
-      <div class="vh" style="margin-bottom:16px">
-        <span>Notificaciones automáticas</span>
-        <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
-      </div>
-
-      <!-- WhatsApp -->
-      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.5" fill="#25D366"/><path d="M10.2 8.6c-.2-.1-1.1-.5-1.3-.6-.2-.1-.3-.1-.4.1-.1.2-.5.6-.6.7-.1.1-.2.1-.4 0-.2-.1-.8-.3-1.5-.9-.6-.5-1-1.1-1.1-1.3-.1-.2 0-.3.1-.4l.3-.4c.1-.1.1-.2.2-.3 0-.1 0-.2-.1-.3l-.6-1.3c-.1-.3-.3-.2-.4-.2h-.3c-.1 0-.3.1-.5.2-.2.2-.7.7-.7 1.6 0 1 .7 1.9.8 2 .1.1 1.4 2.2 3.5 3 .5.2.9.3 1.2.4.5.1 1 .1 1.3.1.4-.1 1.1-.5 1.3-1 .2-.5.2-.9.1-1-.1-.1-.2-.1-.4-.2z" fill="#fff"/></svg>
-        WhatsApp
-      </div>
-      <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Confirmación de reserva</div><div style="font-size:12px;color:var(--t3)">Mensaje inmediato al cliente cuando confirma su cita</div></div>
-          <input type="checkbox" id="notif-wa-conf" checked style="accent-color:var(--a);width:16px;height:16px">
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Recordatorio antes de la cita</div><div style="font-size:12px;color:var(--t3)">Recordatorio automático al cliente por WhatsApp</div></div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <select id="notif-wa-rec-t" class="fs" style="font-size:12px;padding:5px 26px 5px 9px;width:auto">
-              <option value="24h">24 horas antes</option>
-              <option value="12h">12 horas antes</option>
-              <option value="2h">2 horas antes</option>
-              <option value="1h" selected>1 hora antes</option>
-            </select>
-            <input type="checkbox" id="notif-wa-rec" checked style="accent-color:var(--a);width:16px;height:16px">
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Aviso al profesional por nueva reserva</div><div style="font-size:12px;color:var(--t3)">Avisa al profesional cuando un cliente agenda online</div></div>
-          <input type="checkbox" id="notif-wa-prof" checked style="accent-color:var(--a);width:16px;height:16px">
-        </div>
-      </div>
-
-      <!-- Email -->
-      <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="3" width="12" height="8" rx="1.5"/><path d="M1 4l6 4.5L13 4"/></svg>
-        Correo electrónico
-      </div>
-      <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Confirmación de reserva por email</div><div style="font-size:12px;color:var(--t3)">Email automático con los detalles de la cita confirmada</div></div>
-          <input type="checkbox" id="notif-email-conf" checked style="accent-color:var(--a);width:16px;height:16px">
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Recordatorio por email</div><div style="font-size:12px;color:var(--t3)">Email recordatorio antes de la cita al cliente</div></div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <select id="notif-email-rec-t" class="fs" style="font-size:12px;padding:5px 26px 5px 9px;width:auto">
-              <option value="24h">24 horas antes</option>
-              <option value="12h">12 horas antes</option>
-              <option value="2h" selected>2 horas antes</option>
-              <option value="1h">1 hora antes</option>
-            </select>
-            <input type="checkbox" id="notif-email-rec" checked style="accent-color:var(--a);width:16px;height:16px">
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--b1)">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Resumen diario al profesional</div><div style="font-size:12px;color:var(--t3)">Email con las citas del día, enviado a las 7:00 AM</div></div>
-          <input type="checkbox" id="notif-email-resumen" style="accent-color:var(--a);width:16px;height:16px">
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px">Email al cancelar o reagendar</div><div style="font-size:12px;color:var(--t3)">Notifica al cliente si su cita es cancelada o modificada</div></div>
-          <input type="checkbox" id="notif-email-cancel" checked style="accent-color:var(--a);width:16px;height:16px">
-        </div>
-      </div>
-
-      <div style="display:flex;justify-content:flex-end;padding-top:4px">
-        <button class="btn-a" onclick="saveNotificaciones()">Guardar cambios</button>
-      </div>
-    </div>
 
     <!-- Panel: Servicios -->
     <div id="cfg-servicios" style="display:none">
@@ -4345,18 +4272,17 @@ function updateReport(p, btn) {
 
 /* ════ CONFIG PANEL SWITCHING ════ */
 function showCfg(panel, btn, skipPush) {
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','facturacion'].forEach(p => {
+  ['general','profesionales','horarios','servicios','pagos','facturacion'].forEach(p => {
     const el = document.getElementById('cfg-' + p);
     if (el) el.style.display = p === panel ? 'block' : 'none';
   });
-  ['general','profesionales','horarios','notificaciones','servicios','pagos','facturacion'].forEach(p => {
+  ['general','profesionales','horarios','servicios','pagos','facturacion'].forEach(p => {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
   if (panel === 'profesionales') cargarProfesionales();
   if (panel === 'servicios')     cargarServicios();
   if (panel === 'pagos')         cargarPagos();
-  if (panel === 'notificaciones')  loadNotificaciones();
   if (panel === 'facturacion')   cargarFacturacion();
   if (panel === 'horarios')      loadHorario();
   if (!skipPush) history.pushState({ section:'config', sub: panel }, '', '/configuracion/' + panel);
@@ -8131,7 +8057,7 @@ function routeFromURL() {
   const section = parts[0];
   const sub     = parts[1] || null;
   const calSubs = ['semana','dia','mes','lista'];
-  const cfgSubs = ['general','profesionales','horarios','notificaciones','servicios','pagos','facturacion'];
+  const cfgSubs = ['general','profesionales','horarios','servicios','pagos','facturacion'];
 
   if (!section || section === 'admin' || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);
