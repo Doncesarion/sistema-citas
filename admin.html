@@ -1986,8 +1986,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
 
   <!-- Panel: Conversaciones (contenido actual de bandeja-wrap) -->
-  <div id="bsec-conversaciones" style="flex:1;min-height:0;overflow:hidden;display:flex">
-  <div class="bandeja-wrap">
+  <div id="bsec-conversaciones" style="flex:1;min-height:0;overflow:hidden">
+  <div class="bandeja-wrap" style="width:100%;height:100%">
     <!-- Lista de conversaciones -->
     <div class="blist" id="blist">
       <div class="blist-head">
@@ -2116,7 +2116,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div><!-- end bsec-conversaciones -->
 
   <!-- Panel: Chatbot (cfg-chatbot MOVIDO desde v-config) -->
-  <div id="bsec-chatbot" style="display:none;flex:1;overflow-y:auto;padding:24px">
+  <div id="bsec-chatbot" class="vp" style="display:none;flex:1">
     <div id="cfg-chatbot">
       <div class="vh" style="margin-bottom:16px">
         <span>Chatbot IA</span>
@@ -2253,7 +2253,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
 
   <!-- Panel: Canales (cfg-canales MOVIDO desde v-config) -->
-  <div id="bsec-canales" style="display:none;flex:1;overflow-y:auto;padding:24px">
+  <div id="bsec-canales" class="vp" style="display:none;flex:1">
     <div id="cfg-canales">
         <div class="vh" style="margin-bottom:4px">
           <span>Canales de mensajería</span>
@@ -2413,7 +2413,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
 
   <!-- Panel: Recordatorios (cfg-recordatorios MOVIDO desde v-config) -->
-  <div id="bsec-recordatorios" style="display:none;flex:1;overflow-y:auto;padding:24px">
+  <div id="bsec-recordatorios" class="vp" style="display:none;flex:1">
     <div id="cfg-recordatorios">
   <div class="vh" style="margin-bottom:16px">
     <span>Recordatorios y campañas</span>
