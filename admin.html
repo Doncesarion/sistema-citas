@@ -1220,13 +1220,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
     <div class="nav-divider"></div>
     <div class="nav-tabs">
-      <button class="ntab on"  onclick="sv('agenda',this)">Agenda</button>
-      <button class="ntab"     onclick="sv('clientes',this)">Clientes</button>
-      <button class="ntab"     onclick="sv('ventas',this)">Ventas</button>
-      <button class="ntab"     onclick="sv('bandeja',this)" id="ntab-bandeja" style="position:relative">Bandeja <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
-      <button class="ntab"     onclick="sv('reportes',this)">Reportes</button>
-      <button class="ntab"     onclick="sv('liquidaciones',this)">Liquidaciones</button>
-      <button class="ntab"     onclick="sv('config',this)">Configuración</button>
+      <button class="ntab on"  onclick="sv('agenda',this)"        id="ntab-agenda">Agenda</button>
+      <button class="ntab"     onclick="sv('clientes',this)"      id="ntab-clientes">Clientes</button>
+      <button class="ntab"     onclick="sv('ventas',this)"        id="ntab-ventas">Ventas</button>
+      <button class="ntab"     onclick="sv('bandeja',this)"       id="ntab-bandeja" style="position:relative">Bandeja <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
+      <button class="ntab"     onclick="sv('reportes',this)"      id="ntab-reportes">Reportes</button>
+      <button class="ntab"     onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Liquidaciones</button>
+      <button class="ntab"     onclick="sv('config',this)"        id="ntab-config">Configuración</button>
     </div>
   </div>
   <div class="nav-r">
@@ -6807,6 +6807,21 @@ function handleLogoUpload(input) {
   reader.readAsDataURL(file);
 }
 
+/* ════ RESTRICCIONES PLAN CHATBOT ════ */
+const _TABS_CHATBOT_OCULTOS = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-reportes','ntab-liquidaciones'];
+function aplicarRestriccionesChatbot() {
+  const plan = planActual();
+  if (!plan.startsWith('chatbot')) return;
+  _TABS_CHATBOT_OCULTOS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const logo = document.querySelector('.nav-logo');
+  if (logo) logo.setAttribute('onclick', "sv('bandeja',document.getElementById('ntab-bandeja'))");
+  const bBtn = document.getElementById('ntab-bandeja');
+  if (bBtn) sv('bandeja', bBtn, true);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   try {
     const _u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
@@ -6814,6 +6829,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const saved = localStorage.getItem(_logoKey) || localStorage.getItem('attempo_logo');
     if (saved) applyLogo(saved);
   } catch(e) {}
+
+  aplicarRestriccionesChatbot();
 
   // Manejar callback de Google Calendar OAuth
   const urlParams = new URLSearchParams(window.location.search);

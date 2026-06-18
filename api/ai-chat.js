@@ -85,6 +85,20 @@ export default async function handler(req, res) {
   const SUPABASE_URL  = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 
+  // ── Verificar límite de mensajes para planes chatbot ──────────────────────
+  const LIMITES_CHATBOT = { chatbot_2k: 2000, chatbot_5k: 5000, chatbot_8k: 8000 };
+  try {
+    const mes = new Date().toISOString().slice(0, 7);
+    const [planRow, usoRow] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=tipo_plan&limit=1`, { headers: sh }).then(r => r.json()).then(d => d[0]),
+      fetch(`${SUPABASE_URL}/rest/v1/uso_mensual?cliente_id=eq.${cliente_id}&mes=eq.${mes}&select=mensajes_ia&limit=1`, { headers: sh }).then(r => r.json()).then(d => d[0])
+    ]);
+    const limite = LIMITES_CHATBOT[planRow?.tipo_plan];
+    if (limite && (usoRow?.mensajes_ia || 0) >= limite) {
+      return res.status(200).json({ mensaje: 'hemos alcanzado el límite de mensajes de este mes. para seguir conversando, comunícate directamente con nosotros.', slots_disponibles: null, mostrar_calendario: false, especialista_id_cal: null, datos_reserva: null });
+    }
+  } catch(_) {}
+
   // Pre-cargar especialistas y datos del negocio (evita llamadas extra por turno)
   let espLista = [];
   try {
