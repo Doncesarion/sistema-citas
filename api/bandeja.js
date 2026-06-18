@@ -2,6 +2,15 @@ import crypto from 'crypto';
 
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 
+function incUso(supaKey, cliente_id, campo) {
+  const mes = new Date().toISOString().slice(0, 7);
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_uso`, {
+    method: 'POST',
+    headers: { apikey: supaKey, Authorization: `Bearer ${supaKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_cliente_id: cliente_id, p_mes: mes, p_campo: campo })
+  }).catch(() => {});
+}
+
 function verifySessionToken(token) {
   if (!token) return null;
   const secret = process.env.SESSION_SECRET;
@@ -216,6 +225,7 @@ export default async function handler(req, res) {
           const errTxt = await metaRes.text();
           return res.status(502).json({ error: 'Error enviando mensaje al canal', detalle: errTxt });
         }
+        incUso(process.env.SUPABASE_SERVICE_KEY, cliente_id, 'mensajes_wa_agente');
       } catch (e) {
         return res.status(502).json({ error: 'Error de red: ' + e.message });
       }

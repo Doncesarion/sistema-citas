@@ -45,6 +45,15 @@ Configuración → General → Integraciones → Google Calendar. Al conectar, c
 Si te preguntan algo que no está aquí, indícales que contacten a soporte de Attempo.
 Sé siempre conciso: responde directamente sin introducciones largas.`;
 
+function incUso(supaUrl, supaKey, cliente_id, campo) {
+  const mes = new Date().toISOString().slice(0, 7);
+  fetch(`${supaUrl}/rest/v1/rpc/inc_uso`, {
+    method: 'POST',
+    headers: { apikey: supaKey, Authorization: `Bearer ${supaKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_cliente_id: cliente_id, p_mes: mes, p_campo: campo })
+  }).catch(() => {});
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -367,8 +376,8 @@ CÓMO ESCRIBIR:
 
       if (data.stop_reason !== 'tool_use') {
         const text = data.content.find(b => b.type === 'text')?.text || '';
-        // Si hay tarjeta de reserva lista, no mostrar texto adicional de Claude
         const mensaje = datos_reserva ? '' : text;
+        incUso(SUPABASE_URL, SUPABASE_KEY, cliente_id, 'mensajes_ia');
         return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva });
       }
 

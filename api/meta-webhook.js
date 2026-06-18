@@ -1,6 +1,15 @@
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function incUso(cliente_id, campo) {
+  const mes = new Date().toISOString().slice(0, 7);
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_uso`, {
+    method: 'POST',
+    headers: { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_cliente_id: cliente_id, p_mes: mes, p_campo: campo })
+  }).catch(() => {});
+}
+
 export default async function handler(req, res) {
   // ── Verificación de webhook (GET) ─────────────────────────────────────────
   if (req.method === 'GET') {
@@ -205,6 +214,7 @@ export default async function handler(req, res) {
     }
     const sendBody = await sendRes.text();
     console.log('meta-webhook: send status:', sendRes.status, '| body:', sendBody.slice(0,120));
+    if (sendRes.ok) incUso(cliente_id, 'mensajes_wa_bot');
   } catch (e) {
     console.error('meta-webhook: error enviando respuesta:', e.message);
   }
