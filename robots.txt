@@ -1,13 +1,2 @@
 User-agent: *
-Allow: /
-Disallow: /admin.html
-Disallow: /login.html
-Disallow: /superadmin.html
-Disallow: /accesos.html
-Disallow: /reset-password.html
-Disallow: /editor.html
-Disallow: /api/
-Disallow: /supabase/
-Disallow: /files/
-
-Sitemap: https://www.attempo.cl/sitemap.xml
+Disallow: /
