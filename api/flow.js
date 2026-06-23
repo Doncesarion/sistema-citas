@@ -139,6 +139,90 @@ function emailConfirmadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
 </body></html>`;
 }
 
+async function handleSubWebhook(commerceOrder, statusData, res) {
+  const parts = commerceOrder.split('_');
+  // Format: sub_{timestamp}_{plan}_{cliente_id}
+  if (parts.length < 4) return res.status(200).send('ok');
+  const plan      = parts[2];
+  const cliente_id = parts.slice(3).join('_');
+  if (!['mensual', 'anual'].includes(plan) || !cliente_id) return res.status(200).send('ok');
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const monto = plan === 'anual' ? 269100 : 29900;
+  const dias  = plan === 'anual' ? 365 : 30;
+  const fecha_expiracion = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
+
+  await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}`, {
+    method: 'PATCH',
+    headers: { ...sh, Prefer: 'return=minimal' },
+    body: JSON.stringify({ activo: true, plan, fecha_expiracion })
+  }).catch(e => console.error('flow sub webhook: patch error:', e.message));
+
+  await fetch(`${SUPABASE_URL}/rest/v1/pagos_licencia`, {
+    method: 'POST',
+    headers: { ...sh, Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      cliente_id, plan, monto, plataforma: 'flow',
+      referencia: String(statusData.flowOrder || statusData.commerceOrder)
+    })
+  }).catch(e => console.error('flow sub webhook: insert pago error:', e.message));
+
+  console.log('flow sub webhook: suscripcion activada cliente_id=', cliente_id, 'plan=', plan);
+  return res.status(200).send('ok');
+}
+
+async function handleSubPayment(req, res) {
+  const { cliente_id, plan } = req.body || {};
+  if (!cliente_id || !plan) return res.status(400).json({ error: 'Falta cliente_id o plan' });
+  if (!['mensual', 'anual'].includes(plan)) return res.status(400).json({ error: 'Plan inválido' });
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}&select=id,email,nombre_negocio&limit=1`, { headers: sh });
+  const [cliente] = await cr.json();
+  if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
+  if (!cliente.email) return res.status(400).json({ error: 'El cliente no tiene email registrado' });
+
+  const monto = plan === 'anual' ? 269100 : 29900;
+  const commerceOrder = `sub_${Date.now()}_${plan}_${cliente_id}`;
+
+  const params = {
+    apiKey:          process.env.FLOW_API_KEY,
+    commerceOrder,
+    subject:         `Suscripción attempo — Plan ${plan === 'anual' ? 'Anual' : 'Mensual'}`,
+    currency:        'CLP',
+    amount:          String(monto),
+    email:           cliente.email,
+    urlConfirmation: `${BASE_URL}/api/flow-confirm`,
+    urlReturn:       `${BASE_URL}/admin`
+  };
+  params.s = flowSign(params);
+
+  let flowResp, flowData;
+  try {
+    flowResp = await fetch(`${FLOW_API_URL}/payment/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params)
+    });
+    flowData = await flowResp.json();
+  } catch(e) {
+    console.error('flow sub: create error:', e.message);
+    return res.status(502).json({ error: 'No se pudo conectar con Flow' });
+  }
+
+  if (!flowResp.ok || flowData.code) {
+    console.error('flow sub: create error:', JSON.stringify(flowData));
+    return res.status(502).json({ error: flowData.message || `Error Flow [${flowData.code}]` });
+  }
+
+  const payment_url = `${flowData.url}?token=${flowData.token}`;
+  return res.json({ ok: true, payment_url });
+}
+
 async function handleFlowWebhook(req, res) {
   const token = req.body?.token;
   if (!token) return res.status(200).send('ok');
@@ -160,8 +244,15 @@ async function handleFlowWebhook(req, res) {
   // Flow estados: 1=pendiente, 2=pagado, 3=rechazado, 4=anulado
   if (statusData.status !== 2) return res.status(200).send('ok');
 
-  const cita_id = statusData.commerceOrder;
-  if (!cita_id) return res.status(200).send('ok');
+  const commerceOrder = statusData.commerceOrder;
+  if (!commerceOrder) return res.status(200).send('ok');
+
+  // Suscripción attempo (orden empieza con 'sub_')
+  if (commerceOrder.startsWith('sub_')) {
+    return handleSubWebhook(commerceOrder, statusData, res);
+  }
+
+  const cita_id = commerceOrder;
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
@@ -232,8 +323,17 @@ export default async function handler(req, res) {
   }
 
   // — Webhook de Flow: confirmación de pago (sin sesión, con token en body) —
-  if (req.body?.token && !req.body.cita_id) {
+  if (req.body?.token && !req.body.cita_id && !req.body.tipo) {
     return handleFlowWebhook(req, res);
+  }
+
+  // — Pago de suscripción (superadmin genera link para que el cliente pague) —
+  if (req.body?.tipo === 'suscripcion') {
+    const saSession = verifySessionToken(req.headers['x-sa-token']);
+    if (!saSession || saSession.rol !== 'superadmin') {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    return handleSubPayment(req, res);
   }
 
   const session = verifySessionToken(req.headers['x-session-token']);

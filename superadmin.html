@@ -382,6 +382,37 @@
   </div>
 </div>
 
+<!-- MODAL FLOW SUSCRIPCIÓN -->
+<div class="modal-overlay" id="modal-flow-sub">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">⚡ Generar link de pago Flow</div>
+    <input type="hidden" id="fs-cliente-id">
+    <p id="fs-nombre" style="margin:0 0 18px;font-size:14px;color:var(--gray-500)"></p>
+    <div class="form-group"><label class="form-label">Plan a activar</label>
+      <select class="form-input" id="fs-plan" onchange="document.getElementById('fs-link-wrap').style.display='none'">
+        <option value="mensual">Mensual — $29.900</option>
+        <option value="anual">Anual — $269.100</option>
+      </select>
+    </div>
+    <div id="fs-link-wrap" style="display:none;margin-bottom:16px">
+      <label class="form-label">Link de pago</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-input" id="fs-link" readonly style="font-size:12px;background:var(--gray-50);color:var(--gray-600);cursor:text">
+        <button class="btn btn-outline btn-sm" onclick="copiarLinkFlow()" style="white-space:nowrap;min-width:80px" id="fs-copy-btn">Copiar</button>
+      </div>
+      <p style="margin:8px 0 0;font-size:11px;color:var(--gray-400)">Comparte este link con el cliente para que pague su suscripción. Una vez pagado, su cuenta se activa automáticamente.</p>
+    </div>
+    <div id="fs-error" style="display:none;color:var(--danger);font-size:13px;margin-bottom:12px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1" onclick="cerrarModal('modal-flow-sub')">Cerrar</button>
+      <button class="btn btn-success" id="fs-gen-btn" style="flex:2;display:flex;align-items:center;justify-content:center;gap:6px" onclick="generarLinkFlowSub()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Generar link
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -699,6 +730,7 @@ function renderTabla(lista) {
                 <button class="btn btn-outline btn-sm" onclick="verCuentaCliente('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\'") || ''}')" style="display:flex;align-items:center;gap:4px">${svg('eye')} Ver</button>
                 <button class="btn btn-outline btn-sm" onclick="editarCliente('${c.id}')" style="display:flex;align-items:center;gap:4px">${svg('pencil')} Editar</button>
                 <button class="btn btn-success btn-sm" onclick="abrirModalPago('${c.id}')" style="display:flex;align-items:center;gap:4px">${svg('card')} Pago</button>
+                <button class="btn btn-outline btn-sm" onclick="abrirModalFlowSub('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\'") || ''}')" style="display:flex;align-items:center;gap:4px;color:var(--accent);border-color:var(--accent)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Flow</button>
                 <button class="btn btn-outline btn-sm" onclick="verHistorialPagos('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\\'")||''}')" style="display:flex;align-items:center;gap:4px">${svg('clock')} Historial</button>
                 ${c.activo
                   ? `<button class="btn btn-warn btn-sm" onclick="toggleActivo('${c.id}',false)" style="display:flex;align-items:center;gap:4px">${svg('pause')} Pausar</button>`
@@ -1032,6 +1064,72 @@ async function registrarPago() {
     showToast(`Pago registrado — plan ${plan} activado`);
   } catch(e) {
     alert('Error: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════
+// FLOW SUSCRIPCIÓN
+// ═══════════════════════════════════════════
+function abrirModalFlowSub(clienteId, nombre) {
+  document.getElementById('fs-cliente-id').value = clienteId;
+  document.getElementById('fs-nombre').textContent = nombre || '';
+  document.getElementById('fs-plan').value = 'mensual';
+  document.getElementById('fs-link-wrap').style.display = 'none';
+  document.getElementById('fs-link').value = '';
+  document.getElementById('fs-error').style.display = 'none';
+  document.getElementById('fs-gen-btn').disabled = false;
+  document.getElementById('fs-gen-btn').textContent = 'Generar link';
+  abrirModal('modal-flow-sub');
+}
+
+async function generarLinkFlowSub() {
+  const cliente_id = document.getElementById('fs-cliente-id').value;
+  const plan = document.getElementById('fs-plan').value;
+  const btn = document.getElementById('fs-gen-btn');
+  const errEl = document.getElementById('fs-error');
+
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generando...';
+  errEl.style.display = 'none';
+  document.getElementById('fs-link-wrap').style.display = 'none';
+
+  try {
+    const r = await fetch('/api/flow', {
+      method: 'POST',
+      headers: { 'x-sa-token': saToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'suscripcion', cliente_id, plan })
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      errEl.textContent = d.error || 'Error generando link';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar link';
+      return;
+    }
+    document.getElementById('fs-link').value = d.payment_url;
+    document.getElementById('fs-link-wrap').style.display = 'block';
+    document.getElementById('fs-copy-btn').textContent = 'Copiar';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Regenerar';
+  } catch(e) {
+    errEl.textContent = 'Error de conexión: ' + e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generar link';
+  }
+}
+
+async function copiarLinkFlow() {
+  const url = document.getElementById('fs-link').value;
+  if (!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    const btn = document.getElementById('fs-copy-btn');
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
+  } catch(e) {
+    document.getElementById('fs-link').select();
   }
 }
 
