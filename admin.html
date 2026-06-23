@@ -2912,12 +2912,19 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             </div>
             <input type="checkbox" id="pago-transferencia" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleBancoDatos()">
           </label>
-          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)">
             <div>
               <div style="font-size:13px;font-weight:500;color:var(--t1)">Efectivo en el local</div>
               <div style="font-size:12px;color:var(--t3)">El cliente paga al llegar a la consulta</div>
             </div>
             <input type="checkbox" id="pago-efectivo" style="accent-color:var(--a);width:16px;height:16px">
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--a)">Pago online con Flow ⚡</div>
+              <div style="font-size:12px;color:var(--t3)">El paciente recibe un link de pago por email y paga con tarjeta online</div>
+            </div>
+            <input type="checkbox" id="pago-flow" style="accent-color:var(--a);width:16px;height:16px">
           </label>
         </div>
       </div>
@@ -3440,6 +3447,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <div id="fp-boleta-row" style="display:none;margin-top:8px">
         <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">📄 Emitir boleta</button>
+      </div>
+      <div id="fp-flow-row" style="display:none;margin-top:8px">
+        <button class="btn-a" style="width:100%;background:var(--a)" onclick="enviarLinkFlowPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">⚡ Enviar link de pago Flow</button>
       </div>
     </div>
 
@@ -4391,6 +4401,7 @@ async function cargarPagos() {
     if (el('pago-webpay'))        el('pago-webpay').checked        = !!mp.webpay;
     if (el('pago-transferencia')) el('pago-transferencia').checked = !!mp.transferencia;
     if (el('pago-efectivo'))      el('pago-efectivo').checked      = !!mp.efectivo;
+    if (el('pago-flow'))          el('pago-flow').checked          = !!mp.flow;
     if (el('banco-banco'))  el('banco-banco').value  = db.banco  || '';
     if (el('banco-tipo'))   el('banco-tipo').value   = db.tipo   || '';
     if (el('banco-cuenta')) el('banco-cuenta').value = db.cuenta || '';
@@ -4414,7 +4425,8 @@ async function guardarPagos() {
   const metodos_pago = {
     webpay:        el('pago-webpay')?.checked        || false,
     transferencia: el('pago-transferencia')?.checked || false,
-    efectivo:      el('pago-efectivo')?.checked      || false
+    efectivo:      el('pago-efectivo')?.checked      || false,
+    flow:          el('pago-flow')?.checked          || false
   };
   const datos_banco = {
     banco:  el('banco-banco')?.value.trim()  || '',
@@ -7085,7 +7097,7 @@ function renderVentasKPIs() {
 }
 
 function renderVentasTable() {
-  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>' };
+  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow ⚡</span>' };
   const lista  = _ventasFiltradas();
   const tbody  = document.getElementById('ventas-tbody');
   const pager  = document.getElementById('ventas-pager');
@@ -7113,12 +7125,15 @@ function renderVentasTable() {
     const metodo = c.metodo_pago && METODO_TAG[c.metodo_pago]
       ? `<span style="cursor:pointer" title="Cambiar método" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','${c.metodo_pago}')">${METODO_TAG[c.metodo_pago]}</span>`
       : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','')">+ Asignar</button>`;
-    const estado = c.estado_pago === 'pagado'
-      ? '<span class="tag tg">Pagado</span>'
-      : '<span class="tag ta">Pendiente</span>';
+    const esPendienteFlow = c.estado === 'pending_payment';
+    const estado = esPendienteFlow
+      ? `<span class="tag" style="background:#f5f3ff;color:var(--a);border:1px solid rgba(108,92,228,.3);cursor:pointer" title="Reenviar link de pago" onclick="event.stopPropagation();enviarLinkFlowPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')" >⚡ Pago Flow</span>`
+      : c.estado_pago === 'pagado'
+        ? '<span class="tag tg">Pagado</span>'
+        : '<span class="tag ta">Pendiente</span>';
     const montoVal = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
     const monto = `<span style="cursor:pointer" title="Editar monto" onclick="event.stopPropagation();openEditarMonto('${c.id}',${c.precio||0})">${montoVal} <span style="font-size:10px;opacity:.4">✎</span></span>`;
-    const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente}));
+    const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado:c.estado,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente}));
     return `<tr style="cursor:pointer" onclick="openVentaDetalle(decodeURIComponent('${cJson}'))">
       <td style="font-family:var(--mono);font-size:12px">${fecha}</td>
       <td><div class="tdn"><div class="tav">${ini}</div>${c.nombre_paciente||'—'}</div></td>
@@ -7415,14 +7430,20 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
   document.getElementById('fpi-rut').textContent   = '—';
-  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online' };
+  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online', flow:'Flow ⚡' };
+  const esPendienteFlow = c.estado === 'pending_payment';
   const epEl = document.getElementById('fpi-estado-pago');
-  if (epEl) { epEl.textContent = c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente'; epEl.style.color = c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)'; }
+  if (epEl) {
+    epEl.textContent  = esPendienteFlow ? 'Esperando pago Flow' : c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente';
+    epEl.style.color  = esPendienteFlow ? 'var(--a)' : c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
+  }
   const mpEl = document.getElementById('fpi-metodo-pago');
-  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || '—';
-  // Guardar cita para boleta y mostrar botón (siempre que tenga precio)
+  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || (esPendienteFlow ? 'Flow ⚡' : '—');
+  // Guardar cita para boleta y mostrar botones
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
+  const flowRow = document.getElementById('fp-flow-row');
+  if (flowRow) flowRow.style.display = c.precio && !esPendienteFlow && c.estado_pago !== 'pagado' ? 'block' : esPendienteFlow ? 'block' : 'none';
   document.getElementById('ficha-ov').classList.add('open');
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.fptab')[0].classList.add('on');
@@ -7430,6 +7451,25 @@ function openVentaDetalle(jsonStr) {
     const el = document.getElementById(id);
     if (el) { el.style.display = i===0?'flex':'none'; if(i===0) el.style.flexDirection='column'; }
   });
+}
+
+/* ════ FLOW PAGO ════ */
+async function enviarLinkFlowPago(cita_id, nombre) {
+  if (!cita_id) return;
+  if (!confirm('¿Enviar link de pago Flow a ' + (nombre || 'el paciente') + '?\n\nEl paciente recibirá un email con el botón de pago.')) return;
+  try {
+    const r = await fetch('/api/flow', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cita_id, enviar_email: true })
+    });
+    const d = await r.json();
+    if (!r.ok) { toast('Error: ' + (d.error || 'No se pudo crear el pago')); return; }
+    toast('Link de pago enviado al paciente ✓');
+    cargarVentas();
+  } catch(e) {
+    toast('Error de conexión con Flow');
+  }
 }
 
 /* ════ NUEVO CLIENTE ════ */
