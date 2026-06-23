@@ -389,10 +389,13 @@
     <input type="hidden" id="fs-cliente-id">
     <p id="fs-nombre" style="margin:0 0 18px;font-size:14px;color:var(--gray-500)"></p>
     <div class="form-group"><label class="form-label">Plan a activar</label>
-      <select class="form-input" id="fs-plan" onchange="document.getElementById('fs-link-wrap').style.display='none'">
+      <select class="form-input" id="fs-plan" onchange="actualizarMontoFlow();document.getElementById('fs-link-wrap').style.display='none'">
         <option value="mensual">Mensual — $29.900</option>
         <option value="anual">Anual — $269.100</option>
       </select>
+    </div>
+    <div class="form-group"><label class="form-label">Monto a cobrar ($)</label>
+      <input class="form-input" type="number" id="fs-monto" value="29900" min="1" onchange="document.getElementById('fs-link-wrap').style.display='none'">
     </div>
     <div id="fs-link-wrap" style="display:none;margin-bottom:16px">
       <label class="form-label">Link de pago</label>
@@ -1070,10 +1073,16 @@ async function registrarPago() {
 // ═══════════════════════════════════════════
 // FLOW SUSCRIPCIÓN
 // ═══════════════════════════════════════════
+function actualizarMontoFlow() {
+  const plan = document.getElementById('fs-plan').value;
+  document.getElementById('fs-monto').value = plan === 'anual' ? '269100' : '29900';
+}
+
 function abrirModalFlowSub(clienteId, nombre) {
   document.getElementById('fs-cliente-id').value = clienteId;
   document.getElementById('fs-nombre').textContent = nombre || '';
   document.getElementById('fs-plan').value = 'mensual';
+  document.getElementById('fs-monto').value = '29900';
   document.getElementById('fs-link-wrap').style.display = 'none';
   document.getElementById('fs-link').value = '';
   document.getElementById('fs-error').style.display = 'none';
@@ -1097,7 +1106,7 @@ async function generarLinkFlowSub() {
     const r = await fetch('/api/flow', {
       method: 'POST',
       headers: { 'x-sa-token': saToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo: 'suscripcion', cliente_id, plan })
+      body: JSON.stringify({ tipo: 'suscripcion', cliente_id, plan, monto: parseInt(document.getElementById('fs-monto').value) || null })
     });
     const d = await r.json();
     if (!r.ok) {
