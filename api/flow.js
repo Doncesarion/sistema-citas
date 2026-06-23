@@ -158,12 +158,13 @@ function emailConfirmadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
 }
 
 async function handleSubWebhook(commerceOrder, statusData, res) {
-  const parts = commerceOrder.split('_');
-  // Format: sub_{timestamp}_{plan}_{cliente_id}
-  if (parts.length < 4) return res.status(200).send('ok');
-  const plan      = parts[2];
-  const cliente_id = parts.slice(3).join('_');
-  if (!['mensual', 'anual'].includes(plan) || !cliente_id) return res.status(200).send('ok');
+  // Format: AT{m|a}{uuid_sin_guiones_32chars}{4digits} = 39 chars total
+  if (commerceOrder.length < 35) return res.status(200).send('ok');
+  const planCode   = commerceOrder[2];
+  const plan       = planCode === 'a' ? 'anual' : 'mensual';
+  const uuidClean  = commerceOrder.slice(3, 35);
+  const cliente_id = `${uuidClean.slice(0,8)}-${uuidClean.slice(8,12)}-${uuidClean.slice(12,16)}-${uuidClean.slice(16,20)}-${uuidClean.slice(20)}`;
+  if (!['mensual', 'anual'].includes(plan) || uuidClean.length !== 32) return res.status(200).send('ok');
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
@@ -205,7 +206,11 @@ async function handleSubPayment(req, res) {
   if (!cliente.email) return res.status(400).json({ error: 'El cliente no tiene email registrado' });
 
   const monto = plan === 'anual' ? 269100 : 29900;
-  const commerceOrder = `sub_${Date.now()}_${plan}_${cliente_id}`;
+  // AT{m|a}{uuid_sin_guiones}{4digits} = 2+1+32+4 = 39 chars (límite Flow: 45)
+  const planCode = plan === 'anual' ? 'a' : 'm';
+  const uuidClean = cliente_id.replace(/-/g, '');
+  const suffix = String(Date.now() % 10000).padStart(4, '0');
+  const commerceOrder = `AT${planCode}${uuidClean}${suffix}`;
 
   const params = {
     apiKey:          process.env.FLOW_API_KEY,
@@ -265,8 +270,8 @@ async function handleFlowWebhook(req, res) {
   const commerceOrder = statusData.commerceOrder;
   if (!commerceOrder) return res.status(200).send('ok');
 
-  // Suscripción attempo (orden empieza con 'sub_')
-  if (commerceOrder.startsWith('sub_')) {
+  // Suscripción attempo (orden empieza con 'AT')
+  if (commerceOrder.startsWith('AT')) {
     return handleSubWebhook(commerceOrder, statusData, res);
   }
 
