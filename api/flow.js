@@ -25,6 +25,24 @@ function verifySessionToken(token) {
   return { cliente_id, rol };
 }
 
+function verifySaToken(token) {
+  if (!token) return false;
+  const SA_SECRET = process.env.SA_SECRET;
+  if (!SA_SECRET) return false;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return false;
+  const payload = token.slice(0, dot);
+  const sig     = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
+  try {
+    const sigBuf = Buffer.from(sig, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return false;
+  } catch { return false; }
+  if (Date.now() > parseInt(payload)) return false;
+  return true;
+}
+
 function flowSign(params) {
   const keys = Object.keys(params).sort();
   const str = keys.map(k => k + params[k]).join('');
@@ -329,8 +347,7 @@ export default async function handler(req, res) {
 
   // — Pago de suscripción (superadmin genera link para que el cliente pague) —
   if (req.body?.tipo === 'suscripcion') {
-    const saSession = verifySessionToken(req.headers['x-sa-token']);
-    if (!saSession || saSession.rol !== 'superadmin') {
+    if (!verifySaToken(req.headers['x-sa-token'])) {
       return res.status(401).json({ error: 'No autorizado' });
     }
     return handleSubPayment(req, res);
