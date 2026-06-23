@@ -74,12 +74,101 @@ async function verifyPassword(password, stored) {
   return { ok, upgrade: false, first: false };
 }
 
+const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+const TOKEN_RE  = /^[a-f0-9]{64}$/;
+
 export default async function handler(req, res) {
+  const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+
+  // — GET: validar token de recuperación de contraseña —
+  if (req.method === 'GET') {
+    const { token } = req.query;
+    if (!token || !TOKEN_RE.test(token)) return res.status(400).json({ error: 'Token inválido' });
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/password_resets?token=eq.${token}&used=eq.false&select=expires_at`, { headers: sh });
+    const rows = await r.json();
+    if (!rows.length) return res.status(400).json({ error: 'Token inválido o ya usado' });
+    if (new Date(rows[0].expires_at) < new Date()) return res.status(400).json({ error: 'El enlace ha expirado' });
+    return res.status(200).json({ ok: true });
+  }
+
   if (req.method !== 'POST') return res.status(405).end();
 
   const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
   if (await isRateLimited(ip)) {
     return res.status(429).json({ error: 'Demasiados intentos. Espera 15 minutos.' });
+  }
+
+  // — POST { email } → solicitar recuperación de contraseña —
+  if (req.body?.email && !req.body.password && !req.body.action && !req.body.usuario && !req.body.token) {
+    const { email } = req.body;
+    try {
+      const userCheck = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=email`, { headers: sh });
+      const users = await userCheck.json();
+      if (!users.length) return res.status(200).json({ ok: true });
+
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt  = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+      await fetch(`${SUPABASE_URL}/rest/v1/password_resets`, {
+        method: 'POST',
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ email, token: resetToken, expires_at: expiresAt })
+      });
+
+      const resetLink = `${BASE_URL}/reset-password?token=${resetToken}`;
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [email],
+          subject: 'Recuperación de contraseña — Attempo',
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#1a1a2e">
+            <img src="${BASE_URL}/logo_attempo.png" width="48" style="border-radius:12px;margin-bottom:20px" alt="Attempo">
+            <h2 style="margin:0 0 8px;font-size:20px;font-weight:700">Recuperación de contraseña</h2>
+            <p style="margin:0 0 20px;color:#555;font-size:14px">Recibimos una solicitud para restablecer la contraseña de tu cuenta en Attempo.<br>Si no fuiste tú, puedes ignorar este mensaje.</p>
+            <a href="${resetLink}" style="display:inline-block;background:#4F46E5;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Restablecer contraseña</a>
+            <p style="margin:0 0 8px;color:#888;font-size:12px">Este enlace es válido por <strong>1 hora</strong>.</p>
+            <p style="margin:0 0 20px;color:#888;font-size:12px">O copia: <span style="color:#4F46E5">${resetLink}</span></p>
+            <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+            <p style="margin:0;font-size:12px;color:#999">Attempo · Todo a tu tiempo · <a href="https://attempo.cl" style="color:#999">attempo.cl</a></p>
+          </div>`
+        })
+      });
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      console.error('reset-password request error:', err.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
+  // — POST { token, password } → aplicar nueva contraseña —
+  if (req.body?.token && req.body?.password && !req.body.action && !req.body.usuario) {
+    const { token, password } = req.body;
+    if (!TOKEN_RE.test(token)) return res.status(400).json({ error: 'Token inválido' });
+    if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+
+    const check = await fetch(`${SUPABASE_URL}/rest/v1/password_resets?token=eq.${token}&used=eq.false&select=email,expires_at`, { headers: sh });
+    const rows  = await check.json();
+    if (!rows.length) return res.status(400).json({ error: 'Token inválido o ya usado' });
+    if (new Date(rows[0].expires_at) < new Date()) return res.status(400).json({ error: 'El enlace ha expirado' });
+
+    const hashedPassword = await hashPassword(password);
+    const update = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(rows[0].email)}`, {
+      method: 'PATCH',
+      headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ password: hashedPassword })
+    });
+    if (!update.ok) return res.status(500).json({ error: 'Error al actualizar contraseña' });
+
+    await fetch(`${SUPABASE_URL}/rest/v1/password_resets?token=eq.${token}`, {
+      method: 'PATCH',
+      headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ used: true })
+    });
+    return res.status(200).json({ ok: true });
   }
 
   // — Verificar OTP de MFA —
@@ -112,11 +201,9 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Código incorrecto' });
       }
     } catch { return res.status(401).json({ error: 'Código incorrecto' }); }
-    const SUPABASE_URL2 = 'https://xztqawulvrtjvtfixofy.supabase.co';
-    const SUPABASE_KEY2 = process.env.SUPABASE_SERVICE_KEY;
     const r2 = await fetch(
-      `${SUPABASE_URL2}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}&select=username,email,nombre,rol,destino,cliente_id`,
-      { headers: { apikey: SUPABASE_KEY2, Authorization: `Bearer ${SUPABASE_KEY2}` } }
+      `${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}&select=username,email,nombre,rol,destino,cliente_id`,
+      { headers: sh }
     );
     const rows2 = await r2.json();
     if (!rows2.length) return res.status(401).json({ error: 'Usuario no encontrado' });
@@ -138,15 +225,12 @@ export default async function handler(req, res) {
   const { usuario, password } = req.body || {};
   if (!usuario || !password) return res.status(400).json({ error: 'Datos incompletos' });
 
-  const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
-  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-
   try {
     const input = usuario.trim().toLowerCase();
 
     const r = await fetch(
       `${SUPABASE_URL}/rest/v1/usuarios?or=(username.eq.${encodeURIComponent(input)},email.eq.${encodeURIComponent(input)})&select=id,username,password,email,nombre,rol,destino,cliente_id`,
-      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+      { headers: sh }
     );
 
     const rows = await r.json();
@@ -162,12 +246,7 @@ export default async function handler(req, res) {
       const newHash = await hashPassword(password);
       fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${u.id}`, {
         method: 'PATCH',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          Prefer: 'return=minimal'
-        },
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         body: JSON.stringify({ password: newHash })
       }).catch(() => {});
     }

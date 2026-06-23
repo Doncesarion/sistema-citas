@@ -30,6 +30,8 @@
   ],
   "rewrites": [
     { "source": "/api/gestionar-cita",             "destination": "/api/crear-cita" },
+    { "source": "/api/flow-confirm",               "destination": "/api/flow" },
+    { "source": "/api/reset-password",             "destination": "/api/login" },
     { "source": "/login",                          "destination": "/login.html" },
     { "source": "/admin",                          "destination": "/admin.html" },
     { "source": "/reset-password",                 "destination": "/reset-password.html" },
