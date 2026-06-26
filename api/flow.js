@@ -222,7 +222,7 @@ async function handleSubPayment(req, res) {
     amount:          String(monto),
     email:           cliente.email,
     urlConfirmation: `${BASE_URL}/api/flow-confirm`,
-    urlReturn:       `${BASE_URL}/admin`
+    urlReturn:       `${BASE_URL}/api/flow-return`
   };
   params.s = flowSign(params);
 
@@ -341,6 +341,11 @@ async function handleFlowWebhook(req, res) {
 }
 
 export default async function handler(req, res) {
+  // Flow redirige el browser aquí después del pago — solo redirigir al admin
+  if (req.query?.ret === '1') {
+    return res.redirect(302, '/admin');
+  }
+
   if (req.method !== 'POST') return res.status(405).end();
 
   if (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY) {
