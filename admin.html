@@ -3545,7 +3545,8 @@ function sv(v, btn, skipPush) {
   if (v === 'ventas')        cargarVentas();
   if (v === 'reportes')     cargarReportes();
   if (v === 'liquidaciones') cargarLiquidaciones();
-  if (v === 'clientes') loadClientesView();
+  if (v === 'clientes')      loadClientesView();
+  if (v === 'config')        showCfg('general', document.getElementById('ctab-general'), true);
   if (v === 'bandeja') { initBandeja(); showBandejaTab('conversaciones', null, true); }
   if (!skipPush) {
     const slug = v === 'config' ? 'configuracion' : v;
@@ -9849,6 +9850,10 @@ async function abrirHistorialPagosPropios() {
     const tok = localStorage.getItem('attempo_session_token') || '';
     const r = await fetch('/api/usuarios-admin?action=mis_pagos', { headers: { 'x-session-token': tok } });
     const pagos = await r.json();
+    if (!r.ok) {
+      content.innerHTML = `<div style="padding:48px;text-align:center;color:var(--danger);font-size:13px">Error ${r.status}: ${pagos?.error || 'No autorizado'}</div>`;
+      return;
+    }
     if (!Array.isArray(pagos) || !pagos.length) {
       content.innerHTML = '<div style="padding:48px;text-align:center;color:var(--t4);font-size:13px">Sin pagos registrados</div>';
       return;
