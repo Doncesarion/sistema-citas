@@ -1321,7 +1321,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <div style="flex:1"></div>
   <div class="sb-link">
     <div class="sb-link-label">Tu link de reservas</div>
-    <a class="sb-link-url" id="sb-link-url" href="https://www.attempo.cl/studio-norte" target="_blank" style="text-decoration:none;display:block">attempo.cl/studio-norte</a>
+    <a class="sb-link-url" id="sb-link-url" href="https://app.attempo.cl/studio-norte" target="_blank" style="text-decoration:none;display:block">app.attempo.cl/studio-norte</a>
     <div class="sb-copy" onclick="copyLink()">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="3" y="3" width="6.5" height="6.5" rx="1"/><path d="M1.5 7V1.5H7"/></svg>
       Copiar
@@ -6931,7 +6931,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════ COPY LINK ════ */
 let currentBookingUrl = 'studio-norte';
 function copyLink() {
-  const url = 'https://attempo.cl/' + currentBookingUrl;
+  const url = 'https://app.attempo.cl/' + currentBookingUrl;
   try {
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(url).then(() => toast('✓ Link copiado al portapapeles'));
@@ -7004,9 +7004,9 @@ async function saveSitio() {
   if (slug) {
     currentBookingUrl = slug;
     const urlEl = document.getElementById('sb-link-url');
-    if (urlEl) { urlEl.textContent = 'attempo.cl/' + slug; urlEl.href = 'https://www.attempo.cl/' + slug; }
+    if (urlEl) { urlEl.textContent = 'app.attempo.cl/' + slug; urlEl.href = 'https://app.attempo.cl/' + slug; }
     const hint = document.querySelector('#cfg-sitio-ov .fg div[style*="color:var(--t3)"]');
-    if (hint) hint.textContent = 'Tus clientes acceden en: attempo.cl/' + slug;
+    if (hint) hint.textContent = 'Tus clientes acceden en: app.attempo.cl/' + slug;
     // Guardar en Supabase
     try {
       const cid = await getClienteId();
@@ -7716,10 +7716,10 @@ function salirImpersonacion() {
     <div class="mbody" style="gap:14px">
       <div class="fg"><label class="fl">URL de tu página de reservas</label>
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;color:var(--t3);flex-shrink:0">attempo.cl/</span>
+          <span style="font-size:13px;color:var(--t3);flex-shrink:0">app.attempo.cl/</span>
           <input class="fi" id="sitio-url" value="studio-norte" style="flex:1">
         </div>
-        <div style="font-size:11px;color:var(--t3);margin-top:5px">Tus clientes acceden en: attempo.cl/studio-norte</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:5px">Tus clientes acceden en: app.attempo.cl/studio-norte</div>
       </div>
       <div class="fg"><label class="fl">Mensaje de bienvenida</label><textarea class="fi" rows="3" style="resize:none;line-height:1.6">¡Bienvenido! Reserva tu cita en línea de forma rápida y sencilla.</textarea></div>
       <div class="r2">
@@ -8213,11 +8213,11 @@ window.addEventListener('popstate', routeFromURL);
       const slug = rows[0].booking_slug;
       currentBookingUrl = slug;
       const urlEl = document.getElementById('sb-link-url');
-      if (urlEl) { urlEl.textContent = 'attempo.cl/' + slug; urlEl.href = 'https://www.attempo.cl/' + slug; }
+      if (urlEl) { urlEl.textContent = 'app.attempo.cl/' + slug; urlEl.href = 'https://app.attempo.cl/' + slug; }
       const input = document.getElementById('sitio-url');
       if (input) input.value = slug;
       const hint = document.querySelector('#cfg-sitio-ov .fg div[style*="color:var(--t3)"]');
-      if (hint) hint.textContent = 'Tus clientes acceden en: attempo.cl/' + slug;
+      if (hint) hint.textContent = 'Tus clientes acceden en: app.attempo.cl/' + slug;
     }
   } catch(e) { console.error('Error cargando slug', e); }
   tutInit();
@@ -8913,8 +8913,8 @@ function tutRenderCard() {
     const slug = currentBookingUrl || '...';
     linkBox.style.display = 'flex';
     const a = document.getElementById('tut-link-text');
-    a.textContent = 'attempo.cl/' + slug;
-    a.href = 'https://www.attempo.cl/' + slug;
+    a.textContent = 'app.attempo.cl/' + slug;
+    a.href = 'https://app.attempo.cl/' + slug;
   } else {
     linkBox.style.display = 'none';
   }
@@ -9013,7 +9013,7 @@ function tutDone() {
 }
 
 function tutCopyLink() {
-  const url = 'https://www.attempo.cl/' + (currentBookingUrl || '');
+  const url = 'https://app.attempo.cl/' + (currentBookingUrl || '');
   navigator.clipboard.writeText(url).then(() => toast('✓ Link copiado al portapapeles'));
 }
 </script>
