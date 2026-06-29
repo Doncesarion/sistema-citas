@@ -60,7 +60,7 @@
     { "source": "/terminos",                        "destination": "/terminos.html" },
     { "source": "/gestionar-cita",                 "destination": "/gestionar-cita.html" },
     { "source": "/accesos",                        "destination": "/accesos.html" },
-    { "source": "/reservar/:slug",                 "destination": "/booking.html" },
-    { "source": "/:slug",                          "destination": "/booking.html" }
+    { "source": "/reservar/:slug",                 "destination": "/attempo-booking.html" },
+    { "source": "/:slug",                          "destination": "/attempo-booking.html" }
   ]
 }
