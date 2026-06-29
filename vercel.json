@@ -32,6 +32,7 @@
     { "source": "/api/gestionar-cita",             "destination": "/api/crear-cita" },
     { "source": "/api/flow-confirm",               "destination": "/api/flow" },
     { "source": "/api/flow-return",               "destination": "/api/flow?ret=1" },
+    { "source": "/pago-exitoso",                  "destination": "/pago-exitoso.html" },
     { "source": "/api/reset-password",             "destination": "/api/login" },
     { "source": "/login",                          "destination": "/login.html" },
     { "source": "/admin",                          "destination": "/admin.html" },

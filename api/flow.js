@@ -179,14 +179,18 @@ async function handleSubWebhook(commerceOrder, statusData, res) {
     body: JSON.stringify({ activo: true, plan, fecha_expiracion })
   }).catch(e => console.error('flow sub webhook: patch error:', e.message));
 
-  await fetch(`${SUPABASE_URL}/rest/v1/pagos_licencia`, {
+  const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/pagos_licencia`, {
     method: 'POST',
     headers: { ...sh, Prefer: 'return=minimal' },
     body: JSON.stringify({
       cliente_id, plan, monto, plataforma: 'flow',
       referencia: String(statusData.flowOrder || statusData.commerceOrder)
     })
-  }).catch(e => console.error('flow sub webhook: insert pago error:', e.message));
+  }).catch(e => { console.error('flow sub webhook: insert pago network error:', e.message); return null; });
+  if (insertRes && !insertRes.ok) {
+    const errBody = await insertRes.text().catch(() => '');
+    console.error('flow sub webhook: insert pago HTTP error:', insertRes.status, errBody);
+  }
 
   console.log('flow sub webhook: suscripcion activada cliente_id=', cliente_id, 'plan=', plan);
   return res.status(200).send('ok');
@@ -222,7 +226,7 @@ async function handleSubPayment(req, res) {
     amount:          String(monto),
     email:           cliente.email,
     urlConfirmation: `${BASE_URL}/api/flow-confirm`,
-    urlReturn:       `${BASE_URL}/api/flow-return`
+    urlReturn:       `${BASE_URL}/api/flow-return?plan=${plan}`
   };
   params.s = flowSign(params);
 
@@ -341,9 +345,11 @@ async function handleFlowWebhook(req, res) {
 }
 
 export default async function handler(req, res) {
-  // Flow redirige el browser aquí después del pago — solo redirigir al admin
+  // Flow redirige el browser aquí después del pago — mostrar página de confirmación
   if (req.query?.ret === '1') {
-    return res.redirect(302, '/admin');
+    const plan = req.query.plan || '';
+    const dest = plan ? `/pago-exitoso?plan=${encodeURIComponent(plan)}` : '/pago-exitoso';
+    return res.redirect(302, dest);
   }
 
   if (req.method !== 'POST') return res.status(405).end();
