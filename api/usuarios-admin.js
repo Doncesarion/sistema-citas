@@ -331,6 +331,19 @@ export default async function handler(req, res) {
     return res.status(200).json({ unread: Array.isArray(msgs) ? msgs.length : 0 });
   }
 
+  // ── GET mis_pagos: historial de pagos propios (session token del admin) ──────
+  if (req.method === 'GET' && req.query?.action === 'mis_pagos') {
+    const clienteId = getClienteIdFromToken(req.headers['x-session-token']);
+    if (!clienteId) return res.status(401).json({ error: 'No autorizado' });
+    const KEY = process.env.SUPABASE_SERVICE_KEY;
+    const sh2 = { apikey: KEY, Authorization: `Bearer ${KEY}` };
+    const r = await fetch(
+      `https://xztqawulvrtjvtfixofy.supabase.co/rest/v1/pagos?cliente_id=eq.${encodeURIComponent(clienteId)}&order=created_at.desc&limit=50`,
+      { headers: sh2 }
+    );
+    return res.status(r.status).json(await r.json());
+  }
+
   // ── Todas las demás rutas requieren token válido ───────────────────────────
   if (!verifyToken(req.headers['x-sa-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
@@ -389,6 +402,15 @@ export default async function handler(req, res) {
         let url = `${SUPABASE_URL}/rest/v1/usuarios?select=id,username,email,nombre,rol,cliente_id&order=nombre.asc`;
         if (cliente_id) url += `&cliente_id=eq.${encodeURIComponent(cliente_id)}`;
         const r = await fetch(url, { headers: sh });
+        return res.status(r.status).json(await r.json());
+      }
+
+      if (action === 'pagos_historial') {
+        if (!cliente_id) return res.status(400).json({ error: 'Falta cliente_id' });
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/pagos?cliente_id=eq.${encodeURIComponent(cliente_id)}&order=created_at.desc&limit=50`,
+          { headers: sh }
+        );
         return res.status(r.status).json(await r.json());
       }
 

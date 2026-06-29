@@ -9845,19 +9845,17 @@ async function abrirHistorialPagosPropios() {
   if (!modal || !content) return;
   content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--t4);font-size:13px">Cargando...</div>';
   modal.style.display = 'flex';
-  const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  const cid = u.cliente_id;
-  if (!cid) { content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--t4)">No se pudo identificar la cuenta.</div>'; return; }
   try {
-    const r = await fetch(`${_SURL}/rest/v1/pagos?cliente_id=eq.${cid}&order=created_at.desc&limit=50`, { headers: _SH });
+    const tok = localStorage.getItem('attempo_session_token') || '';
+    const r = await fetch('/api/usuarios-admin?action=mis_pagos', { headers: { 'x-session-token': tok } });
     const pagos = await r.json();
-    if (!pagos?.length) {
+    if (!Array.isArray(pagos) || !pagos.length) {
       content.innerHTML = '<div style="padding:48px;text-align:center;color:var(--t4);font-size:13px">Sin pagos registrados</div>';
       return;
     }
     const planLabel = { mensual:'Mensual', anual:'Anual', demo:'Demo', inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA' };
     const platLabel = { flow:'Flow.cl', transferencia:'Transferencia', webpay:'Webpay', mercadopago:'Mercado Pago' };
-    const rows = pagos.map(p => {
+    const rows = pagos.map((p,i) => {
       const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'}) : '—';
       const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-CL')}` : '—';
       return `<tr style="border-bottom:1px solid var(--b1)">
@@ -9865,6 +9863,7 @@ async function abrirHistorialPagosPropios() {
         <td style="padding:10px 16px"><span style="background:rgba(108,92,228,0.1);color:var(--a);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px">${planLabel[p.plan]||p.plan||'—'}</span></td>
         <td style="padding:10px 16px;font-size:14px;font-weight:700;color:#10b981">${monto}</td>
         <td style="padding:10px 16px;font-size:12px;color:var(--t3)">${platLabel[p.plataforma]||p.plataforma||'—'}</td>
+        <td style="padding:10px 16px"><button onclick="descargarVoucher(${i})" style="border:1px solid var(--b1);background:#fff;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--a);font-weight:600">↓ Voucher</button></td>
       </tr>`;
     }).join('');
     const total = pagos.reduce((s,p) => s + (Number(p.monto)||0), 0);
@@ -9874,6 +9873,7 @@ async function abrirHistorialPagosPropios() {
         <th style="padding:8px 16px;font-size:11px;color:var(--t3);font-weight:600;text-align:left">Plan</th>
         <th style="padding:8px 16px;font-size:11px;color:var(--t3);font-weight:600;text-align:left">Monto</th>
         <th style="padding:8px 16px;font-size:11px;color:var(--t3);font-weight:600;text-align:left">Plataforma</th>
+        <th style="padding:8px 16px;font-size:11px;color:var(--t3);font-weight:600;text-align:left"></th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
@@ -9881,9 +9881,64 @@ async function abrirHistorialPagosPropios() {
       <span style="font-size:12px;color:var(--t4)">${pagos.length} pago${pagos.length!==1?'s':''}</span>
       <span style="font-size:14px;font-weight:700;color:var(--black)">Total: $${total.toLocaleString('es-CL')}</span>
     </div>`;
+    window._misPagosData = pagos;
   } catch(e) {
     content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger);font-size:13px">Error al cargar historial</div>`;
   }
+}
+
+function descargarVoucher(idx) {
+  const p = (window._misPagosData || [])[idx];
+  if (!p) return;
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  const negocio = u.negocio || u.nombre || '';
+  const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Clínica IA' };
+  const platLabel = { flow:'Flow.cl', transferencia:'Transferencia bancaria', webpay:'Webpay', mercadopago:'Mercado Pago' };
+  const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-CL')}` : '—';
+  const ref   = p.referencia || p.id || '—';
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Comprobante attempo</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Inter,Arial,sans-serif;background:#f5f3ff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px}
+  .card{background:#fff;border-radius:16px;width:480px;overflow:hidden;box-shadow:0 8px 40px rgba(108,92,228,.12)}
+  .hdr{background:#6C5CE4;padding:28px 32px;text-align:center;color:#fff}
+  .hdr h1{font-size:22px;font-weight:700;margin-bottom:4px}
+  .hdr p{font-size:12px;opacity:.8}
+  .badge{display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:600;margin-top:10px}
+  .body{padding:28px 32px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0eeff}
+  .row:last-child{border-bottom:none}
+  .lbl{font-size:12px;color:#9ca3af;font-weight:500}
+  .val{font-size:13px;color:#1a1a2e;font-weight:600;text-align:right}
+  .total{background:#f5f3ff;border-radius:10px;padding:14px 18px;margin-top:16px;display:flex;justify-content:space-between;align-items:center}
+  .total .lbl{font-size:13px;color:#6C5CE4;font-weight:700}
+  .total .val{font-size:22px;color:#6C5CE4;font-weight:800}
+  .ftr{padding:16px 32px;border-top:1px solid #f0eeff;text-align:center;font-size:11px;color:#9ca3af}
+  @media print{body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;width:100%}}
+</style>
+</head><body>
+<div class="card">
+  <div class="hdr">
+    <h1>Comprobante de pago</h1>
+    <p>attempo — Todo a tu tiempo</p>
+    <div class="badge">✓ Pago confirmado</div>
+  </div>
+  <div class="body">
+    <div class="row"><span class="lbl">Fecha</span><span class="val">${fecha}</span></div>
+    <div class="row"><span class="lbl">Referencia</span><span class="val" style="font-family:monospace;font-size:11px">${ref}</span></div>
+    <div class="row"><span class="lbl">Negocio</span><span class="val">${negocio}</span></div>
+    <div class="row"><span class="lbl">Suscripción</span><span class="val">${planLabel[p.plan]||p.plan||'—'}</span></div>
+    <div class="row"><span class="lbl">Plataforma de pago</span><span class="val">${platLabel[p.plataforma]||p.plataforma||'—'}</span></div>
+    <div class="total"><span class="lbl">Total pagado</span><span class="val">${monto}</span></div>
+  </div>
+  <div class="ftr">attempo.cl · contacto@attempo.cl · Este comprobante es válido como recibo de pago</div>
+</div>
+<script>window.print();<\/script>
+</body></html>`;
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); }
 }
 </script>
 

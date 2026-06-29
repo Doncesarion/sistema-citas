@@ -1003,8 +1003,8 @@ async function verHistorialPagos(clienteId, nombre) {
 
   try {
     const r = await fetch(
-      `${SUPA_URL}/rest/v1/pagos?cliente_id=eq.${clienteId}&order=created_at.desc&limit=50`,
-      { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
+      `/api/usuarios-admin?action=pagos_historial&cliente_id=${encodeURIComponent(clienteId)}`,
+      { headers: { 'x-sa-token': saToken } }
     );
     const pagos = await r.json();
 
