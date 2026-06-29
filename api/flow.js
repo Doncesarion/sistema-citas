@@ -179,7 +179,7 @@ async function handleSubWebhook(commerceOrder, statusData, res) {
     body: JSON.stringify({ activo: true, plan, fecha_expiracion })
   }).catch(e => console.error('flow sub webhook: patch error:', e.message));
 
-  const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/pagos_licencia`, {
+  const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
     method: 'POST',
     headers: { ...sh, Prefer: 'return=minimal' },
     body: JSON.stringify({

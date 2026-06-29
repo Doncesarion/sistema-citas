@@ -613,7 +613,7 @@ async function cargarIngresos() {
   }
 
   try {
-    let url = `${SUPA_URL}/rest/v1/pagos_licencia?select=monto`;
+    let url = `${SUPA_URL}/rest/v1/pagos?select=monto`;
     if (desde) url += `&created_at=gte.${encodeURIComponent(desde)}&created_at=lte.${encodeURIComponent(hasta)}`;
     const res = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
     const pagos = await res.json();
@@ -1003,7 +1003,7 @@ async function verHistorialPagos(clienteId, nombre) {
 
   try {
     const r = await fetch(
-      `${SUPA_URL}/rest/v1/pagos_licencia?cliente_id=eq.${clienteId}&order=created_at.desc&limit=50`,
+      `${SUPA_URL}/rest/v1/pagos?cliente_id=eq.${clienteId}&order=created_at.desc&limit=50`,
       { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
     );
     const pagos = await r.json();
