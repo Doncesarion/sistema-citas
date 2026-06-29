@@ -273,9 +273,12 @@ async function enviar(textoDirecto) {
     historial.push({ role: 'assistant', content: respuesta.mensaje });
     if (respuesta.slots_disponibles?.length) {
       agregarMensaje('ai', respuesta.mensaje, null, null, respuesta.slots_disponibles);
+    } else if (respuesta.cita_flow_url) {
+      agregarMensaje('ai', 'Tu cita fue reservada con éxito. En un momento te redirigimos al pago seguro con Flow para completar tu reserva...', null, []);
+      setTimeout(() => { window.location.href = respuesta.cita_flow_url; }, 2000);
     } else {
-      const chips = respuesta.cita_creada ? [] : getChips(respuesta.mensaje);
-      agregarMensaje('ai', respuesta.mensaje, respuesta.cita_creada, chips);
+      const chips = respuesta.datos_reserva ? [] : getChips(respuesta.mensaje);
+      agregarMensaje('ai', respuesta.mensaje, respuesta.datos_reserva, chips);
     }
   }
 }

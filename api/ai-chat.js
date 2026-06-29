@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 const ADMIN_HELP_PROMPT = `Eres Attio, el asistente de ayuda interno de Attempo. Tu misión es responder todas las dudas del administrador sobre cómo usar el dashboard. Eres claro, amigable y directo. Siempre respondes en español.
 
 SECCIONES DEL DASHBOARD:
@@ -351,7 +353,72 @@ CÓMO ESCRIBIR:
     }
 
     if (nombre === 'confirmar_reserva') {
-      return { ok: true, listo: true };
+      const { especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha, hora, duracion, precio } = params;
+
+      // Crear la cita en Supabase
+      let cita;
+      try {
+        const rCita = await fetch(`${SUPABASE_URL}/rest/v1/citas`, {
+          method: 'POST',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({
+            cliente_id, especialista_id,
+            nombre_especialista: nombre_especialista || null,
+            nombre_paciente,
+            tel_paciente: tel_paciente || null,
+            email_paciente: email_paciente || null,
+            servicio: servicio || null,
+            fecha, hora,
+            duracion: duracion ? parseInt(String(duracion)) : null,
+            precio: precio || null,
+            estado: 'pending'
+          })
+        });
+        const rows = await rCita.json();
+        cita = Array.isArray(rows) ? rows[0] : rows;
+        if (!cita?.id) return { ok: true, listo: true };
+      } catch(e) {
+        console.error('confirmar_reserva: cita error:', e.message);
+        return { ok: true, listo: true };
+      }
+
+      // Si el negocio tiene Flow configurado y el servicio tiene precio → generar link de pago
+      const useFlow = !!(metodosPago.flow && metodosPago.flow_api_key && metodosPago.flow_secret_key && precio > 0);
+      if (useFlow) {
+        try {
+          const BASE_URL_CF = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+          const flowApiUrl  = metodosPago.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
+          const signFlow    = (p, s) => {
+            const keys = Object.keys(p).sort();
+            return crypto.createHmac('sha256', s).update(keys.map(k => k + p[k]).join('')).digest('hex');
+          };
+          const fp = {
+            apiKey:          metodosPago.flow_api_key,
+            commerceOrder:   cita.id,
+            subject:         `Cita${servicio ? ': ' + servicio : ''} — ${negocio_nombre || 'la clínica'}`.slice(0, 255),
+            currency:        'CLP',
+            amount:          String(Math.round(Number(precio))),
+            email:           email_paciente || '',
+            urlConfirmation: `${BASE_URL_CF}/api/flow-confirm?cid=${cliente_id}`,
+            urlReturn:       `${BASE_URL_CF}/api/flow-return?tipo=cita`
+          };
+          fp.s = signFlow(fp, metodosPago.flow_secret_key);
+          const flowResp = await fetch(`${flowApiUrl}/payment/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(fp).toString()
+          });
+          const flowData = await flowResp.json();
+          if (flowData.url && flowData.token) {
+            return { ok: true, listo: true, flow_url: `${flowData.url}?token=${flowData.token}`, cita_id: cita.id };
+          }
+          console.error('confirmar_reserva: flow create error:', JSON.stringify(flowData));
+        } catch(e) {
+          console.error('confirmar_reserva: flow error:', e.message);
+        }
+      }
+
+      return { ok: true, listo: true, cita };
     }
 
     return { error: 'Herramienta no reconocida' };
@@ -363,6 +430,7 @@ CÓMO ESCRIBIR:
     let mostrar_calendario  = false;
     let especialista_id_cal = null;
     let datos_reserva       = null;
+    let cita_flow_url       = null;
 
     for (let i = 0; i < 5; i++) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -392,7 +460,7 @@ CÓMO ESCRIBIR:
         const text = data.content.find(b => b.type === 'text')?.text || '';
         const mensaje = datos_reserva ? '' : text;
         incUso(SUPABASE_URL, SUPABASE_KEY, cliente_id, 'mensajes_ia');
-        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva });
+        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva, cita_flow_url });
       }
 
       const toolBlocks = data.content.filter(b => b.type === 'tool_use');
@@ -402,7 +470,10 @@ CÓMO ESCRIBIR:
         const result = await ejecutarHerramienta(block.name, block.input);
         if (block.name === 'verificar_disponibilidad' && result.disponible) slots_disponibles = result.slots;
         if (block.name === 'pedir_fecha') { mostrar_calendario = true; especialista_id_cal = block.input?.especialista_id || null; }
-        if (block.name === 'confirmar_reserva') datos_reserva = { ...block.input };
+        if (block.name === 'confirmar_reserva') {
+          datos_reserva = { ...block.input, ...(result.cita_id ? { cita_id: result.cita_id } : {}) };
+          if (result.flow_url) cita_flow_url = result.flow_url;
+        }
         toolResults.push({
           type:        'tool_result',
           tool_use_id: block.id,

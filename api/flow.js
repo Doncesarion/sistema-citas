@@ -43,10 +43,10 @@ function verifySaToken(token) {
   return true;
 }
 
-function flowSign(params) {
+function flowSign(params, secret) {
   const keys = Object.keys(params).sort();
   const str = keys.map(k => k + params[k]).join('');
-  return crypto.createHmac('sha256', process.env.FLOW_SECRET_KEY).update(str).digest('hex');
+  return crypto.createHmac('sha256', secret || process.env.FLOW_SECRET_KEY).update(str).digest('hex');
 }
 
 function generateManageToken(cita_id) {
@@ -256,12 +256,38 @@ async function handleFlowWebhook(req, res) {
   const token = req.body?.token;
   if (!token) return res.status(200).send('ok');
 
+  // cid presente → pago de cita con credenciales propias del cliente
+  const cid = req.query?.cid || null;
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  let apiKey = process.env.FLOW_API_KEY;
+  let secretKey = process.env.FLOW_SECRET_KEY;
+  let citaFlowApiUrl = FLOW_API_URL;
+
+  if (cid) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago&limit=1`, { headers: sh });
+      const [cli] = await r.json();
+      apiKey    = cli?.metodos_pago?.flow_api_key;
+      secretKey = cli?.metodos_pago?.flow_secret_key;
+      citaFlowApiUrl = cli?.metodos_pago?.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
+    } catch(e) {
+      console.error('flow webhook: error fetching client creds:', e.message);
+      return res.status(200).send('ok');
+    }
+    if (!apiKey || !secretKey) {
+      console.error('flow webhook: missing client credentials for cid:', cid);
+      return res.status(200).send('ok');
+    }
+  }
+
   let statusData;
   try {
-    const params = { apiKey: process.env.FLOW_API_KEY, token };
-    params.s = flowSign(params);
+    const params = { apiKey, token };
+    params.s = flowSign(params, secretKey);
     const qs = new URLSearchParams(params);
-    const statusResp = await fetch(`${FLOW_API_URL}/payment/getStatus?${qs}`);
+    const statusResp = await fetch(`${citaFlowApiUrl}/payment/getStatus?${qs}`);
     statusData = await statusResp.json();
   } catch(e) {
     console.error('flow webhook: getStatus error:', e.message);
@@ -347,6 +373,7 @@ async function handleFlowWebhook(req, res) {
 export default async function handler(req, res) {
   // Flow redirige el browser aquí después del pago — mostrar página de confirmación
   if (req.query?.ret === '1') {
+    if (req.query.tipo === 'cita') return res.redirect(302, '/pago-exitoso?tipo=cita');
     const plan = req.query.plan || '';
     const dest = plan ? `/pago-exitoso?plan=${encodeURIComponent(plan)}` : '/pago-exitoso';
     return res.redirect(302, dest);

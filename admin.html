@@ -2953,10 +2953,29 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
             <div>
               <div style="font-size:13px;font-weight:500;color:var(--a)">Pago online con Flow ⚡</div>
-              <div style="font-size:12px;color:var(--t3)">El paciente recibe un link de pago por email y paga con tarjeta online</div>
+              <div style="font-size:12px;color:var(--t3)">El paciente paga su cita con tarjeta antes de llegar — requiere cuenta en Flow.cl</div>
             </div>
-            <input type="checkbox" id="pago-flow" style="accent-color:var(--a);width:16px;height:16px">
+            <input type="checkbox" id="pago-flow" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleFlowDatos()">
           </label>
+        </div>
+      </div>
+
+      <!-- Credenciales Flow (se muestra si Flow activo) -->
+      <div id="flow-datos" style="display:none">
+        <div class="card" style="padding:20px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Credenciales de Flow</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Obtén tu API Key y Secret Key en <strong>flow.cl → Panel → Integración API</strong>. El dinero va directo a tu cuenta de Flow.</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">API Key</label><input id="flow-api-key" type="text" placeholder="Ej: 6AA625F6-9FA9-4244-..." class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Secret Key</label><input id="flow-secret-key" type="password" placeholder="••••••••••••••••••••••••••••••••" class="fi" style="width:100%"></div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 0;border-top:1px solid var(--b1);margin-top:4px">
+              <input type="checkbox" id="flow-sandbox" style="accent-color:var(--a);width:15px;height:15px">
+              <div>
+                <div style="font-size:12px;font-weight:500;color:var(--t2)">Modo sandbox (pruebas)</div>
+                <div style="font-size:11px;color:var(--t3)">Actívalo para probar sin cobros reales. Desactívalo en producción.</div>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -4435,6 +4454,9 @@ async function cargarPagos() {
     if (el('pago-transferencia')) el('pago-transferencia').checked = !!mp.transferencia;
     if (el('pago-efectivo'))      el('pago-efectivo').checked      = !!mp.efectivo;
     if (el('pago-flow'))          el('pago-flow').checked          = !!mp.flow;
+    if (el('flow-api-key'))    el('flow-api-key').value    = mp.flow_api_key    || '';
+    if (el('flow-secret-key')) el('flow-secret-key').value = mp.flow_secret_key || '';
+    if (el('flow-sandbox'))    el('flow-sandbox').checked  = !!mp.flow_sandbox;
     if (el('banco-banco'))  el('banco-banco').value  = db.banco  || '';
     if (el('banco-tipo'))   el('banco-tipo').value   = db.tipo   || '';
     if (el('banco-cuenta')) el('banco-cuenta').value = db.cuenta || '';
@@ -4442,6 +4464,7 @@ async function cargarPagos() {
     if (el('banco-nombre')) el('banco-nombre').value = db.nombre || '';
     if (el('banco-email'))  el('banco-email').value  = db.email  || '';
     toggleBancoDatos();
+    toggleFlowDatos();
   } catch(e) { console.error('cargarPagos:', e); }
 }
 
@@ -4451,15 +4474,24 @@ function toggleBancoDatos() {
   if (bd) bd.style.display = checked ? 'block' : 'none';
 }
 
+function toggleFlowDatos() {
+  const checked = document.getElementById('pago-flow')?.checked;
+  const fd = document.getElementById('flow-datos');
+  if (fd) fd.style.display = checked ? 'block' : 'none';
+}
+
 async function guardarPagos() {
   const cid = await getClienteId();
   if (!cid) return;
   const el = id => document.getElementById(id);
   const metodos_pago = {
-    webpay:        el('pago-webpay')?.checked        || false,
-    transferencia: el('pago-transferencia')?.checked || false,
-    efectivo:      el('pago-efectivo')?.checked      || false,
-    flow:          el('pago-flow')?.checked          || false
+    webpay:         el('pago-webpay')?.checked        || false,
+    transferencia:  el('pago-transferencia')?.checked || false,
+    efectivo:       el('pago-efectivo')?.checked      || false,
+    flow:           el('pago-flow')?.checked          || false,
+    flow_api_key:   el('flow-api-key')?.value.trim()  || '',
+    flow_secret_key:el('flow-secret-key')?.value.trim()|| '',
+    flow_sandbox:   el('flow-sandbox')?.checked       || false
   };
   const datos_banco = {
     banco:  el('banco-banco')?.value.trim()  || '',

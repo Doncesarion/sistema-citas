@@ -104,8 +104,16 @@
 
   <script>
     const params = new URLSearchParams(location.search);
+    const tipo = params.get('tipo');
     const plan = params.get('plan');
-    if (plan === 'anual') {
+
+    if (tipo === 'cita') {
+      document.querySelector('h1').textContent = '¡Pago recibido!';
+      document.querySelector('p').textContent = 'Tu cita está confirmada. Recibirás un correo con los detalles de tu reserva.';
+      document.getElementById('plan-pill').textContent = 'Cita confirmada ✓';
+      document.querySelector('.btn').href = 'javascript:history.back()';
+      document.querySelector('.btn').textContent = 'Volver';
+    } else if (plan === 'anual') {
       document.getElementById('plan-pill').textContent = 'Plan anual activo';
     }
   </script>
