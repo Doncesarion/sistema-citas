@@ -9848,7 +9848,14 @@ async function abrirHistorialPagosPropios() {
   modal.style.display = 'flex';
   try {
     const tok = localStorage.getItem('attempo_session_token') || '';
-    const r = await fetch('/api/usuarios-admin?action=mis_pagos', { headers: { 'x-session-token': tok } });
+    const u2  = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    const hdrs = { 'x-session-token': tok };
+    if (u2._impersonando && u2.cliente_id) {
+      hdrs['x-override-cliente-id'] = u2.cliente_id;
+      const saT = localStorage.getItem('sa_token') || '';
+      if (saT) hdrs['x-sa-token'] = saT;
+    }
+    const r = await fetch('/api/usuarios-admin?action=mis_pagos', { headers: hdrs });
     const pagos = await r.json();
     if (!r.ok) {
       content.innerHTML = `<div style="padding:48px;text-align:center;color:var(--danger);font-size:13px">Error ${r.status}: ${pagos?.error || 'No autorizado'}</div>`;

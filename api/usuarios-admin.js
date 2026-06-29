@@ -331,10 +331,14 @@ export default async function handler(req, res) {
     return res.status(200).json({ unread: Array.isArray(msgs) ? msgs.length : 0 });
   }
 
-  // ── GET mis_pagos: historial de pagos propios (session token del admin) ──────
+  // ── GET mis_pagos: historial de pagos propios (session token o impersonación SA) ──
   if (req.method === 'GET' && req.query?.action === 'mis_pagos') {
-    const clienteId = getClienteIdFromToken(req.headers['x-session-token']);
-    if (!clienteId) return res.status(401).json({ error: 'No autorizado' });
+    let clienteId = getClienteIdFromToken(req.headers['x-session-token']);
+    // Impersonación SA: token es sa:superadmin:... + x-override-cliente-id
+    if ((!clienteId || clienteId === 'sa') && req.headers['x-override-cliente-id'] && verifyToken(req.headers['x-sa-token'])) {
+      clienteId = req.headers['x-override-cliente-id'];
+    }
+    if (!clienteId || clienteId === 'sa') return res.status(401).json({ error: 'No autorizado' });
     const KEY = process.env.SUPABASE_SERVICE_KEY;
     const sh2 = { apikey: KEY, Authorization: `Bearer ${KEY}` };
     const r = await fetch(
