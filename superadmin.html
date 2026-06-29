@@ -1420,57 +1420,129 @@ function stopSaConvPoll() { if (_saPollTimer) { clearInterval(_saPollTimer); _sa
 
 function escSA(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function descargarVoucherSA(idx) {
-  const p      = (window._saHistorialPagos || [])[idx];
-  const nombre = window._saHistorialNombre || '';
+async function descargarVoucherSA(idx) {
+  const p = (window._saHistorialPagos || [])[idx];
   if (!p) return;
+  let cli = { nombre_negocio: window._saHistorialNombre || '', email:'', rut:'', direccion:'' };
+  if (p.cliente_id) {
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?id=eq.${p.cliente_id}&select=nombre_negocio,email,rut,direccion&limit=1`, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+      const [d] = await r.json() || [{}];
+      if (d) cli = { nombre_negocio: d.nombre_negocio || cli.nombre_negocio, email: d.email||'', rut: d.rut||'', direccion: d.direccion||'' };
+    } catch(e) {}
+  }
+  abrirInvoiceAtmp(p, cli);
+}
+
+function abrirInvoiceAtmp(p, cli) {
   const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Clínica IA' };
   const platLabel = { flow:'Flow.cl', transferencia:'Transferencia bancaria', webpay:'Webpay', mercadopago:'Mercado Pago' };
-  const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'}) : '—';
-  const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-CL')}` : '—';
-  const ref   = p.referencia || p.id || '—';
-  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Comprobante attempo — ${nombre}</title>
-<style>
+  const dt      = p.created_at ? new Date(p.created_at) : new Date();
+  const dias    = p.plan === 'anual' ? 365 : 30;
+  const dtFin   = new Date(dt.getTime() + dias * 86400000);
+  const fmtLong = d => d.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'});
+  const fmtShort= d => d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const ref     = String(p.referencia || p.id || '');
+  const invNum  = 'ATMP-' + dt.getFullYear() + String(dt.getMonth()+1).padStart(2,'0') + '-' + (ref.slice(-6) || String(dt.getTime()).slice(-6));
+  const monto   = Number(p.monto) || 0;
+  const montoFmt= '$' + monto.toLocaleString('es-CL');
+  const css = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:Inter,Arial,sans-serif;background:#f5f3ff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px}
-  .card{background:#fff;border-radius:16px;width:480px;overflow:hidden;box-shadow:0 8px 40px rgba(108,92,228,.12)}
-  .hdr{background:#6C5CE4;padding:28px 32px;text-align:center;color:#fff}
-  .hdr h1{font-size:22px;font-weight:700;margin-bottom:4px}
-  .hdr p{font-size:12px;opacity:.8}
-  .badge{display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:600;margin-top:10px}
-  .body{padding:28px 32px}
-  .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0eeff}
-  .row:last-child{border-bottom:none}
-  .lbl{font-size:12px;color:#9ca3af;font-weight:500}
-  .val{font-size:13px;color:#1a1a2e;font-weight:600;text-align:right}
-  .total{background:#f5f3ff;border-radius:10px;padding:14px 18px;margin-top:16px;display:flex;justify-content:space-between;align-items:center}
-  .total .lbl{font-size:13px;color:#6C5CE4;font-weight:700}
-  .total .val{font-size:22px;color:#6C5CE4;font-weight:800}
-  .ftr{padding:16px 32px;border-top:1px solid #f0eeff;text-align:center;font-size:11px;color:#9ca3af}
-  @media print{body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;width:100%}}
-</style>
-</head><body>
-<div class="card">
-  <div class="hdr">
-    <h1>Comprobante de pago</h1>
-    <p>attempo — Todo a tu tiempo</p>
-    <div class="badge">✓ Pago confirmado</div>
-  </div>
-  <div class="body">
-    <div class="row"><span class="lbl">Fecha</span><span class="val">${fecha}</span></div>
-    <div class="row"><span class="lbl">Referencia</span><span class="val" style="font-family:monospace;font-size:11px">${ref}</span></div>
-    <div class="row"><span class="lbl">Negocio</span><span class="val">${nombre}</span></div>
-    <div class="row"><span class="lbl">Suscripción</span><span class="val">${planLabel[p.plan]||p.plan||'—'}</span></div>
-    <div class="row"><span class="lbl">Plataforma de pago</span><span class="val">${platLabel[p.plataforma]||p.plataforma||'—'}</span></div>
-    <div class="total"><span class="lbl">Total pagado</span><span class="val">${monto}</span></div>
-  </div>
-  <div class="ftr">attempo.cl · contacto@attempo.cl · Este comprobante es válido como recibo de pago</div>
-</div>
-<script>window.print();<\/script>
-</body></html>`;
+  body{font-family:Inter,Arial,sans-serif;background:#f7f7f8;color:#111;font-size:14px;line-height:1.5;padding:40px 24px}
+  .page{background:#fff;max-width:700px;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.10)}
+  .top-bar{background:#6C5CE4;height:6px}
+  .inner{padding:48px 52px}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:44px}
+  .brand-name{font-size:22px;font-weight:800;color:#6C5CE4;letter-spacing:-.04em}
+  .brand-sub{font-size:11px;color:#9ca3af;font-weight:500;letter-spacing:.03em;text-transform:uppercase}
+  .inv-title{font-size:28px;font-weight:800;color:#111;letter-spacing:-.03em;margin-bottom:8px;text-align:right}
+  .inv-num{font-size:13px;color:#6b7280;margin-bottom:4px;text-align:right}
+  .inv-num span{font-weight:600;color:#111}
+  .status-paid{display:inline-block;background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;letter-spacing:.04em;text-transform:uppercase}
+  .parties{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:40px;padding:28px 32px;background:#f9f9fb;border-radius:10px;border:1px solid #ede9fe}
+  .party-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;margin-bottom:8px}
+  .party-name{font-size:15px;font-weight:700;color:#111;margin-bottom:4px}
+  .party-info{font-size:13px;color:#6b7280;line-height:1.6}
+  .items{width:100%;border-collapse:collapse;margin-bottom:24px}
+  .items thead tr{border-bottom:2px solid #ede9fe}
+  .items th{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;padding:0 0 10px;text-align:left}
+  .items th:last-child{text-align:right}
+  .items td{padding:18px 0;border-bottom:1px solid #f3f4f6;vertical-align:top}
+  .items td:last-child{text-align:right;font-weight:700;color:#111}
+  .item-name{font-size:14px;font-weight:600;color:#111;margin-bottom:3px}
+  .item-desc{font-size:12px;color:#9ca3af}
+  .totals{display:flex;justify-content:flex-end;margin-bottom:36px}
+  .totals-box{width:260px}
+  .totals-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;color:#6b7280;border-bottom:1px solid #f3f4f6}
+  .totals-total{display:flex;justify-content:space-between;padding:14px 16px;background:#6C5CE4;border-radius:8px;margin-top:8px}
+  .totals-total span{font-size:15px;font-weight:700;color:#fff}
+  .payment-box{background:#f9f9fb;border:1px solid #ede9fe;border-radius:10px;padding:20px 24px;margin-bottom:36px}
+  .payment-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;margin-bottom:12px}
+  .payment-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .pi-label{font-size:11px;color:#9ca3af;margin-bottom:2px}
+  .pi-val{font-size:13px;font-weight:600;color:#111}
+  .footer{border-top:1px solid #f3f4f6;padding-top:24px;display:flex;justify-content:space-between;align-items:center}
+  .footer div{font-size:12px;color:#9ca3af;line-height:1.7}
+  @media print{body{background:#fff;padding:0}.page{box-shadow:none;border-radius:0;max-width:100%}.inner{padding:32px 40px}}`;
   const win = window.open('', '_blank');
-  if (win) { win.document.write(html); win.document.close(); }
+  if (!win) return;
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Invoice ${invNum} — attempo</title><style>${css}</style></head><body>
+<div class="page"><div class="top-bar"></div><div class="inner">
+  <div class="hdr">
+    <div>
+      <div class="brand-name">attempo</div>
+      <div class="brand-sub" style="margin-top:4px">Todo a tu tiempo</div>
+      <div style="margin-top:14px;font-size:12px;color:#6b7280;line-height:1.8">attempo.cl<br>contacto@attempo.cl</div>
+    </div>
+    <div>
+      <div class="inv-title">INVOICE</div>
+      <div class="inv-num">N° <span>${invNum}</span></div>
+      <div class="inv-num">Emisión: <span>${fmtLong(dt)}</span></div>
+      <div class="inv-num">Período hasta: <span>${fmtLong(dtFin)}</span></div>
+      <div style="text-align:right;margin-top:8px"><span class="status-paid">✓ Pagado</span></div>
+    </div>
+  </div>
+  <div class="parties">
+    <div>
+      <div class="party-label">De</div>
+      <div class="party-name">attempo</div>
+      <div class="party-info">contacto@attempo.cl<br>attempo.cl</div>
+    </div>
+    <div>
+      <div class="party-label">Facturado a</div>
+      <div class="party-name">${cli.nombre_negocio||'—'}</div>
+      <div class="party-info">${cli.email||''}${cli.rut?'<br>'+cli.rut:''}${cli.direccion?'<br>'+cli.direccion:''}</div>
+    </div>
+  </div>
+  <table class="items">
+    <thead><tr><th>Descripción</th><th style="text-align:center">Período</th><th>Monto</th></tr></thead>
+    <tbody><tr>
+      <td><div class="item-name">Suscripción attempo — ${planLabel[p.plan]||p.plan}</div><div class="item-desc">Plataforma de agendamiento de citas médicas</div></td>
+      <td style="text-align:center;font-size:13px;color:#6b7280">${fmtShort(dt)} – ${fmtShort(dtFin)}</td>
+      <td>${montoFmt}</td>
+    </tr></tbody>
+  </table>
+  <div class="totals"><div class="totals-box">
+    <div class="totals-row"><span>Subtotal</span><span>${montoFmt}</span></div>
+    <div class="totals-row"><span>Impuestos</span><span>$0</span></div>
+    <div class="totals-total"><span>Total CLP</span><span>${montoFmt}</span></div>
+  </div></div>
+  <div class="payment-box">
+    <div class="payment-title">Información de pago</div>
+    <div class="payment-grid">
+      <div><div class="pi-label">Plataforma</div><div class="pi-val">${platLabel[p.plataforma]||p.plataforma||'—'}</div></div>
+      <div><div class="pi-label">Referencia</div><div class="pi-val" style="font-family:monospace;font-size:12px">${ref||'—'}</div></div>
+      <div><div class="pi-label">Estado</div><div class="pi-val" style="color:#16a34a">Pagado</div></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div>Gracias por confiar en attempo.<br>¿Tienes preguntas? <strong>contacto@attempo.cl</strong></div>
+    <div style="text-align:right">attempo.cl<br>Comprobante de pago válido.</div>
+  </div>
+</div></div>
+<script>setTimeout(()=>window.print(),400);<\/script>
+</body></html>`);
+  win.document.close();
 }
 </script>
 </body>
