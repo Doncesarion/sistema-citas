@@ -1023,27 +1023,25 @@ async function verHistorialPagos(clienteId, nombre) {
     const rows = pagos.map((p, i) => {
       const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' }) : '—';
       const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-CL')}` : '—';
+      const origen = (platLabel[p.plataforma]||p.plataforma||'') + (p.referencia ? ' · ' + p.referencia : '');
       return `<tr>
-        <td style="font-size:13px">${fecha}</td>
+        <td style="font-size:12px;white-space:nowrap">${fecha}</td>
         <td><span class="tag ${p.plan==='anual'?'tag-anual':p.plan==='mensual'?'tag-mensual':'tag-demo'}">${planLabel[p.plan]||p.plan}</span></td>
-        <td style="font-size:13px;font-weight:600;color:var(--success)">${monto}</td>
-        <td style="font-size:12px;color:var(--gray-500)">${platLabel[p.plataforma]||p.plataforma||'—'}</td>
-        <td style="font-size:12px;color:var(--gray-400)">${p.referencia||'—'}</td>
-        <td><button onclick="descargarVoucherSA(${i})" style="border:1px solid #e5e7eb;background:#fff;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;color:#6C5CE4;font-weight:600">↓ Voucher</button></td>
+        <td style="font-size:13px;font-weight:600;color:var(--success);white-space:nowrap">${monto}</td>
+        <td style="font-size:12px;color:var(--gray-400)">${origen||'—'}</td>
+        <td style="text-align:right"><button onclick="descargarVoucherSA(${i})" style="border:1px solid #e5e7eb;background:#fff;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;color:#6C5CE4;font-weight:600;white-space:nowrap">↓ Voucher</button></td>
       </tr>`;
     }).join('');
 
     const total = pagos.reduce((s, p) => s + (p.monto || 0), 0);
 
     document.getElementById('historial-content').innerHTML = `
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr>
-            <th>Fecha</th><th>Plan</th><th>Monto</th><th>Plataforma</th><th>Referencia</th><th></th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <table style="width:100%">
+        <thead><tr>
+          <th>Fecha</th><th>Plan</th><th>Monto</th><th>Transacción</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
       <div style="padding:14px 20px;border-top:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;color:var(--gray-400)">${pagos.length} pago${pagos.length!==1?'s':''} registrados</span>
         <span style="font-size:14px;font-weight:700;color:var(--black)">Total: $${total.toLocaleString('es-CL')}</span>
