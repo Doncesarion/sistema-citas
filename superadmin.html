@@ -1014,42 +1014,63 @@ async function verHistorialPagos(clienteId, nombre) {
       return;
     }
 
-    const planLabel = { mensual: 'Mensual', anual: 'Anual', demo: 'Demo' };
-    const platLabel = { transferencia: 'Transferencia', flow: 'Flow.cl', mercadopago: 'Mercado Pago', webpay: 'Webpay' };
-
     window._saHistorialPagos = pagos;
     window._saHistorialNombre = document.getElementById('modal-historial-title').textContent.replace('Historial de pagos — ','');
 
-    const rows = pagos.map((p, i) => {
-      const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' }) : '—';
-      const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-CL')}` : '—';
-      const origen = (platLabel[p.plataforma]||p.plataforma||'') + (p.referencia ? ' · ' + p.referencia : '');
-      return `<tr>
-        <td style="font-size:12px;white-space:nowrap">${fecha}</td>
-        <td><span class="tag ${p.plan==='anual'?'tag-anual':p.plan==='mensual'?'tag-mensual':'tag-demo'}">${planLabel[p.plan]||p.plan}</span></td>
-        <td style="font-size:13px;font-weight:600;color:var(--success);white-space:nowrap">${monto}</td>
-        <td style="font-size:12px;color:var(--gray-400)">${origen||'—'}</td>
-        <td style="text-align:right"><button onclick="descargarVoucherSA(${i})" style="border:1px solid #e5e7eb;background:#fff;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;color:#6C5CE4;font-weight:600;white-space:nowrap">↓ Voucher</button></td>
-      </tr>`;
-    }).join('');
-
-    const total = pagos.reduce((s, p) => s + (p.monto || 0), 0);
-
-    document.getElementById('historial-content').innerHTML = `
-      <table style="width:100%">
-        <thead><tr>
-          <th>Fecha</th><th>Plan</th><th>Monto</th><th>Transacción</th><th></th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div style="padding:14px 20px;border-top:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:var(--gray-400)">${pagos.length} pago${pagos.length!==1?'s':''} registrados</span>
-        <span style="font-size:14px;font-weight:700;color:var(--black)">Total: $${total.toLocaleString('es-CL')}</span>
-      </div>`;
+    const anioActual = new Date().getFullYear();
+    const aniosDisponibles = [...new Set(pagos.map(p => p.created_at ? new Date(p.created_at).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+    window._saHistorialAnio = aniosDisponibles.includes(anioActual) ? anioActual : aniosDisponibles[0];
+    renderHistorialPagos(window._saHistorialAnio);
   } catch(e) {
     document.getElementById('historial-content').innerHTML =
       '<div class="empty-state" style="padding:24px;color:var(--danger)">Error al cargar historial: ' + e.message + '</div>';
   }
+}
+
+function renderHistorialPagos(anioFiltro) {
+  window._saHistorialAnio = anioFiltro;
+  const pagos = window._saHistorialPagos || [];
+  const planLabel = { mensual: 'Mensual', anual: 'Anual', demo: 'Demo' };
+  const platLabel = { transferencia: 'Transferencia', flow: 'Flow.cl', mercadopago: 'Mercado Pago', webpay: 'Webpay' };
+  const aniosDisponibles = [...new Set(pagos.map(p => p.created_at ? new Date(p.created_at).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+
+  const filtrados = anioFiltro === 'todos' ? pagos : pagos.filter(p => p.created_at && new Date(p.created_at).getFullYear() === anioFiltro);
+
+  const chipStyle = (activo) => `border:none;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,color .15s;${activo ? 'background:var(--primary);color:#fff' : 'background:var(--gray-100);color:var(--gray-500)'}`;
+  const chips = [
+    `<button onclick="renderHistorialPagos('todos')" style="${chipStyle(anioFiltro==='todos')}">Todos</button>`,
+    ...aniosDisponibles.map(a => `<button onclick="renderHistorialPagos(${a})" style="${chipStyle(anioFiltro===a)}">${a}</button>`)
+  ].join('');
+
+  const rows = filtrados.map((p) => {
+    const idx = pagos.indexOf(p);
+    const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' }) : '—';
+    const monto = p.monto ? `$${Number(p.monto).toLocaleString('es-CL')}` : '—';
+    const origen = (platLabel[p.plataforma]||p.plataforma||'') + (p.referencia ? ' · ' + p.referencia : '');
+    return `<tr>
+      <td style="font-size:12px;white-space:nowrap">${fecha}</td>
+      <td><span class="tag ${p.plan==='anual'?'tag-anual':p.plan==='mensual'?'tag-mensual':'tag-demo'}">${planLabel[p.plan]||p.plan}</span></td>
+      <td style="font-size:13px;font-weight:600;color:var(--success);white-space:nowrap">${monto}</td>
+      <td style="font-size:12px;color:var(--gray-400)">${origen||'—'}</td>
+      <td style="text-align:right"><button onclick="descargarVoucherSA(${idx})" style="border:1px solid #e5e7eb;background:#fff;border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;color:#6C5CE4;font-weight:600;white-space:nowrap">↓ Voucher</button></td>
+    </tr>`;
+  }).join('');
+
+  const total = filtrados.reduce((s, p) => s + (p.monto || 0), 0);
+  const sinPagos = !filtrados.length ? `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--gray-400);font-size:13px">Sin pagos en ${anioFiltro === 'todos' ? 'este período' : anioFiltro}</td></tr>` : '';
+
+  document.getElementById('historial-content').innerHTML = `
+    <div style="display:flex;gap:6px;padding:0 0 14px;flex-wrap:wrap">${chips}</div>
+    <table style="width:100%">
+      <thead><tr>
+        <th>Fecha</th><th>Plan</th><th>Monto</th><th>Transacción</th><th></th>
+      </tr></thead>
+      <tbody>${rows || sinPagos}</tbody>
+    </table>
+    <div style="padding:14px 0 0;border-top:1px solid var(--gray-100);display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <span style="font-size:12px;color:var(--gray-400)">${filtrados.length} pago${filtrados.length!==1?'s':''} ${anioFiltro !== 'todos' ? 'en '+anioFiltro : 'en total'}</span>
+      <span style="font-size:14px;font-weight:700;color:var(--black)">Total: $${total.toLocaleString('es-CL')}</span>
+    </div>`;
 }
 
 async function registrarPago() {
