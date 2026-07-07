@@ -388,13 +388,16 @@ export default async function handler(req, res) {
         const fd = await fr.json();
         if (fd.url && fd.token) {
           flow_url = `${fd.url}?token=${fd.token}`;
-          // Actualizar estado de la cita a pending_payment
-          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
-            method: 'PATCH',
-            headers: { ...sh, Prefer: 'return=minimal' },
-            body: JSON.stringify({ estado: 'pending_payment' })
-          });
-          console.log('crear-cita: flow_url generado OK');
+          // Solo bloquear como pending_payment si Flow es el único método de pago
+          const soloFlow = !metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo;
+          if (soloFlow) {
+            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+              method: 'PATCH',
+              headers: { ...sh, Prefer: 'return=minimal' },
+              body: JSON.stringify({ estado: 'pending_payment' })
+            });
+          }
+          console.log('crear-cita: flow_url generado OK, soloFlow:', soloFlow);
         } else {
           console.error('crear-cita: flow error:', JSON.stringify(fd));
         }
@@ -403,7 +406,8 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.json({ ok: true, cita, flow_url });
+    const soloFlow = !!(flow_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });

@@ -352,7 +352,7 @@ body::before{
             <a id="cf-flow-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
               Pagar ahora con Flow →
             </a>
-            <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">Tu hora queda reservada por 30 minutos</div>
+            <div id="cf-flow-hint" style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">Tu hora queda reservada por 30 minutos</div>
           </div>
 
           <div class="c-card">
@@ -952,10 +952,11 @@ async function confirmar() {
     const mp  = negocioData.metodos_pago || {};
     const db  = negocioData.datos_banco  || {};
     const tieneFlow = !!(data.flow_url && mp.flow);
+    const soloFlow  = !!data.solo_flow;
     const tienePago = tieneFlow || mp.transferencia || mp.webpay || mp.efectivo;
 
-    // Estado del panel: con Flow pendiente vs confirmado
-    if (tieneFlow) {
+    // Solo mostrar "Completa tu pago" cuando Flow es el único método
+    if (soloFlow) {
       document.getElementById('cf-icon').textContent  = '→';
       document.getElementById('cf-title').textContent = 'Completa tu pago';
       document.getElementById('cf-sub').textContent   = 'Tu hora está reservada. Paga ahora para confirmar tu cita.';
@@ -968,7 +969,13 @@ async function confirmar() {
       document.getElementById('cf-sub').textContent   = precio && tienePago
         ? 'Te enviamos los detalles de pago y el resumen a tu correo.'
         : 'Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.';
-      document.getElementById('cf-flow-wrap').style.display = 'none';
+      if (tieneFlow) {
+        document.getElementById('cf-flow-btn').href = data.flow_url;
+        document.getElementById('cf-flow-hint').textContent = 'Paga ahora y evita llevar efectivo';
+        document.getElementById('cf-flow-wrap').style.display = 'block';
+      } else {
+        document.getElementById('cf-flow-wrap').style.display = 'none';
+      }
     }
 
     if (precio && tienePago) {
