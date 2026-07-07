@@ -309,9 +309,6 @@ async function handleFlowWebhook(req, res) {
 
   const cita_id = commerceOrder;
 
-  const KEY = process.env.SUPABASE_SERVICE_KEY;
-  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
-
   await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, {
     method: 'PATCH',
     headers: { ...sh, Prefer: 'return=minimal' },

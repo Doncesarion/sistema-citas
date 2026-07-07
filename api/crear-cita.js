@@ -377,7 +377,7 @@ export default async function handler(req, res) {
           amount:          String(precioNum),
           email:           email_paciente,
           urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cliente_id}`,
-          urlReturn:       `${BASE_URL}/pago-exitoso?tipo=cita`,
+          urlReturn:       `${BASE_URL}/api/flow-return?tipo=cita`,
         };
         fp.s = flowSign(fp, flowSecretKey);
         const fr = await fetch(`${flowApiUrl}/payment/create`, {
