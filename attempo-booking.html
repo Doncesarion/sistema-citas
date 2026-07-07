@@ -959,21 +959,21 @@ async function confirmar() {
       if (mp.transferencia) {
         const hasBanco = db.banco || db.cuenta;
         let rows = '';
-        if (db.nombre)  rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Titular</span><span>${db.nombre}</span></div>`;
-        if (db.rut)     rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">RUT</span><span>${db.rut}</span></div>`;
-        if (db.banco)   rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Banco</span><span>${db.banco}</span></div>`;
-        if (db.tipo)    rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Tipo</span><span>${db.tipo}</span></div>`;
-        if (db.cuenta)  rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Cuenta</span><span style="font-family:var(--mono)">${db.cuenta}</span></div>`;
-        if (db.email)   rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Email comprobante</span><span>${db.email}</span></div>`;
-        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">Transferencia bancaria</div>${hasBanco ? rows : '<div style="font-size:13px;color:var(--t3)">Los datos de transferencia llegaron a tu correo de confirmación.</div>'}</div>`);
+        if (db.nombre)  rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Titular</span><span>${db.nombre}</span></div>`;
+        if (db.rut)     rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">RUT</span><span>${db.rut}</span></div>`;
+        if (db.banco)   rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Banco</span><span>${db.banco}</span></div>`;
+        if (db.tipo)    rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Tipo</span><span>${db.tipo}</span></div>`;
+        if (db.cuenta)  rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Cuenta</span><span style="font-family:var(--mono)">${db.cuenta}</span></div>`;
+        if (db.email)   rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Email comprobante</span><span>${db.email}</span></div>`;
+        items.push(`<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">Transferencia bancaria</div>${hasBanco ? rows : '<div style="font-size:13px;color:var(--t3)">Los datos de transferencia llegaron a tu correo de confirmación.</div>'}</div>`);
       }
 
       if (mp.webpay) {
-        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">Webpay / Transbank</div><div style="font-size:13px;color:var(--t3)">Recibirás un link de pago online por correo.</div></div>`);
+        items.push(`<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:2px">Webpay / Transbank</div><div style="font-size:13px;color:var(--t3)">Recibirás un link de pago online por correo.</div></div>`);
       }
 
       if (mp.efectivo) {
-        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">Efectivo</div><div style="font-size:13px;color:var(--t3)">Paga al llegar a la consulta.</div></div>`);
+        items.push(`<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:2px">Efectivo</div><div style="font-size:13px;color:var(--t3)">Paga al llegar a la consulta.</div></div>`);
       }
 
       document.getElementById('cf-pagos-list').innerHTML = items.join('');
