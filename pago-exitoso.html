@@ -111,8 +111,9 @@
       document.querySelector('h1').textContent = '¡Pago recibido!';
       document.querySelector('p').textContent = 'Tu cita está confirmada. Recibirás un correo con los detalles de tu reserva.';
       document.getElementById('plan-pill').textContent = 'Cita confirmada ✓';
-      document.querySelector('.btn').href = 'https://app.attempo.cl';
-      document.querySelector('.btn').textContent = 'Volver al inicio';
+      const slug = params.get('slug');
+      document.querySelector('.btn').href = slug ? `https://app.attempo.cl/${encodeURIComponent(slug)}` : 'https://app.attempo.cl';
+      document.querySelector('.btn').textContent = 'Volver al negocio';
     } else if (plan === 'anual') {
       document.getElementById('plan-pill').textContent = 'Plan anual activo';
     }

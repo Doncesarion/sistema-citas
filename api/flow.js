@@ -372,7 +372,7 @@ export default async function handler(req, res) {
   // Flow redirige el browser aquí después del pago (puede ser iframe o navegación directa)
   if (req.query?.ret === '1') {
     const dest = req.query.tipo === 'cita'
-      ? `${BASE_URL}/pago-exitoso.html?tipo=cita`
+      ? `${BASE_URL}/pago-exitoso.html?tipo=cita${req.query.slug ? '&slug=' + encodeURIComponent(req.query.slug) : ''}`
       : `${BASE_URL}/pago-exitoso${req.query.plan ? '?plan=' + encodeURIComponent(req.query.plan) : ''}`;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');

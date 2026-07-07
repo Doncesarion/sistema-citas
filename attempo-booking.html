@@ -916,6 +916,7 @@ async function confirmar() {
       precio:            st.svc.precio,
       negocio_nombre:    negocioData.nombre_negocio,
       notas:             nota || null,
+      slug:              slug || null,
     };
 
     const r = await fetch('/api/crear-cita', {

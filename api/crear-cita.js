@@ -219,7 +219,7 @@ export default async function handler(req, res) {
     cliente_id, especialista_id, nombre_especialista,
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
-    from_admin, enviar_email, estado_admin
+    from_admin, enviar_email, estado_admin, slug
   } = req.body || {};
 
   const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'completed', cancelada:'canceled', inasistencia:'no-show' };
@@ -379,7 +379,7 @@ export default async function handler(req, res) {
           amount:          String(precioNum),
           email:           email_paciente,
           urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cliente_id}`,
-          urlReturn:       `${BASE_URL}/api/flow-return?tipo=cita`,
+          urlReturn:       `${BASE_URL}/api/flow-return?tipo=cita${slug ? '&slug=' + encodeURIComponent(slug) : ''}`,
         };
         fp.s = flowSign(fp, flowSecretKey);
         const fr = await fetch(`${flowApiUrl}/payment/create`, {
