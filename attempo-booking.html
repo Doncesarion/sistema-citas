@@ -953,7 +953,7 @@ async function confirmar() {
       const items = [];
 
       if (tieneFlow) {
-        items.push(`<a href="${data.flow_url}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:14px;border-radius:10px;text-decoration:none;margin-bottom:8px">⚡ Pagar ahora con Flow →</a>`);
+        items.push(`<a href="${data.flow_url}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:14px;border-radius:10px;text-decoration:none;margin-bottom:8px">Pagar ahora con Flow →</a>`);
       }
 
       if (mp.transferencia) {
@@ -965,15 +965,15 @@ async function confirmar() {
         if (db.tipo)    rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Tipo</span><span>${db.tipo}</span></div>`;
         if (db.cuenta)  rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Cuenta</span><span style="font-family:var(--mono)">${db.cuenta}</span></div>`;
         if (db.email)   rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Email comprobante</span><span>${db.email}</span></div>`;
-        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">🏦 Transferencia bancaria</div>${hasBanco ? rows : '<div style="font-size:13px;color:var(--t3)">Los datos de transferencia llegaron a tu correo de confirmación.</div>'}</div>`);
+        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">Transferencia bancaria</div>${hasBanco ? rows : '<div style="font-size:13px;color:var(--t3)">Los datos de transferencia llegaron a tu correo de confirmación.</div>'}</div>`);
       }
 
       if (mp.webpay) {
-        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">💳 Webpay / Transbank</div><div style="font-size:13px;color:var(--t3)">Recibirás un link de pago online por correo.</div></div>`);
+        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">Webpay / Transbank</div><div style="font-size:13px;color:var(--t3)">Recibirás un link de pago online por correo.</div></div>`);
       }
 
       if (mp.efectivo) {
-        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">💵 Efectivo</div><div style="font-size:13px;color:var(--t3)">Paga al llegar a la consulta.</div></div>`);
+        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">Efectivo</div><div style="font-size:13px;color:var(--t3)">Paga al llegar a la consulta.</div></div>`);
       }
 
       document.getElementById('cf-pagos-list').innerHTML = items.join('');

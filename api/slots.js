@@ -335,8 +335,9 @@ export default async function handler(req, res) {
     if (!dia?.activo || !dia.bloques?.length) return res.json({ disponible: false });
 
     const todos = generarSlots(dia.bloques[0].desde, dia.bloques[0].hasta);
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const citas = await fetch(
-      `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
+      `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&or=(estado.neq.pending_payment,created_at.gte.${encodeURIComponent(cutoff)})&select=hora`,
       { headers: sh }
     ).then(r => r.json());
 
