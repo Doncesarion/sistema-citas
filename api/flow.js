@@ -368,12 +368,15 @@ async function handleFlowWebhook(req, res) {
 }
 
 export default async function handler(req, res) {
-  // Flow redirige el browser aquí después del pago — mostrar página de confirmación
+  // Flow redirige el browser aquí después del pago (puede ser iframe o navegación directa)
   if (req.query?.ret === '1') {
-    if (req.query.tipo === 'cita') return res.redirect(303, `${BASE_URL}/pago-exitoso.html?tipo=cita`);
-    const plan = req.query.plan || '';
-    const dest = plan ? `/pago-exitoso?plan=${encodeURIComponent(plan)}` : '/pago-exitoso';
-    return res.redirect(302, dest);
+    const dest = req.query.tipo === 'cita'
+      ? `${BASE_URL}/pago-exitoso.html?tipo=cita`
+      : `${BASE_URL}/pago-exitoso${req.query.plan ? '?plan=' + encodeURIComponent(req.query.plan) : ''}`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=${dest}"><script>try{window.top.location.replace(${JSON.stringify(dest)})}catch(e){window.location.replace(${JSON.stringify(dest)})}</script></head><body></body></html>`);
   }
 
   if (req.method !== 'POST') return res.status(405).end();
