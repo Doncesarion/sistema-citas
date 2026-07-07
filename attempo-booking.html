@@ -345,18 +345,19 @@ body::before{
         <div class="confirm">
           <div class="c-icon">✓</div>
           <div class="c-title">¡Reserva confirmada!</div>
-          <div class="c-sub">Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.</div>
+          <div class="c-sub" id="cf-sub">Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.</div>
           <div class="c-card">
             <div class="c-row"><b>Servicio</b><span id="cf-svc">—</span></div>
             <div class="c-row"><b>Profesional</b><span id="cf-prof">—</span></div>
             <div class="c-row"><b>Fecha</b><span id="cf-fecha">—</span></div>
             <div class="c-row"><b>Hora</b><span id="cf-hora">—</span></div>
-            <div class="c-row"><b>Precio</b><span id="cf-precio" style="color:var(--a);font-weight:700;font-family:var(--mono)">—</span></div>
+            <div class="c-row" id="cf-precio-row" style="display:none"><b>Total</b><span id="cf-precio" style="color:var(--a);font-weight:700;font-family:var(--mono)">—</span></div>
           </div>
-          <div class="c-actions">
-            <a id="cf-flow-btn" href="#" target="_blank" style="display:none;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:14px;border-radius:10px;text-decoration:none;margin-bottom:10px">
-              Pagar ahora con Flow →
-            </a>
+          <div id="cf-pagos" style="display:none;margin-top:14px;border-top:1px solid var(--b1);padding-top:14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3);margin-bottom:10px">Opciones de pago</div>
+            <div id="cf-pagos-list"></div>
+          </div>
+          <div class="c-actions" style="margin-top:16px">
             <button class="btn-g" onclick="resetear()">Hacer otra reserva</button>
           </div>
         </div>
@@ -406,7 +407,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
 
   try {
     const r = await fetch(
-      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,descripcion,rubro,email,metodos_pago,horario_negocio&limit=1`,
+      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,descripcion,rubro,email,metodos_pago,datos_banco,horario_negocio&limit=1`,
       { headers: SH }
     );
     const rows = await r.json();
@@ -928,15 +929,57 @@ async function confirmar() {
     document.getElementById('cf-prof').textContent  = espNom;
     document.getElementById('cf-fecha').textContent = `${dias[dd.getDay()]} ${d} de ${MESES[m].toLowerCase()} ${y}`;
     document.getElementById('cf-hora').textContent  = st.hora;
-    document.getElementById('cf-precio').textContent = st.svc.precio ? '$' + Number(st.svc.precio).toLocaleString('es-CL') : 'A confirmar';
 
-    // Botón de pago Flow si el negocio tiene credenciales
-    const flowBtn = document.getElementById('cf-flow-btn');
-    if (data.flow_url) {
-      flowBtn.href = data.flow_url;
-      flowBtn.style.display = 'flex';
+    const precio = st.svc.precio;
+    const precioRow = document.getElementById('cf-precio-row');
+    if (precio) {
+      document.getElementById('cf-precio').textContent = '$' + Number(precio).toLocaleString('es-CL');
+      precioRow.style.display = '';
     } else {
-      flowBtn.style.display = 'none';
+      precioRow.style.display = 'none';
+    }
+
+    // Métodos de pago
+    const mp  = negocioData.metodos_pago || {};
+    const db  = negocioData.datos_banco  || {};
+    const tieneFlow = data.flow_url && mp.flow;
+    const tienePago = tieneFlow || mp.transferencia || mp.webpay || mp.efectivo;
+
+    if (precio && tienePago) {
+      document.getElementById('cf-sub').textContent = tieneFlow
+        ? 'Completa el pago para confirmar tu cita. También te enviamos un resumen por correo.'
+        : 'Te enviamos los detalles de pago y el resumen a tu correo.';
+
+      const items = [];
+
+      if (tieneFlow) {
+        items.push(`<a href="${data.flow_url}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:14px;border-radius:10px;text-decoration:none;margin-bottom:8px">⚡ Pagar ahora con Flow →</a>`);
+      }
+
+      if (mp.transferencia) {
+        const hasBanco = db.banco || db.cuenta;
+        let rows = '';
+        if (db.nombre)  rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Titular</span><span>${db.nombre}</span></div>`;
+        if (db.rut)     rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">RUT</span><span>${db.rut}</span></div>`;
+        if (db.banco)   rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Banco</span><span>${db.banco}</span></div>`;
+        if (db.tipo)    rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Tipo</span><span>${db.tipo}</span></div>`;
+        if (db.cuenta)  rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Cuenta</span><span style="font-family:var(--mono)">${db.cuenta}</span></div>`;
+        if (db.email)   rows += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--t3)">Email comprobante</span><span>${db.email}</span></div>`;
+        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">🏦 Transferencia bancaria</div>${hasBanco ? rows : '<div style="font-size:13px;color:var(--t3)">Los datos de transferencia llegaron a tu correo de confirmación.</div>'}</div>`);
+      }
+
+      if (mp.webpay) {
+        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">💳 Webpay / Transbank</div><div style="font-size:13px;color:var(--t3)">Recibirás un link de pago online por correo.</div></div>`);
+      }
+
+      if (mp.efectivo) {
+        items.push(`<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">💵 Efectivo</div><div style="font-size:13px;color:var(--t3)">Paga al llegar a la consulta.</div></div>`);
+      }
+
+      document.getElementById('cf-pagos-list').innerHTML = items.join('');
+      document.getElementById('cf-pagos').style.display = 'block';
+    } else {
+      document.getElementById('cf-pagos').style.display = 'none';
     }
 
     [1,2,3,4].forEach(i => document.getElementById('acc'+i).style.display = 'none');
