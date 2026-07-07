@@ -223,7 +223,9 @@ export default async function handler(req, res) {
   } = req.body || {};
 
   const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'completed', cancelada:'canceled', inasistencia:'no-show' };
-  const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending';
+  // Bookings públicos nacen como confirmed (el paciente se comprometió a venir)
+  // Solo se cambia a pending_payment más adelante si Flow es el único método
+  const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'confirmed';
 
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
   if (!citaIdYaCreada) {
