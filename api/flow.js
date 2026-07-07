@@ -268,7 +268,8 @@ async function handleFlowWebhook(req, res) {
   if (cid) {
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago&limit=1`, { headers: sh });
-      const [cli] = await r.json();
+      const data = await r.json();
+      const cli = Array.isArray(data) ? data[0] : null;
       apiKey    = cli?.metodos_pago?.flow_api_key;
       secretKey = cli?.metodos_pago?.flow_secret_key;
       citaFlowApiUrl = cli?.metodos_pago?.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
