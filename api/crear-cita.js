@@ -223,9 +223,9 @@ export default async function handler(req, res) {
   } = req.body || {};
 
   const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'completed', cancelada:'canceled', inasistencia:'no-show' };
-  // Bookings públicos nacen como confirmed (el paciente se comprometió a venir)
-  // Solo se cambia a pending_payment más adelante si Flow es el único método
-  const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'confirmed';
+  // INSERT siempre con 'pending' (constraint DB); se parchea a 'confirmed' después si aplica
+  const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending';
+  const confirmarDespues = !from_admin;
 
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
   if (!citaIdYaCreada) {
@@ -409,6 +409,16 @@ export default async function handler(req, res) {
     }
 
     const soloFlow = !!(flow_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+
+    // Confirmar la cita si es booking público y no requiere pago Flow obligatorio
+    if (confirmarDespues && !soloFlow) {
+      await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ estado: 'confirmed' })
+      }).catch(e => console.error('crear-cita: patch confirmed error:', e.message));
+    }
+
     return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
