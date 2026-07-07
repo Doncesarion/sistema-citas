@@ -370,7 +370,7 @@ async function handleFlowWebhook(req, res) {
 export default async function handler(req, res) {
   // Flow redirige el browser aquí después del pago — mostrar página de confirmación
   if (req.query?.ret === '1') {
-    if (req.query.tipo === 'cita') return res.redirect(302, '/pago-exitoso?tipo=cita');
+    if (req.query.tipo === 'cita') return res.redirect(303, `${BASE_URL}/pago-exitoso.html?tipo=cita`);
     const plan = req.query.plan || '';
     const dest = plan ? `/pago-exitoso?plan=${encodeURIComponent(plan)}` : '/pago-exitoso';
     return res.redirect(302, dest);

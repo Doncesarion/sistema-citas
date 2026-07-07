@@ -343,9 +343,18 @@ body::before{
     <div class="acc" id="acc5" style="display:none">
       <div class="acc-body" style="display:block">
         <div class="confirm">
-          <div class="c-icon">✓</div>
-          <div class="c-title">¡Reserva confirmada!</div>
+          <div class="c-icon" id="cf-icon">✓</div>
+          <div class="c-title" id="cf-title">¡Reserva confirmada!</div>
           <div class="c-sub" id="cf-sub">Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.</div>
+
+          <!-- Botón Flow (solo cuando hay pago pendiente) -->
+          <div id="cf-flow-wrap" style="display:none;margin-bottom:16px">
+            <a id="cf-flow-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
+              Pagar ahora con Flow →
+            </a>
+            <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">Tu hora queda reservada por 30 minutos</div>
+          </div>
+
           <div class="c-card">
             <div class="c-row"><b>Servicio</b><span id="cf-svc">—</span></div>
             <div class="c-row"><b>Profesional</b><span id="cf-prof">—</span></div>
@@ -942,19 +951,28 @@ async function confirmar() {
     // Métodos de pago
     const mp  = negocioData.metodos_pago || {};
     const db  = negocioData.datos_banco  || {};
-    const tieneFlow = data.flow_url && mp.flow;
+    const tieneFlow = !!(data.flow_url && mp.flow);
     const tienePago = tieneFlow || mp.transferencia || mp.webpay || mp.efectivo;
 
-    if (precio && tienePago) {
-      document.getElementById('cf-sub').textContent = tieneFlow
-        ? 'Completa el pago para confirmar tu cita. También te enviamos un resumen por correo.'
-        : 'Te enviamos los detalles de pago y el resumen a tu correo.';
+    // Estado del panel: con Flow pendiente vs confirmado
+    if (tieneFlow) {
+      document.getElementById('cf-icon').textContent  = '→';
+      document.getElementById('cf-title').textContent = 'Completa tu pago';
+      document.getElementById('cf-sub').textContent   = 'Tu hora está reservada. Paga ahora para confirmar tu cita.';
+      const btn = document.getElementById('cf-flow-btn');
+      btn.href = data.flow_url;
+      document.getElementById('cf-flow-wrap').style.display = 'block';
+    } else {
+      document.getElementById('cf-icon').textContent  = '✓';
+      document.getElementById('cf-title').textContent = '¡Reserva confirmada!';
+      document.getElementById('cf-sub').textContent   = precio && tienePago
+        ? 'Te enviamos los detalles de pago y el resumen a tu correo.'
+        : 'Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.';
+      document.getElementById('cf-flow-wrap').style.display = 'none';
+    }
 
+    if (precio && tienePago && !tieneFlow) {
       const items = [];
-
-      if (tieneFlow) {
-        items.push(`<a href="${data.flow_url}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:14px;border-radius:10px;text-decoration:none;margin-bottom:8px">Pagar ahora con Flow →</a>`);
-      }
 
       if (mp.transferencia) {
         const hasBanco = db.banco || db.cuenta;
