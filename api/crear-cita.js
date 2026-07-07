@@ -2,6 +2,12 @@ import crypto from 'crypto';
 
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function flowSign(params, secret) {
+  const keys = Object.keys(params).sort();
+  const str = keys.map(k => k + params[k]).join('');
+  return crypto.createHmac('sha256', secret || process.env.FLOW_SECRET_KEY).update(str).digest('hex');
+}
+
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
@@ -352,7 +358,52 @@ export default async function handler(req, res) {
     }
 
     console.log('crear-cita gc_debug:', JSON.stringify(gc_debug));
-    return res.json({ ok: true, cita });
+
+    // Generar link Flow si el cliente tiene credenciales y hay precio
+    let flow_url = null;
+    const flowApiKey    = metodos_pago?.flow_api_key;
+    const flowSecretKey = metodos_pago?.flow_secret_key;
+    const flowSandbox   = metodos_pago?.flow_sandbox;
+    const precioNum     = precio ? Math.round(Number(String(precio).replace(/\./g, '').replace(',', '.'))) : 0;
+
+    if (metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0 && !from_admin) {
+      const flowApiUrl = flowSandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
+      try {
+        const fp = {
+          apiKey:          flowApiKey,
+          commerceOrder:   String(cita.id),
+          subject:         `Cita ${servicio || 'médica'}${negocio_nombre ? ' — ' + negocio_nombre : ''}`.slice(0, 255),
+          currency:        'CLP',
+          amount:          String(precioNum),
+          email:           email_paciente,
+          urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cliente_id}`,
+          urlReturn:       `${BASE_URL}/pago-exitoso?tipo=cita`,
+        };
+        fp.s = flowSign(fp, flowSecretKey);
+        const fr = await fetch(`${flowApiUrl}/payment/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(fp)
+        });
+        const fd = await fr.json();
+        if (fd.url && fd.token) {
+          flow_url = `${fd.url}?token=${fd.token}`;
+          // Actualizar estado de la cita a pending_payment
+          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+            method: 'PATCH',
+            headers: { ...sh, Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'pending_payment' })
+          });
+          console.log('crear-cita: flow_url generado OK');
+        } else {
+          console.error('crear-cita: flow error:', JSON.stringify(fd));
+        }
+      } catch(e) {
+        console.error('crear-cita: flow exception:', e.message);
+      }
+    }
+
+    return res.json({ ok: true, cita, flow_url });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });

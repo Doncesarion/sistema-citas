@@ -354,6 +354,9 @@ body::before{
             <div class="c-row"><b>Precio</b><span id="cf-precio" style="color:var(--a);font-weight:700;font-family:var(--mono)">—</span></div>
           </div>
           <div class="c-actions">
+            <a id="cf-flow-btn" href="#" target="_blank" style="display:none;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:14px;border-radius:10px;text-decoration:none;margin-bottom:10px">
+              Pagar ahora con Flow →
+            </a>
             <button class="btn-g" onclick="resetear()">Hacer otra reserva</button>
           </div>
         </div>
@@ -916,6 +919,8 @@ async function confirmar() {
       throw new Error(err.error || 'Error al confirmar la reserva');
     }
 
+    const data = await r.json().catch(() => ({}));
+
     // Mostrar confirmación
     const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const dd   = new Date(y, m, d);
@@ -924,6 +929,15 @@ async function confirmar() {
     document.getElementById('cf-fecha').textContent = `${dias[dd.getDay()]} ${d} de ${MESES[m].toLowerCase()} ${y}`;
     document.getElementById('cf-hora').textContent  = st.hora;
     document.getElementById('cf-precio').textContent = st.svc.precio ? '$' + Number(st.svc.precio).toLocaleString('es-CL') : 'A confirmar';
+
+    // Botón de pago Flow si el negocio tiene credenciales
+    const flowBtn = document.getElementById('cf-flow-btn');
+    if (data.flow_url) {
+      flowBtn.href = data.flow_url;
+      flowBtn.style.display = 'flex';
+    } else {
+      flowBtn.style.display = 'none';
+    }
 
     [1,2,3,4].forEach(i => document.getElementById('acc'+i).style.display = 'none');
     document.getElementById('sbar').style.display    = 'none';
