@@ -59,7 +59,7 @@ function incUso(supaUrl, supaKey, cliente_id, campo) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { messages, cliente_id, negocio_nombre, type } = req.body || {};
+  const { messages, cliente_id, negocio_nombre, type, attia_conv_id: incomingConvId } = req.body || {};
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Datos incompletos' });
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
@@ -143,6 +143,34 @@ export default async function handler(req, res) {
       promocionesBot  = Array.isArray(bc.promociones) ? bc.promociones : [];
     }
   } catch(_) {}
+
+  // ── Attia: crear/reanudar conversación en bandeja ──────────────────────────
+  let attiaConvId = incomingConvId || null;
+  if (!attiaConvId && messages.length) {
+    const primerMsg = messages.find(m => m.role === 'user')?.content || '';
+    try {
+      const cvRes = await fetch(`${SUPABASE_URL}/rest/v1/conversaciones`, {
+        method: 'POST',
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+        body: JSON.stringify({
+          cliente_id, canal: 'attia',
+          canal_user_id: `attia_${Date.now()}`,
+          canal_user_name: 'Visitante',
+          ultimo_mensaje: String(primerMsg).slice(0, 120),
+          ultimo_mensaje_at: new Date().toISOString(),
+          no_leidos: 1, visto: false
+        })
+      });
+      if (cvRes.ok) {
+        const cvRows = await cvRes.json();
+        attiaConvId = Array.isArray(cvRows) ? cvRows[0]?.id : cvRows?.id;
+      } else {
+        console.error('ai-chat conv-create error:', cvRes.status, await cvRes.text());
+      }
+    } catch(e) {
+      console.error('ai-chat conv-create error:', e.message);
+    }
+  }
 
   const srvTexto = serviciosCatalogo.length
     ? serviciosCatalogo.map(s => {
@@ -420,56 +448,16 @@ CÓMO ESCRIBIR:
         }
       }
 
-      // Guardar conversación de Attia en bandeja (INSERT directo, sin RPC)
-      try {
-        const shJ = { ...sh, 'Content-Type': 'application/json' };
-        const resumenCita = `${servicio || 'Cita'} — ${fecha} ${hora}${precio ? ' — $' + Number(precio).toLocaleString('es-CL') : ''}`;
-        const ahora = new Date().toISOString();
-        const cvRes = await fetch(`${SUPABASE_URL}/rest/v1/conversaciones`, {
-          method: 'POST',
-          headers: { ...shJ, Prefer: 'return=representation' },
+      // Actualizar conversación Attia con datos reales del paciente
+      if (attiaConvId) {
+        fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${attiaConvId}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
           body: JSON.stringify({
-            cliente_id,
-            canal:            'attia',
-            canal_user_id:    email_paciente || nombre_paciente,
-            canal_user_name:  nombre_paciente,
-            ultimo_mensaje:   resumenCita.slice(0, 120),
-            ultimo_mensaje_at: ahora,
-            no_leidos:        1,
-            visto:            false
+            canal_user_id: email_paciente || nombre_paciente,
+            canal_user_name: nombre_paciente
           })
-        });
-        if (cvRes.ok) {
-          const cvRows = await cvRes.json();
-          const conv_id = Array.isArray(cvRows) ? cvRows[0]?.id : cvRows?.id;
-          console.log('ai-chat: conversacion attia creada, id:', conv_id);
-          if (conv_id) {
-            const mensajesAGuardar = [];
-            for (const msg of messages) {
-              if (msg.role === 'user' && typeof msg.content === 'string') {
-                mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'usuario', contenido: msg.content, visto: false });
-              } else if (msg.role === 'assistant' && typeof msg.content === 'string') {
-                mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: msg.content, visto: true });
-              } else if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-                const text = msg.content.find(b => b.type === 'text')?.text;
-                if (text) mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: text, visto: true });
-              }
-            }
-            mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: `✓ Cita agendada: ${resumenCita}`, visto: true });
-            if (mensajesAGuardar.length) {
-              fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
-                method: 'POST',
-                headers: { ...shJ, Prefer: 'return=minimal' },
-                body: JSON.stringify(mensajesAGuardar)
-              }).catch(e => console.error('ai-chat: error guardando mensajes attia:', e.message));
-            }
-          }
-        } else {
-          const errTxt = await cvRes.text();
-          console.error('ai-chat: error creando conv attia:', cvRes.status, errTxt);
-        }
-      } catch(e) {
-        console.error('ai-chat: error guardando conv attia:', e.message);
+        }).catch(e => console.error('ai-chat conv-update error:', e.message));
       }
 
       return { ok: true, listo: true, cita };
@@ -514,7 +502,33 @@ CÓMO ESCRIBIR:
         const text = data.content.find(b => b.type === 'text')?.text || '';
         const mensaje = datos_reserva ? '' : text;
         incUso(SUPABASE_URL, SUPABASE_KEY, cliente_id, 'mensajes_ia');
-        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva, cita_flow_url });
+
+        // Guardar turno actual en bandeja (mensaje usuario + respuesta bot)
+        if (attiaConvId) {
+          const shSave = { ...sh, 'Content-Type': 'application/json' };
+          const curUser = messages[messages.length - 1];
+          const msgsArr = [];
+          if (curUser?.role === 'user' && curUser.content) {
+            msgsArr.push({ conversacion_id: attiaConvId, cliente_id, rol: 'usuario', contenido: String(curUser.content), visto: false });
+          }
+          const botTxt = text || (datos_reserva ? `Cita agendada: ${datos_reserva.servicio || 'cita'} — ${datos_reserva.fecha} ${datos_reserva.hora}` : '');
+          if (botTxt) msgsArr.push({ conversacion_id: attiaConvId, cliente_id, rol: 'bot', contenido: botTxt, visto: true });
+          if (msgsArr.length) {
+            fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+              method: 'POST',
+              headers: { ...shSave, Prefer: 'return=minimal' },
+              body: JSON.stringify(msgsArr)
+            }).catch(e => console.error('ai-chat msg-save error:', e.message));
+          }
+          const ultimoMsg = (botTxt || String(curUser?.content || '')).slice(0, 120);
+          fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${attiaConvId}`, {
+            method: 'PATCH',
+            headers: { ...shSave, Prefer: 'return=minimal' },
+            body: JSON.stringify({ ultimo_mensaje: ultimoMsg, ultimo_mensaje_at: new Date().toISOString(), no_leidos: 1, visto: false })
+          }).catch(e => console.error('ai-chat conv-update error:', e.message));
+        }
+
+        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva, cita_flow_url, attia_conv_id: attiaConvId });
       }
 
       const toolBlocks = data.content.filter(b => b.type === 'tool_use');

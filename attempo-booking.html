@@ -1134,6 +1134,7 @@ function resetear() {
 let _attiaOpen = false;
 let _attiaHist = [];
 let _attiaReserva = null;
+let _attiaConvId = null;
 
 function attiaToggle() {
   _attiaOpen = !_attiaOpen;
@@ -1167,10 +1168,11 @@ async function attiaEnviar(texto) {
     const r = await fetch('/api/ai-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: _attiaHist, cliente_id: clienteId, negocio_nombre: negocioData?.nombre_negocio || '' })
+      body: JSON.stringify({ messages: _attiaHist, cliente_id: clienteId, negocio_nombre: negocioData?.nombre_negocio || '', attia_conv_id: _attiaConvId })
     });
     const d = await r.json();
     typing.remove();
+    if (d.attia_conv_id) _attiaConvId = d.attia_conv_id;
     const resp = d.mensaje || d.reply || d.error || '';
     if (resp) {
       _attiaHist.push({ role: 'assistant', content: resp });
