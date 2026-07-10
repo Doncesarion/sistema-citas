@@ -420,6 +420,51 @@ CÓMO ESCRIBIR:
         }
       }
 
+      // Guardar conversación de Attia en bandeja
+      try {
+        const shJ = { ...sh, 'Content-Type': 'application/json' };
+        const resumenCita = `${servicio || 'Cita'} — ${fecha} ${hora}${precio ? ' — $' + Number(precio).toLocaleString('es-CL') : ''}`;
+        const cvRpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/upsert_conversacion`, {
+          method: 'POST',
+          headers: shJ,
+          body: JSON.stringify({
+            p_cliente_id:      cliente_id,
+            p_canal:           'attia',
+            p_canal_user_id:   email_paciente || nombre_paciente,
+            p_canal_user_name: nombre_paciente,
+            p_mensaje:         resumenCita.slice(0, 120)
+          })
+        });
+        if (cvRpc.ok) {
+          const conv_id = await cvRpc.json();
+          if (conv_id) {
+            // Extraer solo mensajes de texto del historial
+            const mensajesAGuardar = [];
+            for (const msg of messages) {
+              if (msg.role === 'user' && typeof msg.content === 'string') {
+                mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'usuario', contenido: msg.content, visto: false });
+              } else if (msg.role === 'assistant' && typeof msg.content === 'string') {
+                mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: msg.content, visto: true });
+              } else if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+                const text = msg.content.find(b => b.type === 'text')?.text;
+                if (text) mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: text, visto: true });
+              }
+            }
+            // Agregar mensaje de resumen de cita al final
+            mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: `✓ Cita agendada: ${resumenCita}`, visto: true });
+            if (mensajesAGuardar.length) {
+              fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+                method: 'POST',
+                headers: { ...shJ, Prefer: 'return=minimal' },
+                body: JSON.stringify(mensajesAGuardar)
+              }).catch(e => console.error('ai-chat: error guardando mensajes attia:', e.message));
+            }
+          }
+        }
+      } catch(e) {
+        console.error('ai-chat: error guardando conv attia:', e.message);
+      }
+
       return { ok: true, listo: true, cita };
     }
 

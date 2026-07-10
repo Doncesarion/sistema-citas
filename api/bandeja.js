@@ -199,7 +199,29 @@ export default async function handler(req, res) {
     else if (canal === 'instagram') { accessToken = meta.ig_token; }
     else if (canal === 'messenger') { accessToken = meta.fb_token; }
 
-    if (accessToken) {
+    if (canal === 'attia') {
+      // Enviar por email si canal_user_id es un correo
+      if (canal_user_id && canal_user_id.includes('@')) {
+        const RESEND_KEY = process.env.RESEND_API_KEY;
+        if (RESEND_KEY) {
+          try {
+            const emailRes = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: 'contacto@attempo.cl',
+                to: canal_user_id,
+                subject: `Mensaje de ${conv.canal_user_name || 'tu centro'}`,
+                html: contenido.trim().replace(/\n/g, '<br>')
+              })
+            });
+            if (!emailRes.ok) console.error('bandeja attia: error email', await emailRes.text());
+          } catch(e) {
+            console.error('bandeja attia: email exception', e.message);
+          }
+        }
+      }
+    } else if (accessToken) {
       try {
         let metaRes;
         if (canal === 'whatsapp') {
