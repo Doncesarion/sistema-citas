@@ -420,25 +420,30 @@ CÓMO ESCRIBIR:
         }
       }
 
-      // Guardar conversación de Attia en bandeja
+      // Guardar conversación de Attia en bandeja (INSERT directo, sin RPC)
       try {
         const shJ = { ...sh, 'Content-Type': 'application/json' };
         const resumenCita = `${servicio || 'Cita'} — ${fecha} ${hora}${precio ? ' — $' + Number(precio).toLocaleString('es-CL') : ''}`;
-        const cvRpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/upsert_conversacion`, {
+        const ahora = new Date().toISOString();
+        const cvRes = await fetch(`${SUPABASE_URL}/rest/v1/conversaciones`, {
           method: 'POST',
-          headers: shJ,
+          headers: { ...shJ, Prefer: 'return=representation' },
           body: JSON.stringify({
-            p_cliente_id:      cliente_id,
-            p_canal:           'attia',
-            p_canal_user_id:   email_paciente || nombre_paciente,
-            p_canal_user_name: nombre_paciente,
-            p_mensaje:         resumenCita.slice(0, 120)
+            cliente_id,
+            canal:            'attia',
+            canal_user_id:    email_paciente || nombre_paciente,
+            canal_user_name:  nombre_paciente,
+            ultimo_mensaje:   resumenCita.slice(0, 120),
+            ultimo_mensaje_at: ahora,
+            no_leidos:        1,
+            visto:            false
           })
         });
-        if (cvRpc.ok) {
-          const conv_id = await cvRpc.json();
+        if (cvRes.ok) {
+          const cvRows = await cvRes.json();
+          const conv_id = Array.isArray(cvRows) ? cvRows[0]?.id : cvRows?.id;
+          console.log('ai-chat: conversacion attia creada, id:', conv_id);
           if (conv_id) {
-            // Extraer solo mensajes de texto del historial
             const mensajesAGuardar = [];
             for (const msg of messages) {
               if (msg.role === 'user' && typeof msg.content === 'string') {
@@ -450,7 +455,6 @@ CÓMO ESCRIBIR:
                 if (text) mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: text, visto: true });
               }
             }
-            // Agregar mensaje de resumen de cita al final
             mensajesAGuardar.push({ conversacion_id: conv_id, cliente_id, rol: 'bot', contenido: `✓ Cita agendada: ${resumenCita}`, visto: true });
             if (mensajesAGuardar.length) {
               fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
@@ -460,6 +464,9 @@ CÓMO ESCRIBIR:
               }).catch(e => console.error('ai-chat: error guardando mensajes attia:', e.message));
             }
           }
+        } else {
+          const errTxt = await cvRes.text();
+          console.error('ai-chat: error creando conv attia:', cvRes.status, errTxt);
         }
       } catch(e) {
         console.error('ai-chat: error guardando conv attia:', e.message);
