@@ -158,7 +158,7 @@ export default async function handler(req, res) {
           canal_user_name: 'Visitante',
           ultimo_mensaje: String(primerMsg).slice(0, 120),
           ultimo_mensaje_at: new Date().toISOString(),
-          no_leidos: 1, visto: false
+          no_leidos: 1
         })
       });
       if (cvRes.ok) {
@@ -524,7 +524,7 @@ CÓMO ESCRIBIR:
           fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${attiaConvId}`, {
             method: 'PATCH',
             headers: { ...shSave, Prefer: 'return=minimal' },
-            body: JSON.stringify({ ultimo_mensaje: ultimoMsg, ultimo_mensaje_at: new Date().toISOString(), no_leidos: 1, visto: false })
+            body: JSON.stringify({ ultimo_mensaje: ultimoMsg, ultimo_mensaje_at: new Date().toISOString(), no_leidos: 1 })
           }).catch(e => console.error('ai-chat conv-update error:', e.message));
         }
 
