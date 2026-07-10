@@ -986,12 +986,13 @@ async function confirmar() {
       if (mp.transferencia) {
         const hasBanco = db.banco || db.cuenta;
         let rows = '';
-        if (db.nombre)  rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Titular</span><span>${db.nombre}</span></div>`;
-        if (db.rut)     rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">RUT</span><span>${db.rut}</span></div>`;
-        if (db.banco)   rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Banco</span><span>${db.banco}</span></div>`;
-        if (db.tipo)    rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Tipo</span><span>${db.tipo}</span></div>`;
-        if (db.cuenta)  rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Cuenta</span><span style="font-family:var(--mono)">${db.cuenta}</span></div>`;
-        if (db.email)   rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Email comprobante</span><span>${db.email}</span></div>`;
+        if (db.nombre)    rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Titular</span><span>${db.nombre}</span></div>`;
+        if (db.rut)       rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">RUT</span><span>${db.rut}</span></div>`;
+        if (db.banco)     rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Banco</span><span>${db.banco}</span></div>`;
+        if (db.tipo)      rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Tipo de cuenta</span><span>${db.tipo}</span></div>`;
+        if (db.cuenta)    rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Número de cuenta</span><span style="font-family:var(--mono)">${db.cuenta}</span></div>`;
+        if (db.email)     rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Email comprobante</span><span>${db.email}</span></div>`;
+        if (db.telefono)  rows += `<div class="c-row" style="font-size:13px"><span style="color:var(--t3)">Teléfono</span><span>${db.telefono}</span></div>`;
         items.push(`<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">Transferencia bancaria</div>${hasBanco ? rows : '<div style="font-size:13px;color:var(--t3)">Los datos de transferencia llegaron a tu correo de confirmación.</div>'}</div>`);
       }
 

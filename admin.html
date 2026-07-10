@@ -3012,7 +3012,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">RUT titular</label><input id="banco-rut" type="text" placeholder="Ej: 18.741.085-9" class="fi" style="width:100%" oninput="formatRutInput(this)" maxlength="13"></div>
               <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre titular</label><input id="banco-nombre" type="text" placeholder="Ej: Clínica Ejemplo" class="fi" style="width:100%"></div>
             </div>
-            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Email para comprobante (opcional)</label><input id="banco-email" type="email" placeholder="pagos@clinica.cl" class="fi" style="width:100%"></div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Email para comprobante (opcional)</label><input id="banco-email" type="email" placeholder="pagos@clinica.cl" class="fi" style="width:100%"></div>
+              <div style="flex:1"><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Teléfono (opcional)</label><input id="banco-tel" type="tel" placeholder="Ej: +56912345678" class="fi" style="width:100%"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -4460,7 +4463,8 @@ async function cargarPagos() {
     if (el('banco-cuenta')) el('banco-cuenta').value = db.cuenta || '';
     if (el('banco-rut'))    el('banco-rut').value    = db.rut    || '';
     if (el('banco-nombre')) el('banco-nombre').value = db.nombre || '';
-    if (el('banco-email'))  el('banco-email').value  = db.email  || '';
+    if (el('banco-email'))  el('banco-email').value  = db.email     || '';
+    if (el('banco-tel'))    el('banco-tel').value    = db.telefono  || '';
     toggleBancoDatos();
     toggleFlowDatos();
   } catch(e) { console.error('cargarPagos:', e); }
@@ -4496,8 +4500,9 @@ async function guardarPagos() {
     tipo:   el('banco-tipo')?.value          || '',
     cuenta: el('banco-cuenta')?.value.trim() || '',
     rut:    el('banco-rut')?.value.trim()    || '',
-    nombre: el('banco-nombre')?.value.trim() || '',
-    email:  el('banco-email')?.value.trim()  || ''
+    nombre:    el('banco-nombre')?.value.trim() || '',
+    email:     el('banco-email')?.value.trim()  || '',
+    telefono:  el('banco-tel')?.value.trim()    || ''
   };
   try {
     const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
