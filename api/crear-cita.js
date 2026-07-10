@@ -317,39 +317,6 @@ export default async function handler(req, res) {
       google_calendar_id   = cli?.google_calendar_id   || null;
     } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
 
-    if (email_paciente && process.env.RESEND_API_KEY && enviar_email !== false) {
-      const fechaFmt = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-      });
-      console.log('crear-cita: enviando email confirmación');
-      try {
-        const emailRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: 'Attempo <contacto@attempo.cl>',
-            to: [email_paciente],
-            subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada ✓`,
-            headers: {
-              'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
-              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-            },
-            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco })
-          })
-        });
-        if (!emailRes.ok) {
-          const errTxt = await emailRes.text();
-          console.error('crear-cita: email error', emailRes.status, errTxt);
-        } else {
-          console.log('crear-cita: email enviado OK');
-        }
-      } catch (e) {
-        console.error('crear-cita: email exception:', e.message);
-      }
-    } else {
-      console.log('crear-cita: email omitido — RESEND_KEY:', !!process.env.RESEND_API_KEY);
-    }
-
     let gc_debug = { token: !!google_refresh_token, client_id: !!process.env.GOOGLE_CLIENT_ID };
     if (google_refresh_token && process.env.GOOGLE_CLIENT_ID) {
       gc_debug.resultado = await gcCrearEvento({
@@ -409,6 +376,40 @@ export default async function handler(req, res) {
     }
 
     const soloFlow = !!(flow_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+
+    // Enviar email de confirmación (después de generar flow_url para incluirlo)
+    if (email_paciente && process.env.RESEND_API_KEY && enviar_email !== false) {
+      const fechaFmt = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+      console.log('crear-cita: enviando email confirmación');
+      try {
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Attempo <contacto@attempo.cl>',
+            to: [email_paciente],
+            subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada ✓`,
+            headers: {
+              'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+            },
+            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url })
+          })
+        });
+        if (!emailRes.ok) {
+          const errTxt = await emailRes.text();
+          console.error('crear-cita: email error', emailRes.status, errTxt);
+        } else {
+          console.log('crear-cita: email enviado OK');
+        }
+      } catch (e) {
+        console.error('crear-cita: email exception:', e.message);
+      }
+    } else {
+      console.log('crear-cita: email omitido — RESEND_KEY:', !!process.env.RESEND_API_KEY);
+    }
 
     // Confirmar la cita si es booking público y no requiere pago Flow obligatorio
     if (confirmarDespues && !soloFlow) {
@@ -577,7 +578,7 @@ function buildPagoHtml(metodos_pago, datos_banco) {
   return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
 }
 
-function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco }) {
+function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
@@ -608,6 +609,14 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     ${precioStr ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total</span><br><span style="color:#6C5CE4;font-size:16px;font-weight:700;">${precioStr}</span></td></tr>` : ''}
     ${buildPagoHtml(metodos_pago, datos_banco)}
   </table>
+  ${flow_url ? `\
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
+    <tr><td style="text-align:center;">\
+      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Paga online para confirmar tu reserva</p>\
+      <a href="${htmlEscape(flow_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Pagar ahora con Flow →</a>\
+      <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este link es de uso único y expira en 24 horas</p>\
+    </td></tr>\
+  </table>` : ''}
   ${dir ? `
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
     <tr><td style="text-align:center;">

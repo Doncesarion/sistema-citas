@@ -1268,8 +1268,11 @@ async function attiaConfirmar() {
     });
     const data = await r.json();
     if (data.ok || data.id) {
+      const flowBtn = data.flow_url
+        ? `<a href="${data.flow_url}" target="_blank" style="display:inline-block;margin-top:10px;padding:10px 22px;border-radius:8px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:inherit">Pagar ahora con Flow →</a>`
+        : '';
       document.getElementById('attia-card-reserva').innerHTML =
-        '<div style="color:#16a34a;font-weight:600;font-size:13px;padding:4px 0">✓ ¡Cita reservada! Recibirás un email de confirmación.</div>';
+        `<div style="color:#16a34a;font-weight:600;font-size:13px;padding:4px 0">✓ ¡Cita reservada! Recibirás un email de confirmación.</div>${flowBtn}`;
       const mp = negocioData?.metodos_pago || {};
       const metPago = [];
       if (mp.flow)          metPago.push('Flow (link de pago online)');
