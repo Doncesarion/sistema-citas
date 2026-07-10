@@ -1182,7 +1182,7 @@ async function attiaEnviar(texto) {
       div.className = 'am-bot';
       div.innerHTML = '<div style="font-size:11px;color:#8B7CF8;font-weight:600;margin-bottom:6px">Horas disponibles:</div>' +
         d.slots_disponibles.map(h =>
-          `<button onclick="attiaSelHora('${h}')" style="margin:3px;padding:5px 11px;border-radius:20px;border:1.5px solid #8B7CF8;background:#fff;color:#6C5CE4;font-size:12px;cursor:pointer;font-family:inherit">${h}</button>`
+          `<button onclick="attiaSelHora('${h}',this)" style="margin:3px;padding:5px 11px;border-radius:20px;border:1.5px solid #8B7CF8;background:#fff;color:#6C5CE4;font-size:12px;cursor:pointer;font-family:inherit">${h}</button>`
         ).join('');
       wrap.appendChild(div);
       wrap.scrollTop = wrap.scrollHeight;
@@ -1237,7 +1237,8 @@ function _attiaAppend(rol, texto) {
   return div;
 }
 
-function attiaSelHora(h) {
+function attiaSelHora(h, btn) {
+  btn?.closest('.am-bot')?.remove();
   document.getElementById('attia-input').value = h;
   attiaSend();
 }
@@ -1269,7 +1270,16 @@ async function attiaConfirmar() {
     if (data.ok || data.id) {
       document.getElementById('attia-card-reserva').innerHTML =
         '<div style="color:#16a34a;font-weight:600;font-size:13px;padding:4px 0">✓ ¡Cita reservada! Recibirás un email de confirmación.</div>';
-      _attiaAppend('bot', '¡Todo listo! Tu cita quedó agendada. ¿Hay algo más en lo que pueda ayudarte?');
+      const mp = negocioData?.metodos_pago || {};
+      const metPago = [];
+      if (mp.flow)          metPago.push('Flow (link de pago online)');
+      if (mp.webpay)        metPago.push('Webpay/Transbank');
+      if (mp.transferencia) metPago.push('Transferencia bancaria');
+      if (mp.efectivo)      metPago.push('Efectivo en el local');
+      const metPagoTexto = metPago.length ? metPago.join(', ') : null;
+      const confirmMsg = `¡Todo listo! Tu cita quedó agendada.${metPagoTexto ? ' Puedes pagar con: ' + metPagoTexto + '.' : ''} ¿Hay algo más en lo que pueda ayudarte?`;
+      _attiaHist.push({ role: 'assistant', content: confirmMsg });
+      _attiaAppend('bot', confirmMsg);
     } else {
       btn.disabled = false;
       btn.textContent = '✓ Confirmar cita';

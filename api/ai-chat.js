@@ -153,6 +153,7 @@ export default async function handler(req, res) {
     : 'No hay servicios configurados (usa el motivo que indique el paciente).';
 
   const pagosMethods = [];
+  if (metodosPago.flow)          pagosMethods.push('Flow (link de pago online)');
   if (metodosPago.webpay)        pagosMethods.push('Webpay/Transbank');
   if (metodosPago.transferencia) pagosMethods.push('Transferencia bancaria');
   if (metodosPago.efectivo)      pagosMethods.push('Efectivo en el local');
@@ -238,6 +239,7 @@ CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:
 7. Llama a confirmar_reserva con TODOS los datos: especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha (YYYY-MM-DD), hora (HH:MM), duracion, precio. NO escribas nada después.
 
 NO uses pedir_fecha — no está disponible en este contexto.
+Una vez que confirmar_reserva fue ejecutado en la conversación, NO lo vuelvas a llamar. Si el paciente pregunta cómo pagar, responde directamente con los métodos de pago disponibles que tienes arriba.
 
 CUANDO PREGUNTAN OTRA COSA:
 - Horarios generales: responde con el horario de atención que tienes arriba.
