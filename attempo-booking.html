@@ -394,6 +394,7 @@ let calY = NOW.getFullYear();
 let calM = NOW.getMonth();
 
 let clienteId = null;
+let slug = null;
 let negocioData = null;
 let horarioNegocio = null;
 let especialistas = [];
@@ -406,7 +407,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
   const params   = new URLSearchParams(window.location.search);
   const slugParam = params.get('slug');
   const path     = window.location.pathname;
-  const slug     = slugParam || path.replace(/^\//, '').replace(/\/$/, '') || null;
+  slug           = slugParam || path.replace(/^\//, '').replace(/\/$/, '') || null;
 
   if (!slug || slug === 'attempo-booking') {
     mostrarError('Enlace inválido', 'No se especificó el negocio.');
