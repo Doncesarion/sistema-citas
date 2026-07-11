@@ -198,7 +198,7 @@ body::before{
 
   <!-- ERROR -->
   <div id="error-wrap" style="display:none" class="error-state">
-    <div class="e-icon">🔍</div>
+    <div class="e-icon"></div>
     <div class="e-title" id="error-title">Negocio no encontrado</div>
     <div class="e-sub" id="error-sub">Verifica que el enlace sea correcto.</div>
   </div>
@@ -504,16 +504,7 @@ function resumirHorario(h) {
 
 /* ── SERVICIOS ── */
 function iconSvc(nombre) {
-  const n = (nombre || '').toLowerCase();
-  if (/psicolog|terapi|mental|ansiedad|depres/.test(n)) return '🧠';
-  if (/nutrici|dieta|alimenta/.test(n)) return '🥗';
-  if (/barber|corte.*cabello|afeit|barba/.test(n)) return '✂️';
-  if (/dental|dent|odont/.test(n)) return '🦷';
-  if (/kinesi|kine|fisio|rehabilit/.test(n)) return '💪';
-  if (/fono/.test(n)) return '🗣️';
-  if (/medic|clinic|consul|general/.test(n)) return '🩺';
-  if (/estetic|masaje|belleza|piel/.test(n)) return '💆';
-  return '📋';
+  return (nombre || '?').trim()[0].toUpperCase();
 }
 
 function renderServicios(servicios) {
@@ -1201,11 +1192,11 @@ async function attiaEnviar(texto) {
         <div style="background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.2);border-radius:10px;padding:12px">
           <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8B7CF8;margin-bottom:8px">Resumen de tu reserva</div>
           <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#1E1B3A">
-            <div>👤 ${dr.nombre_paciente || '—'}</div>
-            <div>🩺 ${dr.servicio || '—'}</div>
-            <div>👨‍⚕️ ${dr.nombre_especialista || '—'}</div>
-            <div>📅 ${fecha} · ${dr.hora || '—'}</div>
-            ${dr.precio ? `<div>💰 $${Number(dr.precio).toLocaleString('es-CL')}</div>` : ''}
+            <div>${dr.nombre_paciente || '—'}</div>
+            <div>${dr.servicio || '—'}</div>
+            <div>${dr.nombre_especialista || '—'}</div>
+            <div>${fecha} · ${dr.hora || '—'}</div>
+            ${dr.precio ? `<div>$${Number(dr.precio).toLocaleString('es-CL')}</div>` : ''}
           </div>
           <button id="attia-btn-confirmar" onclick="attiaConfirmar()" style="margin-top:10px;width:100%;padding:9px;border-radius:8px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">✓ Confirmar cita</button>
         </div>`;

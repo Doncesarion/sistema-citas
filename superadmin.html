@@ -236,7 +236,7 @@
     <input class="sa-input" id="sa-user" placeholder="Usuario" onkeydown="if(event.key==='Enter')saLogin()">
     <div style="position:relative">
       <input class="sa-input" type="password" id="sa-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')saLogin()" style="width:100%;padding-right:42px;box-sizing:border-box">
-      <button type="button" onclick="const i=document.getElementById('sa-pass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1">👁</button>
+      <button type="button" onclick="const i=document.getElementById('sa-pass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'ver':'ocultar'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:11px;color:var(--gray-400);padding:0;line-height:1;font-family:'Inter',sans-serif">ver</button>
     </div>
     <button class="sa-btn" onclick="saLogin()">Ingresar al panel</button>
   </div>
@@ -296,7 +296,7 @@
     <div class="card-header">
       <div class="card-title">Clientes y licencias</div>
       <div style="display:flex;gap:8px">
-        <input id="buscar-cliente" placeholder="🔍 Buscar..." oninput="filtrarTabla(this.value)"
+        <input id="buscar-cliente" placeholder="Buscar..." oninput="filtrarTabla(this.value)"
           style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:7px 12px;font-size:13px;font-family:'Inter',sans-serif;outline:none;width:200px">
         <button class="btn btn-primary" onclick="abrirModalNuevo()">+ Nuevo cliente</button>
       </div>
@@ -447,7 +447,7 @@
 <!-- MODAL FLOW SUSCRIPCIÓN -->
 <div class="modal-overlay" id="modal-flow-sub">
   <div class="modal" style="max-width:440px">
-    <div class="modal-title">⚡ Generar link de pago Flow</div>
+    <div class="modal-title">Generar link de pago Flow</div>
     <input type="hidden" id="fs-cliente-id">
     <p id="fs-nombre" style="margin:0 0 18px;font-size:14px;color:var(--gray-500)"></p>
     <div class="form-group"><label class="form-label">Plan a activar</label>

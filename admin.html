@@ -1206,7 +1206,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 <!-- ═══ BANNER IMPERSONACIÓN ═══ -->
 <div id="impersonation-banner" style="display:none;background:#7C3AED;color:#fff;font-size:12px;font-weight:500;padding:8px 16px;text-align:center;position:sticky;top:0;z-index:200;align-items:center;justify-content:center;gap:12px">
-  <span>👁 Estás viendo el panel de <strong id="impersonation-name"></strong></span>
+  <span>Estás viendo el panel de <strong id="impersonation-name"></strong></span>
   <button onclick="salirImpersonacion()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">Salir → Volver a mis accesos</button>
 </div>
 
@@ -1518,7 +1518,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="rp-sep"></div>
       <!-- Banner motivacional -->
       <div id="insight-card" style="display:none;background:linear-gradient(135deg,rgba(108,92,228,0.07),rgba(108,92,228,0.02));border:1px solid rgba(108,92,228,0.14);border-radius:var(--rl);padding:10px 12px;margin-bottom:10px">
-        <div id="insight-ico" style="font-size:15px;margin-bottom:3px">✨</div>
+        <div id="insight-ico" style="display:none"></div>
         <div id="insight-msg" style="font-size:11.5px;color:var(--t1);line-height:1.55;font-weight:500"></div>
       </div>
       <div class="up-section" id="rp-citas-hoy">
@@ -1845,7 +1845,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
 
     <div id="rep-insight" class="rep-insight">
-      <div class="ins-icon" id="rep-ins-icon">📊</div>
+      <div class="ins-icon" id="rep-ins-icon" style="display:none"></div>
       <div><div class="ins-main" id="rep-ins-main">—</div><div class="ins-sub" id="rep-ins-sub">—</div></div>
       <div class="ins-badge neu" id="rep-ins-badge">—</div>
     </div>
@@ -2169,7 +2169,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
         <div>
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Mensaje de bienvenida</label>
-          <textarea class="fi" id="bot-saludo" rows="2" placeholder="Ej: ¡Hola! 👋 Soy Valentina, la asistente virtual de {negocio}. ¿En qué te puedo ayudar hoy?" style="resize:vertical">¡Hola! 👋 Soy {nombre_bot}, la asistente virtual de {negocio}. ¿En qué te puedo ayudar hoy?</textarea>
+          <textarea class="fi" id="bot-saludo" rows="2" placeholder="Ej: Hola, soy Valentina, la asistente virtual de {negocio}. ¿En qué te puedo ayudar?" style="resize:vertical">Hola, soy {nombre_bot}, la asistente virtual de {negocio}. ¿En qué te puedo ayudar?</textarea>
           <div style="font-size:11px;color:var(--t3);margin-top:4px">Usa {nombre_bot} y {negocio} como variables dinámicas.</div>
         </div>
       </div>
@@ -2606,7 +2606,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 </div>
                 <div style="background:#075E54;padding:8px 12px;display:flex;align-items:center;gap:8px">
                   <span style="color:rgba(255,255,255,0.7);font-size:16px;flex-shrink:0">←</span>
-                  <div style="width:30px;height:30px;border-radius:50%;background:#128C7E;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">🏥</div>
+                  <div style="width:30px;height:30px;border-radius:50%;background:#128C7E;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">WA</div>
                   <div style="flex:1;min-width:0">
                     <div id="rec-pv-wa-negocio" style="color:#fff;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tu negocio</div>
                     <div style="color:rgba(255,255,255,0.55);font-size:9px">en línea</div>
@@ -2625,7 +2625,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 </div>
                 <div style="background:#F0F0F0;padding:6px 10px;display:flex;align-items:center;gap:8px;border-top:1px solid #DDD">
                   <div style="flex:1;background:#fff;border-radius:20px;padding:5px 12px;font-size:10px;color:#aaa">Escribe un mensaje</div>
-                  <div style="width:26px;height:26px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;font-size:11px">🎤</div>
+                  <div style="width:26px;height:26px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff">VOZ</div>
                 </div>
               </div>
             </div>
@@ -2639,7 +2639,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <!-- ══════ SECCIÓN: CAMPAÑAS Y PROMOCIONES ══════ -->
   <div id="rmtab-content-promo" style="display:none">
     <div style="background:linear-gradient(135deg,rgba(108,92,228,0.07),rgba(79,70,229,0.03));border:1px solid rgba(108,92,228,0.18);border-radius:var(--r);padding:14px 18px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start">
-      <span style="font-size:18px;flex-shrink:0">📣</span>
+      <span style="flex-shrink:0"></span>
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Campañas de email a tus pacientes</div>
         <div style="font-size:12px;color:var(--t2);line-height:1.55">Diseña y envía emails a todos tus pacientes con email registrado. Ideal para promociones, nuevos servicios o cualquier novedad de tu negocio. La vista previa se actualiza en tiempo real.</div>
@@ -2719,7 +2719,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <input type="hidden" id="promo-banner-url">
               <div id="promo-banner-area" onclick="document.getElementById('promo-banner-file').click()" style="border:2px dashed rgba(108,92,228,0.3);border-radius:10px;padding:18px 16px;text-align:center;cursor:pointer;background:#faf9ff;transition:border-color 0.15s" onmouseover="this.style.borderColor='rgba(108,92,228,0.6)'" onmouseout="this.style.borderColor='rgba(108,92,228,0.3)'">
                 <div id="promo-banner-placeholder">
-                  <div style="font-size:22px;margin-bottom:4px">🖼️</div>
+                  <div style="font-size:22px;margin-bottom:4px;display:none"></div>
                   <div style="font-size:12px;color:var(--t3);font-weight:500">Haz clic para seleccionar imagen</div>
                   <div style="font-size:11px;color:var(--t4);margin-top:3px">JPG, PNG, WEBP — máx 5 MB · Recomendado: 600×200px</div>
                 </div>
@@ -2770,7 +2770,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
 
         <!-- Enviar campaña -->
-        <button class="btn-a" id="btn-enviar-campana" onclick="confirmarEnvioCampana()" style="width:100%;padding:12px 0;font-size:13px">📣 Enviar campaña</button>
+        <button class="btn-a" id="btn-enviar-campana" onclick="confirmarEnvioCampana()" style="width:100%;padding:12px 0;font-size:13px">Enviar campaña</button>
 
       </div>
 
@@ -2994,7 +2994,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           </label>
           <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
             <div>
-              <div style="font-size:13px;font-weight:500;color:var(--a)">Pago online con Flow ⚡</div>
+              <div style="font-size:13px;font-weight:500;color:var(--a)">Pago online con Flow</div>
               <div style="font-size:12px;color:var(--t3)">El paciente paga su cita con tarjeta antes de llegar — requiere cuenta en Flow.cl</div>
             </div>
             <input type="checkbox" id="pago-flow" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleFlowDatos()">
@@ -3413,15 +3413,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <label class="fl">Método de pago</label>
         <div class="pay-grid">
           <div class="pay-opt on" id="pay-ef" onclick="setPay(this)">
-            <div class="pico">💵</div>
+            <div class="pico" style="font-size:13px;font-weight:600;color:var(--t2)">$</div>
             <div class="plbl">Efectivo</div>
           </div>
           <div class="pay-opt" id="pay-td" onclick="setPay(this)">
-            <div class="pico">💳</div>
+            <div class="pico" style="font-size:11px;font-weight:600;color:var(--t2)">TC</div>
             <div class="plbl">Tarjeta</div>
           </div>
           <div class="pay-opt" id="pay-on" onclick="setPay(this)">
-            <div class="pico">🔗</div>
+            <div class="pico" style="font-size:11px;font-weight:600;color:var(--t2)">→</div>
             <div class="plbl">Link de pago</div>
             <div style="font-size:9px;color:var(--t3);margin-top:2px;line-height:1.3">El paciente paga en línea</div>
           </div>
@@ -3534,17 +3534,17 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="fp-actions">
         <button class="btn-a" style="flex:1" onclick="closeFicha();openModal()">+ Nueva cita</button>
         <button class="btn-g" style="flex:1" onclick="reagendarProxCita()" title="Reagendar la próxima cita">↺ Reagendar</button>
-        <button class="btn-g" onclick="toast('Abriendo WhatsApp con ' + document.getElementById('fp-name').textContent + '...')">💬 WhatsApp</button>
+        <button class="btn-g" onclick="toast('Abriendo WhatsApp con ' + document.getElementById('fp-name').textContent + '...')">WhatsApp</button>
         <button class="btn-g" onclick="openEstadoModal()" title="Cambiar el estado de la próxima cita: confirmada, completada, inasistencia…">Cambiar estado ▾</button>
       </div>
       <div style="margin-top:8px">
         <button class="btn-r" onclick="cancelarProxCita()">✕ Cancelar próxima cita</button>
       </div>
       <div id="fp-boleta-row" style="display:none;margin-top:8px">
-        <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">📄 Emitir boleta</button>
+        <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">Emitir boleta</button>
       </div>
       <div id="fp-flow-row" style="display:none;margin-top:8px">
-        <button class="btn-a" style="width:100%;background:var(--a)" onclick="enviarLinkFlowPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">⚡ Enviar link de pago Flow</button>
+        <button class="btn-a" style="width:100%;background:var(--a)" onclick="enviarLinkFlowPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Flow</button>
       </div>
     </div>
 
@@ -5297,7 +5297,7 @@ function _recEmailHtml(asunto, mensajeExtra, vars) {
   <p style="margin:0;color:rgba(255,255,255,0.8);font-size:12px">Todo a tu tiempo</p>
 </td></tr>
 <tr><td style="padding:28px 32px;text-align:center">
-  <div style="width:48px;height:48px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px">🔔</div>
+  <div style="width:48px;height:48px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:13px;font-weight:600;color:var(--a)">rec</div>
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;font-weight:700">Recordatorio de cita</h2>
   <p style="margin:0 0 22px;color:#6b7280;font-size:14px">Hola <strong>${he(vars.nombre)}</strong>, te recordamos que tienes una cita próximamente.</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:16px">
@@ -5626,7 +5626,7 @@ async function confirmarEnvioCampana() {
       if (data.errores?.length) console.warn('Errores campaña:', data.errores);
     } else toast('Error: ' + (data.error || r.status));
   } catch(e) { toast('Error al enviar la campaña'); }
-  if (btn) { btn.disabled = false; btn.textContent = '📣 Enviar campaña'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar campaña'; }
 }
 
 /* ════ FORMATO RUT ════ */
@@ -7422,7 +7422,7 @@ function renderVentasKPIs() {
 }
 
 function renderVentasTable() {
-  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow ⚡</span>' };
+  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow</span>' };
   const lista  = _ventasFiltradas();
   const tbody  = document.getElementById('ventas-tbody');
   const pager  = document.getElementById('ventas-pager');
@@ -7452,7 +7452,7 @@ function renderVentasTable() {
       : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','')">+ Asignar</button>`;
     const esPendienteFlow = c.estado === 'pending_payment';
     const estado = esPendienteFlow
-      ? `<span class="tag" style="background:#f5f3ff;color:var(--a);border:1px solid rgba(108,92,228,.3);cursor:pointer" title="Reenviar link de pago" onclick="event.stopPropagation();enviarLinkFlowPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')" >⚡ Pago Flow</span>`
+      ? `<span class="tag" style="background:#f5f3ff;color:var(--a);border:1px solid rgba(108,92,228,.3);cursor:pointer" title="Reenviar link de pago" onclick="event.stopPropagation();enviarLinkFlowPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')" >Pago Flow</span>`
       : c.estado_pago === 'pagado'
         ? '<span class="tag tg">Pagado</span>'
         : '<span class="tag ta">Pendiente</span>';
@@ -7755,7 +7755,7 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
   document.getElementById('fpi-rut').textContent   = '—';
-  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online', flow:'Flow ⚡' };
+  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online', flow:'Flow' };
   const esPendienteFlow = c.estado === 'pending_payment';
   const epEl = document.getElementById('fpi-estado-pago');
   if (epEl) {
@@ -7763,7 +7763,7 @@ function openVentaDetalle(jsonStr) {
     epEl.style.color  = esPendienteFlow ? 'var(--a)' : c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
   }
   const mpEl = document.getElementById('fpi-metodo-pago');
-  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || (esPendienteFlow ? 'Flow ⚡' : '—');
+  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || (esPendienteFlow ? 'Flow' : '—');
   // Guardar cita para boleta y mostrar botones
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
@@ -8039,7 +8039,7 @@ function salirImpersonacion() {
       <!-- Google Calendar -->
       <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
         <div style="padding:14px;display:flex;align-items:center;gap:14px">
-          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#EA4335,#FBBC04);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📅</div>
+          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#EA4335,#FBBC04);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">GC</div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:500;color:var(--t1)">Google Calendar</div>
             <div style="font-size:12px;color:var(--t3)">Cada cita confirmada se agrega automáticamente a tu calendario</div>
@@ -8058,7 +8058,7 @@ function salirImpersonacion() {
       </div>
       <!-- WhatsApp Business -->
       <div style="padding:14px;border:1px solid var(--b1);border-radius:var(--rl);display:flex;align-items:center;gap:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#25D366,#128C7E);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💬</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#25D366,#128C7E);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">WA</div>
         <div style="flex:1">
           <div style="font-size:13px;font-weight:500;color:var(--t1)">WhatsApp Business API</div>
           <div style="font-size:12px;color:var(--t3)">Envío automático de recordatorios y confirmaciones por WhatsApp</div>
@@ -8229,23 +8229,22 @@ function _updateInsight(citas) {
   const total     = citas.filter(noCancel).length;
   const pacientes = new Set(citas.filter(noCancel).map(c => (c.nombre_paciente||'').toLowerCase().trim())).size;
 
-  let message = '', icon = '✨';
+  let message = '';
 
   if (citasMes.length > 0 && citasAnt.length > 0) {
     const pct = Math.round((citasMes.length - citasAnt.length) / citasAnt.length * 100);
-    if (pct >= 20) { message = `Este mes llevas un ${pct}% más de reservas que el mes anterior. ¡Sigue así!`; icon = '📈'; }
-    else if (pct > 0) { message = `Ya llevas ${citasMes.length} reservas este mes, ${pct}% más que el mes anterior.`; icon = '✨'; }
-    else if (pct < -10) { message = `¿Activaste los recordatorios automáticos? Ayudan a reducir las inasistencias.`; icon = '💡'; }
+    if (pct >= 20) { message = `Este mes llevas un ${pct}% más de reservas que el mes anterior.`; }
+    else if (pct > 0) { message = `Ya llevas ${citasMes.length} reservas este mes, ${pct}% más que el mes anterior.`; }
+    else if (pct < -10) { message = `¿Activaste los recordatorios automáticos? Ayudan a reducir las inasistencias.`; }
   }
 
   if (!message) {
-    if (total >= 500 && total % 100 < 5)     { message = `¡Superaste las ${Math.floor(total/100)*100} reservas totales! Gran hito.`; icon = '🎉'; }
-    else if (pacientes >= 100 && pacientes % 50 < 3) { message = `Ya tienes más de ${Math.floor(pacientes/50)*50} pacientes registrados. ¡Tu comunidad crece!`; icon = '👥'; }
-    else if (citasMes.length > 0)             { message = `Este mes llevas ${citasMes.length} reserva${citasMes.length!==1?'s':''} programada${citasMes.length!==1?'s':''}.`; icon = '📅'; }
+    if (total >= 500 && total % 100 < 5)     { message = `Superaste las ${Math.floor(total/100)*100} reservas totales.`; }
+    else if (pacientes >= 100 && pacientes % 50 < 3) { message = `Ya tienes más de ${Math.floor(pacientes/50)*50} pacientes registrados.`; }
+    else if (citasMes.length > 0)             { message = `Este mes llevas ${citasMes.length} reserva${citasMes.length!==1?'s':''} programada${citasMes.length!==1?'s':''}.`; }
     else { card.style.display = 'none'; return; }
   }
 
-  ico.textContent  = icon;
   msg.textContent  = message;
   card.style.display = 'block';
 }
@@ -8662,7 +8661,7 @@ function renderBoletaItems() {
         <select class="fi" style="width:100%" onchange="boletaItemSelectService(${i},this.value)">
           <option value="">— Seleccionar servicio —</option>
           ${srvOpts}
-          <option value="custom"${isCustom ? ' selected' : ''}>✏️ Personalizado</option>
+          <option value="custom"${isCustom ? ' selected' : ''}>Personalizado</option>
         </select>
         <input class="fi" type="number" placeholder="Monto" value="${item.monto||''}"
           oninput="_boletaExtraItems[${i}].monto=this.value;updateBoletaPreview()" style="width:100%;text-align:right">
@@ -9552,7 +9551,7 @@ function renderRepKPIs(lista) {
     if (pctTotal !== null && pctTotal !== 0) {
       const up = pctTotal > 0;
       banner.className = 'rep-insight ' + (up ? 'up' : 'down');
-      if (icon)  icon.textContent  = up ? '🚀' : '📉';
+      if (icon)  icon.style.display = 'none';
       if (main)  main.textContent  = up
         ? 'Este período tienes ' + total + ' reservas — ¡más que ' + prevLbl + '!'
         : 'Este período tienes ' + total + ' reservas, menos que ' + prevLbl + '.';
@@ -9560,7 +9559,7 @@ function renderRepKPIs(lista) {
       if (badge) { badge.textContent = (up ? '↑ +' : '↓ ') + Math.abs(pctTotal) + '%'; badge.className = 'ins-badge ' + (up ? 'up' : 'down'); }
     } else {
       banner.className = 'rep-insight';
-      if (icon)  icon.textContent  = '📊';
+      if (icon)  icon.style.display = 'none';
       if (main)  main.textContent  = total + ' reservas en el período · ' + pacientes.size + ' pacientes únicos';
       if (sub)   sub.textContent   = ing > 0 ? 'Ingresos cobrados: $' + ing.toLocaleString('es-CL') : 'Sin ingresos registrados en el período';
       if (badge) { badge.textContent = total + ' citas'; badge.className = 'ins-badge neu'; }
@@ -12004,8 +12003,8 @@ async function actualizarComision(especialistaId, pct, inputEl) {
     </div>
     <div class="mfoot" style="gap:8px">
       <button class="btn-g" onclick="closeBoleta()">Cancelar</button>
-      <button class="btn-g" id="bol-btn-email" onclick="enviarBoletaEmail()">📧 Enviar por email</button>
-      <button class="btn-a" onclick="emitirBoleta()">🖨 Imprimir / PDF</button>
+      <button class="btn-g" id="bol-btn-email" onclick="enviarBoletaEmail()">Enviar por email</button>
+      <button class="btn-a" onclick="emitirBoleta()">Imprimir / PDF</button>
     </div>
   </div>
 </div>
@@ -12116,7 +12115,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 
       <!-- Privacidad -->
       <div style="padding:12px 14px;background:rgba(108,92,228,0.04);border:1px solid var(--b1);border-radius:var(--r);display:flex;align-items:center;gap:12px">
-        <span style="font-size:20px">🔒</span>
+        <span style="font-size:13px;color:var(--t3)">—</span>
         <div style="flex:1">
           <div style="font-size:13px;font-weight:500;color:var(--t1)">Privacidad y datos</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Attempo almacena solo los datos necesarios para la gestión de citas. No los compartimos con terceros.</div>
@@ -12126,7 +12125,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 
       <!-- Soporte -->
       <div style="padding:12px 14px;background:rgba(22,163,74,0.04);border:1px solid rgba(22,163,74,0.12);border-radius:var(--r);display:flex;align-items:center;gap:12px">
-        <span style="font-size:20px">💬</span>
+        <span style="font-size:13px;color:var(--t3)">—</span>
         <div>
           <div style="font-size:13px;font-weight:500;color:var(--t1)">¿Necesitas ayuda personalizada?</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Escríbenos y te respondemos en menos de 24 horas hábiles.</div>
