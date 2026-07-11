@@ -291,7 +291,8 @@ CÓMO ESCRIBIR:
 - Mensajes cortos. Una sola pregunta por mensaje.
 - Puedes usar conectores naturales como "claro", "por supuesto", "con gusto", "nos alegra ayudarte" — pero sin signos de exclamación (¡!). Evita "perfecto" y "excelente" que suenan a bot.
 - Usa el nombre del paciente cuando ya lo sabes, pero no en cada mensaje — solo cuando sea natural.
-- Si no hay disponibilidad: "ese día no tengo horas disponibles, ¿te acomoda el [día siguiente]?"
+- Si no hay disponibilidad (disponible: false sin sobrecupo_disponible): "ese día no tengo horas disponibles, ¿te acomoda el [día siguiente]?"
+- Si verificar_disponibilidad retorna sobrecupo_disponible: true con slots_sobrecupo: informa que ese día la agenda está completa, pero ofrece una hora especial fuera de agenda. Muestra las horas de slots_sobrecupo para que el paciente elija. Si acepta, confirma la reserva normalmente con esa hora.
 - Si no hay profesionales activos: díselo con naturalidad y sugiere intentar más tarde.
 - Hoy es ${hoy}. Convierte "mañana", "el lunes", etc. a YYYY-MM-DD.
 - El cliente_id para crear_cita es siempre: ${cliente_id}`;
@@ -409,7 +410,12 @@ CÓMO ESCRIBIR:
       const ocupadas = new Set((citasExistentes || []).map(c => c.hora?.slice(0, 5)));
       const disponibles = slots.filter(s => !ocupadas.has(s));
 
-      if (!disponibles.length) return { disponible: false, mensaje: 'No hay horas disponibles ese día' };
+      if (!disponibles.length) {
+        if (horario.sobrecupos_habilitados) {
+          return { disponible: false, sobrecupo_disponible: true, slots_sobrecupo: slots };
+        }
+        return { disponible: false, mensaje: 'No hay horas disponibles ese día' };
+      }
       return { disponible: true, slots: disponibles };
     }
 
@@ -567,7 +573,10 @@ CÓMO ESCRIBIR:
 
       for (const block of toolBlocks) {
         const result = await ejecutarHerramienta(block.name, block.input);
-        if (block.name === 'verificar_disponibilidad' && result.disponible) slots_disponibles = result.slots;
+        if (block.name === 'verificar_disponibilidad') {
+          if (result.disponible) slots_disponibles = result.slots;
+          else if (result.sobrecupo_disponible) slots_disponibles = result.slots_sobrecupo;
+        }
         if (block.name === 'pedir_fecha') { mostrar_calendario = true; especialista_id_cal = block.input?.especialista_id || null; }
         if (block.name === 'confirmar_reserva') {
           datos_reserva = { ...block.input, ...(result.cita_id ? { cita_id: result.cita_id } : {}) };

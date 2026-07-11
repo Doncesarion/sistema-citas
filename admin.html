@@ -5989,12 +5989,13 @@ function _bloqueRow(desde, hasta) {
 
 function renderHorarioEdit(h) {
   const dias = [{k:'lun',l:'Lunes'},{k:'mar',l:'Martes'},{k:'mie',l:'Miércoles'},{k:'jue',l:'Jueves'},{k:'vie',l:'Viernes'},{k:'sab',l:'Sábado'},{k:'dom',l:'Domingo'}];
+  const sobrecupos = h.sobrecupos_habilitados ? 'checked' : '';
   document.getElementById('ep-horario').innerHTML = dias.map(({k,l}) => {
     const d = h[k] || {activo:false, bloques:[]};
     const activo = d.activo;
     const bloques = (d.bloques?.length ? d.bloques : [{desde:'09:00',hasta:'18:00'}]);
     const bloquesHtml = bloques.map(b => _bloqueRow(b.desde, b.hasta)).join('');
-    return `<div data-dia="${k}" style="padding:7px 0;${k!=='dom'?'border-bottom:1px solid var(--b1)':''}">
+    return `<div data-dia="${k}" style="padding:7px 0;border-bottom:1px solid var(--b1)">
       <div style="display:flex;align-items:center;gap:10px">
         <input type="checkbox" id="hd-${k}" ${activo?'checked':''} onchange="toggleHorarioDia('${k}',this.checked)" style="accent-color:var(--a);cursor:pointer;flex-shrink:0">
         <span style="width:82px;font-size:13px;color:var(--t2);flex-shrink:0">${l}</span>
@@ -6003,7 +6004,13 @@ function renderHorarioEdit(h) {
       </div>
       <div id="hblk-${k}" style="${activo?'':'opacity:.35;pointer-events:none'}">${bloquesHtml}</div>
     </div>`;
-  }).join('');
+  }).join('') + `<div style="padding:10px 0 2px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div>
+      <div style="font-size:12px;font-weight:500;color:var(--t1)">Sobrecupos</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:1px">El chat ofrece horas adicionales cuando la agenda está completa</div>
+    </div>
+    <input type="checkbox" id="ep-sobrecupos" ${sobrecupos} style="accent-color:var(--a);width:16px;height:16px;cursor:pointer;flex-shrink:0">
+  </div>`;
 }
 
 function addBloqueProf(dia) {
@@ -6035,6 +6042,7 @@ function getHorarioFromModal() {
     }
     h[d] = { activo, bloques };
   });
+  h.sobrecupos_habilitados = document.getElementById('ep-sobrecupos')?.checked || false;
   return h;
 }
 
