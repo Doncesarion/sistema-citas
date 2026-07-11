@@ -4129,7 +4129,7 @@ async function loadFichaData(nombre) {
     if (!Array.isArray(citas)) return;
 
     const hoy = new Date().toISOString().slice(0,10);
-    const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online' };
+    const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
     const CANCEL_ST = ['cancelada','canceled','cancelled','no-show','inasistencia'];
 
     // — Actualizar stats de cabecera desde datos reales —
@@ -4220,7 +4220,7 @@ function renderFichaHistorial(citas) {
   const wrap = document.getElementById('ft-hist-wrap');
   if (!wrap) return;
   if (!citas.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin historial de citas</div>'; return; }
-  const METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online' };
+  const METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
   const estTag = e => {
     if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta">Pendiente</span>';
     if (e==='confirmada'||e==='confirmed')  return '<span class="tag tg">✓ Confirmada</span>';
@@ -7422,7 +7422,7 @@ function renderVentasKPIs() {
 }
 
 function renderVentasTable() {
-  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', online:'<span class="tag tp">Online</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow</span>' };
+  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow</span>' };
   const lista  = _ventasFiltradas();
   const tbody  = document.getElementById('ventas-tbody');
   const pager  = document.getElementById('ventas-pager');
@@ -7755,7 +7755,7 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
   document.getElementById('fpi-rut').textContent   = '—';
-  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', online:'Online', flow:'Flow' };
+  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
   const esPendienteFlow = c.estado === 'pending_payment';
   const epEl = document.getElementById('fpi-estado-pago');
   if (epEl) {
@@ -9323,6 +9323,7 @@ function tutCopyLink() {
   <div class="vmdrop-item" onclick="setMetodoFilter('efectivo',this)">Efectivo</div>
   <div class="vmdrop-item" onclick="setMetodoFilter('transferencia',this)">Transferencia</div>
   <div class="vmdrop-item" onclick="setMetodoFilter('tarjeta',this)">Tarjeta</div>
+  <div class="vmdrop-item" onclick="setMetodoFilter('flow',this)">Flow</div>
   <div style="height:1px;background:var(--b1);margin:4px 0"></div>
   <div style="padding:4px 14px 4px;font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">Estado</div>
   <div class="vmdrop-item" onclick="setEstadoFilter('',this)">Todos los estados</div>
