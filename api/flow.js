@@ -124,7 +124,7 @@ function emailConfirmadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
-  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">¡Pago confirmado y cita reservada! 🎉</h2>
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Pago confirmado — cita reservada</h2>
   <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, recibimos tu pago. Tu hora está confirmada.</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${ne}</span></td></tr>
@@ -136,7 +136,7 @@ function emailConfirmadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
   ${dir ? `
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
     <tr><td style="text-align:center;">
-      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">📍 ${dir}</p>
+      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">${dir}</p>
       <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}" target="_blank"
          style="display:inline-block;padding:10px 22px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">
         Ver en Google Maps
@@ -313,7 +313,7 @@ async function handleFlowWebhook(req, res) {
   await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, {
     method: 'PATCH',
     headers: { ...sh, Prefer: 'return=minimal' },
-    body: JSON.stringify({ estado: 'confirmed' })
+    body: JSON.stringify({ estado: 'confirmed', estado_pago: 'pagado', metodo_pago: 'flow' })
   }).catch(e => console.error('flow webhook: patch error:', e.message));
 
   try {
