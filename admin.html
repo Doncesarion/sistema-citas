@@ -2217,6 +2217,25 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div id="promos-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay promociones configuradas. Haz clic en "+ Agregar" para crear una.</div>
       </div>
 
+      <!-- Modos de respuesta -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">Modos de respuesta</div>
+            <span id="modos-activo-badge" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.12);color:var(--a);border:1px solid rgba(108,92,228,0.25)"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn-sm" onclick="addModo()" style="font-size:11px">+ Crear modo</button>
+            <button id="modos-toggle-btn" onclick="toggleModosSection()" style="background:none;border:none;cursor:pointer;color:var(--t3);padding:2px 6px;font-size:18px;line-height:1;transition:transform .2s" title="Colapsar">▾</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Activa un modo para cambiar cómo responde el bot ese día. Solo un modo puede estar activo a la vez. Sin modo activo, el bot responde con su configuración habitual.</div>
+        <div id="modos-section-body">
+          <div id="modos-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
+          <div id="modos-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay modos configurados. Crea uno para empezar.</div>
+        </div>
+      </div>
+
       <!-- Canales conectados -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -4548,10 +4567,13 @@ async function loadBotConfig() {
         if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
         const conocEl = document.getElementById('bot-conocimiento');
         if (conocEl) conocEl.value = cfg.conocimiento || '';
-        _botFaqs   = Array.isArray(cfg.faqs)       ? cfg.faqs       : [];
-        _botPromos = Array.isArray(cfg.promociones) ? cfg.promociones : [];
+        _botFaqs      = Array.isArray(cfg.faqs)       ? cfg.faqs       : [];
+        _botPromos    = Array.isArray(cfg.promociones) ? cfg.promociones : [];
+        _botModos     = Array.isArray(cfg.modos)       ? cfg.modos      : [];
+        _modoActivoId = cfg.modo_activo || null;
         renderFaqs();
         renderPromociones();
+        renderModos();
       }
     }
     // Actualizar estado de canales en el panel chatbot
@@ -4638,6 +4660,103 @@ function toggleFaqsSection() {
 
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// ── Modos de respuesta ────────────────────────────────────────────────────────
+let _botModos       = [];
+let _modoActivoId   = null;
+let _modoOpenIndex  = null;
+let _modosCollapsed = false;
+
+function renderModos() {
+  const list  = document.getElementById('modos-list');
+  const empty = document.getElementById('modos-empty');
+  const badge = document.getElementById('modos-activo-badge');
+  const modoActivo = _botModos.find(m => m.id === _modoActivoId);
+  if (modoActivo) {
+    badge.style.display = '';
+    badge.textContent = '● ' + modoActivo.nombre;
+  } else {
+    badge.style.display = 'none';
+  }
+  if (!_botModos.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = _botModos.map((m, i) => {
+    const isOpen   = _modoOpenIndex === i;
+    const isActivo = m.id === _modoActivoId;
+    const prevTrunc = (m.instruccion || '').slice(0, 70) + ((m.instruccion || '').length > 70 ? '…' : '');
+    const borderColor = isActivo ? '#6C5CE4' : (isOpen ? 'var(--a)' : 'var(--b1)');
+    const bgColor     = isActivo ? 'rgba(108,92,228,0.06)' : (isOpen ? '#faf9ff' : '#fafafe');
+    return `
+    <div data-modo="${i}" style="border:1.5px solid ${borderColor};border-radius:var(--r);background:${bgColor};cursor:pointer;transition:border-color .15s,background .15s;overflow:hidden">
+      <!-- Cabecera -->
+      <div onclick="toggleModoCard(${i})" style="padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
+        <div style="width:30px;height:30px;border-radius:8px;background:${isActivo ? 'rgba(108,92,228,0.18)' : 'rgba(108,92,228,0.08)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${isActivo ? '#6C5CE4' : '#9B8FE8'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <div style="font-size:12px;font-weight:700;color:${isActivo ? 'var(--a)' : 'var(--t1)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(m.nombre || 'Sin nombre')}</div>
+            ${isActivo ? '<span style="font-size:10px;font-weight:700;color:var(--a);background:rgba(108,92,228,0.1);border:1px solid rgba(108,92,228,0.25);border-radius:100px;padding:0 6px">Activo</span>' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--t3);line-height:1.4;word-break:break-word">${escHtml(prevTrunc) || '<em style="color:var(--t4)">Sin instrucción</em>'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-top:2px">
+          <span style="font-size:13px;color:var(--t4);transition:transform .2s;display:inline-block;transform:${isOpen ? 'rotate(180deg)' : 'none'}">▾</span>
+          <button onclick="event.stopPropagation();removeModo(${i})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:16px;padding:0;line-height:1" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='var(--t4)'">×</button>
+        </div>
+      </div>
+      <!-- Cuerpo expandible -->
+      <div style="display:${isOpen ? 'block' : 'none'};padding:0 14px 14px;border-top:1px solid rgba(108,92,228,0.12)">
+        <div style="height:10px"></div>
+        <input class="fi" placeholder="Ej: Día intenso" value="${escHtml(m.nombre||'')}" oninput="_botModos[${i}].nombre=this.value;renderModos()" style="margin-bottom:8px;font-size:12.5px;font-weight:600">
+        <textarea class="fi" rows="4" placeholder="Instrucción para el bot en este modo. Ej: Hoy tenemos mucha demanda. Sé más directo y breve. Prioriza agendar citas rápido y evita respuestas largas." style="resize:vertical;font-size:12.5px;line-height:1.5" oninput="_botModos[${i}].instruccion=this.value">${escHtml(m.instruccion||'')}</textarea>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          ${isActivo
+            ? `<button onclick="event.stopPropagation();desactivarModo()" class="btn-sm" style="font-size:11px;color:var(--t3);border-color:var(--b1)">Desactivar modo</button>`
+            : `<button onclick="event.stopPropagation();activarModo('${m.id}')" class="btn-sm" style="font-size:11px;color:var(--a);border-color:var(--a);background:rgba(108,92,228,0.06)">● Activar este modo</button>`
+          }
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleModoCard(i) {
+  _modoOpenIndex = (_modoOpenIndex === i) ? null : i;
+  renderModos();
+}
+
+function toggleModosSection() {
+  _modosCollapsed = !_modosCollapsed;
+  document.getElementById('modos-section-body').style.display = _modosCollapsed ? 'none' : '';
+  document.getElementById('modos-toggle-btn').style.transform = _modosCollapsed ? 'rotate(-90deg)' : '';
+}
+
+function activarModo(id) {
+  _modoActivoId = id;
+  renderModos();
+}
+
+function desactivarModo() {
+  _modoActivoId = null;
+  renderModos();
+}
+
+function addModo() {
+  const id = 'modo_' + Date.now();
+  _botModos.push({ id, nombre: '', instruccion: '' });
+  _modoOpenIndex = _botModos.length - 1;
+  renderModos();
+  document.getElementById('modos-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function removeModo(i) {
+  if (_botModos[i]?.id === _modoActivoId) _modoActivoId = null;
+  _botModos.splice(i, 1);
+  if (_modoOpenIndex === i) _modoOpenIndex = null;
+  else if (_modoOpenIndex > i) _modoOpenIndex--;
+  renderModos();
+}
+
 function addFaq() {
   _botFaqs.push({ pregunta: '', respuesta: '' });
   _faqOpenIndex = _botFaqs.length - 1;
@@ -4662,7 +4781,9 @@ async function saveBotConfig() {
     saludo:       document.getElementById('bot-saludo').value.trim(),
     conocimiento: (document.getElementById('bot-conocimiento')?.value || '').trim(),
     faqs:         _botFaqs.filter(f => f.pregunta.trim()),
-    promociones:  _botPromos.filter(p => p.titulo?.trim())
+    promociones:  _botPromos.filter(p => p.titulo?.trim()),
+    modos:        _botModos.filter(m => m.nombre?.trim()),
+    modo_activo:  _modoActivoId || null
   };
   try {
     const r = await fetch('/api/slots', {

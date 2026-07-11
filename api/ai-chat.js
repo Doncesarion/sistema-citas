@@ -130,7 +130,7 @@ export default async function handler(req, res) {
     direccionNegocio = cli?.direccion || null;
   } catch(_) {}
 
-  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [];
+  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null;
   try {
     const rb = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh });
     const [bc] = await rb.json();
@@ -141,6 +141,8 @@ export default async function handler(req, res) {
       faqsBot         = Array.isArray(bc.faqs) ? bc.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
       conocimientoBot = bc.conocimiento || '';
       promocionesBot  = Array.isArray(bc.promociones) ? bc.promociones : [];
+      modosBot        = Array.isArray(bc.modos)        ? bc.modos       : [];
+      modoActivoId    = bc.modo_activo  || null;
     }
   } catch(_) {}
 
@@ -238,7 +240,12 @@ export default async function handler(req, res) {
     ? `\nPROMOCIONES VIGENTES HOY:\n${promocionesActivasAI.map(p => `— ${p.titulo}: ${p.descripcion}`).join('\n')}`
     : '';
 
-  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}
+  const modoActivo = modosBot.find(m => m.id === modoActivoId);
+  const modoTexto  = modoActivo?.instruccion?.trim()
+    ? `\nMODO ACTIVO — ${modoActivo.nombre}:\n${modoActivo.instruccion.trim()}\nSigue estas instrucciones con prioridad sobre tu comportamiento habitual.\n`
+    : '';
+
+  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}
 ${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
 PROFESIONALES DISPONIBLES (usa el id exacto al llamar las herramientas):
 ${espTexto}
