@@ -217,8 +217,8 @@ export default async function handler(req, res) {
     ? 'Usa "usted" con los clientes. Eres profesional, respetuoso y cálido.'
     : 'Eres una persona real detrás de la pantalla: cercana, natural y directa. Usa "tú" con los clientes.';
 
-  const faqsTexto = faqsBot.length
-    ? `\nPREGUNTAS FRECUENTES (responde EXACTAMENTE con estas respuestas cuando te las hagan):\n${faqsBot.map(f => `• Si preguntan: "${f.pregunta}"\n  Responde: "${f.respuesta}"`).join('\n\n')}`
+  const faqsTexto = todasLasFaqs.length
+    ? `\nPREGUNTAS FRECUENTES (responde EXACTAMENTE con estas respuestas cuando te las hagan):\n${todasLasFaqs.map(f => `• Si preguntan: "${f.pregunta}"\n  Responde: "${f.respuesta}"`).join('\n\n')}`
     : '';
 
   const conocimientoTexto = conocimientoBot.trim()
@@ -240,10 +240,12 @@ export default async function handler(req, res) {
     ? `\nPROMOCIONES VIGENTES HOY:\n${promocionesActivasAI.map(p => `— ${p.titulo}: ${p.descripcion}`).join('\n')}`
     : '';
 
-  const modoActivo = modosBot.find(m => m.id === modoActivoId);
-  const modoTexto  = modoActivo?.instruccion?.trim()
+  const modoActivo  = modosBot.find(m => m.id === modoActivoId);
+  const modoTexto   = modoActivo?.instruccion?.trim()
     ? `\nMODO ACTIVO — ${modoActivo.nombre}:\n${modoActivo.instruccion.trim()}\nSigue estas instrucciones con prioridad sobre tu comportamiento habitual.\n`
     : '';
+  const faqsModo    = Array.isArray(modoActivo?.faqs) ? modoActivo.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
+  const todasLasFaqs = [...faqsBot, ...faqsModo];
 
   const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}
 ${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
