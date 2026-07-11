@@ -2198,6 +2198,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-size:13px;font-weight:600;color:var(--t1)">Preguntas frecuentes</div>
+            <span id="faqs-mode-label" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.12);color:var(--a);border:1px solid rgba(108,92,228,0.25)"></span>
             <span id="faqs-count" style="font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15);display:none">0</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -2205,7 +2206,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <button id="faqs-toggle-btn" onclick="toggleFaqsSection()" style="background:none;border:none;cursor:pointer;color:var(--t3);padding:2px 6px;font-size:18px;line-height:1;transition:transform .2s" title="Colapsar">▾</button>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Respuestas por defecto cuando no hay ningún modo activo. El bot las usa sin IA.</div>
+        <div id="faqs-desc" style="font-size:12px;color:var(--t3);margin-bottom:14px">Respuestas por defecto cuando no hay ningún modo activo. El bot las usa sin IA.</div>
         <div id="faqs-section-body">
           <div id="faqs-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
             <!-- rendered by JS -->
@@ -4604,11 +4605,38 @@ function _actualizarBadgesCanalesBot(meta) {
 let _faqsCollapsed = false;
 let _faqOpenIndex  = null;
 
+function _getFaqsCtx() {
+  if (_modoActivoId) {
+    const idx = _botModos.findIndex(m => m.id === _modoActivoId);
+    if (idx >= 0) {
+      if (!Array.isArray(_botModos[idx].faqs)) _botModos[idx].faqs = [];
+      return { faqs: _botModos[idx].faqs, ref: `_botModos[${idx}].faqs`, nombre: _botModos[idx].nombre };
+    }
+  }
+  return { faqs: _botFaqs, ref: '_botFaqs', nombre: null };
+}
+
+function _updateFaqsHeader() {
+  const { nombre } = _getFaqsCtx();
+  const lbl  = document.getElementById('faqs-mode-label');
+  const desc = document.getElementById('faqs-desc');
+  if (nombre) {
+    lbl.textContent = 'Modo: ' + nombre;
+    lbl.style.display = '';
+    desc.textContent = `Respuestas del modo "${nombre}". Reemplazan las generales mientras este modo esté activo.`;
+  } else {
+    lbl.style.display = 'none';
+    desc.textContent = 'Respuestas por defecto cuando no hay ningún modo activo. El bot las usa sin IA.';
+  }
+}
+
 function renderFaqs() {
+  const { faqs, ref } = _getFaqsCtx();
   const list  = document.getElementById('faqs-list');
   const empty = document.getElementById('faqs-empty');
   const count = document.getElementById('faqs-count');
-  if (!_botFaqs.length) {
+  _updateFaqsHeader();
+  if (!faqs.length) {
     list.innerHTML = '';
     empty.style.display = 'block';
     count.style.display = 'none';
@@ -4616,14 +4644,13 @@ function renderFaqs() {
   }
   empty.style.display = 'none';
   count.style.display = '';
-  count.textContent = _botFaqs.length;
-  list.innerHTML = _botFaqs.map((f, i) => {
-    const isOpen = _faqOpenIndex === i;
-    const prev   = f.pregunta?.trim() || '—';
+  count.textContent = faqs.length;
+  list.innerHTML = faqs.map((f, i) => {
+    const isOpen    = _faqOpenIndex === i;
+    const prev      = f.pregunta?.trim() || '—';
     const prevTrunc = prev.length > 60 ? prev.slice(0, 57) + '…' : prev;
     return `
     <div data-faq="${i}" style="border:1px solid ${isOpen ? 'var(--a)' : 'var(--b1)'};border-radius:var(--r);background:${isOpen ? '#faf9ff' : '#fafafe'};cursor:pointer;transition:border-color .15s,background .15s;overflow:hidden">
-      <!-- Cabecera tarjeta (siempre visible) -->
       <div onclick="toggleFaqCard(${i})" style="padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
         <div style="width:30px;height:30px;border-radius:8px;background:rgba(108,92,228,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C5CE4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -4637,11 +4664,10 @@ function renderFaqs() {
           <button onclick="event.stopPropagation();removeFaq(${i})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:16px;padding:0;line-height:1;transition:color .12s" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='var(--t4)'">×</button>
         </div>
       </div>
-      <!-- Cuerpo expandible -->
       <div style="display:${isOpen ? 'block' : 'none'};padding:0 14px 14px;border-top:1px solid rgba(108,92,228,0.12)">
         <div style="height:10px"></div>
-        <input class="fi" placeholder="¿Cuánto cuesta la consulta?" value="${escHtml(f.pregunta||'')}" oninput="_botFaqs[${i}].pregunta=this.value;document.querySelector('[data-faq=\\'${i}\\'] .faq-prev').textContent=this.value.slice(0,57)||(this.value.length>57?'…':'')||'—'" style="margin-bottom:8px;font-size:12.5px">
-        <textarea class="fi" rows="3" placeholder="La consulta tiene un valor de $35.000 y dura 60 minutos." style="resize:vertical;font-size:12.5px" oninput="_botFaqs[${i}].respuesta=this.value">${escHtml(f.respuesta||'')}</textarea>
+        <input class="fi" placeholder="¿Cuánto cuesta la consulta?" value="${escHtml(f.pregunta||'')}" oninput="${ref}[${i}].pregunta=this.value" style="margin-bottom:8px;font-size:12.5px">
+        <textarea class="fi" rows="3" placeholder="La consulta tiene un valor de $35.000 y dura 60 minutos." style="resize:vertical;font-size:12.5px" oninput="${ref}[${i}].respuesta=this.value">${escHtml(f.respuesta||'')}</textarea>
       </div>
     </div>`;
   }).join('');
@@ -4671,30 +4697,25 @@ function renderModos() {
   const empty = document.getElementById('modos-empty');
   const badge = document.getElementById('modos-activo-badge');
   const modoActivo = _botModos.find(m => m.id === _modoActivoId);
-  if (modoActivo) {
-    badge.style.display = '';
-    badge.textContent = '● ' + modoActivo.nombre;
-  } else {
-    badge.style.display = 'none';
-  }
+  badge.style.display = modoActivo ? '' : 'none';
+  if (modoActivo) badge.textContent = '● ' + modoActivo.nombre;
   if (!_botModos.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   list.innerHTML = _botModos.map((m, i) => {
-    const isOpen   = _modoOpenIndex === i;
-    const isActivo = m.id === _modoActivoId;
-    const prevTrunc = (m.instruccion || '').slice(0, 70) + ((m.instruccion || '').length > 70 ? '…' : '');
+    const isOpen      = _modoOpenIndex === i;
+    const isActivo    = m.id === _modoActivoId;
+    const prevTrunc   = (m.instruccion || '').slice(0, 70) + ((m.instruccion || '').length > 70 ? '…' : '');
     const borderColor = isActivo ? '#6C5CE4' : (isOpen ? 'var(--a)' : 'var(--b1)');
     const bgColor     = isActivo ? 'rgba(108,92,228,0.06)' : (isOpen ? '#faf9ff' : '#fafafe');
     return `
-    <div data-modo="${i}" style="border:1.5px solid ${borderColor};border-radius:var(--r);background:${bgColor};cursor:pointer;transition:border-color .15s,background .15s;overflow:hidden">
-      <!-- Cabecera -->
-      <div onclick="toggleModoCard(${i})" style="padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
+    <div data-modo="${i}" style="border:1.5px solid ${borderColor};border-radius:var(--r);background:${bgColor};transition:border-color .15s,background .15s;overflow:hidden">
+      <div onclick="toggleModoCard(${i})" style="padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer">
         <div style="width:30px;height:30px;border-radius:8px;background:${isActivo ? 'rgba(108,92,228,0.18)' : 'rgba(108,92,228,0.08)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${isActivo ? '#6C5CE4' : '#9B8FE8'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
         </div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-            <div style="font-size:12px;font-weight:700;color:${isActivo ? 'var(--a)' : 'var(--t1)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(m.nombre || 'Sin nombre')}</div>
+            <div class="modo-title-${i}" style="font-size:12px;font-weight:700;color:${isActivo ? 'var(--a)' : 'var(--t1)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(m.nombre || 'Sin nombre')}</div>
             ${isActivo ? '<span style="font-size:10px;font-weight:700;color:var(--a);background:rgba(108,92,228,0.1);border:1px solid rgba(108,92,228,0.25);border-radius:100px;padding:0 6px">Activo</span>' : ''}
           </div>
           <div style="font-size:11px;color:var(--t3);line-height:1.4;word-break:break-word">${escHtml(prevTrunc) || '<em style="color:var(--t4)">Sin instrucción</em>'}</div>
@@ -4704,30 +4725,11 @@ function renderModos() {
           <button onclick="event.stopPropagation();removeModo(${i})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:16px;padding:0;line-height:1" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='var(--t4)'">×</button>
         </div>
       </div>
-      <!-- Cuerpo expandible -->
       <div style="display:${isOpen ? 'block' : 'none'};padding:0 14px 14px;border-top:1px solid rgba(108,92,228,0.12)">
         <div style="height:10px"></div>
-        <input class="fi" placeholder="Ej: Día intenso" value="${escHtml(m.nombre||'')}" oninput="_botModos[${i}].nombre=this.value;renderModos()" style="margin-bottom:8px;font-size:12.5px;font-weight:600">
-        <textarea class="fi" rows="3" placeholder="Instrucción de comportamiento. Ej: Hoy tenemos mucha demanda. Sé directo y breve. Prioriza agendar citas y evita respuestas largas." style="resize:vertical;font-size:12.5px;line-height:1.5" oninput="_botModos[${i}].instruccion=this.value">${escHtml(m.instruccion||'')}</textarea>
-        <!-- Respuestas programadas del modo -->
-        <div style="margin-top:12px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em">Respuestas programadas para este modo</div>
-            <button onclick="event.stopPropagation();addModoFaq(${i})" style="background:none;border:1px solid var(--a);border-radius:6px;color:var(--a);font-size:11px;padding:2px 8px;cursor:pointer">+ Agregar</button>
-          </div>
-          <div id="modo-faqs-${i}" style="display:flex;flex-direction:column;gap:6px">
-            ${(m.faqs||[]).length === 0 ? `<div style="font-size:11px;color:var(--t4);text-align:center;padding:8px 0">Sin respuestas específicas. El bot usará las respuestas generales.</div>` : ''}
-            ${(m.faqs||[]).map((f,fi) => `
-              <div style="border:1px solid var(--b1);border-radius:8px;padding:10px 12px;background:#fff">
-                <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
-                  <button onclick="event.stopPropagation();removeModoFaq(${i},${fi})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:14px;padding:0;line-height:1" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='var(--t4)'">×</button>
-                </div>
-                <input class="fi" placeholder="Pregunta" value="${escHtml(f.pregunta||'')}" oninput="_botModos[${i}].faqs[${fi}].pregunta=this.value" style="margin-bottom:6px;font-size:12px">
-                <textarea class="fi" rows="2" placeholder="Respuesta exacta" style="resize:vertical;font-size:12px" oninput="_botModos[${i}].faqs[${fi}].respuesta=this.value">${escHtml(f.respuesta||'')}</textarea>
-              </div>`).join('')}
-          </div>
-        </div>
-        <div style="margin-top:12px;display:flex;gap:8px">
+        <input class="fi" placeholder="Ej: Día intenso" value="${escHtml(m.nombre||'')}" oninput="_botModos[${i}].nombre=this.value;document.querySelector('.modo-title-${i}').textContent=this.value||'Sin nombre'" style="margin-bottom:8px;font-size:12.5px;font-weight:600">
+        <textarea class="fi" rows="3" placeholder="Instrucción para el bot. Ej: Hoy tenemos mucha demanda. Sé directo y breve. Prioriza agendar citas y evita respuestas largas." style="resize:vertical;font-size:12.5px;line-height:1.5" oninput="_botModos[${i}].instruccion=this.value">${escHtml(m.instruccion||'')}</textarea>
+        <div style="margin-top:12px;text-align:center">
           ${isActivo
             ? `<button onclick="event.stopPropagation();desactivarModo()" class="btn-sm" style="font-size:11px;color:var(--t3);border-color:var(--b1)">Desactivar modo</button>`
             : `<button onclick="event.stopPropagation();activarModo('${m.id}')" class="btn-sm" style="font-size:11px;color:var(--a);border-color:var(--a);background:rgba(108,92,228,0.06)">● Activar este modo</button>`
@@ -4751,50 +4753,47 @@ function toggleModosSection() {
 
 function activarModo(id) {
   _modoActivoId = id;
+  _faqOpenIndex = null;
   renderModos();
+  renderFaqs();
 }
 
 function desactivarModo() {
   _modoActivoId = null;
+  _faqOpenIndex = null;
   renderModos();
+  renderFaqs();
 }
 
 function addModo() {
   const id = 'modo_' + Date.now();
-  _botModos.push({ id, nombre: '', instruccion: '' });
+  _botModos.push({ id, nombre: '', instruccion: '', faqs: [] });
   _modoOpenIndex = _botModos.length - 1;
   renderModos();
   document.getElementById('modos-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function removeModo(i) {
-  if (_botModos[i]?.id === _modoActivoId) _modoActivoId = null;
+  const wasActivo = _botModos[i]?.id === _modoActivoId;
+  if (wasActivo) _modoActivoId = null;
   _botModos.splice(i, 1);
   if (_modoOpenIndex === i) _modoOpenIndex = null;
   else if (_modoOpenIndex > i) _modoOpenIndex--;
   renderModos();
-}
-
-function addModoFaq(i) {
-  if (!Array.isArray(_botModos[i].faqs)) _botModos[i].faqs = [];
-  _botModos[i].faqs.push({ pregunta: '', respuesta: '' });
-  renderModos();
-}
-
-function removeModoFaq(i, fi) {
-  _botModos[i].faqs.splice(fi, 1);
-  renderModos();
+  if (wasActivo) renderFaqs();
 }
 
 function addFaq() {
-  _botFaqs.push({ pregunta: '', respuesta: '' });
-  _faqOpenIndex = _botFaqs.length - 1;
+  const { faqs } = _getFaqsCtx();
+  faqs.push({ pregunta: '', respuesta: '' });
+  _faqOpenIndex = faqs.length - 1;
   renderFaqs();
   document.getElementById('faqs-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function removeFaq(i) {
-  _botFaqs.splice(i, 1);
+  const { faqs } = _getFaqsCtx();
+  faqs.splice(i, 1);
   if (_faqOpenIndex === i) _faqOpenIndex = null;
   else if (_faqOpenIndex > i) _faqOpenIndex--;
   renderFaqs();
