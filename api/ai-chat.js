@@ -244,8 +244,8 @@ export default async function handler(req, res) {
   const modoTexto   = modoActivo?.instruccion?.trim()
     ? `\nMODO ACTIVO — ${modoActivo.nombre}:\n${modoActivo.instruccion.trim()}\nSigue estas instrucciones con prioridad sobre tu comportamiento habitual.\n`
     : '';
-  const faqsModo    = Array.isArray(modoActivo?.faqs) ? modoActivo.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
-  const todasLasFaqs = [...faqsBot, ...faqsModo];
+  const faqsModo     = Array.isArray(modoActivo?.faqs) ? modoActivo.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
+  const todasLasFaqs = faqsModo.length ? faqsModo : faqsBot;
 
   const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}
 ${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
