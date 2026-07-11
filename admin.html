@@ -2177,14 +2177,22 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <!-- Preguntas frecuentes -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:13px;font-weight:600;color:var(--t1)">Preguntas frecuentes</div>
-          <button class="btn-sm" onclick="addFaq()" style="font-size:11px">+ Agregar</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">Preguntas frecuentes</div>
+            <span id="faqs-count" style="font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15);display:none">0</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn-sm" onclick="addFaq()" style="font-size:11px">+ Agregar</button>
+            <button id="faqs-toggle-btn" onclick="toggleFaqsSection()" style="background:none;border:none;cursor:pointer;color:var(--t3);padding:2px 6px;font-size:18px;line-height:1;transition:transform .2s" title="Colapsar">▾</button>
+          </div>
         </div>
         <div style="font-size:12px;color:var(--t3);margin-bottom:14px">El bot responderá automáticamente estas preguntas sin usar IA.</div>
-        <div id="faqs-list" style="display:flex;flex-direction:column;gap:10px">
-          <!-- rendered by JS -->
+        <div id="faqs-section-body">
+          <div id="faqs-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+            <!-- rendered by JS -->
+          </div>
+          <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
         </div>
-        <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
       </div>
 
       <!-- Base de conocimiento -->
@@ -4571,33 +4579,76 @@ function _actualizarBadgesCanalesBot(meta) {
   if (igEl) igEl.innerHTML = chk(!!(meta.ig_token && meta.ig_account_id));
 }
 
+let _faqsCollapsed = false;
+let _faqOpenIndex  = null;
+
 function renderFaqs() {
-  const list = document.getElementById('faqs-list');
+  const list  = document.getElementById('faqs-list');
   const empty = document.getElementById('faqs-empty');
-  if (!_botFaqs.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  const count = document.getElementById('faqs-count');
+  if (!_botFaqs.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    count.style.display = 'none';
+    return;
+  }
   empty.style.display = 'none';
-  list.innerHTML = _botFaqs.map((f, i) => `
-    <div style="border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;background:#fafafe">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em">Pregunta ${i+1}</span>
-        <button onclick="removeFaq(${i})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:16px;padding:0;line-height:1">×</button>
+  count.style.display = '';
+  count.textContent = _botFaqs.length;
+  list.innerHTML = _botFaqs.map((f, i) => {
+    const isOpen = _faqOpenIndex === i;
+    const prev   = f.pregunta?.trim() || '—';
+    const prevTrunc = prev.length > 60 ? prev.slice(0, 57) + '…' : prev;
+    return `
+    <div data-faq="${i}" style="border:1px solid ${isOpen ? 'var(--a)' : 'var(--b1)'};border-radius:var(--r);background:${isOpen ? '#faf9ff' : '#fafafe'};cursor:pointer;transition:border-color .15s,background .15s;overflow:hidden">
+      <!-- Cabecera tarjeta (siempre visible) -->
+      <div onclick="toggleFaqCard(${i})" style="padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
+        <div style="width:30px;height:30px;border-radius:8px;background:rgba(108,92,228,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C5CE4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">Pregunta ${i+1}</div>
+          <div style="font-size:12px;color:var(--t1);line-height:1.4;word-break:break-word">${escHtml(prevTrunc)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-top:2px">
+          <span style="font-size:13px;color:var(--t4);transition:transform .2s;display:inline-block;transform:${isOpen ? 'rotate(180deg)' : 'none'}">▾</span>
+          <button onclick="event.stopPropagation();removeFaq(${i})" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:16px;padding:0;line-height:1;transition:color .12s" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='var(--t4)'">×</button>
+        </div>
       </div>
-      <input class="fi" placeholder="¿Cuánto cuesta la consulta?" value="${escHtml(f.pregunta||'')}" oninput="_botFaqs[${i}].pregunta=this.value" style="margin-bottom:8px">
-      <textarea class="fi" rows="2" placeholder="La consulta tiene un valor de $35.000 y dura 60 minutos." style="resize:vertical" oninput="_botFaqs[${i}].respuesta=this.value">${escHtml(f.respuesta||'')}</textarea>
-    </div>
-  `).join('');
+      <!-- Cuerpo expandible -->
+      <div style="display:${isOpen ? 'block' : 'none'};padding:0 14px 14px;border-top:1px solid rgba(108,92,228,0.12)">
+        <div style="height:10px"></div>
+        <input class="fi" placeholder="¿Cuánto cuesta la consulta?" value="${escHtml(f.pregunta||'')}" oninput="_botFaqs[${i}].pregunta=this.value;document.querySelector('[data-faq=\\'${i}\\'] .faq-prev').textContent=this.value.slice(0,57)||(this.value.length>57?'…':'')||'—'" style="margin-bottom:8px;font-size:12.5px">
+        <textarea class="fi" rows="3" placeholder="La consulta tiene un valor de $35.000 y dura 60 minutos." style="resize:vertical;font-size:12.5px" oninput="_botFaqs[${i}].respuesta=this.value">${escHtml(f.respuesta||'')}</textarea>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleFaqCard(i) {
+  _faqOpenIndex = (_faqOpenIndex === i) ? null : i;
+  renderFaqs();
+}
+
+function toggleFaqsSection() {
+  _faqsCollapsed = !_faqsCollapsed;
+  document.getElementById('faqs-section-body').style.display = _faqsCollapsed ? 'none' : '';
+  document.getElementById('faqs-toggle-btn').style.transform = _faqsCollapsed ? 'rotate(-90deg)' : '';
 }
 
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function addFaq() {
   _botFaqs.push({ pregunta: '', respuesta: '' });
+  _faqOpenIndex = _botFaqs.length - 1;
   renderFaqs();
   document.getElementById('faqs-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function removeFaq(i) {
   _botFaqs.splice(i, 1);
+  if (_faqOpenIndex === i) _faqOpenIndex = null;
+  else if (_faqOpenIndex > i) _faqOpenIndex--;
   renderFaqs();
 }
 
