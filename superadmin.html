@@ -198,24 +198,30 @@
       #sa-chat-msgs{padding:14px 16px !important}
       #sa-chat-foot{padding:10px 14px !important}
       /* Modal → bottom sheet en móvil */
-      .modal-overlay{align-items:flex-end !important;padding:0 !important}
-      .modal{
-        border-radius:20px 20px 0 0;
-        max-width:100% !important;
-        max-height:88vh;
-        padding:20px 18px 32px;
-        width:100%;
+      body{overflow-x:hidden}
+      .modal-overlay{
+        align-items:flex-end !important;
+        justify-content:flex-start !important;
+        padding:0 !important;
       }
-      .modal-title{font-size:16px;margin-bottom:16px}
-      .grid-2{grid-template-columns:1fr}
-      .modal-btns{flex-direction:column}
-      .modal-btns .btn{width:100%}
-      /* Drag handle visual */
+      .modal{
+        border-radius:20px 20px 0 0 !important;
+        width:100vw !important;
+        max-width:100vw !important;
+        max-height:88vh !important;
+        padding:8px 18px 32px !important;
+        overflow-x:hidden;
+        box-sizing:border-box;
+      }
       .modal::before{
         content:'';display:block;width:40px;height:4px;
         background:var(--gray-200);border-radius:2px;
-        margin:0 auto 18px;
+        margin:0 auto 14px;
       }
+      .modal-title{font-size:16px;margin-bottom:16px}
+      .grid-2{grid-template-columns:1fr !important}
+      .modal-btns{flex-direction:column}
+      .modal-btns .btn{width:100%}
     }
   </style>
 </head>
