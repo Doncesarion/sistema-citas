@@ -10425,6 +10425,7 @@ function planActual() {
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
   return (u.tipo_plan || u.plan || 'inicio').toLowerCase().replace(' ', '_');
 }
+window.planActual = planActual;
 
 // ── Inicializar bandeja ───────────────────────────────────────────────────────
 window.initBandeja = async function() {
