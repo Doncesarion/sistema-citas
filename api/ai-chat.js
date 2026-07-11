@@ -258,7 +258,7 @@ ${conocimientoTexto}${promosTextoAI}
 ${faqsTexto}
 
 CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:
-1. Pregunta el nombre con naturalidad. Ej: "perfecto, ¿me das tu nombre para dejarlo agendado?"
+1. Pregunta el nombre con naturalidad. Ej: "perfecto, ¿me das tu nombre para dejarlo agendado?" En cuanto el paciente te lo diga, llama registrar_nombre con ese nombre antes de continuar.
 2. Servicio: si solo hay uno en el catálogo, asúmelo automáticamente sin preguntar. Si hay varios, pregunta cuál necesita.
 3. Si hay un solo profesional, infórmalo directamente. Si hay varios, pregunta con quién prefiere.
 4. Pregunta la fecha en texto: "¿qué día te acomoda? puedes decirme mañana, el lunes, el 20 de junio, etc." Cuando el paciente responda, convierte a YYYY-MM-DD y llama a verificar_disponibilidad con el especialista_id y esa fecha.
@@ -312,6 +312,17 @@ CÓMO ESCRIBIR:
       }
     },
     {
+      name: 'registrar_nombre',
+      description: 'Registra el nombre del paciente en cuanto lo proporciona. Llama esta herramienta inmediatamente después de que el paciente te diga su nombre.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string', description: 'Nombre completo del paciente' }
+        },
+        required: ['nombre']
+      }
+    },
+    {
       name: 'confirmar_reserva',
       description: 'Muestra al paciente un resumen de su reserva con un botón de confirmación. Llama esta herramienta cuando tengas TODOS los datos recopilados.',
       input_schema: {
@@ -348,6 +359,17 @@ CÓMO ESCRIBIR:
 
   async function ejecutarHerramienta(nombre, params) {
     if (nombre === 'pedir_fecha') return { ok: true };
+
+    if (nombre === 'registrar_nombre') {
+      if (attiaConvId && params.nombre) {
+        fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${attiaConvId}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ canal_user_name: params.nombre })
+        }).catch(e => console.error('registrar_nombre error:', e.message));
+      }
+      return { ok: true };
+    }
 
     if (nombre === 'verificar_disponibilidad') {
       const { especialista_id, fecha } = params;
