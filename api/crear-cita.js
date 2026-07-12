@@ -335,6 +335,7 @@ export default async function handler(req, res) {
     const flowSandbox   = metodos_pago?.flow_sandbox;
     const precioNum     = precio ? Math.round(Number(String(precio).replace(/\./g, '').replace(',', '.'))) : 0;
 
+    let flow_error = null;
     if (metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0 && !from_admin) {
       const flowApiUrl = flowSandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
       try {
@@ -352,12 +353,12 @@ export default async function handler(req, res) {
         const fr = await fetch(`${flowApiUrl}/payment/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(fp)
+          body: new URLSearchParams(fp),
+          signal: AbortSignal.timeout(12000),
         });
         const fd = await fr.json();
         if (fd.url && fd.token) {
           flow_url = `${fd.url}?token=${fd.token}`;
-          // Solo bloquear como pending_payment si Flow es el único método de pago
           const soloFlow = !metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo;
           if (soloFlow) {
             await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
@@ -368,10 +369,12 @@ export default async function handler(req, res) {
           }
           console.log('crear-cita: flow_url generado OK, soloFlow:', soloFlow);
         } else {
-          console.error('crear-cita: flow error:', JSON.stringify(fd));
+          flow_error = fd.message || fd.error || JSON.stringify(fd);
+          console.error('crear-cita: flow error:', flow_error);
         }
       } catch(e) {
-        console.error('crear-cita: flow exception:', e.message);
+        flow_error = e.name === 'TimeoutError' ? 'timeout conectando con Flow' : e.message;
+        console.error('crear-cita: flow exception:', flow_error);
       }
     }
 
@@ -420,7 +423,7 @@ export default async function handler(req, res) {
       }).catch(e => console.error('crear-cita: patch confirmed error:', e.message));
     }
 
-    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow });
+    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });

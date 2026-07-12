@@ -330,7 +330,7 @@ body::before{
           <div class="fg"><label class="fl">Email *</label><input class="fi" id="d-em" type="email" placeholder="correo@ejemplo.com" oninput="checkForm()"></div>
           <div class="fg"><label class="fl">Teléfono / WhatsApp *</label><input class="fi" id="d-tel" type="tel" placeholder="+56 9 XXXX XXXX" oninput="checkForm()"></div>
           <div class="fg"><label class="fl">Notas <span style="color:var(--t4)">(opcional)</span></label><textarea class="fi" id="d-nota" rows="3" placeholder="Cuéntanos el motivo de tu consulta..." style="resize:vertical;min-height:68px"></textarea></div>
-          <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="/terminos" style="color:var(--a)">términos de uso</a> y la <a href="/privacidad" style="color:var(--a)">política de privacidad</a> *</span></label>
+          <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="/terminos" style="color:var(--a)" target="_blank" rel="noopener noreferrer">términos de uso</a> y la <a href="/privacidad" style="color:var(--a)" target="_blank" rel="noopener noreferrer">política de privacidad</a> *</span></label>
           <div class="foot">
             <button class="btn-g" onclick="toggleAcc(3)">← Volver</button>
             <button class="btn-a" id="btn4" onclick="confirmar()" disabled>Confirmar reserva →</button>
@@ -947,6 +947,14 @@ async function confirmar() {
     const tieneFlow = !!(data.flow_url && mp.flow);
     const soloFlow  = !!data.solo_flow;
     const tienePago = tieneFlow || mp.transferencia || mp.webpay || mp.efectivo;
+
+    // Mostrar advertencia si Flow falló pero hay otros métodos
+    if (data.flow_error && mp.flow && !tieneFlow) {
+      const warn = document.createElement('div');
+      warn.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;font-size:12px;color:#856404;margin-bottom:14px';
+      warn.textContent = 'El pago online con Flow no está disponible en este momento. Puedes usar otro método de pago.';
+      document.getElementById('cf-pagos')?.before(warn);
+    }
 
     // Solo mostrar "Completa tu pago" cuando Flow es el único método
     if (soloFlow) {
