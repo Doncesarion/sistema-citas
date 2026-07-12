@@ -2,6 +2,17 @@ import crypto from 'crypto';
 
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function decryptToken(encrypted) {
+  if (!encrypted?.startsWith('enc:')) return encrypted;
+  const parts = encrypted.split(':');
+  if (parts.length !== 4) return encrypted;
+  const [, ivHex, tagHex, dataHex] = parts;
+  const key = Buffer.from(process.env.GOOGLE_TOKEN_KEY, 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+  return decipher.update(Buffer.from(dataHex, 'hex')) + decipher.final('utf8');
+}
+
 function flowSign(params, secret) {
   const keys = Object.keys(params).sort();
   const str = keys.map(k => k + params[k]).join('');
@@ -136,7 +147,13 @@ export default async function handler(req, res) {
       }
 
       if (accion === 'cancelar' && citaPrevia?.google_event_id && citaPrevia?.cliente_id && process.env.GOOGLE_CLIENT_ID) {
-        await gcGestionarEvento({ supabaseUrl: SUPABASE_URL, sh, accion: 'cancelar', cliente_id: citaPrevia.cliente_id, google_event_id: citaPrevia.google_event_id }).catch(() => {});
+        try {
+          const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${citaPrevia.cliente_id}&select=google_refresh_token&limit=1`, { headers: sh });
+          const [cli] = await rcli.json();
+          if (cli?.google_refresh_token) {
+            await gcGestionarEvento({ supabaseUrl: SUPABASE_URL, sh, accion: 'cancelar', cliente_id: citaPrevia.cliente_id, google_event_id: citaPrevia.google_event_id, refresh_token: decryptToken(cli.google_refresh_token) });
+          }
+        } catch(_) {}
       }
 
       if (accion === 'reagendar' && process.env.RESEND_API_KEY) {
@@ -191,7 +208,7 @@ export default async function handler(req, res) {
                 supabaseUrl: SUPABASE_URL, sh, accion: 'reagendar',
                 cliente_id:      cita.cliente_id,
                 google_event_id: citaPrevia.google_event_id,
-                refresh_token:   cliente.google_refresh_token,
+                refresh_token:   decryptToken(cliente.google_refresh_token),
                 nombre_paciente: cita.nombre_paciente,
                 nombre_especialista,
                 servicio:    cita.servicio,
@@ -326,7 +343,7 @@ export default async function handler(req, res) {
       gc_debug.resultado = await gcCrearEvento({
         supabaseUrl: SUPABASE_URL, sh, cita_id: cita.id, cliente_id,
         nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion,
-        refresh_token: google_refresh_token, google_calendar_id
+        refresh_token: decryptToken(google_refresh_token), google_calendar_id
       });
     }
 
