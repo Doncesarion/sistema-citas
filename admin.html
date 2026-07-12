@@ -1618,7 +1618,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <option value="30">Últimos 30 días</option>
             <option value="90">Últimos 90 días</option>
             <option value="365">Este año</option>
+            <option value="custom">Personalizado</option>
           </select>
+          <input type="date" id="fav-desde" class="fi" style="display:none;font-size:12px" onchange="aplicarFiltrosAvanzados()">
+          <input type="date" id="fav-hasta" class="fi" style="display:none;font-size:12px" onchange="aplicarFiltrosAvanzados()">
           <button class="btn-sm" onclick="limpiarFiltrosAvanzados()">Limpiar</button>
           <button class="btn-sm" onclick="downloadCSV()">↓ Exportar CSV</button>
         </div>
@@ -4001,34 +4004,51 @@ function filterClientes(q) {
 }
 
 function _applyClienteFilters(textTerm) {
-  const term     = textTerm !== undefined ? textTerm : (document.querySelector('#v-clientes .fi.ico')?.value.toLowerCase().trim() || '');
-  const estado   = document.getElementById('fav-estado')?.value  || '';
-  const periodo  = document.getElementById('fav-periodo')?.value || '';
-  const hoy      = new Date();
-  const fechaMin = periodo ? new Date(hoy.getTime() - parseInt(periodo) * 86400000).toISOString().slice(0,10) : null;
+  const term    = textTerm !== undefined ? textTerm : (document.querySelector('#v-clientes .fi.ico')?.value.toLowerCase().trim() || '');
+  const estado  = document.getElementById('fav-estado')?.value  || '';
+  const periodo = document.getElementById('fav-periodo')?.value || '';
+  let fechaMin = null, fechaMax = null;
+  if (periodo === 'custom') {
+    fechaMin = document.getElementById('fav-desde')?.value || null;
+    fechaMax = document.getElementById('fav-hasta')?.value || null;
+  } else if (periodo) {
+    fechaMin = new Date(Date.now() - parseInt(periodo) * 86400000).toISOString().slice(0, 10);
+  }
 
   document.querySelectorAll('#v-clientes tbody tr').forEach(row => {
     const nombre = row.dataset.nombre || '';
     const p      = window._clientesDataMap?.[nombre];
     let show     = !term || row.textContent.toLowerCase().includes(term);
     if (p && show) {
-      if (estado === 'recurrente'   && p.citas < 2)             show = false;
-      if (estado === 'nuevo'        && p.citas >= 2)            show = false;
-      if (estado === 'sin_contacto' && (p.email || p.tel))      show = false;
-      if (fechaMin && p.ultima < fechaMin)                       show = false;
+      if (estado === 'recurrente'   && p.citas < 2)        show = false;
+      if (estado === 'nuevo'        && p.citas >= 2)       show = false;
+      if (estado === 'sin_contacto' && (p.email || p.tel)) show = false;
+      if (fechaMin && p.ultima < fechaMin)                  show = false;
+      if (fechaMax && p.ultima > fechaMax)                  show = false;
     }
     row.style.display = show ? '' : 'none';
   });
-
 }
 
-function aplicarFiltrosAvanzados() { _applyClienteFilters(); }
+function aplicarFiltrosAvanzados() {
+  const periodo  = document.getElementById('fav-periodo')?.value || '';
+  const isCustom = periodo === 'custom';
+  const elDesde  = document.getElementById('fav-desde');
+  const elHasta  = document.getElementById('fav-hasta');
+  if (elDesde) elDesde.style.display = isCustom ? '' : 'none';
+  if (elHasta) elHasta.style.display = isCustom ? '' : 'none';
+  _applyClienteFilters();
+}
 
 function limpiarFiltrosAvanzados() {
   const est = document.getElementById('fav-estado');
   const per = document.getElementById('fav-periodo');
+  const des = document.getElementById('fav-desde');
+  const has = document.getElementById('fav-hasta');
   if (est) est.value = '';
   if (per) per.value = '';
+  if (des) { des.value = ''; des.style.display = 'none'; }
+  if (has) { has.value = ''; has.style.display = 'none'; }
   _applyClienteFilters();
 }
 

@@ -599,7 +599,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
-<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
 <tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
   <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
@@ -658,7 +658,7 @@ function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
-<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
 <tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
   <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>

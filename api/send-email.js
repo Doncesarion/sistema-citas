@@ -541,7 +541,7 @@ function emailPromoHtml({ nombre, titulo, mensaje, ctaTxt, ctaUrl, negocio, head
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
-<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
 ${headerBlock}
 ${bannerBlock}
 <tr><td style="padding:36px 32px;">
