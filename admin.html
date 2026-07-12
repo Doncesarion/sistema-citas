@@ -1607,21 +1607,21 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <input class="fi ico" placeholder="Buscar por nombre, email, teléfono o RUT..." oninput="filterClientes(this.value)">
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <select id="fav-estado" class="fi" style="min-width:150px;font-size:12px" onchange="aplicarFiltrosAvanzados()">
+          <select id="fav-estado" class="fi" style="width:auto;font-size:12px;padding:5px 8px" onchange="aplicarFiltrosAvanzados()">
             <option value="">Todos los clientes</option>
             <option value="recurrente">Recurrentes (≥2 citas)</option>
             <option value="nuevo">Nuevos (1 cita)</option>
             <option value="sin_contacto">Sin contacto</option>
           </select>
-          <select id="fav-periodo" class="fi" style="min-width:150px;font-size:12px" onchange="aplicarFiltrosAvanzados()">
+          <select id="fav-periodo" class="fi" style="width:auto;font-size:12px;padding:5px 8px" onchange="aplicarFiltrosAvanzados()">
             <option value="">Cualquier fecha</option>
             <option value="30">Últimos 30 días</option>
             <option value="90">Últimos 90 días</option>
             <option value="365">Este año</option>
             <option value="custom">Personalizado</option>
           </select>
-          <input type="date" id="fav-desde" class="fi" style="display:none;font-size:12px" onchange="aplicarFiltrosAvanzados()">
-          <input type="date" id="fav-hasta" class="fi" style="display:none;font-size:12px" onchange="aplicarFiltrosAvanzados()">
+          <input type="date" id="fav-desde" class="fi" style="display:none;width:130px;font-size:12px;padding:5px 8px" onchange="aplicarFiltrosAvanzados()">
+          <input type="date" id="fav-hasta" class="fi" style="display:none;width:130px;font-size:12px;padding:5px 8px" onchange="aplicarFiltrosAvanzados()">
           <button class="btn-sm" onclick="limpiarFiltrosAvanzados()">Limpiar</button>
           <button class="btn-sm" onclick="downloadCSV()">↓ Exportar CSV</button>
         </div>
