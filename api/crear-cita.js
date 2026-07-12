@@ -216,11 +216,15 @@ export default async function handler(req, res) {
 
   // ── POST: crear nueva cita ─────────────────────────────────────────────────
   const {
-    cliente_id, especialista_id, nombre_especialista,
+    cliente_id, nombre_especialista,
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
     from_admin, enviar_email, estado_admin, slug
   } = req.body || {};
+
+  // Sanitizar especialista_id: solo aceptar UUIDs válidos, cualquier otro valor (como 'any') → null
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const especialista_id = UUID_RE.test(req.body?.especialista_id || '') ? req.body.especialista_id : null;
 
   const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'completed', cancelada:'canceled', inasistencia:'no-show' };
   // INSERT siempre con 'pending' (constraint DB); se parchea a 'confirmed' después si aplica

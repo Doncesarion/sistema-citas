@@ -612,6 +612,8 @@ function getSlotsDelDia(y, m, d) {
   // Si hay horario del negocio, usar sus bloques como fuente principal
   if (horarioNegocio && horarioNegocio[dow]?.activo) {
     const espsActivos = getEspsActivos();
+    // Cuando no hay preferencia de especialista, asignar el primero disponible
+    const espDefault = espsActivos[0] || null;
     for (const bloque of (horarioNegocio[dow].bloques || [])) {
       let t = hToMin(bloque.desde);
       const fin = hToMin(bloque.hasta);
@@ -619,9 +621,8 @@ function getSlotsDelDia(y, m, d) {
         const hStr = minToH(t);
         if (!seen.has(hStr)) {
           seen.add(hStr);
-          // Asociar con el especialista seleccionado o marcar como 'any'
-          const espId  = (st.prof && st.prof.id !== 'any') ? st.prof.id  : 'any';
-          const espNom = (st.prof && st.prof.id !== 'any') ? st.prof.nombre : '';
+          const espId  = (st.prof && st.prof.id !== 'any') ? st.prof.id  : (espDefault?.id  || null);
+          const espNom = (st.prof && st.prof.id !== 'any') ? st.prof.nombre : (espDefault?.nombre || '');
           slots.push({ h: hStr, espId, espNom });
         }
         t += dur;
