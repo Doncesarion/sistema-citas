@@ -5837,7 +5837,7 @@ async function iniciarGoogleCalendar() {
   const cid = await getClienteId();
   if (!cid) return;
   const url = `/api/google-auth?cliente_id=${cid}`;
-  const popup = window.open(url, 'gc_oauth', 'width=520,height=680,left=200,top=100,noopener=no');
+  const popup = window.open(url, 'gc_oauth', 'width=520,height=680,left=200,top=100');
   if (!popup) {
     // Fallback si el navegador bloquea popups
     window.location.href = url;
