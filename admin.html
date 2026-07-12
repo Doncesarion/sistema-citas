@@ -1606,32 +1606,22 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5.5" cy="5.5" r="4"/><path d="M9 9l3 3"/></svg>
           <input class="fi ico" placeholder="Buscar por nombre, email, teléfono o RUT..." oninput="filterClientes(this.value)">
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn-sm" id="btn-filtros-avz" onclick="toggleFiltrosAvanzados()">Filtros avanzados</button>
-          <button class="btn-sm" onclick="downloadCSV()">↓ Exportar CSV</button>
-        </div>
-      </div>
-      <!-- Panel de filtros avanzados -->
-      <div id="filtros-avz-panel" style="display:none;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:12px 0 14px;border-bottom:1px solid var(--b1);margin-bottom:2px">
-        <div>
-          <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--t3);margin-bottom:5px">Estado</div>
-          <select id="fav-estado" class="fi" style="min-width:180px" onchange="aplicarFiltrosAvanzados()">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <select id="fav-estado" class="fi" style="min-width:150px;font-size:12px" onchange="aplicarFiltrosAvanzados()">
             <option value="">Todos los clientes</option>
             <option value="recurrente">Recurrentes (≥2 citas)</option>
             <option value="nuevo">Nuevos (1 cita)</option>
             <option value="sin_contacto">Sin contacto</option>
           </select>
-        </div>
-        <div>
-          <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--t3);margin-bottom:5px">Última cita</div>
-          <select id="fav-periodo" class="fi" style="min-width:180px" onchange="aplicarFiltrosAvanzados()">
+          <select id="fav-periodo" class="fi" style="min-width:150px;font-size:12px" onchange="aplicarFiltrosAvanzados()">
             <option value="">Cualquier fecha</option>
             <option value="30">Últimos 30 días</option>
             <option value="90">Últimos 90 días</option>
             <option value="365">Este año</option>
           </select>
+          <button class="btn-sm" onclick="limpiarFiltrosAvanzados()">Limpiar</button>
+          <button class="btn-sm" onclick="downloadCSV()">↓ Exportar CSV</button>
         </div>
-        <button class="btn-sm" onclick="limpiarFiltrosAvanzados()" style="align-self:flex-end">Limpiar filtros</button>
       </div>
       <table>
         <thead>
@@ -4007,20 +3997,7 @@ function filterClientes(q) {
     const text = row.textContent.toLowerCase();
     row.style.display = (!term || text.includes(term)) ? '' : 'none';
   });
-  // Si el panel de filtros está abierto, los aplica encima del texto
-  if (document.getElementById('filtros-avz-panel')?.style.display !== 'none') {
-    _applyClienteFilters(term);
-  }
-}
-
-// ── Filtros avanzados de Clientes ──
-function toggleFiltrosAvanzados() {
-  const panel = document.getElementById('filtros-avz-panel');
-  const btn   = document.getElementById('btn-filtros-avz');
-  const abre  = panel.style.display === 'none';
-  panel.style.display = abre ? 'flex' : 'none';
-  if (btn) btn.classList.toggle('on', abre);
-  if (!abre) limpiarFiltrosAvanzados(); // al cerrar, limpia filtros
+  _applyClienteFilters(term);
 }
 
 function _applyClienteFilters(textTerm) {
@@ -4043,13 +4020,6 @@ function _applyClienteFilters(textTerm) {
     row.style.display = show ? '' : 'none';
   });
 
-  // Badge en botón
-  const activos = (estado ? 1 : 0) + (periodo ? 1 : 0);
-  const btn = document.getElementById('btn-filtros-avz');
-  if (btn) {
-    btn.textContent = activos ? `Filtros (${activos})` : 'Filtros avanzados';
-    btn.classList.toggle('on', activos > 0);
-  }
 }
 
 function aplicarFiltrosAvanzados() { _applyClienteFilters(); }
@@ -8314,7 +8284,17 @@ function salirImpersonacion() {
       <!-- Google Calendar -->
       <div style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
         <div style="padding:14px;display:flex;align-items:center;gap:14px">
-          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#EA4335,#FBBC04);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">GC</div>
+          <div style="width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+              <rect width="40" height="40" rx="8" fill="#fff"/>
+              <rect x="10" y="10" width="20" height="20" rx="2" fill="#fff" stroke="#DADCE0" stroke-width="1.5"/>
+              <rect x="10" y="10" width="20" height="7" rx="2" fill="#1A73E8"/>
+              <rect x="10" y="14" width="20" height="3" fill="#1A73E8"/>
+              <text x="20" y="28" font-family="Arial,sans-serif" font-size="9" font-weight="700" fill="#1A73E8" text-anchor="middle">31</text>
+              <circle cx="14" cy="10" r="2" fill="#EA4335"/>
+              <circle cx="26" cy="10" r="2" fill="#EA4335"/>
+            </svg>
+          </div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:500;color:var(--t1)">Google Calendar</div>
             <div style="font-size:12px;color:var(--t3)">Cada cita confirmada se agrega automáticamente a tu calendario</div>
@@ -8330,15 +8310,6 @@ function salirImpersonacion() {
           <div style="font-size:12px;color:var(--t3);line-height:1.6;flex:1">Las citas nuevas se agregan automáticamente al calendario <strong>Attempo</strong> en tu Google Calendar.</div>
           <button id="gc-sync-btn" onclick="syncCitasGoogleCalendar()" style="font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--b2);background:var(--surface);color:var(--t2);cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0">↺ Sincronizar citas existentes</button>
         </div>
-      </div>
-      <!-- WhatsApp Business -->
-      <div style="padding:14px;border:1px solid var(--b1);border-radius:var(--rl);display:flex;align-items:center;gap:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#25D366,#128C7E);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">WA</div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:500;color:var(--t1)">WhatsApp Business API</div>
-          <div style="font-size:12px;color:var(--t3)">Envío automático de recordatorios y confirmaciones por WhatsApp</div>
-        </div>
-        <span class="tag ta">Próximamente</span>
       </div>
     </div>
     <div class="mfoot">
