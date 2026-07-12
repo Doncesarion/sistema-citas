@@ -3026,12 +3026,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <!-- Sobrecupos por profesional -->
       <div class="card" style="padding:20px">
         <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Sobrecupos</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Cuando la agenda de un profesional esté completa, el chat puede ofrecer esas mismas horas como cupo adicional.</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Cuando la agenda de un profesional esté completa, el chat puede ofrecer esas mismas horas como cupo adicional. Puedes restringirlos a un rango horario específico.</div>
         <div id="sobrecupos-list" style="display:flex;flex-direction:column">
           <div style="font-size:13px;color:var(--t3);padding:8px 0">Cargando...</div>
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:14px">
-          <button class="btn-a" onclick="saveSobrecupos()">Guardar sobrecupos</button>
+          <button class="btn-a" onclick="saveSobrecupos(this)">Guardar sobrecupos</button>
         </div>
       </div>
     </div>
@@ -6440,32 +6440,62 @@ async function loadSobrecupos() {
       container.innerHTML = '<div style="font-size:13px;color:var(--t3);padding:4px 0">No hay profesionales activos.</div>';
       return;
     }
-    container.innerHTML = _sobrecuposEsps.map((e, i) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;${i < _sobrecuposEsps.length-1 ? 'border-bottom:1px solid var(--b1)' : ''}">
-        <span style="font-size:13px;color:var(--t1)">${e.nombre}</span>
-        <input type="checkbox" data-esp-id="${e.id}" ${e.horario?.sobrecupos_habilitados ? 'checked' : ''} style="accent-color:var(--a);width:16px;height:16px;cursor:pointer;flex-shrink:0">
-      </div>`).join('');
+    container.innerHTML = _sobrecuposEsps.map((e, i) => {
+      const activo = !!e.horario?.sobrecupos_habilitados;
+      const desde  = e.horario?.sobrecupos_desde || '';
+      const hasta  = e.horario?.sobrecupos_hasta || '';
+      const borde  = i < _sobrecuposEsps.length - 1 ? 'border-bottom:1px solid var(--b1)' : '';
+      return `<div style="padding:10px 0;${borde}">
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="checkbox" data-esp-id="${e.id}" ${activo ? 'checked' : ''}
+            onchange="toggleSobrecupoRango('${e.id}',this.checked)"
+            style="accent-color:var(--a);width:16px;height:16px;cursor:pointer;flex-shrink:0">
+          <span style="font-size:13px;color:var(--t1);flex:1">${e.nombre}</span>
+        </div>
+        <div id="sobrec-rango-${e.id}" style="display:${activo ? 'flex' : 'none'};align-items:center;gap:8px;margin-top:8px;margin-left:26px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--t3)">Rango horario</span>
+          <input type="time" data-sobrec-desde="${e.id}" value="${desde}" class="fi"
+            style="width:110px;font-size:12px;padding:4px 8px" placeholder="Desde">
+          <span style="font-size:12px;color:var(--t3)">a</span>
+          <input type="time" data-sobrec-hasta="${e.id}" value="${hasta}" class="fi"
+            style="width:110px;font-size:12px;padding:4px 8px" placeholder="Hasta">
+          <span style="font-size:11px;color:var(--t4)">(vacío = todo el horario)</span>
+        </div>
+      </div>`;
+    }).join('');
   } catch(e) { console.warn('loadSobrecupos error', e); }
 }
 
-async function saveSobrecupos() {
+function toggleSobrecupoRango(espId, show) {
+  const el = document.getElementById('sobrec-rango-' + espId);
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
+async function saveSobrecupos(btn) {
   const cid = await getClienteId();
   if (!cid || !_sobrecuposEsps.length) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
   const checks = document.querySelectorAll('#sobrecupos-list input[data-esp-id]');
   try {
     await Promise.all([...checks].map(chk => {
-      const esp = _sobrecuposEsps.find(e => e.id === chk.dataset.espId);
+      const esp   = _sobrecuposEsps.find(e => e.id === chk.dataset.espId);
       if (!esp) return Promise.resolve();
-      const horario = { ...(esp.horario || {}), sobrecupos_habilitados: chk.checked };
+      const desde = document.querySelector(`input[data-sobrec-desde="${esp.id}"]`)?.value || null;
+      const hasta = document.querySelector(`input[data-sobrec-hasta="${esp.id}"]`)?.value || null;
+      const horario = { ...(esp.horario || {}), sobrecupos_habilitados: chk.checked, sobrecupos_desde: desde || null, sobrecupos_hasta: hasta || null };
       return fetch(`${_SURL}/rest/v1/especialistas?id=eq.${esp.id}&cliente_id=eq.${cid}`, {
         method: 'PATCH',
         headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         body: JSON.stringify({ horario })
       });
     }));
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar sobrecupos'; }, 1500); }
     toast('✓ Sobrecupos guardados');
     await loadSobrecupos();
-  } catch(e) { toast('⚠ Error al guardar sobrecupos'); }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar sobrecupos'; }
+    toast('⚠ Error al guardar sobrecupos');
+  }
 }
 
 async function saveHorario(btn) {
