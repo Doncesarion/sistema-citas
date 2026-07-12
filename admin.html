@@ -1997,6 +1997,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <button id="bsectab-chatbot" onclick="showBandejaTab('chatbot',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Chatbot</button>
     <button id="bsectab-canales" onclick="showBandejaTab('canales',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Canales</button>
     <button id="bsectab-recordatorios" onclick="showBandejaTab('recordatorios',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Recordatorios</button>
+    <button id="bsectab-widget" onclick="showBandejaTab('widget',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Widget web</button>
   </div>
 
   <!-- Panel: Conversaciones (contenido actual de bandeja-wrap) -->
@@ -2790,6 +2791,95 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div><!-- end rmtab-content-promo -->
 
 </div>
+
+  <!-- Panel: Widget para tu web -->
+  <div id="bsec-widget" class="vp" style="display:none;flex:1;overflow-y:auto">
+    <div class="vh" style="margin-bottom:4px"><span>Widget para tu web</span></div>
+    <p style="font-size:12px;color:var(--t3);margin-bottom:20px">Incorpora attempo en tu sitio web. Tus pacientes podrán agendar y contactarte sin salir de tu página.</p>
+
+    <!-- Card: Chat Attia -->
+    <div class="card" style="padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(108,92,228,.1);border:1.5px solid rgba(108,92,228,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--a)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--t1)">Chat Attia</div>
+          <div style="font-size:12px;color:var(--t3)">Chatbot de agendamiento flotante en tu sitio web</div>
+        </div>
+        <span class="tag tg" style="margin-left:auto;flex-shrink:0">Recomendado</span>
+      </div>
+      <!-- Mini preview -->
+      <div style="background:var(--adim);border:1px dashed var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--a);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;color:#fff">A</div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--t1)">Attia</div>
+          <div style="font-size:12px;color:var(--t3)">¡Hola! ¿Quieres agendar una cita?</div>
+        </div>
+        <div style="margin-left:auto;width:44px;height:44px;border-radius:50%;background:var(--a);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(108,92,228,.35);flex-shrink:0">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+      </div>
+      <!-- Code -->
+      <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Código — pegar antes de &lt;/body&gt;</div>
+      <div style="position:relative">
+        <textarea id="widget-attia-code" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:11.5px;background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:11px 70px 11px 14px;color:var(--t2);resize:none;height:72px;line-height:1.65;outline:none;cursor:text"></textarea>
+        <button onclick="copiarWidget('widget-attia-code')" style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:11px;font-weight:600;background:var(--a);color:#fff;border:none;border-radius:6px;cursor:pointer">Copiar</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:9px;font-size:11px;color:var(--t3)">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Carga via HTTPS seguro · No expone claves ni datos sensibles · Compatible con cualquier web
+      </div>
+    </div>
+
+    <!-- Card: Botón WhatsApp -->
+    <div class="card" style="padding:20px;margin-bottom:16px;border-left:3px solid #25D366">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:40px;height:40px;border-radius:10px;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(37,211,102,.3)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.107.547 4.084 1.504 5.798L0 24l6.333-1.482A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.395l-.371-.22-3.753.878.894-3.656-.242-.382A9.936 9.936 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--t1)">Botón WhatsApp</div>
+          <div style="font-size:12px;color:var(--t3)">Botón flotante de contacto directo por WhatsApp</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:12px;margin-bottom:14px">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Número de WhatsApp</label>
+          <input id="widget-wa-num" class="fi" placeholder="+56912345678" oninput="actualizarCodigoWa()">
+          <div style="font-size:11px;color:var(--t4);margin-top:3px">Con código de país, sin espacios. Ej: +56912345678</div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Mensaje de bienvenida</label>
+          <input id="widget-wa-msg" class="fi" placeholder="Hola, quiero agendar una cita" value="Hola, quiero agendar una cita" oninput="actualizarCodigoWa()">
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Código — pegar en tu sitio</div>
+      <div style="position:relative">
+        <textarea id="widget-wa-code" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:11px;background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:11px 70px 11px 14px;color:var(--t2);resize:none;height:100px;line-height:1.65;outline:none;cursor:text"></textarea>
+        <button onclick="copiarWidget('widget-wa-code')" style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:11px;font-weight:600;background:#25D366;color:#fff;border:none;border-radius:6px;cursor:pointer">Copiar</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:9px;font-size:11px;color:var(--t3)">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Solo visible para visitantes · Sin rastreo de usuarios · Sin API keys en el código
+      </div>
+    </div>
+
+    <!-- Info instalación -->
+    <div style="background:rgba(108,92,228,.05);border:1px solid rgba(108,92,228,.15);border-radius:var(--rl);padding:16px 18px">
+      <div style="font-size:12px;font-weight:600;color:var(--a);margin-bottom:8px">¿Cómo instalarlo?</div>
+      <ol style="font-size:12px;color:var(--t2);margin:0;padding-left:18px;line-height:2.1">
+        <li>Copia el código del widget que necesitas</li>
+        <li>Pégalo en el HTML de tu web, justo antes de <code style="background:var(--adim);padding:1px 5px;border-radius:4px">&lt;/body&gt;</code></li>
+        <li>Guarda y publica los cambios en tu web</li>
+        <li>El botón aparecerá flotante en la esquina inferior derecha</li>
+      </ol>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(108,92,228,.1);font-size:11px;color:var(--t3)">
+        Si usas WordPress, Wix o Squarespace, pega el código en la sección de código personalizado del pie de página.
+      </div>
+    </div>
+  </div><!-- end bsec-widget -->
+
   </div>
 </div><!-- end bandeja -->
 
@@ -4396,7 +4486,7 @@ function showCfg(panel, btn, skipPush) {
 }
 
 function showBandejaTab(name, btn, skipPush) {
-  var tabs = ['conversaciones', 'chatbot', 'canales', 'recordatorios'];
+  var tabs = ['conversaciones', 'chatbot', 'canales', 'recordatorios', 'widget'];
   tabs.forEach(function(t) {
     var panel = document.getElementById('bsec-' + t);
     if (panel) panel.style.display = t === name ? (t === 'conversaciones' ? 'flex' : 'block') : 'none';
@@ -4411,6 +4501,7 @@ function showBandejaTab(name, btn, skipPush) {
   if (name === 'chatbot') loadBotConfig();
   if (name === 'canales') cargarCanales();
   if (name === 'recordatorios') loadRecordatorios();
+  if (name === 'widget') loadWidgetSection();
   if (!skipPush) {
     var urlSuffix = name === 'conversaciones' ? '' : '/' + name;
     history.pushState({}, '', '/bandeja' + urlSuffix);
@@ -5135,6 +5226,37 @@ function cerrarFormRec() {
   const agregar = document.getElementById('btn-rec-agregar');
   if (agregar) agregar.style.display = 'flex';
   _recFormIdx = null;
+}
+
+/* ════ WIDGET WEB ════ */
+function loadWidgetSection() {
+  actualizarCodigoAttia();
+  actualizarCodigoWa();
+}
+
+function actualizarCodigoAttia() {
+  const el = document.getElementById('widget-attia-code');
+  if (!el) return;
+  const slug = (typeof currentBookingUrl !== 'undefined' && currentBookingUrl) ? currentBookingUrl : 'TU_SLUG';
+  el.value = `<!-- attempo Widget Attia -->\n<script src="https://app.attempo.cl/widget.js" data-slug="${slug}" async defer><\/script>`;
+}
+
+function actualizarCodigoWa() {
+  const el = document.getElementById('widget-wa-code');
+  if (!el) return;
+  const num = (document.getElementById('widget-wa-num')?.value || '').replace(/[\s\-\(\)]/g, '');
+  const msg = document.getElementById('widget-wa-msg')?.value || 'Hola, quiero agendar una cita';
+  const cleanNum = num.startsWith('+') ? num.slice(1) : num;
+  const href = cleanNum
+    ? `https://wa.me/${cleanNum}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/56900000000?text=${encodeURIComponent(msg)}`;
+  el.value = `<!-- Botón WhatsApp -->\n<a href="${href}" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp" style="position:fixed;bottom:24px;right:24px;z-index:9999;width:56px;height:56px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.4);text-decoration:none">\n  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" width="30" height="30"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.107.547 4.084 1.504 5.798L0 24l6.333-1.482A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.395l-.371-.22-3.753.878.894-3.656-.242-.382A9.936 9.936 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>\n</a>`;
+}
+
+function copiarWidget(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(() => toast('Código copiado'));
 }
 
 function toggleRfEmail() {
@@ -8451,7 +8573,7 @@ function routeFromURL() {
     sv('reportes', null, true);
   } else if (section === 'bandeja') {
     sv('bandeja', null, true);
-    var banSubs = ['conversaciones','chatbot','canales','recordatorios'];
+    var banSubs = ['conversaciones','chatbot','canales','recordatorios','widget'];
     showBandejaTab(banSubs.includes(sub) ? sub : 'conversaciones', null, true);
   } else if (section === 'liquidaciones') {
     sv('liquidaciones', null, true);
