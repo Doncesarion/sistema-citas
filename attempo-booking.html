@@ -478,7 +478,7 @@ function iniciales(nombre) {
 }
 function resumirHorario(h) {
   if (!h || !Object.keys(h).length) return '';
-  const orden = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+  const orden = ['lun','mar','mie','jue','vie','sab','dom'];
   const corto  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const activos = orden.filter(d => h[d]?.activo && h[d]?.bloques?.length);
   if (!activos.length) return '';
@@ -597,10 +597,10 @@ function isDiaDisponible(date) {
   const dow = DOW_KEY[date.getDay()];
   // Si hay horario del negocio configurado, ese manda
   if (horarioNegocio && Object.keys(horarioNegocio).length) {
-    return !!(horarioNegocio[dow]?.activo);
+    return !!(horarioNegocio[dow]?.activo && horarioNegocio[dow]?.bloques?.length);
   }
   // Fallback: revisar horario de especialistas
-  return getEspsActivos().some(e => e.horario?.[dow]?.activo);
+  return getEspsActivos().some(e => e.horario?.[dow]?.activo && e.horario[dow].bloques?.length);
 }
 
 function getSlotsDelDia(y, m, d) {

@@ -90,7 +90,8 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 .nav-name{font-size:14px;font-weight:600;letter-spacing:-.03em;color:#fff}
 .nav-divider{width:1px;height:18px;background:rgba(255,255,255,0.12);margin:0 4px}
 
-.nav-tabs{display:flex;align-items:center;gap:1px}
+.nav-tabs{display:flex;align-items:center;gap:1px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.nav-tabs::-webkit-scrollbar{display:none}
 .ntab{
   padding:5px 13px;border-radius:var(--r);font-size:13px;
   color:rgba(255,255,255,0.5);cursor:pointer;border:none;background:none;
@@ -936,8 +937,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 @media (max-width:768px){
   /* NAV */
   .nav-hamburger{display:flex!important}
-  .nav-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;gap:0}
-  .nav-tabs::-webkit-scrollbar{display:none}
   .ntab{padding:5px 10px;font-size:12px;white-space:nowrap}
   .live-pill{display:none}
   .btn-new-txt{display:none}
@@ -1505,15 +1504,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <!-- Right panel -->
     <div class="rp">
       <div class="mcal">
-        <div class="mcal-hd"><span class="mcal-title">Mayo 2026</span><div class="mcal-nav"><button class="mcal-btn">‹</button><button class="mcal-btn">›</button></div></div>
-        <div class="mcal-grid">
-          <div class="mcd-lbl">L</div><div class="mcd-lbl">M</div><div class="mcd-lbl">X</div><div class="mcd-lbl">J</div><div class="mcd-lbl">V</div><div class="mcd-lbl">S</div><div class="mcd-lbl">D</div>
-          <div class="mcd om" onclick="goToDay(28,'abr')">28</div><div class="mcd om" onclick="goToDay(29,'abr')">29</div><div class="mcd om" onclick="goToDay(30,'abr')">30</div><div class="mcd om" onclick="goToDay(1,'may')">1</div><div class="mcd om" onclick="goToDay(2,'may')">2</div><div class="mcd t he" onclick="goToDay(3,'may')">3</div><div class="mcd om" onclick="goToDay(4,'may')">4</div>
-          <div class="mcd he" onclick="goToDay(5,'may')">5</div><div class="mcd" onclick="goToDay(6,'may')">6</div><div class="mcd he" onclick="goToDay(7,'may')">7</div><div class="mcd" onclick="goToDay(8,'may')">8</div><div class="mcd he" onclick="goToDay(9,'may')">9</div><div class="mcd" onclick="goToDay(10,'may')">10</div><div class="mcd" onclick="goToDay(11,'may')">11</div>
-          <div class="mcd" onclick="goToDay(12,'may')">12</div><div class="mcd he" onclick="goToDay(13,'may')">13</div><div class="mcd" onclick="goToDay(14,'may')">14</div><div class="mcd he" onclick="goToDay(15,'may')">15</div><div class="mcd" onclick="goToDay(16,'may')">16</div><div class="mcd" onclick="goToDay(17,'may')">17</div><div class="mcd" onclick="goToDay(18,'may')">18</div>
-          <div class="mcd" onclick="goToDay(19,'may')">19</div><div class="mcd" onclick="goToDay(20,'may')">20</div><div class="mcd he" onclick="goToDay(21,'may')">21</div><div class="mcd" onclick="goToDay(22,'may')">22</div><div class="mcd" onclick="goToDay(23,'may')">23</div><div class="mcd" onclick="goToDay(24,'may')">24</div><div class="mcd" onclick="goToDay(25,'may')">25</div>
-          <div class="mcd" onclick="goToDay(26,'may')">26</div><div class="mcd" onclick="goToDay(27,'may')">27</div><div class="mcd" onclick="goToDay(28,'may')">28</div><div class="mcd" onclick="goToDay(29,'may')">29</div><div class="mcd" onclick="goToDay(30,'may')">30</div><div class="mcd" onclick="goToDay(31,'may')">31</div><div class="mcd om" onclick="goToDay(1,'jun')">1</div>
-        </div>
+        <div class="mcal-hd"><span class="mcal-title" id="mcal-title-semana"></span><div class="mcal-nav"><button class="mcal-btn" onclick="mcalPrev()">‹</button><button class="mcal-btn" onclick="mcalNext()">›</button></div></div>
+        <div class="mcal-grid" id="mcal-grid-semana"></div>
       </div>
       <div class="rp-sep"></div>
       <!-- Banner motivacional -->
@@ -3770,9 +3762,18 @@ async function _loadModalServicios() {
 async function _loadModalPacientes() {
   const cid = await getClienteId();
   try {
-    const r = await fetch(`${_SURL}/rest/v1/pacientes?cliente_id=eq.${cid}&select=nombre,email,tel&order=nombre.asc&limit=200`, { headers: _SH });
-    const pacs = await r.json();
-    _modalPacs = Array.isArray(pacs) ? pacs : [];
+    const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=nombre_paciente,email_paciente,tel_paciente&order=created_at.desc&limit=500`, { headers: _SH });
+    const rows = await r.json();
+    const seen = new Set();
+    _modalPacs = [];
+    (Array.isArray(rows) ? rows : []).forEach(c => {
+      const key = c.nombre_paciente?.toLowerCase().trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        _modalPacs.push({ nombre: c.nombre_paciente, email: c.email_paciente || '', tel: c.tel_paciente || '' });
+      }
+    });
+    _modalPacs.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     _renderPtDrop('');
   } catch(_) { _modalPacs = []; }
 }
@@ -6514,10 +6515,72 @@ let weekStart      = new Date(_todayInit); weekStart.setDate(_todayInit.getDate(
 let currentDayDate = new Date();
 let listaStart     = new Date();
 
-function goToDay(day, month) {
+// ── Mini-calendario (panel derecho semana) ──
+let mcalYear  = _todayInit.getFullYear();
+let mcalMonth = _todayInit.getMonth();
+
+const MON_LONG_CAP = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function renderMcal() {
+  const title = document.getElementById('mcal-title-semana');
+  const grid  = document.getElementById('mcal-grid-semana');
+  if (!title || !grid) return;
+
+  title.textContent = MON_LONG_CAP[mcalMonth] + ' ' + mcalYear;
+
+  const first    = new Date(mcalYear, mcalMonth, 1);
+  const lastDay  = new Date(mcalYear, mcalMonth + 1, 0).getDate();
+  const prevLast = new Date(mcalYear, mcalMonth, 0).getDate();
+  let startDow   = first.getDay();
+  startDow = startDow === 0 ? 6 : startDow - 1; // Lun=0
+
+  const todayStr = DEMO_TODAY.toDateString();
+
+  let html = '<div class="mcd-lbl">L</div><div class="mcd-lbl">M</div><div class="mcd-lbl">X</div><div class="mcd-lbl">J</div><div class="mcd-lbl">V</div><div class="mcd-lbl">S</div><div class="mcd-lbl">D</div>';
+
+  // Días del mes anterior
+  const prevM = mcalMonth === 0 ? 11 : mcalMonth - 1;
+  const prevY = mcalMonth === 0 ? mcalYear - 1 : mcalYear;
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = prevLast - i;
+    html += `<div class="mcd om" onclick="goToDay(${d},${prevM},${prevY})">${d}</div>`;
+  }
+
+  // Días del mes actual
+  for (let d = 1; d <= lastDay; d++) {
+    const date = new Date(mcalYear, mcalMonth, d);
+    const isToday = date.toDateString() === todayStr;
+    let cls = 'mcd';
+    if (isToday) cls += ' t';
+    html += `<div class="${cls}" onclick="goToDay(${d},${mcalMonth},${mcalYear})">${d}</div>`;
+  }
+
+  // Días del mes siguiente
+  const total  = startDow + lastDay;
+  const rows   = Math.ceil(total / 7);
+  const nextM  = mcalMonth === 11 ? 0 : mcalMonth + 1;
+  const nextY  = mcalMonth === 11 ? mcalYear + 1 : mcalYear;
+  for (let d = 1; d <= rows * 7 - total; d++) {
+    html += `<div class="mcd om" onclick="goToDay(${d},${nextM},${nextY})">${d}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function mcalPrev() {
+  mcalMonth--; if (mcalMonth < 0) { mcalMonth = 11; mcalYear--; }
+  renderMcal();
+}
+function mcalNext() {
+  mcalMonth++; if (mcalMonth > 11) { mcalMonth = 0; mcalYear++; }
+  renderMcal();
+}
+
+function goToDay(day, month, year) {
   const mIdx = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
-  const m = mIdx[month] !== undefined ? mIdx[month] : 4;
-  currentDayDate = new Date(2026, m, day);
+  const m = typeof month === 'number' ? month : (mIdx[month] !== undefined ? mIdx[month] : new Date().getMonth());
+  const y = year !== undefined ? year : new Date().getFullYear();
+  currentDayDate = new Date(y, m, day);
   setCalView('dia', document.getElementById('vtab-dia'));
 }
 
@@ -6625,7 +6688,7 @@ function renderWeekHeader() {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
     const isToday = d.toDateString() === DEMO_TODAY.toDateString();
-    html += `<div class="chc${isToday?' today':''}" style="cursor:pointer" onclick="goToDay(${d.getDate()},'${MON_SHORT[d.getMonth()]}')"><span class="dn">${d.getDate()}</span>${dowLabels[i]}</div>`;
+    html += `<div class="chc${isToday?' today':''}" style="cursor:pointer" onclick="goToDay(${d.getDate()},${d.getMonth()},${d.getFullYear()})"><span class="dn">${d.getDate()}</span>${dowLabels[i]}</div>`;
   }
   head.innerHTML = html;
   // Actualizar label período
@@ -6744,7 +6807,7 @@ function setCalView(view, btn, skipPush) {
   if (target) target.style.display = 'flex';
 
   // Render vistas dinámicas (cada función actualiza su propio period label)
-  if (view === 'semana') { renderWeekHeader(); renderWeekBody(); }
+  if (view === 'semana') { renderWeekHeader(); renderWeekBody(); renderMcal(); }
   if (view === 'mes') renderMesGrid();
   if (view === 'dia') renderDiaView(currentDayDate);
   if (view === 'lista') renderLista();
@@ -6914,7 +6977,7 @@ function renderMesGrid() {
       dayNumHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${events.length?'5':'0'}px"><div style="font-size:12px;color:var(--t2)">${d}</div>${addBtn}</div>`;
     }
     let evHtml = events.map((ev,i) => `<div class="ev ${ev.cls}" onclick="event.stopPropagation();openFicha('${(ev.nombre||ev.lbl).replace(/'/g,"\\'").replace(/"/g,'&quot;')}','','')" style="position:static;height:auto;padding:2px 6px;font-size:10px;cursor:pointer;${i<events.length-1?'margin-bottom:2px':''}"><div class="evn">${ev.lbl}</div></div>`).join('');
-    html += `<div style="${cellStyle}" onclick="goToDay(${d},'${MON_SHORT[m]}')" onmouseover="if(!this.style.outline)this.style.background='rgba(108,92,228,0.02)'" onmouseout="if(!this.style.outline)this.style.background='#fff'">${dayNumHtml}${evHtml}</div>`;
+    html += `<div style="${cellStyle}" onclick="goToDay(${d},${m},${y})" onmouseover="if(!this.style.outline)this.style.background='rgba(108,92,228,0.02)'" onmouseout="if(!this.style.outline)this.style.background='#fff'">${dayNumHtml}${evHtml}</div>`;
   }
 
   // Next month padding to complete grid
@@ -6948,8 +7011,11 @@ function navCal(dir) {
     // Vista semana: navegar 7 días sin límite
     weekStart = new Date(weekStart);
     weekStart.setDate(weekStart.getDate() + dir * 7);
+    mcalYear = weekStart.getFullYear();
+    mcalMonth = weekStart.getMonth();
     renderWeekHeader();
     renderWeekBody();
+    renderMcal();
   }
 }
 
@@ -8276,7 +8342,7 @@ async function cargarCitasSupabase() {
     });
 
     // 4. Re-renderizar vista actual
-    if (currentCalView === 'semana')     { renderWeekHeader(); renderWeekBody(); }
+    if (currentCalView === 'semana')     { renderWeekHeader(); renderWeekBody(); renderMcal(); }
     else if (currentCalView === 'dia')   renderDiaView(currentDayDate);
     else if (currentCalView === 'mes')   renderMesGrid();
     else if (currentCalView === 'lista') renderLista();
