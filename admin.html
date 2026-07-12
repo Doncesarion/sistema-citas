@@ -3760,9 +3760,9 @@ async function _loadModalServicios() {
 }
 
 async function _loadModalPacientes() {
-  const cid = await getClienteId();
   try {
-    const r = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&select=nombre_paciente,email_paciente,tel_paciente&order=created_at.desc&limit=500`, { headers: _SH });
+    const r = await fetch('/api/slots?select=nombre_paciente,email_paciente,tel_paciente&order=nombre_paciente.asc&limit=200', { headers: _citasH() });
+    if (!r.ok) { _modalPacs = []; _renderPtDrop(''); return; }
     const rows = await r.json();
     const seen = new Set();
     _modalPacs = [];
@@ -3775,7 +3775,7 @@ async function _loadModalPacientes() {
     });
     _modalPacs.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     _renderPtDrop('');
-  } catch(_) { _modalPacs = []; }
+  } catch(_) { _modalPacs = []; _renderPtDrop(''); }
 }
 
 function _renderPtDrop(q) {
