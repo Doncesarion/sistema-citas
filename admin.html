@@ -3162,7 +3162,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:4px">
-        <button class="btn-a" onclick="guardarPagos()">Guardar métodos de pago</button>
+        <button class="btn-a" onclick="guardarPagos(this)">Guardar métodos de pago</button>
       </div>
     </div>
 
@@ -4639,7 +4639,7 @@ async function guardarServicios(btn) {
       body: JSON.stringify({ servicios: _serviciosCache })
     });
     if (!r.ok) throw new Error('Error al guardar');
-    if (btn) { btn.disabled = false; btn.textContent = 'Guardar catálogo'; }
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar catálogo'; }, 1500); }
     toast('✓ Catálogo guardado');
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar catálogo'; }
@@ -4688,9 +4688,10 @@ function toggleFlowDatos() {
   if (fd) fd.style.display = checked ? 'block' : 'none';
 }
 
-async function guardarPagos() {
+async function guardarPagos(btn) {
   const cid = await getClienteId();
   if (!cid) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
   const el = id => document.getElementById(id);
   const metodos_pago = {
     webpay:         el('pago-webpay')?.checked        || false,
@@ -4717,8 +4718,12 @@ async function guardarPagos() {
       body: JSON.stringify({ metodos_pago, datos_banco })
     });
     if (!r.ok) throw new Error('Error al guardar');
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar métodos de pago'; }, 1500); }
     toast('✓ Métodos de pago guardados');
-  } catch(e) { toast('Error al guardar: ' + e.message); }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar métodos de pago'; }
+    toast('Error al guardar: ' + e.message);
+  }
 }
 
 /* ═══ BOT CONFIG ═══ */
@@ -6475,7 +6480,7 @@ async function saveHorario(btn) {
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     _calHoras = null;
-    if (btn) { btn.disabled = false; btn.textContent = 'Guardar horario'; }
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar horario'; }, 1500); }
     toast('✓ Horario guardado');
   } catch(e) {
     console.error('saveHorario error', e);
