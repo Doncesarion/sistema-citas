@@ -6429,6 +6429,30 @@ async function loadHorario() {
 }
 
 let _sobrecuposEsps = [];
+
+function _sobrecupoRangoRow(desde = '', hasta = '') {
+  return `<div class="sobrec-row" style="display:flex;align-items:center;gap:6px">
+    <input type="time" value="${desde}" class="fi sobrec-desde" style="width:105px;font-size:12px;padding:4px 8px">
+    <span style="font-size:12px;color:var(--t3)">a</span>
+    <input type="time" value="${hasta}" class="fi sobrec-hasta" style="width:105px;font-size:12px;padding:4px 8px">
+    <button onclick="this.closest('.sobrec-row').remove()" style="border:none;background:none;color:var(--t3);font-size:16px;cursor:pointer;padding:0 4px;line-height:1" title="Eliminar">×</button>
+  </div>`;
+}
+
+function addSobrecupoRango(espId) {
+  const container = document.getElementById('sobrec-rango-' + espId);
+  if (!container) return;
+  const addBtn = container.querySelector('.sobrec-add-btn');
+  const div = document.createElement('div');
+  div.innerHTML = _sobrecupoRangoRow();
+  container.insertBefore(div.firstElementChild, addBtn);
+}
+
+function toggleSobrecupoRango(espId, show) {
+  const el = document.getElementById('sobrec-rango-' + espId);
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
 async function loadSobrecupos() {
   const container = document.getElementById('sobrecupos-list');
   if (!container) return;
@@ -6442,9 +6466,12 @@ async function loadSobrecupos() {
     }
     container.innerHTML = _sobrecuposEsps.map((e, i) => {
       const activo = !!e.horario?.sobrecupos_habilitados;
-      const desde  = e.horario?.sobrecupos_desde || '';
-      const hasta  = e.horario?.sobrecupos_hasta || '';
-      const borde  = i < _sobrecuposEsps.length - 1 ? 'border-bottom:1px solid var(--b1)' : '';
+      // compatibilidad con formato anterior (desde/hasta único)
+      const rangos = e.horario?.sobrecupos_rangos?.length
+        ? e.horario.sobrecupos_rangos
+        : (e.horario?.sobrecupos_desde ? [{ desde: e.horario.sobrecupos_desde, hasta: e.horario.sobrecupos_hasta || '' }] : []);
+      const borde = i < _sobrecuposEsps.length - 1 ? 'border-bottom:1px solid var(--b1)' : '';
+      const filas = rangos.length ? rangos.map(r => _sobrecupoRangoRow(r.desde, r.hasta)).join('') : _sobrecupoRangoRow();
       return `<div style="padding:10px 0;${borde}">
         <div style="display:flex;align-items:center;gap:10px">
           <input type="checkbox" data-esp-id="${e.id}" ${activo ? 'checked' : ''}
@@ -6452,23 +6479,16 @@ async function loadSobrecupos() {
             style="accent-color:var(--a);width:16px;height:16px;cursor:pointer;flex-shrink:0">
           <span style="font-size:13px;color:var(--t1);flex:1">${e.nombre}</span>
         </div>
-        <div id="sobrec-rango-${e.id}" style="display:${activo ? 'flex' : 'none'};align-items:center;gap:8px;margin-top:8px;margin-left:26px;flex-wrap:wrap">
-          <span style="font-size:12px;color:var(--t3)">Rango horario</span>
-          <input type="time" data-sobrec-desde="${e.id}" value="${desde}" class="fi"
-            style="width:110px;font-size:12px;padding:4px 8px" placeholder="Desde">
-          <span style="font-size:12px;color:var(--t3)">a</span>
-          <input type="time" data-sobrec-hasta="${e.id}" value="${hasta}" class="fi"
-            style="width:110px;font-size:12px;padding:4px 8px" placeholder="Hasta">
-          <span style="font-size:11px;color:var(--t4)">(vacío = todo el horario)</span>
+        <div id="sobrec-rango-${e.id}" style="display:${activo ? 'flex' : 'none'};flex-direction:column;gap:6px;margin-top:8px;margin-left:26px">
+          ${filas}
+          <button class="sobrec-add-btn" onclick="addSobrecupoRango('${e.id}')"
+            style="align-self:flex-start;font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer;margin-top:2px">
+            + Agregar rango
+          </button>
         </div>
       </div>`;
     }).join('');
   } catch(e) { console.warn('loadSobrecupos error', e); }
-}
-
-function toggleSobrecupoRango(espId, show) {
-  const el = document.getElementById('sobrec-rango-' + espId);
-  if (el) el.style.display = show ? 'flex' : 'none';
 }
 
 async function saveSobrecupos(btn) {
@@ -6478,11 +6498,14 @@ async function saveSobrecupos(btn) {
   const checks = document.querySelectorAll('#sobrecupos-list input[data-esp-id]');
   try {
     await Promise.all([...checks].map(chk => {
-      const esp   = _sobrecuposEsps.find(e => e.id === chk.dataset.espId);
+      const esp = _sobrecuposEsps.find(e => e.id === chk.dataset.espId);
       if (!esp) return Promise.resolve();
-      const desde = document.querySelector(`input[data-sobrec-desde="${esp.id}"]`)?.value || null;
-      const hasta = document.querySelector(`input[data-sobrec-hasta="${esp.id}"]`)?.value || null;
-      const horario = { ...(esp.horario || {}), sobrecupos_habilitados: chk.checked, sobrecupos_desde: desde || null, sobrecupos_hasta: hasta || null };
+      const rangoEl = document.getElementById('sobrec-rango-' + esp.id);
+      const rangos  = rangoEl ? [...rangoEl.querySelectorAll('.sobrec-row')].map(row => ({
+        desde: row.querySelector('.sobrec-desde')?.value || '',
+        hasta: row.querySelector('.sobrec-hasta')?.value || ''
+      })).filter(r => r.desde && r.hasta) : [];
+      const horario = { ...(esp.horario || {}), sobrecupos_habilitados: chk.checked, sobrecupos_rangos: rangos, sobrecupos_desde: null, sobrecupos_hasta: null };
       return fetch(`${_SURL}/rest/v1/especialistas?id=eq.${esp.id}&cliente_id=eq.${cid}`, {
         method: 'PATCH',
         headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
