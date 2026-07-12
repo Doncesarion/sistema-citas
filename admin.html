@@ -7482,20 +7482,67 @@ function handleLogoUpload(input) {
   reader.readAsDataURL(file);
 }
 
-/* ════ RESTRICCIONES PLAN CHATBOT ════ */
-const _TABS_CHATBOT_OCULTOS = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-reportes','ntab-liquidaciones'];
-function aplicarRestriccionesChatbot() {
-  const plan = planActual();
-  if (!plan.startsWith('chatbot')) return;
-  _TABS_CHATBOT_OCULTOS.forEach(id => {
+/* ════ RESTRICCIONES POR PLAN ════ */
+const PLAN_PERMISOS = {
+  inicio: {
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-config'],
+    cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
+    defaultView: 'agenda', nuevaReserva: true
+  },
+  pro: {
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
+    defaultView: 'agenda', nuevaReserva: true
+  },
+  clinica_ia: {
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
+    defaultView: 'agenda', nuevaReserva: true
+  },
+  chatbot_2k: {
+    tabs:    ['ntab-bandeja','ntab-config'],
+    cfgTabs: ['ctab-general'],
+    defaultView: 'bandeja', nuevaReserva: false
+  },
+  chatbot_5k: {
+    tabs:    ['ntab-bandeja','ntab-config'],
+    cfgTabs: ['ctab-general'],
+    defaultView: 'bandeja', nuevaReserva: false
+  },
+  chatbot_8k: {
+    tabs:    ['ntab-bandeja','ntab-config'],
+    cfgTabs: ['ctab-general'],
+    defaultView: 'bandeja', nuevaReserva: false
+  }
+};
+
+function aplicarRestriccionesPlan() {
+  const plan  = planActual();
+  const perms = PLAN_PERMISOS[plan] || PLAN_PERMISOS.inicio;
+
+  const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'];
+  const todosCfgTabs  = ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'];
+
+  todosMainTabs.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
+    if (el) el.style.display = perms.tabs.includes(id) ? '' : 'none';
   });
-  const logo = document.querySelector('.nav-logo');
-  if (logo) logo.setAttribute('onclick', "sv('bandeja',document.getElementById('ntab-bandeja'))");
-  const bBtn = document.getElementById('ntab-bandeja');
-  if (bBtn) sv('bandeja', bBtn, true);
+  todosCfgTabs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = perms.cfgTabs.includes(id) ? '' : 'none';
+  });
+
+  const btnNew = document.querySelector('.btn-new');
+  if (btnNew) btnNew.style.display = perms.nuevaReserva ? '' : 'none';
+
+  if (perms.defaultView !== 'agenda') {
+    const logo = document.querySelector('.nav-logo');
+    if (logo) logo.setAttribute('onclick', `sv('${perms.defaultView}',document.getElementById('ntab-${perms.defaultView}'))`);
+    const tab = document.getElementById('ntab-' + perms.defaultView);
+    sv(perms.defaultView, tab, true);
+  }
 }
+function aplicarRestriccionesChatbot() { aplicarRestriccionesPlan(); }
 
 document.addEventListener('DOMContentLoaded', function() {
   try {
