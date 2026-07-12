@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-const REDIRECT_URI = 'https://www.attempo.cl/api/google-auth';
+const REDIRECT_URI = 'https://app.attempo.cl/api/google-auth';
 const SCOPE        = 'https://www.googleapis.com/auth/calendar';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 
