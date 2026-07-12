@@ -38,17 +38,16 @@ function renderTemplate(template, vars) {
 // Template HTML para recordatorio
 function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, negocio, mensaje_extra, cita_id }) {
   const gestionUrl = `${BASE_URL}/gestionar-cita?id=${he(cita_id || '')}`;
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:600px){.aw{padding:20px 8px!important}.ac{padding:24px 16px!important}.af{padding:12px 16px!important}}</style></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
+<table width="100%" cellpadding="0" cellspacing="0" class="aw" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
-<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;">
   <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
 </td></tr>
-<tr><td style="padding:32px;text-align:center;">
-  <div style="width:48px;height:48px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:22px;">🔔</div>
+<tr><td class="ac" style="padding:28px 24px;text-align:center;">
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Recordatorio de cita</h2>
   <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>, te recordamos que tienes una cita próximamente.</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
@@ -60,7 +59,7 @@ function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, neg
   ${mensaje_extra ? `<p style="margin:20px 0 0;color:#374151;font-size:13px;line-height:1.6;text-align:left;background:#f9f8ff;border-radius:8px;padding:12px 16px">${he(mensaje_extra).replace(/\n/g,'<br>')}</p>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">¿Necesitas cambios? <a href="${gestionUrl}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a></p>
 </td></tr>
-<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
+<tr><td class="af" style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;">
   <p style="margin:0;color:#9ca3af;font-size:12px;">Recordatorio automático de <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">Attempo</a> — Todo a tu tiempo</p>
 </td></tr>
 </table>
@@ -584,17 +583,17 @@ function buildPagoHtml(metodos_pago, datos_banco) {
 }
 
 function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, duracion, total, metodos_pago, datos_banco }) {
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:600px){.aw{padding:20px 8px!important}.ac{padding:24px 16px!important}.af{padding:12px 16px!important}}</style></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
+<table width="100%" cellpadding="0" cellspacing="0" class="aw" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
-<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;">
   <img src="https://attempo.cl/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
 </td></tr>
-<tr><td style="padding:32px;text-align:center;">
-  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">¡Cita confirmada! 🎉</h2>
+<tr><td class="ac" style="padding:28px 24px;text-align:center;">
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Cita confirmada</h2>
   <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${nombre_paciente}</strong>, tu hora está reservada.</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${nombre_especialista || 'Profesional'}</span></td></tr>
@@ -606,7 +605,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     ${buildPagoHtml(metodos_pago, datos_banco)}
   </table>
 </td></tr>
-<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
+<tr><td class="af" style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;">
   <p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">Attempo</a> — Todo a tu tiempo</p>
 </td></tr>
 </table>
