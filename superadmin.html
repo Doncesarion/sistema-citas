@@ -396,6 +396,11 @@
           <option value="chatbot_5k">Attia Pro — 5.000 mensajes IA/mes</option>
           <option value="chatbot_8k">Attia Business — 8.000 mensajes IA/mes</option>
         </optgroup>
+        <optgroup label="── Planes Attia + Agenda básica ──">
+          <option value="chatbot_2k_agenda">Attia Starter + Agenda — 2.000 mensajes IA/mes</option>
+          <option value="chatbot_5k_agenda">Attia Pro + Agenda — 5.000 mensajes IA/mes</option>
+          <option value="chatbot_8k_agenda">Attia Business + Agenda — 8.000 mensajes IA/mes</option>
+        </optgroup>
       </select>
     </div>
     <div id="mc-modulos-preview" class="mod-preview" style="display:none"></div>
@@ -786,6 +791,9 @@ function renderTabla(lista) {
             chatbot_2k: `<span style="font-size:10px;color:#0ea5e9;display:block;margin-top:3px;font-weight:600;background:#e0f2fe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Starter</span>`,
             chatbot_5k: `<span style="font-size:10px;color:#0ea5e9;display:block;margin-top:3px;font-weight:600;background:#e0f2fe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Pro</span>`,
             chatbot_8k: `<span style="font-size:10px;color:#0ea5e9;display:block;margin-top:3px;font-weight:600;background:#e0f2fe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Business</span>`,
+            chatbot_2k_agenda: `<span style="font-size:10px;color:#0891b2;display:block;margin-top:3px;font-weight:600;background:#cffafe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Starter + Agenda</span>`,
+            chatbot_5k_agenda: `<span style="font-size:10px;color:#0891b2;display:block;margin-top:3px;font-weight:600;background:#cffafe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Pro + Agenda</span>`,
+            chatbot_8k_agenda: `<span style="font-size:10px;color:#0891b2;display:block;margin-top:3px;font-weight:600;background:#cffafe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Business + Agenda</span>`,
           };
           const tipoBadge = tipoBadgeMap[c.tipo_plan] || '';
           return `<tr>
@@ -1338,6 +1346,9 @@ const PLAN_MODULOS = {
   chatbot_2k: { limite: '2.000 mensajes IA/mes', precio: '$29.990/mes + IVA' },
   chatbot_5k: { limite: '5.000 mensajes IA/mes', precio: '$49.990/mes + IVA' },
   chatbot_8k: { limite: '8.000 mensajes IA/mes', precio: '$69.990/mes + IVA' },
+  chatbot_2k_agenda: { limite: '2.000 mensajes IA/mes', precio: '$29.990/mes + IVA' },
+  chatbot_5k_agenda: { limite: '5.000 mensajes IA/mes', precio: '$49.990/mes + IVA' },
+  chatbot_8k_agenda: { limite: '8.000 mensajes IA/mes', precio: '$69.990/mes + IVA' },
 };
 
 const CHATBOT_FEATURES = [
@@ -1361,15 +1372,22 @@ function actualizarModulosPreview() {
     `<div class="mod-item ${cls}">${cls ? pls : chk}${f}</div>`
   ).join('');
 
-  const chatbotKey = ['chatbot_2k','chatbot_5k','chatbot_8k'].includes(tipo) ? tipo : null;
+  const chatbotKey = ['chatbot_2k','chatbot_5k','chatbot_8k','chatbot_2k_agenda','chatbot_5k_agenda','chatbot_8k_agenda'].includes(tipo) ? tipo : null;
 
   if (chatbotKey) {
     const m = PLAN_MODULOS[chatbotKey];
+    const conAgenda = chatbotKey.endsWith('_agenda');
     let html = `<div class="mod-group">
-      <div class="mod-group-title" style="color:var(--accent)">Plan Attia — solo chatbot (sin agenda)</div>
+      <div class="mod-group-title" style="color:var(--accent)">Plan Attia${conAgenda ? ' + Agenda básica' : ' — solo chatbot'}</div>
       <div class="mod-item">${chk}<strong>${m.limite}</strong> — ${m.precio}</div>
       ${mkItems(CHATBOT_FEATURES, '')}
     </div>`;
+    if (conAgenda) {
+      html += `<div class="mod-group">
+        <div class="mod-group-title" style="color:var(--success)">Agenda básica incluida</div>
+        ${mkItems(['Agenda y calendario digital','Gestión de clientes','Horarios y servicios configurables','Pagos por transferencia y Flow'], 'nuevo')}
+      </div>`;
+    }
     el.innerHTML = html;
     el.style.display = 'block';
     return;
@@ -1560,7 +1578,7 @@ async function descargarVoucherSA(idx) {
 }
 
 function abrirInvoiceAtmp(p, cli) {
-  const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business' };
+  const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
   const platLabel = { flow:'Flow.cl', transferencia:'Transferencia bancaria', webpay:'Webpay', mercadopago:'Mercado Pago' };
   const dt      = p.created_at ? new Date(p.created_at) : new Date();
   const dias    = p.plan === 'anual' ? 365 : 30;
