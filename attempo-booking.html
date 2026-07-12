@@ -417,7 +417,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
 
   try {
     const r = await fetch(
-      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,descripcion,rubro,email,metodos_pago,datos_banco,horario_negocio&limit=1`,
+      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,descripcion,rubro,email,metodos_pago,datos_banco,horario_negocio,descanso_minutos&limit=1`,
       { headers: SH }
     );
     const rows = await r.json();
@@ -647,13 +647,14 @@ function getSlotsDelDia(y, m, d) {
 }
 
 function isCitaOcupada(hStr, espId) {
-  const dur = st.svc?.duracion || 60;
-  const inicio = hToMin(hStr);
-  const fin    = inicio + dur;
+  const dur      = st.svc?.duracion || 60;
+  const descanso = parseInt(negocioData?.descanso_minutos) || 0;
+  const inicio   = hToMin(hStr);
+  const fin      = inicio + dur;
   return citasDelDia.some(c => {
     if (espId !== 'any' && c.especialista_id !== espId) return false;
     const ci = hToMin(c.hora);
-    const cf = ci + (parseInt(c.duracion) || 60);
+    const cf = ci + (parseInt(c.duracion) || 60) + descanso;
     return inicio < cf && fin > ci;
   });
 }

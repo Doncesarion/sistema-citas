@@ -3006,7 +3006,19 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div id="hor-dom" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(248,247,255,0.6);border-bottom:1px solid var(--b1)"><div style="display:flex;align-items:center;gap:10px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="chk-dom" onchange="toggleDia('dom',this)" style="accent-color:var(--a);width:14px;height:14px"><span style="font-size:13px;font-weight:500;color:var(--t1)">Domingo</span></label><span style="font-size:11px;color:var(--red)" id="lbl-dom">Cerrado</span></div><button onclick="addBloque('dom')" style="font-size:11px;color:var(--a);border:1px dashed var(--b2);background:none;padding:3px 10px;border-radius:5px;cursor:pointer">+ Agregar bloque</button></div><div id="bloques-dom"></div></div>
 
         </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:12px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--t2)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Descanso entre citas
+            <select id="descanso-minutos" class="fi" style="width:auto;font-size:12px;padding:5px 8px">
+              <option value="0">Sin descanso</option>
+              <option value="5">5 minutos</option>
+              <option value="10">10 minutos</option>
+              <option value="15">15 minutos</option>
+              <option value="20">20 minutos</option>
+              <option value="30">30 minutos</option>
+            </select>
+          </label>
           <button class="btn-a" id="btn-save-horario" onclick="saveHorario(this)">Guardar horario</button>
         </div>
       </div>
@@ -6394,9 +6406,11 @@ async function loadHorario() {
   try {
     const cid = await getClienteId();
     if (!cid) return;
-    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=horario_negocio&limit=1`, { headers: _SH });
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=horario_negocio,descanso_minutos&limit=1`, { headers: _SH });
     const rows = await r.json();
     const h = (Array.isArray(rows) && rows[0]?.horario_negocio) ? rows[0].horario_negocio : {};
+    const descEl = document.getElementById('descanso-minutos');
+    if (descEl) descEl.value = String(rows[0]?.descanso_minutos || 0);
     _HOR_DIAS.forEach(dia => {
       const d = h[dia] || { activo: false, bloques: [] };
       const chk = document.getElementById('chk-' + dia);
@@ -6473,10 +6487,11 @@ async function saveHorario(btn) {
   try {
     const cid = await getClienteId();
     if (!cid) { if (btn) { btn.disabled = false; btn.textContent = 'Guardar horario'; } return; }
+    const descanso = parseInt(document.getElementById('descanso-minutos')?.value || '0') || 0;
     const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
       method: 'PATCH',
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ horario_negocio: h })
+      body: JSON.stringify({ horario_negocio: h, descanso_minutos: descanso })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     _calHoras = null;
