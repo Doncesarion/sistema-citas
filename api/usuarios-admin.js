@@ -233,6 +233,140 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── Auto-registro self-service (sin auth) ────────────────────────────────
+  if (req.method === 'POST' && req.body?.action === 'auto-registro') {
+    const { nombre_negocio, email, password, plan } = req.body || {};
+    const PLANES_VALIDOS = ['inicio', 'pro', 'clinica_ia', 'chatbot_2k', 'chatbot_5k', 'chatbot_8k', 'chatbot_2k_agenda', 'chatbot_5k_agenda', 'chatbot_8k_agenda'];
+    if (!nombre_negocio || !email || !password || !plan)
+      return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ error: 'Email inválido' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    if (!PLANES_VALIDOS.includes(plan))
+      return res.status(400).json({ error: 'Plan inválido' });
+
+    const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const KEY = process.env.SUPABASE_SERVICE_KEY;
+    const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+    const emailLower = email.toLowerCase().trim();
+    const negocio    = nombre_negocio.trim();
+
+    try {
+      // Verificar email duplicado en usuarios
+      const rCheck = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailLower)}&select=id&limit=1`, { headers: sh });
+      const existing = await rCheck.json();
+      if (Array.isArray(existing) && existing.length > 0)
+        return res.status(400).json({ error: 'Ya existe una cuenta con este email' });
+
+      // Generar slug único
+      let slug = negocio.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'negocio';
+      const rSlug = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id&limit=1`, { headers: sh });
+      const slugEx = await rSlug.json();
+      if (Array.isArray(slugEx) && slugEx.length > 0) slug = `${slug}-${crypto.randomBytes(3).toString('hex')}`;
+
+      // Hash password y crear cliente
+      const hashedPw = await hashPassword(password, false);
+      const today    = new Date().toISOString().split('T')[0];
+      const trial    = new Date(Date.now() + 12 * 86400000).toISOString().split('T')[0];
+
+      const rCliente = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema`, {
+        method: 'POST',
+        headers: { ...sh, Prefer: 'return=representation' },
+        body: JSON.stringify({
+          nombre_negocio: negocio,
+          email: emailLower,
+          plan,
+          tipo_plan: plan,
+          fecha_inicio: today,
+          fecha_expiracion: trial,
+          activo: true,
+          booking_slug: slug
+        })
+      });
+      if (!rCliente.ok) {
+        const txt = await rCliente.text();
+        console.error('auto-registro: create cliente error', rCliente.status, txt);
+        return res.status(500).json({ error: 'Error al crear la cuenta' });
+      }
+      const [cliente] = await rCliente.json();
+      const cliente_id = cliente.id;
+
+      // Crear usuario admin
+      const rUsuario = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+        method: 'POST',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          username: emailLower,
+          password: hashedPw,
+          email: emailLower,
+          nombre: negocio,
+          rol: 'admin',
+          destino: '/admin',
+          cliente_id
+        })
+      });
+      if (!rUsuario.ok) {
+        const txt = await rUsuario.text();
+        console.error('auto-registro: create usuario error', rUsuario.status, txt);
+        // Revertir: eliminar cliente creado
+        await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, { method: 'DELETE', headers: sh }).catch(() => {});
+        const isDup = txt.includes('duplicate') || txt.includes('unique');
+        return res.status(400).json({ error: isDup ? 'Ya existe una cuenta con este email' : 'Error al crear usuario' });
+      }
+
+      // Generar session token para auto-login
+      let session_token = null;
+      const SESSION_SECRET = process.env.SESSION_SECRET;
+      if (SESSION_SECRET) {
+        const expires = Date.now() + 24 * 60 * 60 * 1000;
+        const payload = `${cliente_id}:admin:${expires}`;
+        const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+        session_token = `${payload}.${sig}`;
+      }
+
+      // Email de bienvenida
+      if (process.env.RESEND_API_KEY) {
+        const planLabel = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
+        const loginUrl = `${BASE_URL}/login`;
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'attempo <contacto@attempo.cl>',
+            to: [emailLower],
+            subject: `¡Bienvenido/a a attempo, ${negocio}!`,
+            headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
+            html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
+<div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
+  <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px">
+    <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.03em">attempo</span>
+  </div>
+  <div style="padding:32px">
+    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">¡Tu cuenta está lista! 🎉</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E5880;line-height:1.6">Hola <b>${negocio}</b>, creamos tu cuenta en attempo con el <b>Plan ${planLabel[plan] || plan}</b>. Tienes <b>12 días de prueba gratis</b> para explorar la plataforma.</p>
+    <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
+      <div style="margin-bottom:12px"><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tu acceso</span><br><span style="font-size:15px;font-weight:600;color:#16143A">${emailLower}</span></div>
+      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tu enlace de agendamiento</span><br><a href="${BASE_URL}/${slug}" style="font-size:13px;color:#6C5CE4;text-decoration:none;font-weight:500">${BASE_URL}/${slug}</a></div>
+    </div>
+    <a href="${loginUrl}" style="display:block;text-align:center;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Ir a mi panel →</a>
+    <p style="margin:0;font-size:13px;color:#9C96B4;line-height:1.5">Si tienes dudas, escríbenos a <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
+  </div>
+  <div style="padding:16px 32px;border-top:1px solid rgba(108,92,228,0.08);text-align:center">
+    <p style="margin:0;font-size:11px;color:#C4C0D8">© attempo · <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
+  </div>
+</div></body></html>`
+          })
+        }).catch(e => console.error('auto-registro: email error', e.message));
+      }
+
+      return res.status(200).json({ ok: true, cliente_id, nombre: negocio, tipo_plan: plan, session_token });
+    } catch(e) {
+      console.error('auto-registro error:', e.message);
+      return res.status(500).json({ error: 'Error interno al crear la cuenta' });
+    }
+  }
+
   // ── Soporte routes (own auth — bypass SA gate) ───────────────────────────
   const _SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const _SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;

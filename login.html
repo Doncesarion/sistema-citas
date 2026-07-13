@@ -344,7 +344,8 @@ function verificarMfa() {
     if (data.ok) {
       localStorage.setItem('attempo_user', JSON.stringify({
         nombre: data.nombre, rol: data.rol,
-        email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
+        email: data.usuario, cliente_id: data.cliente_id || null,
+        tipo_plan: data.tipo_plan || null, ts: Date.now()
       }));
       if (data.session_token) localStorage.setItem('attempo_session_token', data.session_token);
       window.location.href = '/accesos';
@@ -404,7 +405,8 @@ function loginSubmit() {
     if (data.ok) {
       localStorage.setItem('attempo_user', JSON.stringify({
         nombre: data.nombre, rol: data.rol,
-        email: data.usuario, cliente_id: data.cliente_id || null, ts: Date.now()
+        email: data.usuario, cliente_id: data.cliente_id || null,
+        tipo_plan: data.tipo_plan || null, ts: Date.now()
       }));
       if (data.session_token) localStorage.setItem('attempo_session_token', data.session_token);
       document.getElementById('btn-text').style.display = 'block';

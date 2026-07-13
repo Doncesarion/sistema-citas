@@ -34,6 +34,7 @@
     { "source": "/api/flow-return",               "destination": "/api/flow?ret=1" },
     { "source": "/pago-exitoso",                  "destination": "/pago-exitoso.html" },
     { "source": "/api/reset-password",             "destination": "/api/login" },
+    { "source": "/registro",                       "destination": "/registro.html" },
     { "source": "/login",                          "destination": "/login.html" },
     { "source": "/admin",                          "destination": "/admin.html" },
     { "source": "/reset-password",                 "destination": "/reset-password.html" },

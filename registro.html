@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crear cuenta — attempo</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="/logo_attempo.png">
+  <link rel="apple-touch-icon" href="/logo_attempo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --accent:#4F46E5; --purple:#7C3AED;
+      --black:#0F172A; --gray-50:#F8FAFC;
+      --gray-100:#F1F5F9; --gray-200:#E2E8F0;
+      --gray-400:#94A3B8; --gray-500:#64748B;
+      --white:#FFFFFF;
+      --danger:#DC2626; --danger-light:#FEF2F2;
+      --success:#16A34A; --success-light:#F0FDF4;
+      --radius-sm:10px;
+    }
+
+    body {
+      font-family:'Inter',-apple-system,sans-serif;
+      background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%);
+      min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      padding:20px; position:relative; overflow:hidden;
+    }
+
+    body::before {
+      content:'';
+      position:absolute; inset:0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(79,70,229,0.15) 0%, transparent 50%);
+      pointer-events:none;
+    }
+
+    body::after {
+      content:'';
+      position:absolute; inset:0;
+      background-image:radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size:32px 32px;
+      pointer-events:none;
+    }
+
+    .card {
+      background:rgba(255,255,255,0.97);
+      border-radius:24px; padding:48px 44px;
+      width:100%; max-width:520px;
+      box-shadow:0 32px 64px rgba(0,0,0,0.4), 0 0 80px rgba(79,70,229,0.15);
+      position:relative; z-index:1;
+      animation:slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(24px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    @keyframes shake {
+      0%,100%{ transform:translateX(0); }
+      20%{ transform:translateX(-8px); }
+      40%{ transform:translateX(8px); }
+      60%{ transform:translateX(-5px); }
+      80%{ transform:translateX(5px); }
+    }
+
+    .shake { animation:shake 0.4s ease; }
+
+    /* HEADER */
+    .logo-area { text-align:center; margin-bottom:28px; }
+    .logo-img { width:64px; height:64px; border-radius:18px; margin-bottom:14px; box-shadow:0 8px 24px rgba(79,70,229,0.3); }
+    .brand-name { font-size:26px; font-weight:700; color:var(--black); letter-spacing:-1px; }
+    .brand-sub { font-size:13px; color:var(--gray-400); margin-top:4px; }
+
+    .page-title { font-size:20px; font-weight:700; color:#4F46E5; text-align:center; margin-bottom:4px; }
+    .page-sub   { font-size:13px; color:var(--gray-500); text-align:center; margin-bottom:24px; }
+
+    /* PLAN SELECTOR */
+    .plan-section { margin-bottom:24px; }
+    .plan-section-label {
+      font-size:12px; font-weight:600; color:var(--gray-500);
+      text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;
+    }
+
+    .plan-cards {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    }
+
+    .plan-card {
+      cursor:pointer;
+      border:2px solid var(--gray-200);
+      border-radius:14px;
+      padding:16px;
+      transition:all 0.2s;
+      position:relative;
+      background:var(--white);
+    }
+    .plan-card:hover { border-color:#a5b4fc; background:rgba(79,70,229,0.02); }
+    .plan-card.selected {
+      border-color:#4F46E5;
+      background:rgba(79,70,229,0.04);
+    }
+
+    .plan-badge {
+      display:inline-block;
+      background:linear-gradient(135deg, var(--purple), var(--accent));
+      color:white;
+      font-size:10px; font-weight:700;
+      padding:2px 8px; border-radius:20px;
+      margin-bottom:6px;
+      text-transform:uppercase; letter-spacing:0.3px;
+    }
+
+    .plan-name { font-size:16px; font-weight:700; color:var(--black); margin-bottom:2px; }
+    .plan-tagline { font-size:11px; color:var(--gray-400); margin-bottom:8px; }
+    .plan-price { font-size:22px; font-weight:800; color:#4F46E5; margin-bottom:10px; }
+    .plan-price span { font-size:12px; font-weight:500; color:var(--gray-400); }
+
+    .plan-features { list-style:none; display:flex; flex-direction:column; gap:5px; }
+    .plan-features li {
+      font-size:12px; color:var(--gray-500);
+      display:flex; align-items:flex-start; gap:6px; line-height:1.4;
+    }
+    .plan-features li::before {
+      content:'✓';
+      color:#4F46E5; font-weight:700; font-size:11px;
+      flex-shrink:0; margin-top:1px;
+    }
+
+    /* Clinica IA notice */
+    .clinica-notice {
+      display:none;
+      background:#EFF6FF;
+      border:1px solid #BFDBFE;
+      border-radius:var(--radius-sm);
+      padding:14px 16px;
+      text-align:center;
+      margin-bottom:24px;
+    }
+    .clinica-notice p { font-size:14px; color:#1E40AF; margin-bottom:8px; font-weight:500; }
+    .clinica-notice a { color:#4F46E5; font-weight:600; text-decoration:none; }
+    .clinica-notice a:hover { text-decoration:underline; }
+
+    /* FORM */
+    .form-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0 14px;
+    }
+    .form-grid .form-group:nth-child(1),
+    .form-grid .form-group:nth-child(2) {
+      /* two-column row */
+    }
+
+    .form-group { margin-bottom:16px; }
+    .form-group.full { grid-column:1 / -1; }
+
+    .form-label {
+      display:block;
+      font-size:12px; font-weight:600; color:var(--gray-500);
+      text-transform:uppercase; letter-spacing:0.5px; margin-bottom:7px;
+    }
+
+    .form-input {
+      width:100%; background:var(--gray-50);
+      border:1.5px solid var(--gray-200);
+      border-radius:var(--radius-sm); padding:12px 14px;
+      font-size:14px; font-family:'Inter',sans-serif;
+      color:var(--black); outline:none; transition:all 0.2s;
+    }
+    .form-input:focus { border-color:var(--accent); background:var(--white); box-shadow:0 0 0 3px rgba(79,70,229,0.1); }
+    .form-input.error { border-color:var(--danger); background:var(--danger-light); }
+
+    .password-wrap { position:relative; }
+    .toggle-pass {
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer;
+      font-size:16px; color:var(--gray-400); padding:4px;
+    }
+    .toggle-pass:hover { color:var(--black); }
+
+    /* CHECKBOX */
+    .checkbox-group {
+      display:flex; align-items:flex-start; gap:10px;
+      margin-bottom:20px;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width:18px; height:18px; flex-shrink:0;
+      accent-color:var(--accent); cursor:pointer; margin-top:1px;
+    }
+    .checkbox-group label {
+      font-size:13px; color:var(--gray-500); line-height:1.5; cursor:pointer;
+    }
+    .checkbox-group label a {
+      color:var(--accent); font-weight:500; text-decoration:none;
+    }
+    .checkbox-group label a:hover { text-decoration:underline; }
+
+    /* ERROR MSG */
+    .error-msg {
+      display:none; background:var(--danger-light);
+      border:1px solid #FECACA; border-radius:var(--radius-sm);
+      padding:10px 14px; font-size:13px; color:var(--danger);
+      margin-bottom:16px; align-items:center; gap:8px;
+    }
+    .error-msg.show { display:flex; }
+
+    /* BUTTON */
+    .btn-login {
+      width:100%; padding:13px;
+      background:linear-gradient(135deg, var(--purple), var(--accent));
+      color:white; border:none; border-radius:var(--radius-sm);
+      font-size:15px; font-weight:600; cursor:pointer;
+      font-family:'Inter',sans-serif; transition:all 0.2s;
+      box-shadow:0 4px 12px rgba(79,70,229,0.3);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      min-height:48px;
+    }
+    .btn-login:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(79,70,229,0.4); }
+    .btn-login:disabled { opacity:0.7; cursor:not-allowed; transform:none; }
+
+    .spinner {
+      width:18px; height:18px;
+      border:2px solid rgba(255,255,255,0.4);
+      border-top-color:white; border-radius:50%;
+      animation:spin 0.7s linear infinite; display:none;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* FOOTER */
+    .footer-text { text-align:center; font-size:12px; color:var(--gray-400); margin-top:20px; }
+    .footer-text a { color:var(--accent); text-decoration:none; font-weight:500; }
+    .footer-text a:hover { color:var(--purple); }
+
+    /* RESPONSIVE */
+    @media(max-width:520px){
+      .plan-cards { grid-template-columns:1fr 1fr; gap:8px; }
+      .plan-price { font-size:18px; }
+      .plan-name { font-size:14px; }
+      .plan-features li { font-size:11px; }
+    }
+
+    @media(max-width:480px){
+      .form-grid { grid-template-columns:1fr; }
+      .form-group.full { grid-column:1; }
+    }
+
+    @media(max-width:460px){
+      body { padding:12px; }
+      .card { padding:32px 22px; border-radius:18px; }
+      .brand-name { font-size:22px; }
+      .logo-img { width:54px; height:54px; }
+      .plan-cards { grid-template-columns:1fr; }
+      .form-input { font-size:16px; }
+      input { font-size:16px; }
+    }
+
+    @media(max-width:360px){
+      .card { padding:26px 18px; border-radius:14px; }
+      .brand-name { font-size:20px; }
+      .page-title { font-size:17px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card" id="main-card">
+
+  <!-- HEADER -->
+  <div class="logo-area">
+    <img src="/logo_attempo.png" alt="attempo logo" class="logo-img">
+    <div class="brand-name">attempo</div>
+    <div class="brand-sub">Todo a tu tiempo</div>
+  </div>
+
+  <div class="page-title">Crea tu cuenta gratis</div>
+  <div class="page-sub">12 días de prueba sin tarjeta · cancela cuando quieras</div>
+
+  <!-- CLINICA IA NOTICE (hidden by default) -->
+  <div class="clinica-notice" id="clinica-notice">
+    <p>Para Clínica IA, habla con nuestro equipo y te armamos una solución a medida.</p>
+    <a href="/contacto">Contactar al equipo →</a>
+  </div>
+
+  <!-- PLAN SELECTOR -->
+  <div class="plan-section" id="plan-section">
+    <div class="plan-section-label">Elige tu plan</div>
+    <div class="plan-cards">
+
+      <!-- Plan Inicio -->
+      <div class="plan-card" id="card-inicio" onclick="selectPlan('inicio')">
+        <div class="plan-name">Inicio</div>
+        <div class="plan-tagline">Para empezar</div>
+        <div class="plan-price">$24.990<span>/mes</span></div>
+        <ul class="plan-features">
+          <li>Agenda y calendario digital</li>
+          <li>Recordatorios WhatsApp</li>
+          <li>Cobro con Webpay</li>
+        </ul>
+      </div>
+
+      <!-- Plan Pro -->
+      <div class="plan-card" id="card-pro" onclick="selectPlan('pro')">
+        <div class="plan-badge">Más popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-tagline">Para profesionales</div>
+        <div class="plan-price">$44.990<span>/mes</span></div>
+        <ul class="plan-features">
+          <li>Todo Inicio +</li>
+          <li>Chatbot IA en WhatsApp</li>
+          <li>Reportes avanzados</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HIDDEN PLAN INPUT -->
+  <input type="hidden" id="plan-val" value="inicio">
+
+  <!-- REGISTRATION FORM -->
+  <form id="registro-form" novalidate>
+
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label class="form-label" for="negocio">Nombre de tu negocio</label>
+        <input
+          class="form-input"
+          type="text"
+          id="negocio"
+          name="negocio"
+          placeholder="Ej: Centro Médico Salud+"
+          autocomplete="organization"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <input
+          class="form-input"
+          type="email"
+          id="email"
+          name="email"
+          placeholder="tu@email.com"
+          autocomplete="email"
+          required
+        >
+      </div>
+
+      <div class="form-group full">
+        <label class="form-label" for="pass">Contraseña</label>
+        <div class="password-wrap">
+          <input
+            class="form-input"
+            type="password"
+            id="pass"
+            name="pass"
+            placeholder="Mínimo 8 caracteres"
+            autocomplete="new-password"
+            required
+          >
+          <button type="button" class="toggle-pass" onclick="togglePass('pass', this)" aria-label="Mostrar contraseña">
+            👁
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label class="form-label" for="pass2">Confirmar contraseña</label>
+        <div class="password-wrap">
+          <input
+            class="form-input"
+            type="password"
+            id="pass2"
+            name="pass2"
+            placeholder="Repite tu contraseña"
+            autocomplete="new-password"
+            required
+          >
+          <button type="button" class="toggle-pass" onclick="togglePass('pass2', this)" aria-label="Mostrar contraseña">
+            👁
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TERMS -->
+    <div class="checkbox-group">
+      <input type="checkbox" id="terms" name="terms">
+      <label for="terms">
+        Acepto los <a href="/terminos" target="_blank">términos</a> y la
+        <a href="/privacidad" target="_blank">política de privacidad</a>
+      </label>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <div class="error-msg" id="error-msg">
+      <span>⚠</span>
+      <span id="error-text">Error</span>
+    </div>
+
+    <!-- SUBMIT -->
+    <button type="submit" class="btn-login" id="btn-submit">
+      <span id="btn-spinner" class="spinner"></span>
+      <span id="btn-text">Crear cuenta — 12 días gratis sin tarjeta</span>
+    </button>
+
+  </form>
+
+  <div class="footer-text">
+    ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+  </div>
+
+</div>
+
+<script>
+  /* ─── Plan selection ─── */
+  function selectPlan(plan) {
+    document.getElementById('plan-val').value = plan;
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    const card = document.getElementById('card-' + plan);
+    if (card) card.classList.add('selected');
+  }
+
+  /* ─── Toggle password visibility ─── */
+  function togglePass(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      btn.textContent = '👁';
+    }
+  }
+
+  /* ─── Error display ─── */
+  function showError(msg) {
+    const box = document.getElementById('error-msg');
+    document.getElementById('error-text').textContent = msg;
+    box.classList.add('show');
+    document.getElementById('main-card').classList.remove('shake');
+    void document.getElementById('main-card').offsetWidth; // reflow
+    document.getElementById('main-card').classList.add('shake');
+  }
+
+  function hideError() {
+    document.getElementById('error-msg').classList.remove('show');
+  }
+
+  /* ─── Email validation ─── */
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  /* ─── Init: read URL params ─── */
+  document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    const planParam = params.get('plan') || 'pro';
+
+    if (planParam === 'clinica_ia') {
+      document.getElementById('clinica-notice').style.display = 'block';
+      document.getElementById('plan-section').style.display = 'none';
+      document.getElementById('plan-val').value = 'clinica_ia';
+    } else if (planParam === 'inicio') {
+      selectPlan('inicio');
+    } else {
+      selectPlan('pro');
+    }
+  });
+
+  /* ─── Form submit ─── */
+  document.getElementById('registro-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    hideError();
+
+    const negocio = document.getElementById('negocio').value.trim();
+    const email   = document.getElementById('email').value.trim().toLowerCase();
+    const pass    = document.getElementById('pass').value;
+    const pass2   = document.getElementById('pass2').value;
+    const plan    = document.getElementById('plan-val').value;
+    const terms   = document.getElementById('terms').checked;
+
+    // Validations
+    if (!negocio) { showError('Ingresa el nombre de tu negocio.'); return; }
+    if (!email)   { showError('Ingresa tu email.'); return; }
+    if (!isValidEmail(email)) { showError('El email no es válido.'); return; }
+    if (!pass)    { showError('Ingresa una contraseña.'); return; }
+    if (pass.length < 8) { showError('La contraseña debe tener al menos 8 caracteres.'); return; }
+    if (pass !== pass2) { showError('Las contraseñas no coinciden.'); return; }
+    if (!terms) { showError('Debes aceptar los términos y la política de privacidad.'); return; }
+
+    // Loading state
+    const btn     = document.getElementById('btn-submit');
+    const spinner = document.getElementById('btn-spinner');
+    const btnText = document.getElementById('btn-text');
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent = 'Creando cuenta...';
+
+    try {
+      const res = await fetch('/api/usuarios-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'auto-registro',
+          nombre_negocio: negocio,
+          email: email,
+          password: pass,
+          plan: plan
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        showError(data.error || 'Ocurrió un error. Intenta de nuevo.');
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Crear cuenta — 12 días gratis sin tarjeta';
+        return;
+      }
+
+      // Success — store session
+      localStorage.setItem('attempo_user', JSON.stringify({
+        nombre:     data.nombre,
+        rol:        'admin',
+        email:      email,
+        cliente_id: data.cliente_id,
+        tipo_plan:  data.tipo_plan || plan,
+        ts:         Date.now()
+      }));
+
+      if (data.session_token) {
+        localStorage.setItem('attempo_session_token', data.session_token);
+      }
+
+      window.location.href = '/admin';
+
+    } catch (err) {
+      showError('Error de conexión. Verifica tu internet e intenta de nuevo.');
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.textContent = 'Crear cuenta — 12 días gratis sin tarjeta';
+    }
+  });
+</script>
+
+</body>
+</html>

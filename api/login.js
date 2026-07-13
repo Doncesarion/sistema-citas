@@ -295,6 +295,16 @@ export default async function handler(req, res) {
       session_token = `${payload}.${sig}`;
     }
 
+    // Obtener tipo_plan del negocio para feature gating en el panel
+    let tipo_plan = null;
+    if (u.cliente_id) {
+      try {
+        const rp = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${u.cliente_id}&select=tipo_plan&limit=1`, { headers: sh });
+        const [cli] = await rp.json();
+        tipo_plan = cli?.tipo_plan || null;
+      } catch(_) {}
+    }
+
     return res.status(200).json({
       ok: true,
       usuario: u.email || u.username,
@@ -303,6 +313,7 @@ export default async function handler(req, res) {
       destino: u.destino,
       cliente_id: u.cliente_id,
       session_token,
+      tipo_plan,
       debe_cambiar: first || false,
     });
 
