@@ -2936,12 +2936,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 <div id="cfg-tipo-plan-badge" style="display:inline-block;font-size:11px;font-weight:700;color:var(--a);background:rgba(108,92,228,0.08);border:1px solid rgba(108,92,228,0.18);border-radius:99px;padding:2px 10px;margin-bottom:5px"></div>
                 <div id="plan-nombre" style="font-size:18px;font-weight:700;color:var(--black)">—</div>
               </div>
-              <div id="plan-dias-badge" style="background:rgba(108,92,228,0.1);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:var(--a)">—</div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+                <div id="plan-dias-badge" style="background:rgba(108,92,228,0.1);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:var(--a)">—</div>
+                <button onclick="abrirGestionarPlan()" style="background:none;border:none;color:var(--a);font-size:12px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;opacity:.8" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">Gestionar plan</button>
+              </div>
             </div>
             <div id="plan-vence" style="font-size:12px;color:var(--t3);margin-top:6px">—</div>
-            <div style="margin-top:12px">
-              <button class="btn" onclick="abrirGestionarPlan()" style="font-size:12px;padding:6px 16px">Gestionar plan</button>
-            </div>
           </div>
         </div>
         <div style="height:1px;background:var(--b1)"></div>
