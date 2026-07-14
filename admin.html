@@ -1708,7 +1708,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
       <table>
-        <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método de pago</th><th>Monto</th><th>Estado</th></tr></thead>
+        <thead><tr id="ventas-thead-row"><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método de pago</th><th>Monto</th><th>Estado</th></tr></thead>
         <tbody id="ventas-tbody">
           <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
         </tbody>
@@ -7780,6 +7780,19 @@ let _ventasPeriodo = 'mes';
 let _ventasMetodo  = '';
 let _ventasPage    = 0;
 const VENTAS_PER_PAGE = 10;
+let _ventasSortCol = 'fecha';
+let _ventasSortDir = 'desc';
+
+function sortVentas(col) {
+  if (_ventasSortCol === col) {
+    _ventasSortDir = _ventasSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _ventasSortCol = col;
+    _ventasSortDir = (col === 'monto') ? 'desc' : (col === 'fecha' ? 'desc' : 'asc');
+  }
+  _ventasPage = 0;
+  renderVentasTable();
+}
 
 const PERIODO_LABELS = { hoy:'Hoy', ayer:'Ayer', sem:'Esta semana', mes:'Este mes', '3m':'Últimos 3 meses', '1y':'Este año' };
 
@@ -7809,7 +7822,7 @@ function _ventasFiltradas() {
   } else {
     [desde, hasta] = _ventasFechaRange(_ventasPeriodo);
   }
-  return _allVentas.filter(c => {
+  const filtered = _allVentas.filter(c => {
     if (!c.fecha) return false;
     const f = new Date(c.fecha + 'T00:00:00');
     if (f < desde || f > hasta) return false;
@@ -7818,6 +7831,22 @@ function _ventasFiltradas() {
     if (_ventasProf && (c.especialistas?.nombre || '') !== _ventasProf) return false;
     return true;
   });
+  filtered.sort((a, b) => {
+    let va, vb, cmp;
+    switch (_ventasSortCol) {
+      case 'fecha':    va = (a.fecha||'')+(a.hora||''); vb = (b.fecha||'')+(b.hora||''); break;
+      case 'cliente':  va = (a.nombre_paciente||'').toLowerCase(); vb = (b.nombre_paciente||'').toLowerCase(); break;
+      case 'servicio': va = (a.servicio||'').toLowerCase(); vb = (b.servicio||'').toLowerCase(); break;
+      case 'prof':     va = (a.especialistas?.nombre||'').toLowerCase(); vb = (b.especialistas?.nombre||'').toLowerCase(); break;
+      case 'metodo':   va = (a.metodo_pago||''); vb = (b.metodo_pago||''); break;
+      case 'monto':    return _ventasSortDir === 'asc' ? (a.precio||0)-(b.precio||0) : (b.precio||0)-(a.precio||0);
+      case 'estado':   va = (a.estado_pago||''); vb = (b.estado_pago||''); break;
+      default: return 0;
+    }
+    cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return _ventasSortDir === 'asc' ? cmp : -cmp;
+  });
+  return filtered;
 }
 
 function applyVentasCustom() {
@@ -7879,6 +7908,25 @@ function renderVentasKPIs() {
 }
 
 function renderVentasTable() {
+  const VCOLS = [
+    { key:'fecha',    label:'Fecha' },
+    { key:'cliente',  label:'Cliente' },
+    { key:'servicio', label:'Servicio' },
+    { key:'prof',     label:'Profesional' },
+    { key:'metodo',   label:'Método de pago' },
+    { key:'monto',    label:'Monto' },
+    { key:'estado',   label:'Estado' },
+  ];
+  const theadRow = document.getElementById('ventas-thead-row');
+  if (theadRow) {
+    theadRow.innerHTML = VCOLS.map(col => {
+      const active = _ventasSortCol === col.key;
+      const arrow  = active ? (_ventasSortDir === 'asc' ? '↑' : '↓') : '↕';
+      return `<th onclick="sortVentas('${col.key}')" style="cursor:pointer;user-select:none;white-space:nowrap;${active?'color:var(--a)':''}">`
+           + `${col.label} <span style="font-size:10px;opacity:${active?'1':'0.3'}">${arrow}</span></th>`;
+    }).join('');
+  }
+
   const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow</span>' };
   const lista  = _ventasFiltradas();
   const tbody  = document.getElementById('ventas-tbody');
