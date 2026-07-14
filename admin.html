@@ -3626,7 +3626,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
         <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
         <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
-        <div><div class="fp-info-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
+        <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
       </div>
       <div style="height:1px;background:var(--b1)"></div>
@@ -4333,17 +4333,23 @@ async function loadFichaData(nombre) {
     window._fichaProxHora   = prox ? (prox.hora||'').slice(0,5) : null;
     const proximaEl = document.getElementById('fpi-proxima');
     if (proximaEl) {
+      const proximaLblEl = document.getElementById('fpi-proxima-lbl');
       if (prox) {
         const dt = new Date(prox.fecha + 'T12:00:00');
         const lbl = dt.toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'long'}) + ' · ' + (prox.hora||'').slice(0,5);
         proximaEl.textContent = lbl; proximaEl.style.color = 'var(--a)';
+        if (proximaLblEl) proximaLblEl.textContent = 'Próxima cita';
       } else {
         const ultima = citas.filter(c => c.fecha < hoy && !['cancelada','canceled','cancelled'].includes(c.estado)).sort((a,b) => b.fecha.localeCompare(a.fecha)||(b.hora||'').localeCompare(a.hora||''))[0];
         if (ultima) {
           const dtU = new Date(ultima.fecha + 'T12:00:00');
-          proximaEl.textContent = 'Última cita: ' + dtU.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'});
+          proximaEl.textContent = dtU.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'});
           proximaEl.style.color = 'var(--t2)';
-        } else { proximaEl.textContent = 'Sin citas registradas'; proximaEl.style.color = 'var(--t3)'; }
+          if (proximaLblEl) proximaLblEl.textContent = 'Última cita';
+        } else {
+          proximaEl.textContent = 'Sin citas registradas'; proximaEl.style.color = 'var(--t3)';
+          if (proximaLblEl) proximaLblEl.textContent = 'Próxima cita';
+        }
       }
     }
 
@@ -5993,6 +5999,28 @@ async function openProfile() {
   } catch(e) { console.warn('openProfile error', e); }
 }
 function closeProfile() { document.getElementById('profile-ov').classList.remove('open'); }
+function abrirGestionarPlan() { closeProfile(); document.getElementById('gestionar-plan-ov').classList.add('open'); }
+function cerrarGestionarPlan() { document.getElementById('gestionar-plan-ov').classList.remove('open'); }
+async function pagarPlanFlow(plan) {
+  cerrarGestionarPlan();
+  toast('Generando link de pago...');
+  try {
+    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    const resp = await fetch('/api/flow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': u.token || '' },
+      body: JSON.stringify({ tipo: 'renovar', plan })
+    });
+    const data = await resp.json();
+    if (data.payment_url) {
+      window.location.href = data.payment_url;
+    } else {
+      toastErr('Error al generar pago: ' + (data.error || 'intenta de nuevo'));
+    }
+  } catch(e) {
+    toastErr('Error de conexión con Flow');
+  }
+}
 
 async function saveProfile() {
   const nombre  = document.getElementById('pf-nombre')?.value.trim() || '';
@@ -8280,6 +8308,27 @@ function salirImpersonacion() {
 }());
 
 </script>
+<!-- ═══ GESTIONAR PLAN ═══ -->
+<div class="overlay" id="gestionar-plan-ov" onclick="if(event.target===this)cerrarGestionarPlan()">
+  <div class="modal" style="width:360px">
+    <div class="modal-head"><span class="modal-title">Gestionar tu plan</span><button class="mclose" onclick="cerrarGestionarPlan()">×</button></div>
+    <div class="mbody" style="gap:10px">
+      <div style="font-size:13px;color:var(--t2);margin-bottom:4px">Selecciona el plan a activar. El pago se procesa de forma segura con Flow.</div>
+      <div onclick="pagarPlanFlow('mensual')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:var(--r);border:1px solid var(--b1);cursor:pointer;transition:all .12s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
+        <div><div style="font-size:14px;font-weight:600;color:var(--t1)">Plan Mensual</div><div style="font-size:12px;color:var(--t3)">Renueva cada 30 días</div></div>
+        <div style="font-size:15px;font-weight:700;color:var(--a)">$29.900</div>
+      </div>
+      <div onclick="pagarPlanFlow('anual')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:var(--r);border:2px solid var(--a);cursor:pointer;transition:all .12s;background:rgba(108,92,228,.04)" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background='rgba(108,92,228,.04)'">
+        <div>
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:14px;font-weight:600;color:var(--t1)">Plan Anual</span><span style="font-size:10px;font-weight:700;background:var(--a);color:#fff;padding:2px 7px;border-radius:99px">Recomendado</span></div>
+          <div style="font-size:12px;color:var(--t3)">Ahorras $89.700 al año</div>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:var(--a)">$269.100</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ PERFIL / CUENTA ═══ -->
 <div class="overlay" id="profile-ov" onclick="if(event.target===this)closeProfile()">
   <div class="modal" style="width:480px">
@@ -8328,7 +8377,7 @@ function salirImpersonacion() {
           <div id="pf-plan-nombre" style="font-size:13px;font-weight:500;color:var(--t1)">Pro</div>
           <div id="pf-plan-fecha" style="font-size:12px;color:var(--t3);margin-top:2px"></div>
         </div>
-        <button class="btn-g" style="font-size:12px" onclick="closeProfile();toast('Redirigiendo a gestión de plan...')">Gestionar plan</button>
+        <button class="btn-g" style="font-size:12px" onclick="abrirGestionarPlan()">Gestionar plan</button>
       </div>
     </div>
     <div class="mfoot" style="justify-content:space-between">

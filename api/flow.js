@@ -196,8 +196,9 @@ async function handleSubWebhook(commerceOrder, statusData, res) {
   return res.status(200).send('ok');
 }
 
-async function handleSubPayment(req, res) {
-  const { cliente_id, plan } = req.body || {};
+async function handleSubPayment(req, res, clienteIdOverride = null) {
+  const { plan } = req.body || {};
+  const cliente_id = clienteIdOverride || req.body?.cliente_id;
   if (!cliente_id || !plan) return res.status(400).json({ error: 'Falta cliente_id o plan' });
   if (!['mensual', 'anual'].includes(plan)) return res.status(400).json({ error: 'Plan inválido' });
 
@@ -397,6 +398,13 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'No autorizado' });
     }
     return handleSubPayment(req, res);
+  }
+
+  // — Auto-renovación (admin renueva su propio plan desde "Gestionar plan") —
+  if (req.body?.tipo === 'renovar') {
+    const session = verifySessionToken(req.headers['x-session-token']);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
+    return handleSubPayment(req, res, session.cliente_id);
   }
 
   const session = verifySessionToken(req.headers['x-session-token']);
