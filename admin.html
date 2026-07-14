@@ -4534,37 +4534,32 @@ async function fichaGuardar(btn, citaId) {
   const item = btn.closest('[data-citaid]');
   const ficha = {};
   item.querySelectorAll('[data-fichakey]').forEach(el => { const v = el.value.trim(); if (v) ficha[el.dataset.fichakey] = v; });
-  const cid = await getClienteId();
-  if (!cid) return;
   btn.textContent = 'Guardando...'; btn.disabled = true;
   try {
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${citaId}&cliente_id=eq.${cid}`, {
+    const r = await fetch(`/api/slots?id=${citaId}`, {
       method: 'PATCH',
-      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ notas: JSON.stringify(ficha) })
     });
     if (!r.ok) throw new Error();
     toast('✓ Ficha clínica guardada');
     item.querySelector('.ficha-view').innerHTML = _fichaViewHTML(ficha, citaId);
-    const hasFicha = Object.values(ficha).some(v => v?.trim());
-    const badge = item.querySelector('.ficha-chev')?.closest('.tl-card')?.querySelector('.ficha-badge');
-    if (hasFicha && badge) badge.style.display = '';
     fichaCancelarEdicion(btn);
-  } catch { toast('Error al guardar ficha', true); btn.textContent = 'Guardar ficha'; btn.disabled = false; }
+  } catch { toast('Error al guardar ficha'); btn.textContent = 'Guardar ficha'; btn.disabled = false; }
 }
 
 async function saveFichaNota() {
   const txt = document.getElementById('fp-notas-txt')?.value?.trim() || '';
   const nombre = _fichaCurrentNombre;
   if (!nombre) return;
-  const cid = await getClienteId();
-  if (!cid) return;
   try {
-    // Fetch current notas to avoid overwriting clinical JSON
-    const rGet = await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&nombre_paciente=ilike.${encodeURIComponent(nombre)}&order=fecha.desc&limit=1&select=id,notas`, { headers: _SH });
+    // Get most recent cita ID + notas for this patient
+    const rGet = await fetch(`/api/slots?nombre=${encodeURIComponent(nombre)}&order=fecha.desc&limit=1&select=id,notas`, { headers: _citasH() });
     const [citaActual] = await rGet.json();
+    if (!citaActual?.id) { toast('Error al guardar'); return; }
+    // Merge with clinical JSON if present, otherwise save plain text
     let notasGuardar = txt;
-    if (citaActual?.notas) {
+    if (citaActual.notas) {
       try {
         const parsed = JSON.parse(citaActual.notas);
         if (typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -4572,11 +4567,12 @@ async function saveFichaNota() {
         }
       } catch { /* plain text, save as-is */ }
     }
-    await fetch(`${_SURL}/rest/v1/citas?cliente_id=eq.${cid}&nombre_paciente=ilike.${encodeURIComponent(nombre)}&order=fecha.desc&limit=1`, {
+    const r = await fetch(`/api/slots?id=${citaActual.id}`, {
       method: 'PATCH',
-      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ notas: notasGuardar })
     });
+    if (!r.ok) throw new Error();
     toast('✓ Nota guardada');
   } catch(_) { toast('Error al guardar'); }
 }

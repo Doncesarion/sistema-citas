@@ -41,7 +41,7 @@ async function logAudit(KEY, action, actorRole, actorClienteId, targetClienteId,
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'DELETE' && req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'GET' && req.method !== 'DELETE' && req.method !== 'POST' && req.method !== 'PATCH') return res.status(405).end();
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
@@ -179,6 +179,36 @@ export default async function handler(req, res) {
       return res.json({ ok: true });
     } catch(e) {
       console.error('bot_config save exception:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
+  // — PATCH: actualizar notas/ficha de una cita —
+  if (req.method === 'PATCH') {
+    const s = verifySessionToken(sessionToken);
+    if (!s) return res.status(401).json({ error: 'No autorizado' });
+    let cliente_id = s.cliente_id;
+    const overrideId = req.headers['x-override-cliente-id'];
+    if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) cliente_id = overrideId;
+    const { id } = req.query;
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID de cita inválido' });
+    const body = req.body || {};
+    if (typeof body.notas === 'undefined') return res.status(400).json({ error: 'Campo requerido: notas' });
+    const notas = body.notas === null ? null : String(body.notas).slice(0, 10000);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
+        method: 'PATCH',
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ notas })
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        console.error('slots PATCH notas error:', r.status, JSON.stringify(err));
+        return res.status(500).json({ error: 'Error al guardar' });
+      }
+      return res.json({ ok: true });
+    } catch(e) {
+      console.error('slots PATCH notas exception:', e.message);
       return res.status(500).json({ error: 'Error interno' });
     }
   }
