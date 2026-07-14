@@ -4305,7 +4305,11 @@ async function loadFichaData(nombre) {
       { headers: _citasH() }
     );
     const citas = await r.json();
-    if (!Array.isArray(citas)) return;
+    if (!Array.isArray(citas)) {
+      const wrap = document.getElementById('ft-hist-wrap');
+      if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">No array: ${JSON.stringify(citas).slice(0,200)}</div>`;
+      return;
+    }
 
     const hoy = new Date().toISOString().slice(0,10);
     const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
@@ -4401,7 +4405,11 @@ async function loadFichaData(nombre) {
 
     // Historial
     renderFichaHistorial(citas);
-  } catch(e) { console.error('loadFichaData:', e); }
+  } catch(e) {
+    console.error('loadFichaData:', e);
+    const wrap = document.getElementById('ft-hist-wrap');
+    if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">Error: ${e.message}</div>`;
+  }
 }
 
 function _parseFichaNotas(notas) {
