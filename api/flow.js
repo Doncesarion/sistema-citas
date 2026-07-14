@@ -158,11 +158,15 @@ function emailConfirmadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
 }
 
 async function handleSubWebhook(commerceOrder, statusData, res) {
-  // Format: AT{m|a}{uuid_sin_guiones_32chars}{4digits} = 39 chars total
+  // Formato legado (39): AT{planCode}{uuid32}{4digits}
+  // Formato nuevo  (40): AT{planCode}{tipoCode}{uuid32}{4digits}  — incluye tipo_plan
   if (commerceOrder.length < 35) return res.status(200).send('ok');
-  const planCode   = commerceOrder[2];
-  const plan       = planCode === 'a' ? 'anual' : 'mensual';
-  const uuidClean  = commerceOrder.slice(3, 35);
+  const planCode  = commerceOrder[2];
+  const plan      = planCode === 'a' ? 'anual' : 'mensual';
+  const hasNuevo  = commerceOrder.length >= 40;
+  const TIPO_MAP  = { i:'inicio', p:'pro', c:'clinica_ia' };
+  const tipo_plan = hasNuevo ? (TIPO_MAP[commerceOrder[3]] || null) : null;
+  const uuidClean = hasNuevo ? commerceOrder.slice(4, 36) : commerceOrder.slice(3, 35);
   const cliente_id = `${uuidClean.slice(0,8)}-${uuidClean.slice(8,12)}-${uuidClean.slice(12,16)}-${uuidClean.slice(16,20)}-${uuidClean.slice(20)}`;
   if (!['mensual', 'anual'].includes(plan) || uuidClean.length !== 32) return res.status(200).send('ok');
 
@@ -173,10 +177,13 @@ async function handleSubWebhook(commerceOrder, statusData, res) {
   const dias  = plan === 'anual' ? 365 : 30;
   const fecha_expiracion = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
 
+  const patchData = { activo: true, plan, fecha_expiracion };
+  if (tipo_plan) patchData.tipo_plan = tipo_plan;
+
   await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}`, {
     method: 'PATCH',
     headers: { ...sh, Prefer: 'return=minimal' },
-    body: JSON.stringify({ activo: true, plan, fecha_expiracion })
+    body: JSON.stringify(patchData)
   }).catch(e => console.error('flow sub webhook: patch error:', e.message));
 
   const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
@@ -213,16 +220,23 @@ async function handleSubPayment(req, res, clienteIdOverride = null) {
   const montoDefault = plan === 'anual' ? 269100 : 29900;
   const montoReq = req.body.monto ? parseInt(req.body.monto) : null;
   const monto = (montoReq && montoReq > 0) ? montoReq : montoDefault;
-  // AT{m|a}{uuid_sin_guiones}{4digits} = 2+1+32+4 = 39 chars (límite Flow: 45)
-  const planCode = plan === 'anual' ? 'a' : 'm';
+  const planCode  = plan === 'anual' ? 'a' : 'm';
   const uuidClean = cliente_id.replace(/-/g, '');
-  const suffix = String(Date.now() % 10000).padStart(4, '0');
-  const commerceOrder = `AT${planCode}${uuidClean}${suffix}`;
+  const suffix    = String(Date.now() % 10000).padStart(4, '0');
+  // Si viene tipo_plan, usar formato nuevo AT{planCode}{tipoCode}{uuid32}{4d} = 40 chars
+  // Si no, formato legado AT{planCode}{uuid32}{4d} = 39 chars (ambos dentro del límite de 45)
+  const TIPO_CODES = { inicio:'i', pro:'p', clinica_ia:'c' };
+  const tipoCode = TIPO_CODES[req.body?.tipo_plan] || null;
+  const commerceOrder = tipoCode
+    ? `AT${planCode}${tipoCode}${uuidClean}${suffix}`
+    : `AT${planCode}${uuidClean}${suffix}`;
 
+  const PLAN_LABELS = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Clínica IA' };
+  const tipoLabel = PLAN_LABELS[req.body?.tipo_plan] || '';
   const params = {
     apiKey:          process.env.FLOW_API_KEY,
     commerceOrder,
-    subject:         `Suscripción attempo — Plan ${plan === 'anual' ? 'Anual' : 'Mensual'}`,
+    subject:         `Suscripción attempo — ${tipoLabel ? tipoLabel + ' ' : ''}Plan ${plan === 'anual' ? 'Anual' : 'Mensual'}`,
     currency:        'CLP',
     amount:          String(monto),
     email:           cliente.email,
