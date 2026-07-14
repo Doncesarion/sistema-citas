@@ -173,7 +173,7 @@ async function handleSubWebhook(commerceOrder, statusData, res) {
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
-  const monto = statusData.amount ? Math.round(Number(statusData.amount)) : (plan === 'anual' ? 269100 : 29900);
+  const monto = statusData.amount ? Math.round(Number(statusData.amount)) : (plan === 'anual' ? 239900 : 24990);
   const dias  = plan === 'anual' ? 365 : 30;
   const fecha_expiracion = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
 
@@ -217,7 +217,7 @@ async function handleSubPayment(req, res, clienteIdOverride = null) {
   if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
   if (!cliente.email) return res.status(400).json({ error: 'El cliente no tiene email registrado' });
 
-  const montoDefault = plan === 'anual' ? 269100 : 29900;
+  const montoDefault = plan === 'anual' ? 239900 : 24990;
   const montoReq = req.body.monto ? parseInt(req.body.monto) : null;
   const monto = (montoReq && montoReq > 0) ? montoReq : montoDefault;
   const planCode  = plan === 'anual' ? 'a' : 'm';

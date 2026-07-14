@@ -6034,8 +6034,8 @@ function closeProfile() { document.getElementById('profile-ov').classList.remove
 let _gpTipo    = 'inicio';
 let _gpPeriodo = 'anual';
 const _GP_PRECIOS = {
-  inicio: { mensual: 24990, anual: 224910, ahorro: 74970 },
-  pro:    { mensual: 44990, anual: 404910, ahorro: 134970 },
+  inicio: { mensual: 24990, anual: 239900, ahorro: 59980, mensualEfectivo: 19992 },
+  pro:    { mensual: 44990, anual: 431900, ahorro: 107980, mensualEfectivo: 35992 },
 };
 
 function _gpUpdateBtn() {
@@ -6057,9 +6057,11 @@ function gpSelectTipo(tipo) {
   const fmt = n => '$' + n.toLocaleString('es-CL');
   const pm = document.getElementById('gp-precio-mensual');
   const pa = document.getElementById('gp-precio-anual');
+  const pe = document.getElementById('gp-precio-anual-efectivo');
   const ah = document.getElementById('gp-ahorro');
   if (pm) pm.textContent = fmt(p.mensual);
   if (pa) pa.textContent = fmt(p.anual);
+  if (pe) pe.textContent = fmt(p.mensualEfectivo) + '/mes';
   if (ah) ah.textContent = 'Ahorras ' + fmt(p.ahorro) + ' al año';
   _gpUpdateBtn();
 }
@@ -6089,7 +6091,7 @@ async function pagarPlanFlow(plan) {
   cerrarGestionarPlan();
   const tipo  = _gpTipo || 'inicio';
   const p     = _GP_PRECIOS[tipo] || _GP_PRECIOS.inicio;
-  const monto = p[plan] || (plan === 'anual' ? 224910 : 24990);
+  const monto = p[plan] || (plan === 'anual' ? 239900 : 24990);
   toast('Generando link de pago...');
   try {
     const tok  = localStorage.getItem('attempo_session_token') || '';
@@ -8470,21 +8472,27 @@ function salirImpersonacion() {
         <div style="display:flex;flex-direction:column;gap:8px">
           <div id="gp-per-mensual" onclick="gpSelectPeriodo('mensual')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:var(--r);border:2px solid var(--b1);cursor:pointer;transition:all .12s">
             <div><div style="font-size:13px;font-weight:600;color:var(--t1)">Mensual</div><div style="font-size:12px;color:var(--t3)">Renueva cada 30 días</div></div>
-            <div id="gp-precio-mensual" style="font-size:15px;font-weight:700;color:var(--a)">$24.990</div>
+            <div style="text-align:right">
+              <div id="gp-precio-mensual" style="font-size:15px;font-weight:700;color:var(--a)">$24.990</div>
+              <div style="font-size:10px;color:var(--t3)">/mes + IVA</div>
+            </div>
           </div>
           <div id="gp-per-anual" onclick="gpSelectPeriodo('anual')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:var(--r);border:2px solid var(--b1);cursor:pointer;transition:all .12s">
             <div>
-              <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Anual</span><span style="font-size:10px;font-weight:700;background:var(--a);color:#fff;padding:1px 6px;border-radius:99px">Recomendado</span></div>
-              <div id="gp-ahorro" style="font-size:12px;color:var(--t3)">Ahorras $74.970 al año</div>
+              <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Anual</span><span style="font-size:10px;font-weight:700;background:var(--a);color:#fff;padding:1px 6px;border-radius:99px">−20%</span></div>
+              <div id="gp-ahorro" style="font-size:12px;color:var(--t3)">Ahorras $59.980 al año</div>
             </div>
-            <div id="gp-precio-anual" style="font-size:15px;font-weight:700;color:var(--a)">$224.910</div>
+            <div style="text-align:right">
+              <div id="gp-precio-anual" style="font-size:15px;font-weight:700;color:var(--a)">$239.900</div>
+              <div style="font-size:10px;color:var(--t3)"><span id="gp-precio-anual-efectivo">$19.992/mes</span> + IVA</div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- CTA -->
       <button id="gp-btn-pagar" onclick="pagarPlanFlow(_gpPeriodo)" style="width:100%;padding:13px;border-radius:var(--r);border:none;background:var(--a);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;letter-spacing:-.01em" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
-        Ir a pagar · <span id="gp-btn-monto">$224.910</span>
+        Ir a pagar · <span id="gp-btn-monto">$239.900</span>
       </button>
 
       <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:-6px">Pago seguro con Flow · ¿Otro plan? <a href="mailto:hola@attempo.cl" style="color:var(--a);text-decoration:none">Contáctanos</a></div>
