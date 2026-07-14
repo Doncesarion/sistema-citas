@@ -302,6 +302,12 @@
 // Si ya hay sesión activa, redirigir directo a /admin (evita que el refresh en móvil mande al login)
 (function(){
   try { if(localStorage.getItem('attempo_user')) window.location.replace('/admin'); } catch(e){}
+  // Mostrar aviso si fue redirigido por sesión expirada
+  if (window.location.search.indexOf('expired=1') !== -1) {
+    var el = document.getElementById('error-msg');
+    var txt = document.getElementById('error-text');
+    if (el && txt) { txt.textContent = 'Tu sesión expiró. Por favor inicia sesión nuevamente.'; el.classList.add('show'); }
+  }
 }());
 
 var _pendingMfaToken = null;

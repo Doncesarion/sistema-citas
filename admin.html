@@ -7,7 +7,21 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="/logo_attempo.png">
 <link rel="apple-touch-icon" href="/logo_attempo.png">
-<script>(function(){if(!localStorage.getItem('attempo_user'))window.location.replace('/login');}());</script>
+<script>(function(){
+  if(!localStorage.getItem('attempo_user'))window.location.replace('/login');
+  // Si el session token expiró, limpiar y redirigir: formato {cid}:{rol}:{expires}.{hmac}
+  var tok = localStorage.getItem('attempo_session_token') || '';
+  if (!tok) return; // sin token: las llamadas al API manejarán el redirect
+  try {
+    var payload = tok.split('.')[0];
+    var exp = parseInt(payload.split(':')[2]);
+    if (exp && Date.now() > exp) {
+      localStorage.removeItem('attempo_session_token');
+      localStorage.removeItem('attempo_user');
+      window.location.replace('/login?expired=1');
+    }
+  } catch(_) {}
+}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -8551,6 +8565,16 @@ function _citasH() {
   if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
   return h;
 }
+function _sesionExpirada() {
+  localStorage.removeItem('attempo_session_token');
+  localStorage.removeItem('attempo_user');
+  toastErr('Sesión expirada. Redirigiendo al login...');
+  setTimeout(() => { window.location.href = '/login'; }, 2000);
+}
+function _esErrorAuth(status, data) {
+  // Token expirado (presente pero inválido) → 401; token vacío + rama pública → 400 "Faltan parámetros"
+  return status === 401 || (status === 400 && data?.error === 'Faltan parámetros');
+}
 
 // Colores por especialista (iniciales → clase css)
 const PROF_COLOR = { 'CS':'ev-p', 'MJ':'ev-g', 'JP':'ev-a' };
@@ -8597,7 +8621,7 @@ async function cargarCitasSupabase() {
     // 3. Traer todas las citas (con datos del especialista)
     const r2 = await fetch(`/api/slots?select=*,especialistas(id,nombre)&order=fecha.asc,hora.asc`, { headers: _citasH() });
     const citas = await r2.json();
-    if (!Array.isArray(citas)) return;
+    if (!Array.isArray(citas)) { if (_esErrorAuth(r2.status, citas)) _sesionExpirada(); return; }
 
     // 4. Construir mesEvents desde citas reales (limpiar antes para que canceladas no persistan)
     mesEvents = {};
@@ -8747,7 +8771,10 @@ async function cargarVentas() {
   if (!cid) { console.warn('[cargarVentas] sin cid'); return; }
   const r = await fetch(`/api/slots?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
   const citas = await r.json();
-  if (!Array.isArray(citas)) { console.error('[cargarVentas] respuesta no-array:', JSON.stringify(citas)); return; }
+  if (!Array.isArray(citas)) {
+    if (_esErrorAuth(r.status, citas)) { _sesionExpirada(); return; }
+    console.error('[cargarVentas] respuesta no-array:', JSON.stringify(citas)); return;
+  }
   _allVentas  = citas;
   _ventasPage = 0;
   _renderVentasSidebarProfs();
