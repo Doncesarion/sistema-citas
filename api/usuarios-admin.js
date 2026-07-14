@@ -512,6 +512,19 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    // tipo_plan no está en la edge function — lo actualizamos directamente aquí
+    if (edge_action === 'actualizar' && forwardBody.id && forwardBody.tipo_plan && response.ok) {
+      const KEY = process.env.SUPABASE_SERVICE_KEY;
+      if (KEY) {
+        await fetch(`https://xztqawulvrtjvtfixofy.supabase.co/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(forwardBody.id)}`, {
+          method: 'PATCH',
+          headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ tipo_plan: forwardBody.tipo_plan })
+        }).catch(e => console.error('proxy actualizar tipo_plan error:', e.message));
+      }
+    }
+
     return res.status(response.status).json(data);
   }
 

@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
           nombre_negocio: body.nombre_negocio, email: body.email, plan: body.plan,
           fecha_expiracion: body.fecha_expiracion, contacto_nombre: body.contacto_nombre,
           contacto_tel: body.contacto_tel, rubro: body.rubro, activo: body.activo,
+          tipo_plan: body.tipo_plan,
           updated_at: new Date().toISOString(),
         }
         if (body.password) upd.password_hash = await hashPassword(body.password)
