@@ -6031,21 +6031,29 @@ async function openProfile() {
   } catch(e) { console.warn('openProfile error', e); }
 }
 function closeProfile() { document.getElementById('profile-ov').classList.remove('open'); }
-let _gpTipo = 'inicio';
+let _gpTipo    = 'inicio';
+let _gpPeriodo = 'anual';
 const _GP_PRECIOS = {
   inicio: { mensual: 24990, anual: 224910, ahorro: 74970 },
   pro:    { mensual: 44990, anual: 404910, ahorro: 134970 },
 };
 
+function _gpUpdateBtn() {
+  const p = _GP_PRECIOS[_gpTipo] || _GP_PRECIOS.inicio;
+  const monto = p[_gpPeriodo] || p.anual;
+  const btn = document.getElementById('gp-btn-monto');
+  if (btn) btn.textContent = '$' + monto.toLocaleString('es-CL');
+}
+
 function gpSelectTipo(tipo) {
   _gpTipo = tipo;
   const p = _GP_PRECIOS[tipo] || _GP_PRECIOS.inicio;
-  const activo = { borderColor:'var(--a)', background:'rgba(108,92,228,.05)' };
-  const inactivo = { borderColor:'var(--b1)', background:'' };
+  const sel = { borderColor:'var(--a)', background:'rgba(108,92,228,.05)' };
+  const def = { borderColor:'var(--b1)', background:'' };
   const ci = document.getElementById('gp-card-inicio');
   const cp = document.getElementById('gp-card-pro');
-  if (ci) Object.assign(ci.style, tipo === 'inicio' ? activo : inactivo);
-  if (cp) Object.assign(cp.style, tipo === 'pro' ? activo : inactivo);
+  if (ci) Object.assign(ci.style, tipo === 'inicio' ? sel : def);
+  if (cp) Object.assign(cp.style, tipo === 'pro' ? sel : def);
   const fmt = n => '$' + n.toLocaleString('es-CL');
   const pm = document.getElementById('gp-precio-mensual');
   const pa = document.getElementById('gp-precio-anual');
@@ -6053,20 +6061,34 @@ function gpSelectTipo(tipo) {
   if (pm) pm.textContent = fmt(p.mensual);
   if (pa) pa.textContent = fmt(p.anual);
   if (ah) ah.textContent = 'Ahorras ' + fmt(p.ahorro) + ' al año';
+  _gpUpdateBtn();
+}
+
+function gpSelectPeriodo(periodo) {
+  _gpPeriodo = periodo;
+  const sel = { borderColor:'var(--a)', background:'rgba(108,92,228,.04)' };
+  const def = { borderColor:'var(--b1)', background:'' };
+  const pm = document.getElementById('gp-per-mensual');
+  const pa = document.getElementById('gp-per-anual');
+  if (pm) Object.assign(pm.style, periodo === 'mensual' ? sel : def);
+  if (pa) Object.assign(pa.style, periodo === 'anual'   ? sel : def);
+  _gpUpdateBtn();
 }
 
 function abrirGestionarPlan() {
   closeProfile();
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  _gpPeriodo = 'anual';
   gpSelectTipo(_GP_PRECIOS[u.tipo_plan] ? u.tipo_plan : 'inicio');
+  gpSelectPeriodo('anual');
   document.getElementById('gestionar-plan-ov').classList.add('open');
 }
 function cerrarGestionarPlan() { document.getElementById('gestionar-plan-ov').classList.remove('open'); }
 
 async function pagarPlanFlow(plan) {
   cerrarGestionarPlan();
-  const tipo = _gpTipo || 'inicio';
-  const p    = _GP_PRECIOS[tipo] || _GP_PRECIOS.inicio;
+  const tipo  = _gpTipo || 'inicio';
+  const p     = _GP_PRECIOS[tipo] || _GP_PRECIOS.inicio;
   const monto = p[plan] || (plan === 'anual' ? 224910 : 24990);
   toast('Generando link de pago...');
   try {
@@ -8446,11 +8468,11 @@ function salirImpersonacion() {
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">2 · Período de pago</div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <div onclick="pagarPlanFlow('mensual')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:var(--r);border:1px solid var(--b1);cursor:pointer;transition:all .12s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background=''">
+          <div id="gp-per-mensual" onclick="gpSelectPeriodo('mensual')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:var(--r);border:2px solid var(--b1);cursor:pointer;transition:all .12s">
             <div><div style="font-size:13px;font-weight:600;color:var(--t1)">Mensual</div><div style="font-size:12px;color:var(--t3)">Renueva cada 30 días</div></div>
             <div id="gp-precio-mensual" style="font-size:15px;font-weight:700;color:var(--a)">$24.990</div>
           </div>
-          <div onclick="pagarPlanFlow('anual')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:var(--r);border:2px solid var(--a);cursor:pointer;transition:all .12s;background:rgba(108,92,228,.04)" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background='rgba(108,92,228,.04)'">
+          <div id="gp-per-anual" onclick="gpSelectPeriodo('anual')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:var(--r);border:2px solid var(--b1);cursor:pointer;transition:all .12s">
             <div>
               <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Anual</span><span style="font-size:10px;font-weight:700;background:var(--a);color:#fff;padding:1px 6px;border-radius:99px">Recomendado</span></div>
               <div id="gp-ahorro" style="font-size:12px;color:var(--t3)">Ahorras $74.970 al año</div>
@@ -8460,7 +8482,12 @@ function salirImpersonacion() {
         </div>
       </div>
 
-      <div style="font-size:11px;color:var(--t3);text-align:center">Pago seguro con Flow · ¿Otro plan? <a href="mailto:hola@attempo.cl" style="color:var(--a);text-decoration:none">Contáctanos</a></div>
+      <!-- CTA -->
+      <button id="gp-btn-pagar" onclick="pagarPlanFlow(_gpPeriodo)" style="width:100%;padding:13px;border-radius:var(--r);border:none;background:var(--a);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;letter-spacing:-.01em" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+        Ir a pagar · <span id="gp-btn-monto">$224.910</span>
+      </button>
+
+      <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:-6px">Pago seguro con Flow · ¿Otro plan? <a href="mailto:hola@attempo.cl" style="color:var(--a);text-decoration:none">Contáctanos</a></div>
     </div>
   </div>
 </div>
