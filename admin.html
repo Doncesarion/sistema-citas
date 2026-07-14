@@ -4462,6 +4462,7 @@ function renderFichaHistorial(citas) {
   const wrap = document.getElementById('ft-hist-wrap');
   if (!wrap) return;
   if (!citas.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin historial de citas</div>'; return; }
+  try {
   const METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
   const estTag = e => {
     if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta">Pendiente</span>';
@@ -4507,6 +4508,10 @@ function renderFichaHistorial(citas) {
       </div>
     </div>`;
   }).join('');
+  } catch(err) {
+    console.error('renderFichaHistorial error:', err);
+    wrap.innerHTML = `<div style="padding:16px;color:var(--danger);font-size:12px;background:#fff5f5;border:1px solid #fca5a5;border-radius:var(--r)">Error al renderizar historial: ${err.message}</div>`;
+  }
 }
 
 function fichaToggle(card) {
