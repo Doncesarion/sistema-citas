@@ -3623,10 +3623,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
     </div>
 
-    <div class="fp-tabs">
-      <button class="fptab on" onclick="fpTab(this,'ft-info')">Información</button>
-      <button class="fptab" onclick="fpTab(this,'ft-hist')">Historial</button>
-      <button class="fptab" onclick="fpTab(this,'ft-notas')">Notas internas</button>
+    <div class="fp-tabs" style="justify-content:space-between">
+      <div style="display:flex">
+        <button class="fptab on" onclick="fpTab(this,'ft-info')">Información</button>
+        <button class="fptab" onclick="fpTab(this,'ft-hist')">Historial</button>
+        <button class="fptab" onclick="fpTab(this,'ft-notas')">Notas internas</button>
+      </div>
+      <button onclick="openPacienteEdit()" style="font-size:11px;font-weight:500;color:var(--a);background:none;border:none;cursor:pointer;padding:0 12px;white-space:nowrap;font-family:var(--font)">✏ Editar datos</button>
     </div>
 
     <!-- Tab: Información -->
@@ -3642,8 +3645,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
       </div>
-      <button class="btn-g" style="font-size:11px;padding:5px 12px;align-self:flex-start;margin-top:2px" onclick="openPacienteEdit()">Editar datos del paciente</button>
-
       <!-- Formulario de edición (oculto por defecto) -->
       <div id="fp-edit-wrap" style="display:none;border-top:1px solid var(--b1);padding-top:14px;margin-top:4px">
         <div class="tl-lbl" style="margin-bottom:12px">Editar datos</div>
