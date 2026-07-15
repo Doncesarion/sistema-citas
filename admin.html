@@ -1408,8 +1408,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
   <div class="sb-section">
     <div class="sb-label">Paciente</div>
-    <div style="margin:0 10px 4px">
-      <input type="text" id="rsb-paciente" placeholder="Buscar paciente..." oninput="filtrarRepPaciente(this.value)" style="width:100%;padding:7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+    <div style="margin:0 10px 4px;position:relative">
+      <input type="text" id="rsb-paciente" placeholder="Buscar paciente..." autocomplete="off"
+        oninput="filtrarRepPaciente(this.value)"
+        onfocus="abrirRepPacDrop(this.value)"
+        style="width:100%;padding:7px 28px 7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+      <button id="rsb-pac-x" onclick="limpiarRepPaciente()" style="display:none;position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t4);font-size:15px;line-height:1;padding:0 2px" title="Limpiar">×</button>
+      <div id="rsb-pac-drop" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1px solid var(--b2);border-radius:var(--rl);box-shadow:var(--sh3);z-index:400;overflow:hidden;max-height:180px;overflow-y:auto"></div>
     </div>
   </div>
   <div class="sb-section">
@@ -8405,9 +8410,13 @@ function setEstadoFilter(estado, itemEl) {
   renderVentasTable();
   renderVentasChart();
 }
-document.addEventListener('click', function() {
+document.addEventListener('click', function(e) {
   const drop = document.getElementById('vmetodo-drop');
   if (drop) drop.style.display = 'none';
+  if (!e.target.closest('#rsb-pac-drop') && !e.target.closest('#rsb-paciente')) {
+    const pacDrop = document.getElementById('rsb-pac-drop');
+    if (pacDrop) pacDrop.style.display = 'none';
+  }
 });
 
 function renderVentasChart() {
@@ -10352,6 +10361,52 @@ function filtrarRepProf(prof, btn) {
 
 function filtrarRepPaciente(val) {
   _repPaciente = val.toLowerCase().trim();
+  const xBtn = document.getElementById('rsb-pac-x');
+  if (xBtn) xBtn.style.display = val.trim() ? 'block' : 'none';
+  abrirRepPacDrop(val);
+  renderReportes();
+}
+
+function abrirRepPacDrop(val) {
+  const drop = document.getElementById('rsb-pac-drop');
+  if (!drop) return;
+  const q = (val || '').toLowerCase().trim();
+  const seen = new Map();
+  _allReportes.forEach(c => {
+    const n = (c.nombre_paciente || '').trim();
+    if (n && !seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n);
+  });
+  const matches = [...seen.values()]
+    .filter(n => !q || n.toLowerCase().includes(q))
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, 25);
+  if (!matches.length) { drop.style.display = 'none'; return; }
+  drop.innerHTML = matches.map(n => {
+    const safe = n.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    return `<button class="sbi" data-pac="${safe}" onclick="seleccionarRepPaciente(this.dataset.pac)" style="font-size:12px;padding:5px 10px;width:100%;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safe}</button>`;
+  }).join('');
+  drop.style.display = 'block';
+}
+
+function seleccionarRepPaciente(nombre) {
+  const input = document.getElementById('rsb-paciente');
+  if (input) input.value = nombre;
+  const xBtn = document.getElementById('rsb-pac-x');
+  if (xBtn) xBtn.style.display = 'block';
+  const drop = document.getElementById('rsb-pac-drop');
+  if (drop) drop.style.display = 'none';
+  _repPaciente = nombre.toLowerCase().trim();
+  renderReportes();
+}
+
+function limpiarRepPaciente() {
+  const input = document.getElementById('rsb-paciente');
+  if (input) { input.value = ''; }
+  const xBtn = document.getElementById('rsb-pac-x');
+  if (xBtn) xBtn.style.display = 'none';
+  const drop = document.getElementById('rsb-pac-drop');
+  if (drop) drop.style.display = 'none';
+  _repPaciente = '';
   renderReportes();
 }
 
