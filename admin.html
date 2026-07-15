@@ -4422,6 +4422,54 @@ function _parseFichaNotas(notas) {
   catch { return { observaciones: notas }; }
 }
 
+function _fichaViewHTML(ficha, citaId) {
+  const campos = [
+    { key:'motivo',              label:'Motivo de consulta' },
+    { key:'anamnesis',           label:'Anamnesis' },
+    { key:'diagnostico',         label:'Diagnóstico' },
+    { key:'tratamiento',         label:'Tratamiento realizado' },
+    { key:'medicamentos',        label:'Medicamentos prescritos' },
+    { key:'insumos',             label:'Insumos/materiales' },
+    { key:'indicaciones',        label:'Indicaciones al paciente' },
+    { key:'observaciones',       label:'Observaciones del profesional' },
+    { key:'proxima_recomendada', label:'Próxima cita recomendada' },
+  ];
+  const items = campos.filter(f => ficha[f.key]?.trim?.()).map(f =>
+    `<div style="margin-bottom:9px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:2px">${f.label}</div>
+      <div style="font-size:13px;color:var(--t1);line-height:1.5">${escHtml(ficha[f.key])}</div>
+    </div>`
+  ).join('');
+  return `<div style="margin-bottom:8px">${items || '<div style="color:var(--t3);font-size:12px;padding:2px 0 6px">Sin ficha clínica registrada</div>'}</div>
+    <button class="btn-g" style="font-size:11px;padding:5px 10px" onclick="fichaEditarModo(this,'${citaId}')">Editar ficha</button>`;
+}
+
+function _fichaFormHTML(ficha, citaId) {
+  const campos = [
+    { key:'motivo',              label:'Motivo de consulta',        ph:'Ej: Dolor lumbar crónico, control rutinario...' },
+    { key:'anamnesis',           label:'Anamnesis',                 ph:'Antecedentes, evolución, síntomas...' },
+    { key:'diagnostico',         label:'Diagnóstico',               ph:'Ej: Lumbalgia mecánica, HTA controlada...' },
+    { key:'tratamiento',         label:'Tratamiento realizado',     ph:'Ej: Masoterapia, punción seca, ajuste C5...' },
+    { key:'medicamentos',        label:'Medicamentos prescritos',   ph:'Ej: Ibuprofeno 400mg c/8h × 5 días...' },
+    { key:'insumos',             label:'Insumos/materiales',        ph:'Ej: Agujas 0.25×40mm ×4, vendas elásticas...' },
+    { key:'indicaciones',        label:'Indicaciones al paciente',  ph:'Reposo, ejercicios, dieta...' },
+    { key:'observaciones',       label:'Observaciones del profesional', ph:'Evolución, notas clínicas...' },
+    { key:'proxima_recomendada', label:'Próxima cita recomendada',  ph:'Ej: Control en 2 semanas...' },
+  ];
+  const rows = campos.map(f =>
+    `<div style="margin-bottom:8px">
+      <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;margin-bottom:3px">${f.label}</label>
+      <textarea class="fp-textarea" rows="2" data-fichakey="${f.key}" placeholder="${f.ph}" style="min-height:unset;font-size:12.5px;line-height:1.4">${escHtml(ficha[f.key]||'')}</textarea>
+    </div>`
+  ).join('');
+  return `<div style="padding-top:10px">${rows}
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn-a" style="font-size:11px;padding:5px 12px" onclick="fichaGuardar(this,'${citaId}')">Guardar ficha</button>
+      <button class="btn-g" style="font-size:11px;padding:5px 12px" onclick="fichaCancelarEdicion(this)">Cancelar</button>
+    </div>
+  </div>`;
+}
+
 function renderFichaHistorial(citas) {
   const wrap = document.getElementById('ft-hist-wrap');
   if (!wrap) return;
@@ -4442,20 +4490,74 @@ function renderFichaHistorial(citas) {
     const fechaFmt = d ? `${d}/${m}/${y} · ${(c.hora||'').slice(0,5)}` : '—';
     const precioStr = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '';
     const metodoStr = METODO[c.metodo_pago] || '';
-    const espStr = c.especialistas?.nombre || '';
-    return `<div class="tl-item">
+    const espStr    = c.especialistas?.nombre || '';
+    const ficha     = _parseFichaNotas(c.notas);
+    const hasFicha  = Object.values(ficha).some(v => typeof v === 'string' && v.trim());
+    return `<div class="tl-item" data-citaid="${c.id}">
       <div class="tl-dot ${dotCls(c.estado)}">${dotChr(c.estado)}</div>
-      <div class="tl-card">
-        <div class="tl-card-hd"><span class="tl-serv">${c.servicio||'Consulta'}</span><span class="tl-date">${fechaFmt}</span></div>
-        <div class="tl-meta">
-          ${estTag(c.estado)}
-          ${precioStr ? `<span class="tl-price">${precioStr}</span>` : ''}
-          ${metodoStr ? `<span style="font-size:11px;color:var(--t3)">${metodoStr}</span>` : ''}
-          ${espStr ? `<span style="font-size:11px;color:var(--t3)">${espStr}</span>` : ''}
+      <div style="flex:1;min-width:0">
+        <div class="tl-card" onclick="fichaToggle(this)" style="border-radius:var(--rl);cursor:pointer">
+          <div class="tl-card-hd">
+            <span class="tl-serv">${escHtml(c.servicio||'Consulta')}</span>
+            <div style="display:flex;align-items:center;gap:5px">
+              <span class="tl-date">${fechaFmt}</span>
+              <span class="ficha-chev" style="color:var(--t3);font-size:11px;transition:transform .2s;display:inline-block">›</span>
+            </div>
+          </div>
+          <div class="tl-meta">
+            ${estTag(c.estado)}
+            ${precioStr ? `<span class="tl-price">${precioStr}</span>` : ''}
+            ${metodoStr ? `<span style="font-size:11px;color:var(--t3)">${metodoStr}</span>` : ''}
+            ${espStr    ? `<span style="font-size:11px;color:var(--t3)">${escHtml(espStr)}</span>` : ''}
+            ${hasFicha  ? '<span style="font-size:10px;color:var(--a);font-weight:600">· Ficha</span>' : ''}
+          </div>
+        </div>
+        <div class="ficha-body" style="display:none;background:rgba(108,92,228,0.02);border:1px solid var(--b1);border-top:none;border-radius:0 0 var(--rl) var(--rl);padding:13px">
+          <div class="ficha-view">${_fichaViewHTML(ficha, c.id)}</div>
+          <div class="ficha-edit" style="display:none">${_fichaFormHTML(ficha, c.id)}</div>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+
+function fichaToggle(card) {
+  const body = card.nextElementSibling;
+  const chev = card.querySelector('.ficha-chev');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (open) { card.style.borderRadius = 'var(--rl)'; if (chev) chev.style.transform = ''; }
+  else { card.style.borderRadius = 'var(--rl) var(--rl) 0 0'; if (chev) chev.style.transform = 'rotate(90deg)'; }
+}
+
+function fichaEditarModo(btn, citaId) {
+  const item = btn.closest('[data-citaid]');
+  item.querySelector('.ficha-view').style.display = 'none';
+  item.querySelector('.ficha-edit').style.display = '';
+}
+
+function fichaCancelarEdicion(btn) {
+  const item = btn.closest('[data-citaid]');
+  item.querySelector('.ficha-view').style.display = '';
+  item.querySelector('.ficha-edit').style.display = 'none';
+}
+
+async function fichaGuardar(btn, citaId) {
+  const item = btn.closest('[data-citaid]');
+  const ficha = {};
+  item.querySelectorAll('[data-fichakey]').forEach(el => { const v = el.value.trim(); if (v) ficha[el.dataset.fichakey] = v; });
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  try {
+    const r = await fetch(`/api/slots?id=${citaId}`, {
+      method: 'PATCH',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notas: JSON.stringify(ficha) })
+    });
+    if (!r.ok) throw new Error();
+    toast('✓ Ficha clínica guardada');
+    item.querySelector('.ficha-view').innerHTML = _fichaViewHTML(ficha, citaId);
+    fichaCancelarEdicion(btn);
+  } catch { toast('Error al guardar ficha'); btn.textContent = 'Guardar ficha'; btn.disabled = false; }
 }
 
 async function saveFichaNota() {
