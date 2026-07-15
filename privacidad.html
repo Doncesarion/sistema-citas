@@ -108,10 +108,17 @@
     <h3>¿Qué NO hacemos con el acceso al calendario?</h3>
     <ul>
       <li>No leemos eventos existentes en tu Google Calendar personal</li>
-      <li>No compartimos tu token de Google con terceros</li>
+      <li>No compartimos tu token de Google ni los datos del calendario con terceros</li>
       <li>No accedemos a calendarios distintos al calendario "Attempo" que creamos</li>
       <li>No usamos el acceso para ningún fin distinto al agendamiento de citas</li>
+      <li><strong>No transferimos datos de Google Calendar a ningún proveedor de inteligencia artificial.</strong> Los asistentes de IA internos de attempo operan exclusivamente con datos de citas propios de la plataforma y no tienen acceso al token ni al contenido de Google Calendar</li>
     </ul>
+
+    <h3>Declaración de uso limitado (Google API Services)</h3>
+    <div class="highlight" style="border-left:4px solid #4285F4">
+      El uso por parte de attempo de la información recibida desde las APIs de Google se ajusta a la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de datos de usuario de los Servicios de API de Google</a>, incluidos los requisitos de uso limitado. En particular:<br><br>
+      <strong>Los datos obtenidos de las APIs de Google se utilizan únicamente para crear, actualizar y eliminar eventos en el calendario "Attempo" del profesional.</strong> No se transfieren a terceros, no se usan con fines publicitarios, no se usan para entrenar modelos de inteligencia artificial, y no se leen más allá de lo estrictamente necesario para la función de agendamiento.
+    </div>
 
     <h3>¿Cómo revoco el acceso?</h3>
     <p>Puedes desconectar Google Calendar en cualquier momento desde <strong>Configuración → Integraciones → Google Calendar → Desconectar</strong>. También puedes revocar el acceso directamente desde <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</p>
@@ -139,6 +146,7 @@
       <li><strong>Vercel</strong> (vercel.com) — Infraestructura y despliegue de la aplicación</li>
       <li><strong>Resend</strong> (resend.com) — Envío de correos electrónicos transaccionales</li>
       <li><strong>Google LLC</strong> — Integración opcional con Google Calendar</li>
+      <li><strong>Anthropic, PBC</strong> (anthropic.com) — Asistente de IA (chatbot "Attia") para responder consultas de clientes. <em>Este proveedor NO recibe datos de Google Calendar.</em></li>
     </ul>
     <p>Todos estos proveedores cuentan con sus propias políticas de privacidad y estándares de seguridad.</p>
   </div>
