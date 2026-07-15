@@ -3632,14 +3632,45 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <!-- Tab: Información -->
     <div class="fp-body" id="ft-info">
       <div class="fp-info-grid">
-        <div><div class="fp-info-lbl">Email</div><div class="fp-info-val" id="fpi-email">juana.perez@email.com</div></div>
-        <div><div class="fp-info-lbl">Teléfono</div><div class="fp-info-val mono" id="fpi-tel">+56 9 9999 9999</div></div>
+        <div><div class="fp-info-lbl">Email</div><div class="fp-info-val" id="fpi-email">—</div></div>
+        <div><div class="fp-info-lbl">Teléfono</div><div class="fp-info-val mono" id="fpi-tel">—</div></div>
         <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
+        <div><div class="fp-info-lbl">Ciudad</div><div class="fp-info-val" id="fpi-ciudad">—</div></div>
+        <div><div class="fp-info-lbl">Región</div><div class="fp-info-val" id="fpi-region">—</div></div>
         <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
         <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
         <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
       </div>
+      <button class="btn-g" style="font-size:11px;padding:5px 12px;align-self:flex-start;margin-top:2px" onclick="openPacienteEdit()">Editar datos del paciente</button>
+
+      <!-- Formulario de edición (oculto por defecto) -->
+      <div id="fp-edit-wrap" style="display:none;border-top:1px solid var(--b1);padding-top:14px;margin-top:4px">
+        <div class="tl-lbl" style="margin-bottom:12px">Editar datos</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div><div class="fp-info-lbl">Nombre</div><input id="fpe-nombre" class="fi" type="text" placeholder="Nombre completo" style="width:100%"></div>
+          <div><div class="fp-info-lbl">Email</div><input id="fpe-email" class="fi" type="email" placeholder="correo@ejemplo.com" style="width:100%"></div>
+          <div><div class="fp-info-lbl">Teléfono</div><input id="fpe-tel" class="fi" type="tel" placeholder="+56 9 1234 5678" style="width:100%"></div>
+          <div><div class="fp-info-lbl">RUT</div><input id="fpe-rut" class="fi" type="text" placeholder="Ej: 12.345.678-9" oninput="formatRutInput(this)" maxlength="13" style="width:100%"></div>
+          <div><div class="fp-info-lbl">Ciudad</div><input id="fpe-ciudad" class="fi" type="text" placeholder="Ej: Santiago, Valparaíso..." style="width:100%"></div>
+          <div><div class="fp-info-lbl">Región</div>
+            <select id="fpe-region" class="fs" style="width:100%">
+              <option value="">Seleccionar región...</option>
+              <option>Arica y Parinacota</option><option>Tarapacá</option><option>Antofagasta</option>
+              <option>Atacama</option><option>Coquimbo</option><option>Valparaíso</option>
+              <option>Metropolitana</option><option>O'Higgins</option><option>Maule</option>
+              <option>Ñuble</option><option>Biobío</option><option>Araucanía</option>
+              <option>Los Ríos</option><option>Los Lagos</option><option>Aysén</option>
+              <option>Magallanes</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-a" id="fpe-save-btn" style="flex:1" onclick="savePacienteEdit()">Guardar cambios</button>
+          <button class="btn-g" style="flex:1" onclick="closePacienteEdit()">Cancelar</button>
+        </div>
+      </div>
+
       <div style="height:1px;background:var(--b1)"></div>
       <div>
         <div class="fp-info-lbl" style="margin-bottom:9px">Servicio más reservado</div>
@@ -4229,7 +4260,11 @@ function openFicha(name, initials, rubro) {
   const nt = document.getElementById('fp-notas-txt');
   if (nt) nt.value = '';
   loadFichaData(name);
-  document.getElementById('fpi-rut').textContent   = '—';
+  document.getElementById('fpi-rut').textContent    = '—';
+  document.getElementById('fpi-ciudad').textContent = '—';
+  document.getElementById('fpi-region').textContent = '—';
+  const epw = document.getElementById('fp-edit-wrap');
+  if (epw) epw.style.display = 'none';
   document.getElementById('fp-boleta-row').style.display = 'none';
   document.getElementById('ficha-ov').classList.add('open');
   // Reset to info tab
@@ -4242,6 +4277,59 @@ function openFicha(name, initials, rubro) {
 }
 function closeFicha() {
   document.getElementById('ficha-ov').classList.remove('open');
+}
+
+function openPacienteEdit() {
+  const g = id => document.getElementById(id)?.textContent?.trim() || '';
+  const setV = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val === '—' ? '' : val); };
+  setV('fpe-nombre', g('fp-name'));
+  setV('fpe-email',  g('fpi-email'));
+  setV('fpe-tel',    g('fpi-tel'));
+  setV('fpe-rut',    g('fpi-rut'));
+  setV('fpe-ciudad', g('fpi-ciudad'));
+  const sel = document.getElementById('fpe-region');
+  if (sel) { sel.value = g('fpi-region') === '—' ? '' : g('fpi-region'); }
+  document.getElementById('fp-edit-wrap').style.display = '';
+}
+
+function closePacienteEdit() {
+  document.getElementById('fp-edit-wrap').style.display = 'none';
+}
+
+async function savePacienteEdit() {
+  const nombreActual = _fichaCurrentNombre;
+  const nombre  = document.getElementById('fpe-nombre')?.value.trim() || '';
+  const email   = document.getElementById('fpe-email')?.value.trim()  || '';
+  const tel     = document.getElementById('fpe-tel')?.value.trim()    || '';
+  const rut     = document.getElementById('fpe-rut')?.value.trim()    || '';
+  const ciudad  = document.getElementById('fpe-ciudad')?.value.trim() || '';
+  const region  = document.getElementById('fpe-region')?.value        || '';
+  if (!nombre) { toastErr('El nombre no puede estar vacío'); return; }
+  const btn = document.getElementById('fpe-save-btn');
+  if (btn) { btn.textContent = 'Guardando...'; btn.disabled = true; }
+  try {
+    const r = await fetch('/api/slots?action=update_paciente', {
+      method: 'PATCH',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre_actual: nombreActual, nombre, email, tel, rut, ciudad, region })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) throw new Error(d.error || 'Error');
+    // Actualizar DOM
+    document.getElementById('fp-name').textContent    = nombre;
+    document.getElementById('fpi-email').textContent  = email  || '—';
+    document.getElementById('fpi-tel').textContent    = tel    || '—';
+    document.getElementById('fpi-rut').textContent    = rut    || '—';
+    document.getElementById('fpi-ciudad').textContent = ciudad || '—';
+    document.getElementById('fpi-region').textContent = region || '—';
+    _fichaCurrentNombre = nombre;
+    closePacienteEdit();
+    toast('✓ Datos actualizados');
+  } catch(e) {
+    toastErr('Error al guardar. Intenta de nuevo.');
+  } finally {
+    if (btn) { btn.textContent = 'Guardar cambios'; btn.disabled = false; }
+  }
 }
 async function cancelarProxCita() {
   const id = window._fichaProxCitaId;
@@ -4409,6 +4497,17 @@ async function loadFichaData(nombre) {
 
     // Historial
     renderFichaHistorial(citas);
+
+    // Perfil extra del paciente (rut, ciudad, región)
+    fetch(`/api/slots?action=paciente&nombre=${encodeURIComponent(nombre)}`, { headers: _citasH() })
+      .then(r => r.ok ? r.json() : null)
+      .then(p => {
+        if (!p) return;
+        if (p.rut)    document.getElementById('fpi-rut').textContent    = p.rut;
+        if (p.ciudad) document.getElementById('fpi-ciudad').textContent = p.ciudad;
+        if (p.region) document.getElementById('fpi-region').textContent = p.region;
+      })
+      .catch(() => {});
   } catch(e) {
     console.error('loadFichaData:', e);
     const wrap = document.getElementById('ft-hist-wrap');

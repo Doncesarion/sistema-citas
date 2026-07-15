@@ -183,13 +183,52 @@ export default async function handler(req, res) {
     }
   }
 
-  // — PATCH: actualizar notas/ficha de una cita —
+  // — PATCH: actualizar datos del paciente —
   if (req.method === 'PATCH') {
     const s = verifySessionToken(sessionToken);
     if (!s) return res.status(401).json({ error: 'No autorizado' });
     let cliente_id = s.cliente_id;
     const overrideId = req.headers['x-override-cliente-id'];
     if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) cliente_id = overrideId;
+
+    if (req.query.action === 'update_paciente') {
+      const body = req.body || {};
+      const nombreActual = String(body.nombre_actual || '').trim();
+      const nombreNuevo  = String(body.nombre  || '').trim();
+      if (!nombreActual || !nombreNuevo) return res.status(400).json({ error: 'nombre_actual y nombre requeridos' });
+      const email  = body.email  ? String(body.email).trim()  : null;
+      const tel    = body.tel    ? String(body.tel).trim()    : null;
+      const rut    = body.rut    ? String(body.rut).trim()    : null;
+      const ciudad = body.ciudad ? String(body.ciudad).trim() : null;
+      const region = body.region ? String(body.region).trim() : null;
+      try {
+        // Actualizar todas las citas del paciente
+        const updateCitas = { nombre_paciente: nombreNuevo };
+        if (email !== null) updateCitas.email_paciente = email;
+        if (tel   !== null) updateCitas.tel_paciente   = tel;
+        const rc = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&nombre_paciente=ilike.${encodeURIComponent(nombreActual)}`,
+          { method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(updateCitas) }
+        );
+        if (!rc.ok) { const e = await rc.json().catch(() => ({})); console.error('update citas paciente:', e); }
+        // Upsert perfil en tabla pacientes
+        const profileData = { cliente_id, nombre: nombreNuevo, email, telefono: tel, rut, ciudad, region, updated_at: new Date().toISOString() };
+        const checkR = await fetch(`${SUPABASE_URL}/rest/v1/pacientes?cliente_id=eq.${cliente_id}&nombre=ilike.${encodeURIComponent(nombreActual)}&select=id&limit=1`, { headers: sh });
+        const existing = await checkR.json().catch(() => []);
+        if (Array.isArray(existing) && existing.length > 0) {
+          await fetch(`${SUPABASE_URL}/rest/v1/pacientes?id=eq.${existing[0].id}`,
+            { method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(profileData) });
+        } else {
+          await fetch(`${SUPABASE_URL}/rest/v1/pacientes`,
+            { method: 'POST', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(profileData) });
+        }
+        return res.json({ ok: true });
+      } catch(e) {
+        console.error('update_paciente exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
     const { id } = req.query;
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID de cita inválido' });
     const body = req.body || {};
@@ -303,6 +342,22 @@ export default async function handler(req, res) {
         return res.status(200).json(data[0]?.canales_meta || {});
       } catch(e) {
         console.error('canales_meta GET exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — GET perfil del paciente —
+    if (req.query.action === 'paciente') {
+      const { nombre: npac } = req.query;
+      if (!npac) return res.status(400).json({ error: 'nombre requerido' });
+      try {
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/pacientes?cliente_id=eq.${cliente_id}&nombre=ilike.${encodeURIComponent(npac)}&limit=1`,
+          { headers: sh }
+        );
+        const data = await r.json();
+        return res.status(200).json(Array.isArray(data) ? (data[0] || null) : null);
+      } catch(e) {
         return res.status(500).json({ error: 'Error interno' });
       }
     }
