@@ -157,7 +157,7 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .sb{
   width:210px;flex-shrink:0;background:var(--surface);
   border-right:1px solid var(--b1);display:flex;flex-direction:column;
-  overflow-y:auto;padding:12px 0 16px;
+  overflow:hidden;padding:12px 0 0;
   backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
 }
 .sb::-webkit-scrollbar{display:none}
@@ -914,7 +914,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bbot-banner-btn:hover{background:var(--adm2)}
 
 /* ─ Sidebar counter ─ */
-.sb-msg-counter{padding:10px 14px 0;border-top:1px solid var(--b1);margin-top:auto;flex-shrink:0}
+.sb-msg-counter{padding:10px 14px 14px;border-top:1px solid var(--b1);flex-shrink:0}
 .sb-msg-counter-label{font-size:11px;color:var(--t3);margin-bottom:5px;display:flex;justify-content:space-between}
 .sb-msg-counter-bar{height:5px;background:var(--b1);border-radius:3px;overflow:hidden}
 .sb-msg-counter-fill{height:100%;border-radius:3px;background:var(--a);transition:width .4s ease}
@@ -1111,7 +1111,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 }
 
 /* ── SIDEBAR CONTEXTS ── */
-.sb-ctx{display:none;flex-direction:column;height:100%;width:100%}
+.sb-ctx{display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;width:100%}
 
 /* ── REP MODULES ── */
 .rep-module{background:var(--surface);border:1px solid var(--b1);border-radius:var(--rl);margin-bottom:12px;overflow:hidden;transition:box-shadow .15s,opacity .15s}
