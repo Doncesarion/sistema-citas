@@ -3629,7 +3629,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="fptab" onclick="fpTab(this,'ft-hist')">Historial</button>
         <button class="fptab" onclick="fpTab(this,'ft-notas')">Notas internas</button>
       </div>
-      <button onclick="openPacienteEdit()" style="font-size:11px;font-weight:500;color:var(--a);background:none;border:none;cursor:pointer;padding:0 12px;white-space:nowrap;font-family:var(--font)">✏ Editar datos</button>
+      <div id="fp-edit-btn-wrap" style="display:flex;align-items:center;gap:8px;padding:0 10px">
+        <button id="fp-edit-btn" onclick="openPacienteEdit()" style="font-size:11px;font-weight:500;color:var(--a);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;font-family:var(--font)">✏ Editar datos</button>
+      </div>
     </div>
 
     <!-- Tab: Información -->
@@ -3645,33 +3647,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
       </div>
-      <!-- Formulario de edición (oculto por defecto) -->
-      <div id="fp-edit-wrap" style="display:none;border-top:1px solid var(--b1);padding-top:14px;margin-top:4px">
-        <div class="tl-lbl" style="margin-bottom:12px">Editar datos</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div><div class="fp-info-lbl">Nombre</div><input id="fpe-nombre" class="fi" type="text" placeholder="Nombre completo" style="width:100%"></div>
-          <div><div class="fp-info-lbl">Email</div><input id="fpe-email" class="fi" type="email" placeholder="correo@ejemplo.com" style="width:100%"></div>
-          <div><div class="fp-info-lbl">Teléfono</div><input id="fpe-tel" class="fi" type="tel" placeholder="+56 9 1234 5678" style="width:100%"></div>
-          <div><div class="fp-info-lbl">RUT</div><input id="fpe-rut" class="fi" type="text" placeholder="Ej: 12.345.678-9" oninput="formatRutInput(this)" maxlength="13" style="width:100%"></div>
-          <div><div class="fp-info-lbl">Ciudad</div><input id="fpe-ciudad" class="fi" type="text" placeholder="Ej: Santiago, Valparaíso..." style="width:100%"></div>
-          <div><div class="fp-info-lbl">Región</div>
-            <select id="fpe-region" class="fs" style="width:100%">
-              <option value="">Seleccionar región...</option>
-              <option>Arica y Parinacota</option><option>Tarapacá</option><option>Antofagasta</option>
-              <option>Atacama</option><option>Coquimbo</option><option>Valparaíso</option>
-              <option>Metropolitana</option><option>O'Higgins</option><option>Maule</option>
-              <option>Ñuble</option><option>Biobío</option><option>Araucanía</option>
-              <option>Los Ríos</option><option>Los Lagos</option><option>Aysén</option>
-              <option>Magallanes</option>
-            </select>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn-a" id="fpe-save-btn" style="flex:1" onclick="savePacienteEdit()">Guardar cambios</button>
-          <button class="btn-g" style="flex:1" onclick="closePacienteEdit()">Cancelar</button>
-        </div>
-      </div>
-
       <div style="height:1px;background:var(--b1)"></div>
       <div>
         <div class="fp-info-lbl" style="margin-bottom:9px">Servicio más reservado</div>
@@ -4280,21 +4255,86 @@ function closeFicha() {
   document.getElementById('ficha-ov').classList.remove('open');
 }
 
+let _pacOrig = {};
+
+function _makeInput(type, val, ph, extraStyle) {
+  const inp = document.createElement('input');
+  inp.type = type; inp.value = val === '—' ? '' : (val || '');
+  inp.placeholder = ph; inp.className = 'fi';
+  inp.style.cssText = 'width:100%;font-size:12px;padding:3px 7px;margin-top:1px;' + (extraStyle||'');
+  return inp;
+}
+
+function _makeRegionSelect(current) {
+  const REGIONES = ['','Arica y Parinacota','Tarapacá','Antofagasta','Atacama','Coquimbo','Valparaíso','Metropolitana',"O'Higgins",'Maule','Ñuble','Biobío','Araucanía','Los Ríos','Los Lagos','Aysén','Magallanes'];
+  const sel = document.createElement('select');
+  sel.className = 'fs';
+  sel.style.cssText = 'width:100%;font-size:12px;padding:3px 7px;margin-top:1px';
+  REGIONES.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r; opt.textContent = r || 'Seleccionar región...';
+    if (r === (current === '—' ? '' : current)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  return sel;
+}
+
+function _restoreEditBtn() {
+  const wrap = document.getElementById('fp-edit-btn-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.id = 'fp-edit-btn'; btn.textContent = '✏ Editar datos';
+  btn.style.cssText = 'font-size:11px;font-weight:500;color:var(--a);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;font-family:var(--font)';
+  btn.onclick = openPacienteEdit;
+  wrap.appendChild(btn);
+}
+
 function openPacienteEdit() {
-  const g = id => document.getElementById(id)?.textContent?.trim() || '';
-  const setV = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val === '—' ? '' : val); };
-  setV('fpe-nombre', g('fp-name'));
-  setV('fpe-email',  g('fpi-email'));
-  setV('fpe-tel',    g('fpi-tel'));
-  setV('fpe-rut',    g('fpi-rut'));
-  setV('fpe-ciudad', g('fpi-ciudad'));
-  const sel = document.getElementById('fpe-region');
-  if (sel) { sel.value = g('fpi-region') === '—' ? '' : g('fpi-region'); }
-  document.getElementById('fp-edit-wrap').style.display = '';
+  const txt = id => document.getElementById(id)?.textContent?.trim() || '';
+  _pacOrig = { nombre: txt('fp-name'), email: txt('fpi-email'), tel: txt('fpi-tel'), rut: txt('fpi-rut'), ciudad: txt('fpi-ciudad'), region: txt('fpi-region') };
+
+  // Nombre en cabecera → input
+  const nameEl = document.getElementById('fp-name');
+  if (nameEl) { const inp = _makeInput('text', _pacOrig.nombre, 'Nombre completo', 'font-size:15px;font-weight:600;color:var(--t1)'); inp.id='fpe-nombre'; nameEl.textContent=''; nameEl.appendChild(inp); }
+
+  // Campos del grid → inputs
+  const fields = [
+    { id:'fpi-email',  inputId:'fpe-email',  type:'email', ph:'correo@ejemplo.com' },
+    { id:'fpi-tel',    inputId:'fpe-tel',    type:'tel',   ph:'+56 9 1234 5678' },
+    { id:'fpi-rut',    inputId:'fpe-rut',    type:'text',  ph:'12.345.678-9' },
+    { id:'fpi-ciudad', inputId:'fpe-ciudad', type:'text',  ph:'Ej: Santiago' },
+  ];
+  fields.forEach(({ id, inputId, type, ph }) => {
+    const el = document.getElementById(id); if (!el) return;
+    const inp = _makeInput(type, el.textContent.trim(), ph);
+    inp.id = inputId; el.textContent = ''; el.appendChild(inp);
+  });
+  // Región → select
+  const regionEl = document.getElementById('fpi-region');
+  if (regionEl) { const sel = _makeRegionSelect(_pacOrig.region); sel.id='fpe-region'; regionEl.textContent=''; regionEl.appendChild(sel); }
+
+  // Barra de tabs → Guardar / Cancelar
+  const wrap = document.getElementById('fp-edit-btn-wrap');
+  if (wrap) {
+    wrap.innerHTML = '';
+    const saveBtn = document.createElement('button'); saveBtn.id='fpe-save-btn'; saveBtn.textContent='✓ Guardar';
+    saveBtn.style.cssText='font-size:11px;font-weight:600;color:var(--green);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font)';
+    saveBtn.onclick = savePacienteEdit;
+    const cancelBtn = document.createElement('button'); cancelBtn.textContent='✕ Cancelar';
+    cancelBtn.style.cssText='font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font)';
+    cancelBtn.onclick = closePacienteEdit;
+    wrap.appendChild(saveBtn); wrap.appendChild(cancelBtn);
+  }
 }
 
 function closePacienteEdit() {
-  document.getElementById('fp-edit-wrap').style.display = 'none';
+  const nameEl = document.getElementById('fp-name');
+  if (nameEl) nameEl.textContent = _pacOrig.nombre || '';
+  [['fpi-email',_pacOrig.email],['fpi-tel',_pacOrig.tel],['fpi-rut',_pacOrig.rut],['fpi-ciudad',_pacOrig.ciudad],['fpi-region',_pacOrig.region]].forEach(([id,val]) => {
+    const el = document.getElementById(id); if (el) el.textContent = val || '—';
+  });
+  _restoreEditBtn();
 }
 
 async function savePacienteEdit() {
@@ -4316,20 +4356,13 @@ async function savePacienteEdit() {
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.ok) throw new Error(d.error || 'Error');
-    // Actualizar DOM
-    document.getElementById('fp-name').textContent    = nombre;
-    document.getElementById('fpi-email').textContent  = email  || '—';
-    document.getElementById('fpi-tel').textContent    = tel    || '—';
-    document.getElementById('fpi-rut').textContent    = rut    || '—';
-    document.getElementById('fpi-ciudad').textContent = ciudad || '—';
-    document.getElementById('fpi-region').textContent = region || '—';
-    _fichaCurrentNombre = nombre;
+    _pacOrig = { nombre, email: email||'—', tel: tel||'—', rut: rut||'—', ciudad: ciudad||'—', region: region||'—' };
     closePacienteEdit();
+    _fichaCurrentNombre = nombre;
     toast('✓ Datos actualizados');
   } catch(e) {
     toastErr('Error al guardar. Intenta de nuevo.');
-  } finally {
-    if (btn) { btn.textContent = 'Guardar cambios'; btn.disabled = false; }
+    if (btn) { btn.textContent = '✓ Guardar'; btn.disabled = false; }
   }
 }
 async function cancelarProxCita() {
