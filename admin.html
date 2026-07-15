@@ -4297,28 +4297,21 @@ function fpTab(btn, id) {
 }
 
 async function loadFichaData(nombre) {
-  const diagWrap = document.getElementById('ft-hist-wrap');
-  if (diagWrap) diagWrap.innerHTML = `<div style="padding:10px;color:#6C5CE4;font-size:11px">⏳ Iniciando carga para: ${nombre||'(vacío)'}…</div>`;
   const cid = await getClienteId();
   if (!cid || !nombre) {
     const wrap = document.getElementById('ft-hist-wrap');
-    if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">Sin sesión activa (cid=${cid||'null'}, nombre=${nombre||'vacío'}). Recarga la página.</div>`;
+    if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">Sin sesión activa. Recarga la página.</div>`;
     return;
   }
-  const wrapD = document.getElementById('ft-hist-wrap');
-  if (wrapD) wrapD.innerHTML = `<div style="padding:10px;color:#6C5CE4;font-size:11px">⏳ Consultando API…</div>`;
   try {
-    const ctrl = new AbortController();
-    const tmo  = setTimeout(() => ctrl.abort(), 10000);
     const r = await fetch(
       `/api/slots?nombre=${encodeURIComponent(nombre)}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=100`,
-      { headers: _citasH(), signal: ctrl.signal }
+      { headers: _citasH() }
     );
-    clearTimeout(tmo);
     const citas = await r.json();
     if (!Array.isArray(citas)) {
       const wrap = document.getElementById('ft-hist-wrap');
-      if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">No array (status ${r.status}): ${JSON.stringify(citas).slice(0,300)}</div>`;
+      if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">Error al cargar historial (${r.status}). Intenta de nuevo.</div>`;
       return;
     }
 
@@ -8368,6 +8361,12 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
   const flowRow = document.getElementById('fp-flow-row');
   if (flowRow) flowRow.style.display = c.precio && !esPendienteFlow && c.estado_pago !== 'pagado' ? 'block' : esPendienteFlow ? 'block' : 'none';
+  _fichaCurrentNombre = c.nombre_paciente || '';
+  const hw = document.getElementById('ft-hist-wrap');
+  if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
+  const nt = document.getElementById('fp-notas-txt');
+  if (nt) nt.value = '';
+  loadFichaData(c.nombre_paciente);
   document.getElementById('ficha-ov').classList.add('open');
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.fptab')[0].classList.add('on');
