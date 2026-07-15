@@ -4297,21 +4297,28 @@ function fpTab(btn, id) {
 }
 
 async function loadFichaData(nombre) {
+  const diagWrap = document.getElementById('ft-hist-wrap');
+  if (diagWrap) diagWrap.innerHTML = `<div style="padding:10px;color:#6C5CE4;font-size:11px">⏳ Iniciando carga para: ${nombre||'(vacío)'}…</div>`;
   const cid = await getClienteId();
   if (!cid || !nombre) {
     const wrap = document.getElementById('ft-hist-wrap');
     if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">Sin sesión activa (cid=${cid||'null'}, nombre=${nombre||'vacío'}). Recarga la página.</div>`;
     return;
   }
+  const wrapD = document.getElementById('ft-hist-wrap');
+  if (wrapD) wrapD.innerHTML = `<div style="padding:10px;color:#6C5CE4;font-size:11px">⏳ Consultando API…</div>`;
   try {
+    const ctrl = new AbortController();
+    const tmo  = setTimeout(() => ctrl.abort(), 10000);
     const r = await fetch(
       `/api/slots?nombre=${encodeURIComponent(nombre)}&select=*,especialistas(nombre)&order=fecha.desc,hora.desc&limit=100`,
-      { headers: _citasH() }
+      { headers: _citasH(), signal: ctrl.signal }
     );
+    clearTimeout(tmo);
     const citas = await r.json();
     if (!Array.isArray(citas)) {
       const wrap = document.getElementById('ft-hist-wrap');
-      if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">No array: ${JSON.stringify(citas).slice(0,200)}</div>`;
+      if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">No array (status ${r.status}): ${JSON.stringify(citas).slice(0,300)}</div>`;
       return;
     }
 
