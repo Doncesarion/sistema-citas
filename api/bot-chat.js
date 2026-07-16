@@ -80,6 +80,9 @@ export default async function handler(req, res) {
       botConfig.promociones  = Array.isArray(bc.promociones) ? bc.promociones : [];
     }
     console.log('bot-chat: promociones cargadas =', JSON.stringify(botConfig.promociones));
+    if (!bc && process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
+      botConfig.tipo_bot = 'ventas';
+    }
   } catch (e) {
     console.error('bot-chat: error cargando bot_config:', e.message);
   }
