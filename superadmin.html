@@ -1603,11 +1603,15 @@ function renderSaMsgs(msgs) {
   if (!el) return;
   if (!Array.isArray(msgs) || !msgs.length) { el.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:13px;margin-top:40px">Sin mensajes aún. El cliente aún no ha escrito.</div>'; return; }
   el.innerHTML = msgs.map(m => {
-    const isSA = m.remitente === 'superadmin';
+    const isRight = m.remitente === 'superadmin' || m.remitente === 'attia';
+    const isAttia = m.remitente === 'attia';
     const time = new Date(m.created_at).toLocaleString('es-CL', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-    return `<div style="display:flex;flex-direction:column;align-items:${isSA ? 'flex-end' : 'flex-start'}">
-      <div style="max-width:72%;padding:10px 14px;border-radius:${isSA ? '14px 14px 2px 14px' : '14px 14px 14px 2px'};background:${isSA ? '#6C5CE4' : '#fff'};color:${isSA ? '#fff' : '#111827'};font-size:13px;line-height:1.55;box-shadow:0 1px 3px rgba(0,0,0,0.08);word-break:break-word">${escSA(m.contenido)}</div>
-      <span style="font-size:10.5px;color:#9ca3af;margin-top:3px">${isSA ? 'César · ' : ''}${time}</span>
+    const label = m.remitente === 'superadmin' ? 'César · ' : (isAttia ? 'Attia · ' : '');
+    const bg = m.remitente === 'superadmin' ? '#6C5CE4' : (isAttia ? '#4F3EE0' : '#fff');
+    const color = isRight ? '#fff' : '#111827';
+    return `<div style="display:flex;flex-direction:column;align-items:${isRight ? 'flex-end' : 'flex-start'}">
+      <div style="max-width:72%;padding:10px 14px;border-radius:${isRight ? '14px 14px 2px 14px' : '14px 14px 14px 2px'};background:${bg};color:${color};font-size:13px;line-height:1.55;box-shadow:0 1px 3px rgba(0,0,0,0.08);word-break:break-word">${escSA(m.contenido)}</div>
+      <span style="font-size:10.5px;color:#9ca3af;margin-top:3px">${label}${time}</span>
     </div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;

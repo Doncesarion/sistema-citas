@@ -391,8 +391,11 @@ export default async function handler(req, res) {
     for (const c of (Array.isArray(clientes) ? clientes : [])) cliMap[c.id] = c.nombre_negocio || '—';
     const convs = {};
     for (const m of (Array.isArray(msgs) ? msgs : [])) {
-      if (!convs[m.cliente_id]) convs[m.cliente_id] = { cliente_id: m.cliente_id, negocio_nombre: cliMap[m.cliente_id] || '—', ultimo_msg: m.contenido, ultimo_at: m.created_at, ultimo_remitente: m.remitente, sin_leer: 0 };
-      if (m.remitente === 'cliente' && !m.leido) convs[m.cliente_id].sin_leer++;
+      const isWeb = m.cliente_id?.startsWith('web-');
+      const negocio = isWeb ? 'Visitante web' : (cliMap[m.cliente_id] || '—');
+      if (!convs[m.cliente_id]) convs[m.cliente_id] = { cliente_id: m.cliente_id, negocio_nombre: negocio, ultimo_msg: m.contenido, ultimo_at: m.created_at, ultimo_remitente: m.remitente, sin_leer: 0 };
+      const esNoLeido = isWeb ? (m.remitente === 'visitante' && !m.leido) : (m.remitente === 'cliente' && !m.leido);
+      if (esNoLeido) convs[m.cliente_id].sin_leer++;
     }
     return res.status(200).json(Object.values(convs).sort((a, b) => new Date(b.ultimo_at) - new Date(a.ultimo_at)));
   }
@@ -408,7 +411,9 @@ export default async function handler(req, res) {
     const isSASession = !isSA && cidFromToken === 'sa';
     if (!isSA && !isSASession && cidFromToken !== cliente_id) return res.status(401).json({ error: 'No autorizado' });
     if (isSA || isSASession) {
-      await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&remitente=eq.cliente&leido=eq.false`,
+      const isWeb = cliente_id.startsWith('web-');
+      const remitenteFilter = isWeb ? 'remitente=eq.visitante' : 'remitente=eq.cliente';
+      await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&${remitenteFilter}&leido=eq.false`,
         { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ leido: true }) });
     }
     const r = await fetch(`${_SUPA_URL}/rest/v1/soporte_mensajes?cliente_id=eq.${cliente_id}&order=created_at.asc&limit=200`, { headers: _sh });

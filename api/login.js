@@ -222,6 +222,134 @@ export default async function handler(req, res) {
     });
   }
 
+  // ── Registro de nuevo cliente ────────────────────────────────────────────
+  if (req.body?.action === 'registro') {
+    const { nombre, negocio, email, password, rubro } = req.body;
+    if (!nombre?.trim() || !negocio?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({ error: 'Completa todos los campos requeridos' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    }
+    const SUPA_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+    const sh = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' };
+    const emailNorm = email.trim().toLowerCase();
+
+    const rCheck = await fetch(
+      `${SUPA_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=id&limit=1`,
+      { headers: sh }
+    );
+    const existing = await rCheck.json();
+    if (Array.isArray(existing) && existing.length > 0) {
+      return res.status(409).json({ error: 'Este email ya está registrado' });
+    }
+
+    const slugBase = negocio.trim().toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const slug = `${slugBase || 'negocio'}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const today = new Date().toISOString().split('T')[0];
+    const expDate = new Date(); expDate.setDate(expDate.getDate() + 12);
+    const expStr = expDate.toISOString().split('T')[0];
+
+    const rCli = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema`, {
+      method: 'POST',
+      headers: { ...sh, Prefer: 'return=representation' },
+      body: JSON.stringify({
+        nombre_negocio:  negocio.trim(),
+        email:           emailNorm,
+        contacto_nombre: nombre.trim(),
+        plan:            'demo',
+        fecha_inicio:    today,
+        fecha_expiracion: expStr,
+        password_hash:   '',
+        activo:          true,
+        booking_slug:    slug,
+        rubro:           rubro || null
+      })
+    });
+    if (!rCli.ok) {
+      const txt = await rCli.text().catch(() => '');
+      console.error('[registro] error clientes_sistema:', txt);
+      return res.status(500).json({ error: 'Error al crear la cuenta' });
+    }
+    const cliData = await rCli.json();
+    const cliente = Array.isArray(cliData) ? cliData[0] : cliData;
+    const cliente_id = cliente?.id;
+    if (!cliente_id) return res.status(500).json({ error: 'Error al crear la cuenta' });
+
+    const pwHash = await hashPassword(password);
+    const rUsr = await fetch(`${SUPA_URL}/rest/v1/usuarios`, {
+      method: 'POST',
+      headers: { ...sh, Prefer: 'return=representation' },
+      body: JSON.stringify({
+        username:   emailNorm,
+        email:      emailNorm,
+        nombre:     nombre.trim(),
+        password:   pwHash,
+        rol:        'admin',
+        cliente_id
+      })
+    });
+    if (!rUsr.ok) {
+      const txt = await rUsr.text().catch(() => '');
+      console.error('[registro] error usuario:', txt);
+      await fetch(`${SUPA_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`,
+        { method: 'DELETE', headers: sh });
+      return res.status(500).json({ error: 'Error al crear el usuario' });
+    }
+
+    const primerNombre = nombre.trim().split(' ')[0];
+    if (process.env.RESEND_API_KEY) {
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'attempo <contacto@attempo.cl>',
+          to: [emailNorm],
+          subject: `¡Bienvenido a attempo, ${primerNombre}!`,
+          html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10)">
+<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center">
+  <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px">
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px">Todo a tu tiempo</p>
+</td></tr>
+<tr><td style="padding:32px;text-align:center">
+  <h2 style="margin:0 0 12px;color:#2d2d2d;font-size:22px">¡Hola, ${primerNombre}! 👋</h2>
+  <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6">
+    Tu cuenta de attempo está lista.<br>
+    Tienes <strong style="color:#6C5CE4">12 días de prueba gratis</strong> para explorar todo lo que attempo puede hacer por tu consulta.
+  </p>
+  <a href="https://app.attempo.cl/admin.html" style="display:inline-block;padding:14px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
+  <p style="margin:24px 0 0;color:#9ca3af;font-size:12px">¿Tienes dudas? Escríbenos por WhatsApp al +56957285407</p>
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe">
+  <p style="margin:0;color:#9ca3af;font-size:12px">attempo — Todo a tu tiempo</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+        })
+      }).catch(e => console.error('[registro] email error:', e.message));
+    }
+
+    const SESSION_SECRET = process.env.SESSION_SECRET;
+    let session_token = null;
+    if (SESSION_SECRET) {
+      const expires = Date.now() + 24 * 60 * 60 * 1000;
+      const payload = `${cliente_id}:admin:${expires}`;
+      const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+      session_token = `${payload}.${sig}`;
+    }
+
+    return res.status(200).json({ ok: true, nombre: nombre.trim(), rol: 'admin', cliente_id, session_token });
+  }
+
   const { usuario, password } = req.body || {};
   if (!usuario || !password) return res.status(400).json({ error: 'Datos incompletos' });
 

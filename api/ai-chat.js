@@ -81,6 +81,69 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── Modo landing (Attia website sales bot) ────────────────────────────────
+  if (type === 'landing') {
+    const { session_id } = req.body || {};
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+    const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const sh2 = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
+    const hoy = new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago' });
+    const landingPrompt = `Eres Attia, la asistente virtual de attempo. Atiendes desde el sitio web a personas interesadas en conocer la plataforma.
+
+SOBRE ATTEMPO:
+attempo es una plataforma de agendamiento online para profesionales y clínicas en Chile. Tus pacientes o clientes reservan citas 24/7 desde el celular, reciben recordatorios automáticos por WhatsApp y email, y pueden pagar con Webpay. Todo listo en minutos, sin complicaciones técnicas.
+
+PLANES Y PRECIOS:
+- Plan Inicio: $24.990/mes + IVA — agenda online, recordatorios automáticos, cobro con Webpay. Para profesionales solos.
+- Plan Pro: $44.990/mes + IVA — todo lo de Inicio + chatbot IA (Attia) que responde y agenda en Instagram, WhatsApp y Messenger.
+- Plan Clínica IA: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro.
+- Todos los planes incluyen 12 días de prueba gratis.
+
+PARA QUIÉN ES:
+Psicólogos, médicos, nutricionistas, kinesiólogos, dentistas, fonoaudiólogos, matronas, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
+
+CÓMO EMPEZAR:
+Pueden crear su cuenta gratis en https://app.attempo.cl/registro (12 días de prueba, sin tarjeta de crédito).
+O escribirnos por WhatsApp al +56957285407 para una demo personalizada.
+
+CÓMO RESPONDER:
+- Mensajes cortos, máximo 3 líneas. Sin textos largos.
+- Una sola pregunta o idea por mensaje.
+- Usa "tú" con el visitante. No uses markdown ni asteriscos. Sin emojis.
+- No menciones que eres una IA.
+- Si no sabes algo técnico específico, di "te consulto con el equipo".
+- Cuando muestren interés real: "puedes crear tu cuenta gratis en https://app.attempo.cl/registro o escribirnos al WhatsApp +56957285407 para que te mostremos cómo funciona para tu rubro".
+
+HOY ES: ${hoy}`;
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, system: landingPrompt, messages: messages.slice(-12) })
+      });
+      if (!r.ok) return res.status(502).json({ error: 'Error AI' });
+      const data = await r.json();
+      const reply = data.content?.[0]?.text || '';
+      if (session_id && SUPABASE_KEY) {
+        const cid = `web-${session_id}`;
+        const lastUser = messages[messages.length - 1];
+        const toInsert = [];
+        if (lastUser?.role === 'user') toInsert.push({ cliente_id: cid, remitente: 'visitante', contenido: lastUser.content, leido: false });
+        if (reply) toInsert.push({ cliente_id: cid, remitente: 'attia', contenido: reply, leido: false });
+        if (toInsert.length) {
+          fetch(`${SUPABASE_URL}/rest/v1/soporte_mensajes`, {
+            method: 'POST',
+            headers: { ...sh2, Prefer: 'return=minimal' },
+            body: JSON.stringify(toInsert)
+          }).catch(() => {});
+        }
+      }
+      return res.json({ reply });
+    } catch (err) {
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
   if (!cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
 
   const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;

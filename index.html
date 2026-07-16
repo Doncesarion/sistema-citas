@@ -324,9 +324,74 @@ body::before{
   .sbi{padding:10px 4px}
   .c-card{padding:13px 14px}
 }
+
+/* ── Hero attempo ───────────────────────────────────────── */
+.hero{background:linear-gradient(135deg,#6C5CE4 0%,#4F3EE0 100%);color:#fff;text-align:center;padding:72px 24px 64px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='28' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'/%3E%3C/svg%3E") repeat;pointer-events:none}
+.hero-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:28px}
+.hero-logo img{width:40px;height:40px;border-radius:10px}
+.hero-logo span{font-size:22px;font-weight:800;letter-spacing:-0.5px}
+.hero h1{font-size:clamp(28px,5vw,46px);font-weight:800;line-height:1.15;letter-spacing:-1px;margin-bottom:16px;max-width:640px;margin-inline:auto}
+.hero p{font-size:clamp(14px,2vw,17px);opacity:.88;max-width:520px;margin:0 auto 36px;line-height:1.6}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-hero{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;text-decoration:none;transition:transform .15s,opacity .15s;font-family:inherit;border:none;cursor:pointer}
+.btn-hero.primary{background:#fff;color:#4F3EE0}
+.btn-hero.primary:hover{transform:translateY(-2px);opacity:.95}
+.btn-hero.ghost{background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.35)}
+.btn-hero.ghost:hover{background:rgba(255,255,255,0.22);transform:translateY(-2px)}
+.hero-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+.hero-pill{background:rgba(255,255,255,0.12);border-radius:100px;padding:5px 14px;font-size:12px;opacity:.9}
+
+/* ── Attia floating chat widget ─────────────────────────── */
+#attia-btn{position:fixed;bottom:22px;right:22px;z-index:9999;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);border:none;cursor:pointer;box-shadow:0 4px 18px rgba(108,92,228,.45);display:flex;align-items:center;justify-content:center;transition:transform .18s}
+#attia-btn:hover{transform:scale(1.08)}
+#attia-btn svg{width:26px;height:26px;fill:#fff}
+#attia-panel{position:fixed;bottom:84px;right:22px;z-index:9999;width:340px;max-width:calc(100vw - 32px);background:#fff;border-radius:18px;box-shadow:0 8px 40px rgba(108,92,228,.22);display:none;flex-direction:column;overflow:hidden;font-family:'Geist',Inter,Arial,sans-serif}
+#attia-panel.open{display:flex}
+.attia-head{background:linear-gradient(135deg,#6C5CE4,#4F3EE0);padding:14px 16px;display:flex;align-items:center;gap:10px;color:#fff}
+.attia-head-name{font-weight:700;font-size:14px}
+.attia-head-sub{font-size:11px;opacity:.8}
+.attia-close{margin-left:auto;background:none;border:none;color:#fff;cursor:pointer;opacity:.8;padding:2px;line-height:1}
+.attia-close:hover{opacity:1}
+#attia-msgs{flex:1;min-height:220px;max-height:320px;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:10px;background:#F8F7FF}
+.attia-msg{max-width:80%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.5;word-break:break-word}
+.attia-msg.bot{background:#fff;color:#111827;border-radius:14px 14px 14px 2px;align-self:flex-start;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.attia-msg.user{background:#6C5CE4;color:#fff;border-radius:14px 14px 2px 14px;align-self:flex-end}
+.attia-typing{font-size:12px;color:#9ca3af;padding:4px 8px;align-self:flex-start}
+.attia-foot{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #ede9fe;background:#fff}
+#attia-input{flex:1;border:1.5px solid #ede9fe;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;resize:none;color:#111827}
+#attia-input:focus{border-color:#6C5CE4}
+#attia-send{background:#6C5CE4;color:#fff;border:none;border-radius:8px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s}
+#attia-send:hover{opacity:.88}
+#attia-send svg{width:16px;height:16px;fill:#fff}
+
+/* Demo divider */
+.demo-sep{text-align:center;padding:28px 16px 8px;font-size:13px;color:#9C96B4;letter-spacing:.5px;text-transform:uppercase;font-weight:600}
 </style>
 </head>
 <body>
+
+<!-- ── HERO ────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-logo">
+    <img src="logo_attempo.png" alt="attempo">
+    <span>attempo</span>
+  </div>
+  <h1>Agenda online para tu consulta o negocio</h1>
+  <p>Tus pacientes reservan 24/7, reciben recordatorios por WhatsApp y email, y pagan con Webpay. Todo listo en minutos.</p>
+  <div class="hero-cta">
+    <a class="btn-hero primary" href="/registro">Empieza gratis — 12 días →</a>
+    <a class="btn-hero ghost" href="#demo-booking">Ver demo</a>
+  </div>
+  <div class="hero-pills">
+    <span class="hero-pill">Sin tarjeta de crédito</span>
+    <span class="hero-pill">Agenda online 24/7</span>
+    <span class="hero-pill">Recordatorios automáticos</span>
+    <span class="hero-pill">Pago con Webpay</span>
+  </div>
+</section>
+
+<div class="demo-sep" id="demo-booking">— Demo de reserva online —</div>
 
 <nav class="nav">
   <a class="nav-logo" href="#">
@@ -1061,5 +1126,109 @@ renderCal();
 checkHorario();
 </script>
 <script src="/widget.js?cid=62d08d07-2aef-4e01-b6da-ecf23b7fe204"></script>
+
+<!-- ── Attia landing chat widget ─────────────────────── -->
+<button id="attia-btn" aria-label="Hablar con Attia">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21l4.125-.837A9.96 9.96 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.965 7.965 0 0 1-4.065-1.112l-.292-.173-2.447.497.51-2.388-.191-.31A7.962 7.962 0 0 1 4 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/></svg>
+</button>
+
+<div id="attia-panel" role="dialog" aria-label="Chat con Attia">
+  <div class="attia-head">
+    <div>
+      <div class="attia-head-name">Attia · attempo</div>
+      <div class="attia-head-sub">Respondo al instante</div>
+    </div>
+    <button class="attia-close" id="attia-close" aria-label="Cerrar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="attia-msgs"></div>
+  <div class="attia-foot">
+    <textarea id="attia-input" rows="1" placeholder="Escribe tu pregunta…"></textarea>
+    <button id="attia-send" aria-label="Enviar">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const btn   = document.getElementById('attia-btn');
+  const panel = document.getElementById('attia-panel');
+  const close = document.getElementById('attia-close');
+  const msgs  = document.getElementById('attia-msgs');
+  const input = document.getElementById('attia-input');
+  const send  = document.getElementById('attia-send');
+
+  let sid = localStorage.getItem('attia_sid');
+  if (!sid) { sid = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2); localStorage.setItem('attia_sid', sid); }
+
+  let history = [];
+  let busy = false;
+  let greeted = false;
+
+  function addMsg(role, text) {
+    const d = document.createElement('div');
+    d.className = 'attia-msg ' + (role === 'user' ? 'user' : 'bot');
+    d.textContent = text;
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function showTyping() {
+    const d = document.createElement('div');
+    d.className = 'attia-typing'; d.id = 'attia-typing'; d.textContent = 'Attia está escribiendo…';
+    msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+  }
+  function removeTyping() { document.getElementById('attia-typing')?.remove(); }
+
+  async function sendMsg(text) {
+    if (busy || !text) return;
+    busy = true; send.disabled = true;
+    addMsg('user', text);
+    history.push({ role: 'user', content: text });
+    showTyping();
+    try {
+      const r = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'landing', session_id: sid, messages: history })
+      });
+      const data = await r.json();
+      removeTyping();
+      const reply = data.reply || 'Ups, algo falló. Inténtalo de nuevo.';
+      addMsg('bot', reply);
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > 24) history = history.slice(-24);
+    } catch(_) {
+      removeTyping();
+      addMsg('bot', 'Error de conexión. Inténtalo de nuevo.');
+    }
+    busy = false; send.disabled = false;
+    input.focus();
+  }
+
+  btn.addEventListener('click', () => {
+    panel.classList.add('open');
+    btn.style.display = 'none';
+    if (!greeted) {
+      greeted = true;
+      setTimeout(() => addMsg('bot', '¡Hola! Soy Attia, la asistente de attempo. ¿En qué te puedo ayudar?'), 300);
+    }
+    input.focus();
+  });
+
+  close.addEventListener('click', () => { panel.classList.remove('open'); btn.style.display = ''; });
+
+  send.addEventListener('click', () => { const t = input.value.trim(); if (t) { input.value = ''; sendMsg(t); } });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const t = input.value.trim(); if (t) { input.value = ''; sendMsg(t); }
+    }
+  });
+})();
+</script>
 </body>
 </html>
