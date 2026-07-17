@@ -76,10 +76,18 @@ function dentroHorarioComercialStgo() {
   return dow >= 1 && dow <= 6 && hour >= 9 && hour < 20;
 }
 
-const FOLLOWUP_MSGS = [
-  "¿Seguís por ahí? 😊",
-  "Hola de nuevo 😊 ¿Pudiste revisar lo que conversamos? Cualquier duda me cuentas.",
-  "¡Último aviso por hoy! Si me escribes ahora podemos seguir la conversación por aquí 😊",
+// Mensajes para el bot de ventas de attempo (Valentina)
+const FOLLOWUP_MSGS_VENTAS = [
+  "¿Seguís ahí? 😊",
+  "Hola, ¿quieres que te muestre cómo funciona attempo para tu rubro? Te puedo dar un ejemplo concreto 😊",
+  "¡Última oportunidad de responderme por acá! Si quieres puedes probarlo gratis directo: https://app.attempo.cl/registro 🚀",
+];
+
+// Mensajes para bots de negocios (clientes que no lograron agendar)
+const FOLLOWUP_MSGS_NEGOCIO = [
+  "¿Seguís ahí? 😊",
+  "Hola, ¿te podemos ayudar con algo más? Si quieres cotizar otro servicio o tratamiento estamos disponibles 😊",
+  "¡Hola! Antes de cerrar la conversación, si necesitas agendar o tienes alguna consulta, aquí estamos para ayudarte 😊",
 ];
 
 async function procesarReactivacion(sh, shJson) {
@@ -101,6 +109,10 @@ async function procesarReactivacion(sh, shJson) {
   for (const s of sesiones) {
     const minutos = (ahora - new Date(s.last_client_message_at).getTime()) / 60000;
     const count   = s.follow_up_count ?? 0;
+
+    const FOLLOWUP_MSGS = s.cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID
+      ? FOLLOWUP_MSGS_VENTAS
+      : FOLLOWUP_MSGS_NEGOCIO;
 
     let mensaje    = null;
     let usaHorario = true;
@@ -132,11 +144,9 @@ async function procesarReactivacion(sh, shJson) {
       `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${s.cliente_id}&select=canales_meta&limit=1`,
       { headers: sh }
     );
-    const clienteData = await clienteR.json().catch(() => []);
-    const [cliente] = clienteData;
+    const [cliente] = await clienteR.json().catch(() => []);
     const waPhoneId = cliente?.canales_meta?.wa_phone_number_id;
     const waToken   = cliente?.canales_meta?.wa_token;
-    console.log('reactivacion debug — cliente_id:', s.cliente_id, '| waPhoneId:', waPhoneId, '| waToken:', !!waToken, '| canales_meta keys:', Object.keys(cliente?.canales_meta || {}));
     if (!waPhoneId || !waToken) continue;
 
     const sendR = await fetch(`https://graph.facebook.com/v20.0/${waPhoneId}/messages`, {
