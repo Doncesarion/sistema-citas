@@ -132,9 +132,11 @@ async function procesarReactivacion(sh, shJson) {
       `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${s.cliente_id}&select=canales_meta&limit=1`,
       { headers: sh }
     );
-    const [cliente] = await clienteR.json().catch(() => []);
+    const clienteData = await clienteR.json().catch(() => []);
+    const [cliente] = clienteData;
     const waPhoneId = cliente?.canales_meta?.wa_phone_number_id;
     const waToken   = cliente?.canales_meta?.wa_token;
+    console.log('reactivacion debug — cliente_id:', s.cliente_id, '| waPhoneId:', waPhoneId, '| waToken:', !!waToken, '| canales_meta keys:', Object.keys(cliente?.canales_meta || {}));
     if (!waPhoneId || !waToken) continue;
 
     const sendR = await fetch(`https://graph.facebook.com/v20.0/${waPhoneId}/messages`, {
