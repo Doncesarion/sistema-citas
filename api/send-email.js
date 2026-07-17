@@ -76,19 +76,25 @@ function dentroHorarioComercialStgo() {
   return dow >= 1 && dow <= 6 && hour >= 9 && hour < 20;
 }
 
-// Mensajes para el bot de ventas de attempo (Valentina)
-const FOLLOWUP_MSGS_VENTAS = [
-  "¿Seguís ahí? 😊",
-  "Hola, ¿quieres que te muestre cómo funciona attempo para tu rubro? Te puedo dar un ejemplo concreto 😊",
-  "¡Última oportunidad de responderme por acá! Si quieres puedes probarlo gratis directo: https://app.attempo.cl/registro 🚀",
-];
-
-// Mensajes para bots de negocios (clientes que no lograron agendar)
-const FOLLOWUP_MSGS_NEGOCIO = [
-  "¿Seguís ahí? 😊",
-  "Hola, ¿te podemos ayudar con algo más? Si quieres cotizar otro servicio o tratamiento estamos disponibles 😊",
-  "¡Hola! Antes de cerrar la conversación, si necesitas agendar o tienes alguna consulta, aquí estamos para ayudarte 😊",
-];
+function getFollowupMsgs(tipo, nombreCompleto) {
+  const nombre = nombreCompleto ? nombreCompleto.split(' ')[0] : null;
+  if (tipo === 'ventas') {
+    return [
+      "¿Tienes alguna duda en la que pueda ayudarte con la plataforma? 😊",
+      "Hola, ¿quieres que te muestre cómo funciona attempo para tu rubro? Te puedo dar un ejemplo concreto 😊",
+      nombre
+        ? `${nombre}, para no perder el hilo — si quieres avanzar ya puedes probarlo gratis acá: https://app.attempo.cl/registro. O si prefieres, seguimos por acá cuando puedas 😊`
+        : "Para no perder el hilo — si quieres avanzar ya puedes probarlo gratis acá: https://app.attempo.cl/registro. O si prefieres, seguimos por acá cuando puedas 😊",
+    ];
+  }
+  return [
+    "¿Tienes alguna duda en la que pueda ayudarte? 😊",
+    "Hola, ¿te podemos ayudar con algo más? Si quieres cotizar otro servicio o tratamiento estamos disponibles 😊",
+    nombre
+      ? `¡Hola ${nombre}! Si necesitas agendar o tienes alguna consulta, aquí estamos para ayudarte 😊`
+      : "¡Hola! Si necesitas agendar o tienes alguna consulta, aquí estamos para ayudarte 😊",
+  ];
+}
 
 async function procesarReactivacion(sh, shJson) {
   const r = await fetch(
@@ -97,7 +103,7 @@ async function procesarReactivacion(sh, shJson) {
     `&canal=eq.whatsapp` +
     `&follow_up_count=lt.4` +
     `&last_client_message_at=not.is.null` +
-    `&select=id,cliente_id,canal_user_id,follow_up_count,last_client_message_at,lead_calificado`,
+    `&select=id,cliente_id,canal_user_id,canal_user_name,follow_up_count,last_client_message_at,lead_calificado`,
     { headers: sh }
   );
   const sesiones = await r.json();
@@ -110,9 +116,10 @@ async function procesarReactivacion(sh, shJson) {
     const minutos = (ahora - new Date(s.last_client_message_at).getTime()) / 60000;
     const count   = s.follow_up_count ?? 0;
 
-    const FOLLOWUP_MSGS = s.cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID
-      ? FOLLOWUP_MSGS_VENTAS
-      : FOLLOWUP_MSGS_NEGOCIO;
+    const FOLLOWUP_MSGS = getFollowupMsgs(
+      s.cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID ? 'ventas' : 'negocio',
+      s.canal_user_name
+    );
 
     let mensaje    = null;
     let usaHorario = true;
