@@ -68,6 +68,101 @@ function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, neg
 </body></html>`;
 }
 
+// ── Reactivación de conversaciones WhatsApp ───────────────────────────────────
+function dentroHorarioComercialStgo() {
+  const stgo = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+  const hour = stgo.getHours();
+  const dow  = stgo.getDay();
+  return dow >= 1 && dow <= 6 && hour >= 9 && hour < 20;
+}
+
+const FOLLOWUP_MSGS = [
+  "¿Seguís por ahí? 😊",
+  "Hola de nuevo 😊 ¿Pudiste revisar lo que conversamos? Cualquier duda me cuentas.",
+  "¡Último aviso por hoy! Si me escribes ahora podemos seguir la conversación por aquí 😊",
+];
+
+async function procesarReactivacion(sh, shJson) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/chat_sessions` +
+    `?conversation_status=eq.esperando_respuesta` +
+    `&canal=eq.whatsapp` +
+    `&follow_up_count=lt.4` +
+    `&last_client_message_at=not.is.null` +
+    `&select=id,cliente_id,canal_user_id,follow_up_count,last_client_message_at,lead_calificado`,
+    { headers: sh }
+  );
+  const sesiones = await r.json();
+  if (!Array.isArray(sesiones)) return { procesadas: 0, enviadas: [] };
+
+  const ahora    = Date.now();
+  const enviadas = [];
+
+  for (const s of sesiones) {
+    const minutos = (ahora - new Date(s.last_client_message_at).getTime()) / 60000;
+    const count   = s.follow_up_count ?? 0;
+
+    let mensaje    = null;
+    let usaHorario = true;
+
+    if (minutos >= 1440 && count === 3) {
+      if (!s.lead_calificado) {
+        await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${s.id}`, {
+          method: 'PATCH',
+          headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ conversation_status: 'cerrada' })
+        }).catch(() => {});
+        enviadas.push({ id: s.id, accion: 'cerrada_sin_calificar' });
+      }
+      // TODO: enviar template Meta aprobado para leads calificados
+      continue;
+    } else if (minutos >= 1200 && count === 2) {
+      mensaje    = FOLLOWUP_MSGS[2];
+      usaHorario = false;
+    } else if (minutos >= 120 && count === 1) {
+      mensaje = FOLLOWUP_MSGS[1];
+    } else if (minutos >= 15 && count === 0) {
+      mensaje = FOLLOWUP_MSGS[0];
+    }
+
+    if (!mensaje) continue;
+    if (usaHorario && !dentroHorarioComercialStgo()) continue;
+
+    const clienteR = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${s.cliente_id}&select=canales_meta&limit=1`,
+      { headers: sh }
+    );
+    const [cliente] = await clienteR.json().catch(() => []);
+    const waPhoneId = cliente?.canales_meta?.wa_phone_number_id;
+    const waToken   = cliente?.canales_meta?.wa_token;
+    if (!waPhoneId || !waToken) continue;
+
+    const sendR = await fetch(`https://graph.facebook.com/v20.0/${waPhoneId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${waToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to:   s.canal_user_id,
+        type: 'text',
+        text: { body: mensaje }
+      })
+    });
+
+    if (sendR.ok) {
+      await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${s.id}`, {
+        method: 'PATCH',
+        headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({ follow_up_count: count + 1 })
+      }).catch(() => {});
+      enviadas.push({ id: s.id, accion: `follow_up_${count + 1}`, numero: s.canal_user_id });
+    } else {
+      enviadas.push({ id: s.id, accion: 'error_envio', status: sendR.status });
+    }
+  }
+
+  return { procesadas: sesiones.length, enviadas };
+}
+
 // ── Lógica de envío de recordatorios ─────────────────────────────────────────
 // Corre cada hora: calcula dinámicamente qué citas entran en la ventana de cada recordatorio.
 // Ejemplo: si son las 14:00 y el recordatorio es "2h antes", busca citas de las 16:xx de hoy.
@@ -202,6 +297,13 @@ export default async function handler(req, res) {
     if (!validVercel && !validExternal) {
       return res.status(401).json({ error: 'No autorizado' });
     }
+    if (req.query?.action === 'reactivacion') {
+      console.log('send-email: cron reactivacion iniciado');
+      const result = await procesarReactivacion(sh, shJson);
+      console.log('send-email: reactivacion finalizada —', result.enviadas?.length ?? 0, 'enviadas');
+      return res.status(200).json(result);
+    }
+
     console.log('send-email: cron recordatorios iniciado');
     const result = await procesarRecordatorios(sh, shJson);
     console.log('send-email: cron finalizado —', result.enviados, 'enviados,', result.errores.length, 'errores');
