@@ -61,6 +61,21 @@ export default async function handler(req, res) {
     console.error('bot-chat: error cargando sesión:', e.message);
   }
 
+  // Trackear mensaje entrante del cliente: resetear follow_up_count y marcar última actividad
+  if (sessionId) {
+    const trackPatch = {
+      last_client_message_at: new Date().toISOString(),
+      follow_up_count: 0,
+      conversation_status: 'activa',
+    };
+    if (historial.length >= 2) trackPatch.lead_calificado = true;
+    fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
+      method: 'PATCH',
+      headers: { ...shJson, Prefer: 'return=minimal' },
+      body: JSON.stringify(trackPatch)
+    }).catch(e => console.error('bot-chat: error tracking cliente:', e.message));
+  }
+
   // ── 2. Cargar configuración del bot ───────────────────────────────────────
   let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [] };
   try {
@@ -182,9 +197,10 @@ HOY ES: ${hoyVentas}`;
         method: 'PATCH',
         headers: { ...shJson, Prefer: 'return=minimal' },
         body: JSON.stringify({
-          messages:        msgs.slice(-MAX_MESSAGES),
-          canal_user_name: canal_user_name || null,
-          updated_at:      new Date().toISOString()
+          messages:           msgs.slice(-MAX_MESSAGES),
+          canal_user_name:    canal_user_name || null,
+          updated_at:         new Date().toISOString(),
+          conversation_status: 'esperando_respuesta',
         })
       }).catch(e => console.error('bot-chat ventas: error guardando sesión:', e.message));
     }
@@ -936,9 +952,10 @@ REGLAS GENERALES:
       method: 'PATCH',
       headers: { ...shJson, Prefer: 'return=minimal' },
       body: JSON.stringify({
-        messages:        mensajesGuardables,
-        canal_user_name: canal_user_name || null,
-        updated_at:      new Date().toISOString()
+        messages:            mensajesGuardables,
+        canal_user_name:     canal_user_name || null,
+        updated_at:          new Date().toISOString(),
+        conversation_status: citaCreada ? 'agendo' : 'esperando_respuesta',
       })
     }).catch(e => console.error('bot-chat: error guardando sesión:', e.message));
   }
