@@ -1495,36 +1495,47 @@ async function cargarWebLeads() {
     const sessionOrder = [];
     rows.forEach(row => {
       if (!sessions[row.session_id]) {
-        sessions[row.session_id] = { mensajes: [], first_at: row.created_at, last_at: row.created_at, ip: row.ip };
+        sessions[row.session_id] = { mensajes: [], first_at: row.created_at, last_at: row.created_at, ip: row.ip, tipo: row.tipo || 'chat', pagina: row.pagina || null };
         sessionOrder.push(row.session_id);
       }
       sessions[row.session_id].mensajes.push(...(row.mensajes || []));
       if (row.created_at > sessions[row.session_id].last_at) sessions[row.session_id].last_at = row.created_at;
+      if (!sessions[row.session_id].tipo && row.tipo) sessions[row.session_id].tipo = row.tipo;
+      if (!sessions[row.session_id].pagina && row.pagina) sessions[row.session_id].pagina = row.pagina;
     });
     el.innerHTML = sessionOrder.map((sid, i) => {
       const s = sessions[sid];
+      const isWa = s.tipo === 'whatsapp';
       const primerMsg = s.mensajes.find(m => m.role === 'user');
       const preview = primerMsg ? primerMsg.content.slice(0, 100) + (primerMsg.content.length > 100 ? '...' : '') : '—';
       const exchanges = Math.floor(s.mensajes.length / 2);
       const dt = new Date(s.last_at);
       const dtStr = `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
-      const chatHtml = s.mensajes.map(m => {
-        const isUser = m.role === 'user';
-        return `<div style="display:flex;${isUser?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:8px">
-          <div style="max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;
-            ${isUser?'background:#6C5CE4;color:#fff;border-bottom-right-radius:3px':'background:#f3f4f6;color:#1f2937;border-bottom-left-radius:3px'}">
-            ${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-          </div>
-        </div>`;
-      }).join('');
-      return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:12px;overflow:hidden">
+      const tipoBadge = isWa
+        ? `<span style="font-size:11px;font-weight:700;color:#15803d;background:#f0fdf4;padding:2px 8px;border-radius:6px">📱 WhatsApp</span>`
+        : `<span style="font-size:11px;font-weight:700;color:#6C5CE4;background:#f5f3ff;padding:2px 8px;border-radius:6px">💬 Chat Attia</span>`;
+      const paginaBadge = s.pagina && s.pagina !== '/' ? `<span style="font-size:10px;color:#d1d5db;font-family:monospace">${s.pagina}</span>` : '';
+      const chatHtml = isWa
+        ? `<div style="padding:12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#166534">El visitante hizo clic en el botón de WhatsApp y abrió la app con el mensaje pre-cargado.<br><br><strong>Mensaje:</strong> ${primerMsg?.content?.replace(/</g,'&lt;') || '—'}</div>`
+        : s.mensajes.map(m => {
+            const isUser = m.role === 'user';
+            return `<div style="display:flex;${isUser?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:8px">
+              <div style="max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;
+                ${isUser?'background:#6C5CE4;color:#fff;border-bottom-right-radius:3px':'background:#f3f4f6;color:#1f2937;border-bottom-left-radius:3px'}">
+                ${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+              </div>
+            </div>`;
+          }).join('');
+      return `<div style="background:#fff;border:1px solid ${isWa?'#bbf7d0':'#e5e7eb'};border-radius:12px;margin-bottom:12px;overflow:hidden">
         <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.lead-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(180deg)'"
           style="padding:14px 16px;cursor:pointer;display:flex;align-items:flex-start;gap:12px;user-select:none">
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-              <span style="font-size:11px;font-weight:700;color:#6C5CE4;background:#f5f3ff;padding:2px 8px;border-radius:6px">${exchanges} intercambio${exchanges!==1?'s':''}</span>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+              ${tipoBadge}
+              ${isWa ? '' : `<span style="font-size:11px;color:#9ca3af">${exchanges} intercambio${exchanges!==1?'s':''}</span>`}
               <span style="font-size:11px;color:#9ca3af">${dtStr}</span>
               ${s.ip ? `<span style="font-size:11px;color:#d1d5db;font-family:monospace">${s.ip}</span>` : ''}
+              ${paginaBadge}
             </div>
             <div style="font-size:13px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview.replace(/</g,'&lt;')}</div>
           </div>

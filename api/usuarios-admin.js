@@ -488,15 +488,16 @@ export default async function handler(req, res) {
     return res.status(r.status).json(await r.json());
   }
 
-  // POST ?action=web-lead-save — guardar mensaje del chat de attempo.cl (desde web-attempo, sin auth)
+  // POST ?action=web-lead-save — guardar lead del sitio web (chat Attia o clic WA), sin auth
   if (req.method === 'POST' && req.query.action === 'web-lead-save') {
-    const { session_id, mensajes, ip } = req.body || {};
+    const { session_id, mensajes, ip, tipo, pagina } = req.body || {};
     if (!session_id || !Array.isArray(mensajes)) return res.status(400).json({ error: 'Datos inválidos' });
+    const tipoValido = ['chat', 'whatsapp'].includes(tipo) ? tipo : 'chat';
     try {
       const r = await fetch(`${_SUPA_URL}/rest/v1/web_leads`, {
         method: 'POST',
         headers: { ..._sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-        body: JSON.stringify({ session_id: String(session_id).slice(0, 64), mensajes, ip: ip || null })
+        body: JSON.stringify({ session_id: String(session_id).slice(0, 64), mensajes, ip: ip || null, tipo: tipoValido, pagina: pagina || null })
       });
       if (!r.ok) { const err = await r.text().catch(() => ''); console.error('[web-lead-save]', r.status, err); return res.status(500).json({ error: 'Error al guardar' }); }
       return res.status(200).json({ ok: true });
