@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Attempo — Accesos</title>
-<script>(function(){if(!localStorage.getItem('attempo_user'))window.location.replace('/login.html');}());</script>
+<script>(function(){if(!localStorage.getItem('attempo_user'))window.location.replace('/login');}());</script>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -95,7 +95,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);font-size:13px
   <span class="nav-name">attempo</span>
   <div class="nav-divider"></div>
   <span class="nav-title">Accesos por negocio</span>
-  <a href="/admin.html" class="nav-back">← Volver al panel</a>
+  <a href="/admin" class="nav-back">← Volver al panel</a>
 </nav>
 
 <div class="page">
@@ -360,7 +360,7 @@ function entrarPanel(clienteId, clienteNombre) {
   current.nombre_negocio = clienteNombre;
   current._impersonando  = true;
   localStorage.setItem('attempo_user', JSON.stringify(current));
-  window.location.href = '/admin.html';
+  window.location.href = '/admin';
 }
 
 /* NUEVO USUARIO */
@@ -471,7 +471,7 @@ function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
 (function(){
   try {
     const u = JSON.parse(localStorage.getItem('attempo_user')||'{}');
-    if (u.rol !== 'superadmin') window.location.replace('/admin.html');
+    if (u.rol !== 'superadmin') window.location.replace('/admin');
     const mark = document.getElementById('nav-mark');
     if (mark) mark.textContent = (u.nombre||'tt').slice(0,2).toLowerCase();
   } catch(e) {}

@@ -324,7 +324,7 @@ export default async function handler(req, res) {
     Tu cuenta de attempo está lista.<br>
     Tienes <strong style="color:#6C5CE4">12 días de prueba gratis</strong> para explorar todo lo que attempo puede hacer por tu consulta.
   </p>
-  <a href="https://app.attempo.cl/admin.html" style="display:inline-block;padding:14px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
+  <a href="https://app.attempo.cl/admin" style="display:inline-block;padding:14px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
   <p style="margin:24px 0 0;color:#9ca3af;font-size:12px">¿Tienes dudas? Escríbenos por WhatsApp al +56957285407</p>
 </td></tr>
 <tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe">

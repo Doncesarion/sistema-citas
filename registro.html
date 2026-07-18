@@ -282,7 +282,7 @@
         </p>
 
         <p class="login-link">
-          ¿Ya tienes cuenta? <a href="/login.html">Inicia sesión →</a>
+          ¿Ya tienes cuenta? <a href="/login">Inicia sesión →</a>
         </p>
 
       </form>
@@ -331,7 +331,7 @@
           localStorage.setItem('attempo_user', JSON.stringify({
             nombre: data.nombre, rol: data.rol, cliente_id: data.cliente_id
           }));
-          window.location.href = '/admin.html';
+          window.location.href = '/admin';
         } else {
           errMsg.textContent = data.error || 'Error al crear la cuenta. Intenta nuevamente.';
           errMsg.style.display = 'block';
