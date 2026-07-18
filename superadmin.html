@@ -1477,9 +1477,14 @@ async function cargarWebLeads() {
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af;font-size:14px">Cargando...</div>';
   try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/web_leads?order=created_at.desc&limit=200`, {
-      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+    const r = await fetch('/api/usuarios-admin?action=web-leads', {
+      headers: { 'x-sa-token': getSaToken() }
     });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      el.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;font-size:14px">Error al cargar: ${err.error || r.status}<br><small>${err.detail || ''}</small></div>`;
+      return;
+    }
     const rows = await r.json();
     if (!Array.isArray(rows) || rows.length === 0) {
       el.innerHTML = '<div style="text-align:center;padding:60px;color:#9ca3af;font-size:14px">No hay conversaciones aún.<br>Aparecerán aquí cuando alguien use el chat de attempo.cl</div>';

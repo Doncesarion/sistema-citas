@@ -488,9 +488,41 @@ export default async function handler(req, res) {
     return res.status(r.status).json(await r.json());
   }
 
+  // POST ?action=web-lead-save — guardar mensaje del chat de attempo.cl (desde web-attempo, sin auth)
+  if (req.method === 'POST' && req.query.action === 'web-lead-save') {
+    const { session_id, mensajes, ip } = req.body || {};
+    if (!session_id || !Array.isArray(mensajes)) return res.status(400).json({ error: 'Datos inválidos' });
+    try {
+      const r = await fetch(`${_SUPA_URL}/rest/v1/web_leads`, {
+        method: 'POST',
+        headers: { ..._sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ session_id: String(session_id).slice(0, 64), mensajes, ip: ip || null })
+      });
+      if (!r.ok) { const err = await r.text().catch(() => ''); console.error('[web-lead-save]', r.status, err); return res.status(500).json({ error: 'Error al guardar' }); }
+      return res.status(200).json({ ok: true });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
   // ── Todas las demás rutas requieren token válido ───────────────────────────
   if (!verifyToken(req.headers['x-sa-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  // GET ?action=web-leads — SA: conversaciones del chat de attempo.cl
+  if (req.method === 'GET' && req.query.action === 'web-leads') {
+    try {
+      const r = await fetch(`${_SUPA_URL}/rest/v1/web_leads?order=created_at.desc&limit=200`, { headers: _sh });
+      if (!r.ok) {
+        const err = await r.text().catch(() => '');
+        console.error('[web-leads] Supabase error:', r.status, err);
+        return res.status(500).json({ error: 'Error al cargar leads', detail: err.slice(0, 200) });
+      }
+      const rows = await r.json();
+      return res.status(200).json(Array.isArray(rows) ? rows : []);
+    } catch(e) {
+      console.error('[web-leads] exception:', e.message);
+      return res.status(500).json({ error: e.message });
+    }
   }
 
   // ── POST proxy: reenvía a edge function admin-clientes ────────────────────
