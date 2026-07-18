@@ -29,7 +29,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/",                              "destination": "/login.html" },
     { "source": "/api/gestionar-cita",             "destination": "/api/crear-cita" },
     { "source": "/api/flow-confirm",               "destination": "/api/flow" },
     { "source": "/api/flow-return",               "destination": "/api/flow?ret=1" },
