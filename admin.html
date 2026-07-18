@@ -6993,7 +6993,33 @@ function setEstadoReserva(estado) {
     activeTlTag.textContent = cfg.lbl + ' ▾';
   }
 
-  toast('Estado → ' + cfg.lbl);
+  // — Persistir estado en DB si la ficha de un paciente está abierta —
+  const fichaOpen = document.getElementById('ficha-ov')?.classList.contains('open');
+  const existingCitaId = window._fichaProxCitaId;
+  if (fichaOpen && existingCitaId) {
+    fetch(`/api/slots?id=${existingCitaId}`, {
+      method: 'PATCH',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado })
+    }).then(async r => {
+      if (!r.ok) { toastErr('No se pudo guardar el estado'); return; }
+      toast('✓ Estado → ' + cfg.lbl);
+      // Si el nuevo estado es confirmada y el paciente tiene email, enviar confirmación
+      if (estado === 'confirmada') {
+        const h = { ..._citasH(), 'Content-Type': 'application/json' };
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: h,
+          body: JSON.stringify({ type: 'confirmar_desde_admin', cita_id: existingCitaId })
+        }).then(async er => {
+          const d = await er.json().catch(() => ({}));
+          if (er.ok && !d.skipped) toast('✓ Email de confirmación enviado');
+        }).catch(() => {});
+      }
+    }).catch(() => toastErr('Error al guardar estado'));
+  } else {
+    toast('Estado → ' + cfg.lbl);
+  }
 
   // Si se marca completada desde Ventas, marcar el pago automáticamente
   const citaId = _currentBoletaCita?.id;

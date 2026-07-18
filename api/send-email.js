@@ -635,6 +635,55 @@ export default async function handler(req, res) {
     }
   }
 
+  // — Confirmación manual desde admin (cambio de estado → confirmada) —
+  if (body.type === 'confirmar_desde_admin') {
+    const cita_id = String(body.cita_id || '').trim();
+    if (!cita_id || !/^[0-9a-f-]{36}$/i.test(cita_id)) return res.status(400).json({ error: 'cita_id inválido' });
+    const token = req.headers['x-session-token'];
+    const dot = token.lastIndexOf('.');
+    const parts = token.slice(0, dot).split(':');
+    const sesCliente = parts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : sesCliente;
+    try {
+      const [rCita, rCli] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita_id}&cliente_id=eq.${cid}&select=*,especialistas(nombre)&limit=1`, { headers: sh }),
+        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,metodos_pago,datos_banco&limit=1`, { headers: sh })
+      ]);
+      const [cita] = await rCita.json().catch(() => []);
+      const [cli]  = await rCli.json().catch(() => []);
+      if (!cita?.email_paciente) return res.status(400).json({ error: 'Esta cita no tiene email del paciente', skipped: true });
+      const [y, m, d] = (cita.fecha || '').split('-');
+      const fechaFmt = d ? new Date(`${cita.fecha}T12:00:00`).toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : cita.fecha;
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [cita.email_paciente],
+          subject: `Tu cita en ${cli?.nombre_negocio || 'la clínica'} está confirmada ✓`,
+          html: emailHtml({
+            nombre_paciente:   cita.nombre_paciente,
+            nombre_especialista: cita.especialistas?.nombre || null,
+            fechaFmt,
+            hora:    (cita.hora || '').slice(0, 5),
+            servicio: cita.servicio || null,
+            negocio_nombre: cli?.nombre_negocio || null,
+            duracion: null,
+            total:    cita.precio ? '$' + Number(cita.precio).toLocaleString('es-CL') : null,
+            metodos_pago: cli?.metodos_pago || null,
+            datos_banco:  cli?.datos_banco  || null
+          })
+        })
+      });
+      if (!r.ok) { console.error('confirmar_desde_admin email error:', await r.text()); return res.status(500).json({ error: 'Error al enviar email' }); }
+      return res.status(200).json({ ok: true });
+    } catch(e) {
+      console.error('confirmar_desde_admin exception:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
   // — Confirmación de cita (flujo original) —
   const { to, cliente, negocio, fecha, hora, especialista, servicio, duracion, total, cliente_id } = body;
   if (!to || !cliente) return res.status(400).json({ error: 'Faltan datos' });

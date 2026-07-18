@@ -232,6 +232,30 @@ export default async function handler(req, res) {
     const { id } = req.query;
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID de cita inválido' });
     const body = req.body || {};
+
+    // — PATCH estado de la cita —
+    if (typeof body.estado !== 'undefined') {
+      const ESTADOS_VALIDOS = ['confirmada','reservada','pendiente','completada','cancelada','inasistencia'];
+      const nuevoEstado = String(body.estado).trim();
+      if (!ESTADOS_VALIDOS.includes(nuevoEstado)) return res.status(400).json({ error: 'Estado inválido' });
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ estado: nuevoEstado })
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          console.error('slots PATCH estado error:', r.status, JSON.stringify(err));
+          return res.status(500).json({ error: 'Error al actualizar estado' });
+        }
+        return res.json({ ok: true });
+      } catch(e) {
+        console.error('slots PATCH estado exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
     if (typeof body.notas === 'undefined') return res.status(400).json({ error: 'Campo requerido: notas' });
     const notas = body.notas === null ? null : String(body.notas).slice(0, 10000);
     try {
