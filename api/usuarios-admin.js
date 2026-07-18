@@ -276,6 +276,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           nombre_negocio: negocio,
           email: emailLower,
+          password_hash: hashedPw,
           plan,
           tipo_plan: plan,
           fecha_inicio: today,
