@@ -206,7 +206,7 @@ async function procesarRecordatorios(sh, shJson) {
 
   try {
     const rCli = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,recordatorios_config`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,recordatorios_config,canales_meta`,
       { headers: sh }
     );
     const clientes = await rCli.json();
@@ -236,7 +236,7 @@ async function procesarRecordatorios(sh, shJson) {
         const horaHasta      = `${targetHora}:59`;
 
         try {
-          const url = `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cli.id}&fecha=eq.${targetFechaISO}&estado=neq.canceled&email_paciente=not.is.null&hora=gte.${horaDesde}&hora=lte.${horaHasta}&select=id,nombre_paciente,email_paciente,hora,servicio,fecha,rec_enviados,email_rec_enviado,especialistas(nombre)`;
+          const url = `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cli.id}&fecha=eq.${targetFechaISO}&estado=neq.canceled&hora=gte.${horaDesde}&hora=lte.${horaHasta}&select=id,nombre_paciente,email_paciente,telefono_paciente,hora,servicio,fecha,rec_enviados,email_rec_enviado,especialistas(nombre)`;
 
           const rCitas = await fetch(url, { headers: sh });
           const citas  = await rCitas.json();
@@ -275,6 +275,35 @@ async function procesarRecordatorios(sh, shJson) {
               });
               if (emailRes.ok) { enviados++; enviado = true; }
               else { const errTxt = await emailRes.text().catch(() => ''); console.error('recordatorio email error', emailRes.status, errTxt); errores.push(`cita ${cita.id}: ${emailRes.status}`); }
+            }
+
+            // — Enviar WhatsApp —
+            if (rec.wa_activo && cita.telefono_paciente) {
+              const waPhoneId = cli.canales_meta?.wa_phone_number_id;
+              const waToken   = cli.canales_meta?.wa_token;
+              if (waPhoneId && waToken) {
+                const phone  = cita.telefono_paciente.replace(/\D/g, '');
+                const waBody = renderTemplate(
+                  rec.wa_mensaje || 'Hola {nombre}, te recordamos tu cita el {fecha} a las {hora} en {negocio}.',
+                  vars
+                );
+                const waRes = await fetch(`https://graph.facebook.com/v20.0/${waPhoneId}/messages`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${waToken}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    to:   phone,
+                    type: 'text',
+                    text: { body: waBody }
+                  })
+                });
+                if (waRes.ok) { enviados++; enviado = true; }
+                else {
+                  const errTxt = await waRes.text().catch(() => '');
+                  console.error('recordatorio wa error', waRes.status, errTxt);
+                  errores.push(`cita ${cita.id} wa: ${waRes.status}`);
+                }
+              }
             }
 
             // — Marcar como enviado para no reenviar —
