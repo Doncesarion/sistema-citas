@@ -2608,17 +2608,26 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <button class="btn-sm" onclick="togglePanelPrueba()" style="color:var(--t2);border-color:var(--b1)">Enviar prueba →</button>
         </div>
         <!-- Panel de prueba -->
-        <div id="panel-prueba-rec" style="display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
-          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:2px">Enviar prueba de recordatorio</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <span style="font-size:12px;color:var(--t3);min-width:76px">📧 Email</span>
-            <input id="prueba-email-dest" type="email" class="fi" placeholder="correo@ejemplo.com" style="flex:1;padding:6px 10px;font-size:12px">
-            <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="white-space:nowrap">Enviar →</button>
+        <div id="panel-prueba-rec" style="display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:14px;flex-direction:column;gap:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2)">Enviar prueba de recordatorio</div>
+          <!-- Email prueba -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">📧 Email</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="prueba-email-rec" class="fi" style="flex:1;padding:6px 10px;font-size:12px"></select>
+              <input id="prueba-email-dest" type="email" class="fi" placeholder="correo@ejemplo.com" style="flex:1;padding:6px 10px;font-size:12px">
+              <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="white-space:nowrap">Enviar →</button>
+            </div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <span style="font-size:12px;color:var(--t3);min-width:76px">📲 WhatsApp</span>
-            <input id="prueba-wa-phone" type="tel" class="fi" placeholder="+56912345678" style="flex:1;padding:6px 10px;font-size:12px">
-            <button class="btn-sm" id="btn-prueba-wa" onclick="enviarWaDePrueba()" style="white-space:nowrap;color:#25D366;border-color:rgba(37,211,102,0.3)">Enviar →</button>
+          <!-- WA prueba -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">📲 WhatsApp</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="prueba-wa-rec" class="fi" onchange="actualizarPreviaWaPrueba()" style="flex:1;padding:6px 10px;font-size:12px"></select>
+              <input id="prueba-wa-phone" type="tel" class="fi" placeholder="+56912345678" style="flex:1;padding:6px 10px;font-size:12px">
+              <button class="btn-sm" id="btn-prueba-wa" onclick="enviarWaDePrueba()" style="white-space:nowrap;color:#25D366;border-color:rgba(37,211,102,0.3)">Enviar →</button>
+            </div>
+            <div id="prueba-wa-preview" style="font-size:11px;color:var(--t3);background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:8px 10px;white-space:pre-wrap;line-height:1.5;display:none"></div>
           </div>
         </div>
       </div>
@@ -5862,15 +5871,59 @@ function updateRecPreview() {
 function togglePanelPrueba() {
   const panel = document.getElementById('panel-prueba-rec');
   if (!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) _poblarSelectsPrueba();
+}
+
+function _poblarSelectsPrueba() {
+  const emailRecs = (_recLista || []).filter(r => r.activo && r.email_activo);
+  const waRecs    = (_recLista || []).filter(r => r.activo && r.wa_activo);
+  const tiempoLabel = { '30m': '30 min antes', '1h': '1 h antes', '2h': '2 h antes', '12h': '12 h antes', '24h': '24 h antes' };
+
+  const selEmail = document.getElementById('prueba-email-rec');
+  if (selEmail) selEmail.innerHTML = emailRecs.length
+    ? emailRecs.map((r, i) => `<option value="${i}">${tiempoLabel[r.tiempo] || r.tiempo} — ${(r.email_asunto || 'Sin asunto').slice(0, 35)}</option>`).join('')
+    : '<option value="">Sin recordatorios Email activos</option>';
+
+  const selWa = document.getElementById('prueba-wa-rec');
+  if (selWa) selWa.innerHTML = waRecs.length
+    ? waRecs.map((r, i) => `<option value="${i}">${tiempoLabel[r.tiempo] || r.tiempo}</option>`).join('')
+    : '<option value="">Sin recordatorios WhatsApp activos</option>';
+
+  actualizarPreviaWaPrueba();
+}
+
+function actualizarPreviaWaPrueba() {
+  const sel     = document.getElementById('prueba-wa-rec');
+  const preview = document.getElementById('prueba-wa-preview');
+  if (!sel || !preview) return;
+  const waRecs = (_recLista || []).filter(r => r.activo && r.wa_activo);
+  const rec    = waRecs[parseInt(sel.value)] || null;
+  if (!rec?.wa_mensaje) { preview.style.display = 'none'; return; }
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  const negocio = u.nombre_negocio || 'Tu negocio';
+  const hoy = new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'America/Santiago' });
+  const msg = rec.wa_mensaje
+    .replace(/\{nombre\}/g, 'Cliente de prueba')
+    .replace(/\{negocio\}/g, negocio)
+    .replace(/\{fecha\}/g, hoy)
+    .replace(/\{hora\}/g, '15:00')
+    .replace(/\{profesional\}/g, 'Dr. Ejemplo')
+    .replace(/\{servicio\}/g, 'Consulta');
+  preview.textContent = msg;
+  preview.style.display = 'block';
 }
 
 async function enviarEmailDePrueba() {
   const btn = document.getElementById('btn-prueba-email');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-  const to      = (document.getElementById('prueba-email-dest')?.value || '').trim();
-  const asunto  = document.getElementById('rf-email-asunto')?.value  || '';
-  const mensaje = document.getElementById('rf-email-mensaje')?.value || '';
+  const to    = (document.getElementById('prueba-email-dest')?.value || '').trim();
+  const selEl = document.getElementById('prueba-email-rec');
+  const emailRecs = (_recLista || []).filter(r => r.activo && r.email_activo);
+  const rec   = emailRecs[parseInt(selEl?.value ?? '0')] || null;
+  const asunto  = rec?.email_asunto  || document.getElementById('rf-email-asunto')?.value  || '';
+  const mensaje = rec?.email_mensaje || document.getElementById('rf-email-mensaje')?.value || '';
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
@@ -5887,9 +5940,12 @@ async function enviarEmailDePrueba() {
 async function enviarWaDePrueba() {
   const btn = document.getElementById('btn-prueba-wa');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-  const phone   = (document.getElementById('prueba-wa-phone')?.value || '').trim();
-  const mensaje = document.getElementById('rf-wa-mensaje')?.value || '';
+  const phone = (document.getElementById('prueba-wa-phone')?.value || '').trim();
   if (!phone) { toast('Ingresa un número de teléfono'); if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; } return; }
+  const sel    = document.getElementById('prueba-wa-rec');
+  const waRecs = (_recLista || []).filter(r => r.activo && r.wa_activo);
+  const rec    = waRecs[parseInt(sel?.value ?? '0')] || null;
+  const mensaje = rec?.wa_mensaje || '';
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
