@@ -1455,6 +1455,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ── CONFIG CONTEXT ── -->
 <div id="sb-config" class="sb-ctx"></div>
 
+<!-- ── BANDEJA CONTEXT (vacío — solo muestra el contador de plan al fondo) ── -->
+<div id="sb-bandeja" class="sb-ctx"></div>
+
 <!-- ── CONTADOR MSG IA ── -->
 <div class="sb-msg-counter" id="sb-msg-counter" style="display:none">
   <div class="sb-msg-counter-label">
@@ -3803,10 +3806,12 @@ function sv(v, btn, skipPush) {
 
   // Sidebar context switch
   const sidebar = document.querySelector('aside.sb');
-  if (sidebar) sidebar.style.display = (v === 'config' || v === 'bandeja') ? 'none' : '';
+  if (sidebar) sidebar.style.display = '';
   document.querySelectorAll('.sb-ctx').forEach(el => { el.style.display = 'none'; });
   const sbCtx = document.getElementById('sb-' + v);
   if (sbCtx) { sbCtx.style.display = 'flex'; sbCtx.style.flexDirection = 'column'; sbCtx.style.height = '100%'; }
+  // Refrescar contador de plan en cada cambio de sección
+  if (typeof cargarStatsIA === 'function') cargarStatsIA();
 
   const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración',liquidaciones:'Liquidaciones'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
