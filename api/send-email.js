@@ -36,7 +36,7 @@ function renderTemplate(template, vars) {
 }
 
 // Template HTML para recordatorio
-function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, negocio, mensaje_extra, cita_id }) {
+function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, negocio, intro, mensaje_extra, cita_id }) {
   const gestionUrl = `${BASE_URL}/gestionar-cita?id=${he(cita_id || '')}`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:600px){.aw{padding:20px 8px!important}.ac{padding:24px 16px!important}.af{padding:12px 16px!important}}</style></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
@@ -49,7 +49,7 @@ function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, neg
 </td></tr>
 <tr><td class="ac" style="padding:28px 24px;text-align:center;">
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Recordatorio de cita</h2>
-  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>, te recordamos que tienes una cita próximamente.</p>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>, ${he(intro || 'te recordamos que tienes una cita próximamente.')}</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     ${profesional ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${he(profesional)}</span></td></tr>` : ''}
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:600;">${he(fecha)}</span></td></tr>
@@ -270,7 +270,7 @@ async function procesarRecordatorios(sh, shJson) {
                   to: [cita.email_paciente],
                   subject: asunto,
                   headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
-                  html: emailRecordatorioHtml({ nombre: vars.nombre, fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: vars.servicio, negocio: negocioNombre, mensaje_extra: mensajeExtra, cita_id: cita.id })
+                  html: emailRecordatorioHtml({ nombre: vars.nombre, fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: vars.servicio, negocio: negocioNombre, intro: renderTemplate(rec.email_intro || '', vars), mensaje_extra: mensajeExtra, cita_id: cita.id })
                 })
               });
               if (emailRes.ok) { enviados++; enviado = true; }
@@ -403,7 +403,8 @@ export default async function handler(req, res) {
     };
     const asuntoFinal  = renderTemplate(body.asunto  || 'Recordatorio: tu cita en {negocio}', vars);
     const mensajeFinal = renderTemplate(body.mensaje || '', vars);
-    const htmlBody = emailRecordatorioHtml({ ...vars, mensaje_extra: mensajeFinal, cita_id: null });
+    const introFinal = renderTemplate(body.intro || '', vars);
+    const htmlBody = emailRecordatorioHtml({ ...vars, intro: introFinal, mensaje_extra: mensajeFinal, cita_id: null });
 
     try {
       const r = await fetch('https://api.resend.com/emails', {

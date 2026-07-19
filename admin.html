@@ -2557,7 +2557,19 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                   </div>
                 </div>
                 <div>
-                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Mensaje adicional <span style="color:var(--t4);font-weight:400">(opcional)</span></label>
+                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Introducción <span style="color:var(--t4);font-weight:400">(texto sobre los datos de la cita)</span></label>
+                  <textarea class="fi" id="rf-email-intro" rows="2" placeholder="te recordamos que tienes una cita próximamente." style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
+                    <button type="button" onclick="insertarVariable('rf-email-intro','{nombre}')" class="vchip">{nombre}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-intro','{fecha}')" class="vchip">{fecha}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-intro','{hora}')" class="vchip">{hora}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-intro','{negocio}')" class="vchip">{negocio}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-intro','{profesional}')" class="vchip">{profesional}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-intro','{servicio}')" class="vchip">{servicio}</button>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:5px">Mensaje adicional <span style="color:var(--t4);font-weight:400">(aparece bajo los datos de la cita)</span></label>
                   <textarea class="fi" id="rf-email-mensaje" rows="3" placeholder="Ej: Recuerda llegar 5 minutos antes..." style="resize:vertical;width:100%" oninput="updateRecPreview()"></textarea>
                   <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
                     <button type="button" onclick="insertarVariable('rf-email-mensaje','{nombre}')" class="vchip">{nombre}</button>
@@ -5647,6 +5659,7 @@ function abrirFormRec(idx) {
   g('rf-tiempo').value = rec?.tiempo || '24h';
   g('rf-email-activo').checked = rec?.email_activo === true;
   g('rf-email-asunto').value   = rec?.email_asunto  || '';
+  g('rf-email-intro').value    = rec?.email_intro   || '';
   g('rf-email-mensaje').value  = rec?.email_mensaje || '';
   g('rf-wa-activo').checked    = rec?.wa_activo === true;
   g('rf-wa-mensaje').value     = rec?.wa_mensaje || '';
@@ -5690,12 +5703,13 @@ async function enviarPruebaInlineEmail() {
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   const to      = (document.getElementById('inline-prueba-email-dest')?.value || '').trim();
   const asunto  = (document.getElementById('rf-email-asunto')?.value  || '').trim();
+  const intro   = (document.getElementById('rf-email-intro')?.value   || '').trim();
   const mensaje = (document.getElementById('rf-email-mensaje')?.value || '').trim();
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'email_prueba', to, asunto, mensaje })
+      body: JSON.stringify({ type: 'email_prueba', to, asunto, intro, mensaje })
     });
     const data = await r.json().catch(()=>({}));
     if (r.ok) toast('✓ Email de prueba enviado' + (to ? ` a ${to}` : ''));
@@ -5776,7 +5790,8 @@ async function guardarRecordatorio() {
     activo:        true,
     tiempo:        g('rf-tiempo')?.value || '24h',
     email_activo:  emailActivo,
-    email_asunto:  (g('rf-email-asunto')?.value || '').trim(),
+    email_asunto:  (g('rf-email-asunto')?.value  || '').trim(),
+    email_intro:   (g('rf-email-intro')?.value   || '').trim(),
     email_mensaje: (g('rf-email-mensaje')?.value || '').trim(),
     wa_activo:     waActivo,
     wa_mensaje:    (g('rf-wa-mensaje')?.value || '').trim()
@@ -5900,9 +5915,10 @@ function _recReplace(tpl, vars) {
     .replace(/\{negocio\}/g,     vars.negocio);
 }
 
-function _recEmailHtml(asunto, mensajeExtra, vars) {
+function _recEmailHtml(asunto, mensajeExtra, vars, intro) {
   function he(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  const msg = _recReplace(mensajeExtra || '', vars);
+  const msg       = _recReplace(mensajeExtra || '', vars);
+  const introText = _recReplace(intro || '', vars) || 'te recordamos que tienes una cita próximamente.';
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>*{box-sizing:border-box}body{margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif}</style>
 </head><body>
@@ -5916,7 +5932,7 @@ function _recEmailHtml(asunto, mensajeExtra, vars) {
 <tr><td style="padding:28px 32px;text-align:center">
   <div style="width:48px;height:48px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:13px;font-weight:600;color:var(--a)">rec</div>
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;font-weight:700">Recordatorio de cita</h2>
-  <p style="margin:0 0 22px;color:#6b7280;font-size:14px">Hola <strong>${he(vars.nombre)}</strong>, te recordamos que tienes una cita próximamente.</p>
+  <p style="margin:0 0 22px;color:#6b7280;font-size:14px">Hola <strong>${he(vars.nombre)}</strong>, ${he(introText)}</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:16px">
     <tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Profesional</span><br><span style="color:#2d2d2d;font-size:15px">${he(vars.profesional)}</span></td></tr>
     <tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:600">${he(vars.fecha)}</span></td></tr>
@@ -5943,6 +5959,7 @@ function updateRecPreview() {
   // Lee del formulario si está abierto, si no usa defaults
   const formOpen = document.getElementById('rec-form')?.style.display !== 'none';
   const asunto  = formOpen ? (document.getElementById('rf-email-asunto')?.value || '') : '';
+  const intro   = formOpen ? (document.getElementById('rf-email-intro')?.value   || '') : '';
   const mensaje = formOpen ? (document.getElementById('rf-email-mensaje')?.value || '') : '';
   const waMsj   = formOpen
     ? (document.getElementById('rf-wa-mensaje')?.value || 'Hola {nombre}, te recordamos que tienes una cita el {fecha} a las {hora} con {profesional} en {negocio}. ¡Te esperamos!')
@@ -5952,7 +5969,7 @@ function updateRecPreview() {
   if (asuntoEl) asuntoEl.textContent = _recReplace(asunto || 'Recordatorio: tu cita en {negocio}', vars);
 
   const iframe = document.getElementById('rec-pv-iframe');
-  if (iframe) iframe.srcdoc = _recEmailHtml(asunto, mensaje, vars);
+  if (iframe) iframe.srcdoc = _recEmailHtml(asunto, mensaje, vars, intro);
 
   const waMsg = document.getElementById('rec-pv-wa-msg');
   if (waMsg) waMsg.textContent = _recReplace(waMsj, vars);
