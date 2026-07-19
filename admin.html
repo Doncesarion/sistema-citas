@@ -2608,26 +2608,32 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <button class="btn-sm" onclick="togglePanelPrueba()" style="color:var(--t2);border-color:var(--b1)">Enviar prueba →</button>
         </div>
         <!-- Panel de prueba -->
-        <div id="panel-prueba-rec" style="display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:14px;flex-direction:column;gap:12px">
-          <div style="font-size:12px;font-weight:600;color:var(--t2)">Enviar prueba de recordatorio</div>
+        <div id="panel-prueba-rec" style="display:none;margin-top:10px;border:1px solid var(--b1);border-radius:10px;overflow:hidden;flex-direction:column">
           <!-- Email prueba -->
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">📧 Email</div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--b1)">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">📧 Email</div>
+            <select id="prueba-email-rec" class="fi" onchange="actualizarPreviaEmailPrueba()" style="padding:7px 10px;font-size:12px;width:100%"></select>
+            <div id="prueba-email-preview" style="display:none;background:var(--bg2);border:1px solid var(--b1);border-radius:7px;overflow:hidden">
+              <div style="padding:7px 12px;border-bottom:1px solid var(--b1);background:var(--bg)">
+                <span style="font-size:10px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Asunto</span>
+                <div id="prueba-email-prev-asunto" style="font-size:12px;font-weight:600;color:var(--t1);margin-top:2px"></div>
+              </div>
+              <div id="prueba-email-prev-msg" style="padding:8px 12px;font-size:11px;color:var(--t3);white-space:pre-wrap;line-height:1.6"></div>
+            </div>
             <div style="display:flex;gap:8px;align-items:center">
-              <select id="prueba-email-rec" class="fi" style="flex:1;padding:6px 10px;font-size:12px"></select>
-              <input id="prueba-email-dest" type="email" class="fi" placeholder="correo@ejemplo.com" style="flex:1;padding:6px 10px;font-size:12px">
+              <input id="prueba-email-dest" type="email" class="fi" placeholder="correo@ejemplo.com" style="flex:1;padding:7px 10px;font-size:12px">
               <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="white-space:nowrap">Enviar →</button>
             </div>
           </div>
           <!-- WA prueba -->
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">📲 WhatsApp</div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">📲 WhatsApp</div>
+            <select id="prueba-wa-rec" class="fi" onchange="actualizarPreviaWaPrueba()" style="padding:7px 10px;font-size:12px;width:100%"></select>
+            <div id="prueba-wa-preview" style="display:none;background:var(--bg2);border:1px solid var(--b1);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--t2);white-space:pre-wrap;line-height:1.6"></div>
             <div style="display:flex;gap:8px;align-items:center">
-              <select id="prueba-wa-rec" class="fi" onchange="actualizarPreviaWaPrueba()" style="flex:1;padding:6px 10px;font-size:12px"></select>
-              <input id="prueba-wa-phone" type="tel" class="fi" placeholder="+56912345678" style="flex:1;padding:6px 10px;font-size:12px">
+              <input id="prueba-wa-phone" type="tel" class="fi" placeholder="+56912345678" style="flex:1;padding:7px 10px;font-size:12px">
               <button class="btn-sm" id="btn-prueba-wa" onclick="enviarWaDePrueba()" style="white-space:nowrap;color:#25D366;border-color:rgba(37,211,102,0.3)">Enviar →</button>
             </div>
-            <div id="prueba-wa-preview" style="font-size:11px;color:var(--t3);background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:8px 10px;white-space:pre-wrap;line-height:1.5;display:none"></div>
           </div>
         </div>
       </div>
@@ -5891,7 +5897,27 @@ function _poblarSelectsPrueba() {
     ? waRecs.map((r, i) => `<option value="${i}">${tiempoLabel[r.tiempo] || r.tiempo}</option>`).join('')
     : '<option value="">Sin recordatorios WhatsApp activos</option>';
 
+  actualizarPreviaEmailPrueba();
   actualizarPreviaWaPrueba();
+}
+
+function actualizarPreviaEmailPrueba() {
+  const sel    = document.getElementById('prueba-email-rec');
+  const wrap   = document.getElementById('prueba-email-preview');
+  const elAsu  = document.getElementById('prueba-email-prev-asunto');
+  const elMsg  = document.getElementById('prueba-email-prev-msg');
+  if (!sel || !wrap) return;
+  const emailRecs = (_recLista || []).filter(r => r.activo && r.email_activo);
+  const rec = emailRecs[parseInt(sel.value)] || null;
+  if (!rec) { wrap.style.display = 'none'; return; }
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  const negocio = u.nombre_negocio || 'Tu negocio';
+  const hoy = new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'America/Santiago' });
+  const vars = { nombre: 'Cliente de prueba', negocio, fecha: hoy, hora: '15:00', profesional: 'Dr. Ejemplo', servicio: 'Consulta' };
+  const render = t => (t || '').replace(/\{(\w+)\}/g, (_, k) => vars[k] || `{${k}}`);
+  if (elAsu) elAsu.textContent = render(rec.email_asunto || 'Recordatorio: tu cita en {negocio}');
+  if (elMsg) elMsg.textContent = render(rec.email_mensaje || '') || '(sin mensaje adicional)';
+  wrap.style.display = 'block';
 }
 
 function actualizarPreviaWaPrueba() {
