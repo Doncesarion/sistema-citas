@@ -1479,7 +1479,11 @@ function openMergePicker(sourceKey) {
   const others = order.filter(k => k !== sourceKey);
   if (!others.length) { toast('No hay otras conversaciones para fusionar'); return; }
   const src = sessions[sourceKey];
-  const srcPreview = src.mensajes.find(m => m.role==='user')?.content?.slice(0,40) || sourceKey.slice(0,20);
+  const srcSubList = Object.entries(src.sub);
+  const srcName = src.mensajes.find(m=>m.role==='user')?.name || srcSubList.find(([,v])=>v.name)?.[1]?.name;
+  const srcFirstId = srcSubList[0]?.[0] || sourceKey;
+  const srcDisplay = srcName || (/^\d+$/.test(srcFirstId) ? '+'+srcFirstId : 'Chat Attia');
+  const srcBadges = [...new Map(srcSubList.map(([,v])=>[_canalKey(v.tipo,v.pagina),v])).entries()].map(([,v])=>_tipoBadge(v.tipo,v.pagina)).join('');
 
   let overlay = document.getElementById('merge-overlay');
   if (!overlay) {
@@ -1489,26 +1493,35 @@ function openMergePicker(sourceKey) {
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
   }
-  overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:95vw;max-height:70vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+  overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:480px;max-width:95vw;max-height:75vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
     <div style="font-size:15px;font-weight:700;color:#111">Fusionar conversación</div>
-    <div style="font-size:12px;color:#6b7280;background:#f9fafb;padding:8px 12px;border-radius:8px">Origen: <em>${srcPreview.replace(/</g,'&lt;')}…</em></div>
-    <input id="merge-search" placeholder="Buscar por mensaje o ID…" oninput="filterMergeList()" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:13px;font-family:inherit;outline:none">
+    <div style="font-size:12px;background:#f9fafb;padding:9px 12px;border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      ${srcBadges} <strong style="color:#374151">${srcDisplay.replace(/</g,'&lt;')}</strong>
+      <span style="color:#9ca3af">→ selecciona con quién fusionar</span>
+    </div>
+    <input id="merge-search" placeholder="Buscar por nombre, teléfono o mensaje…" oninput="filterMergeList()" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none">
     <div id="merge-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px">
       ${others.map(k => {
         const s = sessions[k];
-        const tipos = [...new Set(Object.values(s.sub).map(v=>v.tipo))];
-        const icono = tipos.includes('whatsapp_msg') ? '📲' : tipos.includes('whatsapp') ? '📱' : '💬';
-        const pv = s.mensajes.find(m=>m.role==='user')?.content?.slice(0,60) || k.slice(0,30);
+        const subList = Object.entries(s.sub);
+        const name = s.mensajes.find(m=>m.role==='user')?.name || subList.find(([,v])=>v.name)?.[1]?.name;
+        const firstId = subList[0]?.[0] || k;
+        const phoneOrId = /^\d+$/.test(firstId) ? '+'+firstId : (firstId.length===36 ? null : firstId.slice(0,16));
+        const displayName = name || phoneOrId || 'Anónimo';
+        const badges = [...new Map(subList.map(([,v])=>[_canalKey(v.tipo,v.pagina),v])).entries()].map(([,v])=>_tipoBadge(v.tipo,v.pagina)).join('');
+        const pv = s.mensajes.find(m=>m.role==='user')?.content?.slice(0,70) || '';
         const dt = new Date(s.last_at);
         const dtStr = `${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
-        return `<div class="merge-item" data-key="${k}" data-text="${pv.toLowerCase()}" onclick="doMerge('${sourceKey}','${k}')"
-          style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s"
-          onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background=''">
-          <span style="font-size:16px">${icono}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pv.replace(/</g,'&lt;')}</div>
-            <div style="font-size:11px;color:#9ca3af">${dtStr} · ${s.mensajes.length} msg</div>
+        const searchText = [displayName, firstId, pv].join(' ').toLowerCase().replace(/"/g,'');
+        return `<div class="merge-item" data-key="${k}" data-text="${searchText}" onclick="doMerge('${sourceKey}','${k}')"
+          style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:background .12s"
+          onmouseover="this.style.background='#f5f3ff';this.style.borderColor='#c4b5fd'" onmouseout="this.style.background='';this.style.borderColor='#e5e7eb'">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:${pv?'4':'0'}px">
+            ${badges}
+            <strong style="font-size:13px;color:#111;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName.replace(/</g,'&lt;')}</strong>
+            <span style="font-size:11px;color:#9ca3af;white-space:nowrap;flex-shrink:0">${dtStr} · ${s.mensajes.length} msg</span>
           </div>
+          ${pv ? `<div style="font-size:12px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:2px">"${pv.replace(/</g,'&lt;')}"</div>` : ''}
         </div>`;
       }).join('')}
     </div>
@@ -1622,11 +1635,10 @@ async function sendWaReply(btn) {
 }
 
 const _CANAL_CFG = {
-  chat:         { bg:'#6C5CE4', txt:'#fff', label:'💬 Chat Attia',    filter:'chat' },
-  whatsapp:     { bg:'#128C7E', txt:'#fff', label:'📱 WhatsApp',       filter:'whatsapp' },
-  wa_business:  { bg:'#25D366', txt:'#fff', label:'📲 WA Business',    filter:'wa_business' },
-  messenger:    { bg:'#0084FF', txt:'#fff', label:'💬 Messenger',       filter:'messenger' },
-  instagram:    { bg:'#C13584', txt:'#fff', label:'📸 Instagram',       filter:'instagram' },
+  chat:      { bg:'#6C5CE4', txt:'#fff', label:'💬 Chat Attia' },
+  whatsapp:  { bg:'#25D366', txt:'#fff', label:'📲 WhatsApp' },
+  messenger: { bg:'#0084FF', txt:'#fff', label:'💬 Messenger' },
+  instagram: { bg:'#C13584', txt:'#fff', label:'📸 Instagram' },
 };
 function _canalKey(tipo, pagina) {
   if (tipo === 'whatsapp') return 'whatsapp';
@@ -1634,7 +1646,7 @@ function _canalKey(tipo, pagina) {
   if (tipo === 'whatsapp_msg') {
     if (pagina === 'messenger') return 'messenger';
     if (pagina === 'instagram') return 'instagram';
-    return 'wa_business';
+    return 'whatsapp';
   }
   return 'chat';
 }
@@ -1652,18 +1664,15 @@ function renderWebLeads(filter) {
   const filterEl = document.getElementById('leads-filter');
   const sessions = window._wlSessions || {};
   const order = window._wlOrder || [];
-  // Contar por canal para mostrar en filtros
-  const counts = { all: 0, chat: 0, whatsapp: 0, wa_business: 0, messenger: 0, instagram: 0 };
+  const counts = { all: 0, chat: 0, whatsapp: 0, messenger: 0, instagram: 0 };
   order.forEach(k => { counts.all++; Object.values(sessions[k].sub).forEach(v => { const ck = _canalKey(v.tipo, v.pagina); if (counts[ck] !== undefined) counts[ck]++; }); });
-  // Render filtros
   if (filterEl) {
     const FILTROS = [
       { key:'all', label:'Todos' },
       { key:'chat', label:'💬 Chat Attia' },
-      { key:'wa_business', label:'📲 WA Business' },
+      { key:'whatsapp', label:'📲 WhatsApp' },
       { key:'messenger', label:'💬 Messenger' },
       { key:'instagram', label:'📸 Instagram' },
-      { key:'whatsapp', label:'📱 WhatsApp' },
     ];
     filterEl.innerHTML = FILTROS.filter(f => f.key==='all' || counts[f.key]>0).map(f => {
       const cfg = f.key === 'all' ? null : _CANAL_CFG[f.key];
@@ -1682,35 +1691,46 @@ function renderWebLeads(filter) {
     el.innerHTML = `<div style="text-align:center;padding:40px;color:#9ca3af;font-size:14px">No hay conversaciones de este canal aún.</div>`;
     return;
   }
+  const BORDER_CLR = { whatsapp:'#86efac', messenger:'#93c5fd', instagram:'#f9a8d4', chat:'#e5e7eb' };
   el.innerHTML = filtered.map(sid => {
     const s = sessions[sid];
     const subList = Object.entries(s.sub);
     const isMerged = subList.length > 1;
     const dominante = (() => { const tipos = subList.map(([,v])=>v.tipo); return tipos.includes('whatsapp_msg')?'whatsapp_msg':tipos.includes('whatsapp')?'whatsapp':'chat'; })();
-    const isWa = dominante === 'whatsapp';
-    const isWaMsg = dominante === 'whatsapp_msg';
-    const waSub = subList.find(([,v]) => v.tipo === 'whatsapp_msg');
-    const replyTo = waSub ? waSub[0] : null;
-    const replyCanal = waSub ? (waSub[1].pagina || 'whatsapp') : null;
+    const isWaChannel = dominante !== 'chat';
+    const replyTo = subList.find(([,v]) => v.tipo === 'whatsapp_msg')?.[0] || null;
+    const replyCanal = replyTo ? (subList.find(([k]) => k===replyTo)?.[1]?.pagina || 'whatsapp') : null;
+    const canalDom = _canalKey(dominante, replyCanal);
+    const dominantCfg = _CANAL_CFG[canalDom];
     const primerMsg = s.mensajes.find(m => m.role === 'user');
-    const contactName = primerMsg?.name || (replyTo || sid);
+    const waSubEntry = subList.find(([,v]) => v.tipo === 'whatsapp_msg');
+    const contactName = primerMsg?.name || waSubEntry?.[1]?.name
+      || (replyTo && /^\d+$/.test(replyTo) ? '+'+replyTo : null)
+      || (dominante !== 'chat' ? sid.slice(0,20) : null);
     const preview = primerMsg ? primerMsg.content.slice(0, 100) + (primerMsg.content.length > 100 ? '...' : '') : '—';
     const dt = new Date(s.last_at);
     const dtStr = `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
     const badgesHtml = isMerged
-      ? [...new Map(subList.map(([,v])=>[_canalKey(v.tipo,v.pagina),v])).entries()].map(([k,v])=>_tipoBadge(v.tipo,v.pagina)).join('')
+      ? [...new Map(subList.map(([,v])=>[_canalKey(v.tipo,v.pagina),v])).entries()].map(([,v])=>_tipoBadge(v.tipo,v.pagina)).join('')
       : _tipoBadge(dominante, s.pagina);
-    const mergeBtn = `<button onclick="event.stopPropagation();openMergePicker('${sid}')" title="Fusionar"
+    const mergeBtn = `<button onclick="event.stopPropagation();openMergePicker('${sid}')" title="Fusionar con otra conversación"
       style="font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;cursor:pointer;font-family:inherit;line-height:1.4">🔗</button>`;
+    // Chips de sub-sesiones fusionadas: canal + nombre/teléfono + × desvincular
     const subBadgesHtml = isMerged ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">
-      ${subList.map(([ssid,sv])=>`<span style="font-size:10px;background:#f3f4f6;color:#6b7280;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px">
-        ${_CANAL_CFG[_canalKey(sv.tipo,sv.pagina)].label.split(' ')[0]} ${ssid.length>20?ssid.slice(0,18)+'…':ssid}
-        <span onclick="event.stopPropagation();doUnmerge('${ssid}')" style="cursor:pointer;color:#9ca3af;font-size:12px">×</span>
-      </span>`).join('')}
+      ${subList.map(([ssid,sv])=>{
+        const cfg = _CANAL_CFG[_canalKey(sv.tipo,sv.pagina)];
+        const displayId = sv.name || (/^\d+$/.test(ssid) ? '+'+ssid : 'Chat');
+        return `<span style="font-size:10px;background:${cfg.bg}18;color:#333;border:1px solid ${cfg.bg}50;padding:2px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:4px">
+          <span style="width:6px;height:6px;border-radius:50%;background:${cfg.bg};flex-shrink:0"></span>
+          ${cfg.label.split(' ').slice(1).join(' ')} · ${(displayId.length>22?displayId.slice(0,20)+'…':displayId).replace(/</g,'&lt;')}
+          <span onclick="event.stopPropagation();doUnmerge('${ssid}')" title="Desvincular" style="cursor:pointer;color:#9ca3af;font-size:12px;margin-left:2px">×</span>
+        </span>`;
+      }).join('')}
     </div>` : '';
+    // Burbujas: usuario en color del canal, bot en Attia purple (WA) o gris (chat)
     const bubblesHtml = s.mensajes.map(m => {
       const isUser = m.role === 'user';
-      const cfg = isWaMsg ? (isUser?_CANAL_CFG.wa_business:_CANAL_CFG.chat) : (isUser?_CANAL_CFG.chat:{bg:'#f3f4f6',txt:'#1f2937'});
+      const cfg = isWaChannel ? (isUser ? dominantCfg : _CANAL_CFG.chat) : (isUser ? _CANAL_CFG.chat : {bg:'#f3f4f6',txt:'#1f2937'});
       return `<div style="display:flex;${isUser?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:8px">
         <div style="max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;background:${cfg.bg};color:${cfg.txt};${isUser?'border-bottom-right-radius:3px':'border-bottom-left-radius:3px'}">
           ${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
@@ -1730,11 +1750,9 @@ function renderWebLeads(filter) {
           style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit">Enviar</button>
       </div>
     </div>` : '';
-    const chatHtml = isWa
-      ? `<div style="padding:12px;background:#e7f9ef;border-radius:8px;font-size:13px;color:#065f46">Clic en botón WhatsApp — mensaje pre-cargado.<br><br><strong>Mensaje:</strong> ${primerMsg?.content?.replace(/</g,'&lt;')||'—'}</div>`
-      : bubblesHtml + replyHtml;
-    const borderColor = isMerged?'#c4b5fd':isWaMsg?(replyCanal==='messenger'?'#93c5fd':replyCanal==='instagram'?'#f9a8d4':'#86efac'):isWa?'#6ee7b7':'#e5e7eb';
-    const contactInfo = (isWaMsg||isMerged) ? `<div style="font-size:12px;color:#6b7280;margin-bottom:1px">📞 ${contactName.replace(/</g,'&lt;')}</div>` : '';
+    const chatHtml = bubblesHtml + replyHtml;
+    const borderColor = isMerged ? '#c4b5fd' : (BORDER_CLR[canalDom] || '#e5e7eb');
+    const contactInfo = (isWaChannel || isMerged) && contactName ? `<div style="font-size:12px;color:#6b7280;margin-bottom:1px">📞 ${contactName.toString().replace(/</g,'&lt;')}</div>` : '';
     return `<div style="background:#fff;border:1px solid ${borderColor};border-radius:12px;margin-bottom:10px;overflow:hidden">
       <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.lead-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(180deg)'"
         style="padding:13px 15px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;user-select:none">
@@ -1785,7 +1803,10 @@ async function cargarWebLeads() {
         sessionOrder.push(key);
       }
       const s = sessions[key];
-      if (!s.sub[row.session_id]) s.sub[row.session_id] = { tipo: row.tipo || 'chat', pagina: row.pagina };
+      if (!s.sub[row.session_id]) {
+        const nameFromMsg = (row.mensajes || []).find(m => m.role === 'user' && m.name);
+        s.sub[row.session_id] = { tipo: row.tipo || 'chat', pagina: row.pagina, name: nameFromMsg?.name || null };
+      }
       s.mensajes = [...(row.mensajes || []), ...s.mensajes];
       if (row.created_at > s.last_at) s.last_at = row.created_at;
       if (row.created_at < s.first_at) s.first_at = row.created_at;
