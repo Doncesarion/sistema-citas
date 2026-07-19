@@ -54,7 +54,8 @@ function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, neg
     ${profesional ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${he(profesional)}</span></td></tr>` : ''}
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:600;">${he(fecha)}</span></td></tr>
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hora</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:600;">${he(hora)}</span></td></tr>
-    ${servicio ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Servicio</span><br><span style="color:#2d2d2d;font-size:15px;">${he(servicio)}</span></td></tr>` : ''}
+    ${servicio   ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Servicio</span><br><span style="color:#2d2d2d;font-size:15px;">${he(servicio)}</span></td></tr>` : ''}
+    ${direccion  ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Dirección</span><br><span style="color:#2d2d2d;font-size:14px;">${he(direccion)}</span></td></tr>` : ''}
   </table>
   ${mensaje_extra ? `<p style="margin:20px 0 0;color:#374151;font-size:13px;line-height:1.6;text-align:left;background:#f9f8ff;border-radius:8px;padding:12px 16px">${he(mensaje_extra).replace(/\n/g,'<br>')}</p>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">¿Necesitas cambios? <a href="${gestionUrl}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a></p>
@@ -206,7 +207,7 @@ async function procesarRecordatorios(sh, shJson) {
 
   try {
     const rCli = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,recordatorios_config,canales_meta`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,direccion,recordatorios_config,canales_meta`,
       { headers: sh }
     );
     const clientes = await rCli.json();
@@ -254,7 +255,7 @@ async function procesarRecordatorios(sh, shJson) {
             const horaFmt      = cita.hora?.slice(0, 5) || '';
             const profNombre   = cita.especialistas?.nombre || '';
             const negocioNombre = cli.nombre_negocio || 'tu negocio';
-            const vars = { nombre: cita.nombre_paciente || 'Estimado/a', fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: cita.servicio || '', negocio: negocioNombre };
+            const vars = { nombre: cita.nombre_paciente || 'Estimado/a', fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: cita.servicio || '', negocio: negocioNombre, direccion: cli.direccion || '' };
 
             let enviado = false;
 
@@ -270,7 +271,7 @@ async function procesarRecordatorios(sh, shJson) {
                   to: [cita.email_paciente],
                   subject: asunto,
                   headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
-                  html: emailRecordatorioHtml({ nombre: vars.nombre, fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: vars.servicio, negocio: negocioNombre, intro: renderTemplate(rec.email_intro || '', vars), mensaje_extra: mensajeExtra, cita_id: cita.id })
+                  html: emailRecordatorioHtml({ nombre: vars.nombre, fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: vars.servicio, negocio: negocioNombre, direccion: cli.direccion || '', intro: renderTemplate(rec.email_intro || '', vars), mensaje_extra: mensajeExtra, cita_id: cita.id })
                 })
               });
               if (emailRes.ok) { enviados++; enviado = true; }
@@ -385,7 +386,7 @@ export default async function handler(req, res) {
     const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
 
     const rCli = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=email,nombre_negocio&limit=1`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=email,nombre_negocio,direccion&limit=1`,
       { headers: sh }
     );
     const [cli] = await rCli.json().catch(() => []);
@@ -399,12 +400,13 @@ export default async function handler(req, res) {
       hora:        '15:00',
       profesional: (body.profesional || '').trim() || 'Dr. Ejemplo',
       servicio:    (body.servicio    || '').trim() || 'Consulta',
-      negocio:     cli?.nombre_negocio || 'Tu negocio'
+      negocio:     cli?.nombre_negocio || 'Tu negocio',
+      direccion:   cli?.direccion || ''
     };
     const asuntoFinal  = renderTemplate(body.asunto  || 'Recordatorio: tu cita en {negocio}', vars);
     const mensajeFinal = renderTemplate(body.mensaje || '', vars);
     const introFinal = renderTemplate(body.intro || '', vars);
-    const htmlBody = emailRecordatorioHtml({ ...vars, intro: introFinal, mensaje_extra: mensajeFinal, cita_id: null });
+    const htmlBody = emailRecordatorioHtml({ ...vars, intro: introFinal, mensaje_extra: mensajeFinal, direccion: vars.direccion, cita_id: null });
 
     try {
       const r = await fetch('https://api.resend.com/emails', {

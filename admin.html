@@ -2566,6 +2566,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                     <button type="button" onclick="insertarVariable('rf-email-intro','{negocio}')" class="vchip">{negocio}</button>
                     <button type="button" onclick="insertarVariable('rf-email-intro','{profesional}')" class="vchip">{profesional}</button>
                     <button type="button" onclick="insertarVariable('rf-email-intro','{servicio}')" class="vchip">{servicio}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-intro','{direccion}')" class="vchip">{direccion}</button>
                   </div>
                 </div>
                 <div>
@@ -2578,6 +2579,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                     <button type="button" onclick="insertarVariable('rf-email-mensaje','{negocio}')" class="vchip">{negocio}</button>
                     <button type="button" onclick="insertarVariable('rf-email-mensaje','{profesional}')" class="vchip">{profesional}</button>
                     <button type="button" onclick="insertarVariable('rf-email-mensaje','{servicio}')" class="vchip">{servicio}</button>
+                    <button type="button" onclick="insertarVariable('rf-email-mensaje','{direccion}')" class="vchip">{direccion}</button>
                   </div>
                 </div>
               </div>
@@ -5581,6 +5583,11 @@ function _tiempoLabel(t) {
 
 async function loadRecordatorios() {
   try {
+    // Cargar dirección del negocio para la vista previa
+    const rNeg = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${JSON.parse(localStorage.getItem('attempo_user')||'{}').cliente_id}&select=direccion&limit=1`, { headers: _SH });
+    const [negData] = await rNeg.json().catch(() => []);
+    if (negData?.direccion) _negocioDireccion = negData.direccion;
+
     const r = await fetch('/api/slots?resource=recordatorios_config', { headers: _citasH() });
     if (!r.ok) { renderRecLista(); updateRecPreview(); updatePromoPreview(); return; }
     const cfg = await r.json();
@@ -5893,6 +5900,8 @@ function setRecTab(tab) {
   updateRecPreview();
 }
 
+let _negocioDireccion = '';
+
 function _recVars() {
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
   return {
@@ -5901,7 +5910,8 @@ function _recVars() {
     hora:        '15:00',
     profesional: 'Dr. Martínez',
     servicio:    'Consulta',
-    negocio:     u.nombre_negocio || 'Tu negocio'
+    negocio:     u.nombre_negocio || 'Tu negocio',
+    direccion:   _negocioDireccion || 'Av. Ejemplo 123, Santiago'
   };
 }
 
@@ -5912,7 +5922,8 @@ function _recReplace(tpl, vars) {
     .replace(/\{hora\}/g,        vars.hora)
     .replace(/\{profesional\}/g, vars.profesional)
     .replace(/\{servicio\}/g,    vars.servicio)
-    .replace(/\{negocio\}/g,     vars.negocio);
+    .replace(/\{negocio\}/g,     vars.negocio)
+    .replace(/\{direccion\}/g,   vars.direccion || '');
 }
 
 function _recEmailHtml(asunto, mensajeExtra, vars, intro) {
@@ -5934,10 +5945,11 @@ function _recEmailHtml(asunto, mensajeExtra, vars, intro) {
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;font-weight:700">Recordatorio de cita</h2>
   <p style="margin:0 0 22px;color:#6b7280;font-size:14px">Hola <strong>${he(vars.nombre)}</strong>, ${he(introText)}</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:16px">
-    <tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Profesional</span><br><span style="color:#2d2d2d;font-size:15px">${he(vars.profesional)}</span></td></tr>
+    ${vars.profesional ? `<tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Profesional</span><br><span style="color:#2d2d2d;font-size:15px">${he(vars.profesional)}</span></td></tr>` : ''}
     <tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:600">${he(vars.fecha)}</span></td></tr>
     <tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Hora</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:600">${he(vars.hora)}</span></td></tr>
-    <tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Servicio</span><br><span style="color:#2d2d2d;font-size:15px">${he(vars.servicio)}</span></td></tr>
+    ${vars.servicio ? `<tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Servicio</span><br><span style="color:#2d2d2d;font-size:15px">${he(vars.servicio)}</span></td></tr>` : ''}
+    ${vars.direccion ? `<tr><td style="padding:6px 0;text-align:center"><span style="color:#6C5CE4;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Dirección</span><br><span style="color:#2d2d2d;font-size:14px">${he(vars.direccion)}</span></td></tr>` : ''}
   </table>
   ${msg ? `<div style="margin-top:16px;padding:14px 16px;background:#f9f8ff;border-radius:10px;border-left:3px solid #6C5CE4;text-align:left"><p style="margin:0;font-size:13px;color:#374151;line-height:1.6">${he(msg).replace(/\n/g,'<br>')}</p></div>` : ''}
   <div style="margin-top:20px">
