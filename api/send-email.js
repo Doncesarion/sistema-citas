@@ -397,8 +397,8 @@ export default async function handler(req, res) {
       nombre:      'Cliente de prueba',
       fecha:       new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'America/Santiago' }),
       hora:        '15:00',
-      profesional: 'Dr. Ejemplo',
-      servicio:    'Consulta',
+      profesional: (body.profesional || '').trim() || 'Dr. Ejemplo',
+      servicio:    (body.servicio    || '').trim() || 'Consulta',
       negocio:     cli?.nombre_negocio || 'Tu negocio'
     };
     const asuntoFinal  = renderTemplate(body.asunto  || 'Recordatorio: tu cita en {negocio}', vars);

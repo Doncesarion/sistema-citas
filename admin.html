@@ -2613,13 +2613,28 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div style="padding:14px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--b1)">
             <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">📧 Email</div>
             <select id="prueba-email-rec" class="fi" onchange="actualizarPreviaEmailPrueba()" style="padding:7px 10px;font-size:12px;width:100%"></select>
-            <div id="prueba-email-preview" style="display:none;background:var(--bg2);border:1px solid var(--b1);border-radius:7px;overflow:hidden">
-              <div style="padding:7px 12px;border-bottom:1px solid var(--b1);background:var(--bg)">
-                <span style="font-size:10px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Asunto</span>
-                <div id="prueba-email-prev-asunto" style="font-size:12px;font-weight:600;color:var(--t1);margin-top:2px"></div>
-              </div>
-              <div id="prueba-email-prev-msg" style="padding:8px 12px;font-size:11px;color:var(--t3);white-space:pre-wrap;line-height:1.6"></div>
+            <!-- Asunto preview -->
+            <div id="prueba-email-preview" style="display:none;padding:7px 12px;background:var(--bg2);border:1px solid var(--b1);border-radius:7px">
+              <span style="font-size:10px;color:var(--t4);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Asunto</span>
+              <div id="prueba-email-prev-asunto" style="font-size:12px;font-weight:600;color:var(--t1);margin-top:2px"></div>
             </div>
+            <!-- Datos del test -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <label style="font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.05em">Profesional</label>
+                <input id="prueba-email-profesional" class="fi" value="Dr. Ejemplo" style="padding:6px 10px;font-size:12px">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <label style="font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.05em">Servicio</label>
+                <input id="prueba-email-servicio" class="fi" value="Consulta" style="padding:6px 10px;font-size:12px">
+              </div>
+            </div>
+            <!-- Mensaje adicional -->
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <label style="font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.05em">Mensaje adicional (aparece bajo los datos de la cita)</label>
+              <textarea id="prueba-email-mensaje" class="fi" rows="3" placeholder="Ej: Recuerda llegar 5 minutos antes con tu documento de identidad." style="padding:6px 10px;font-size:12px;resize:vertical"></textarea>
+            </div>
+            <!-- Enviar -->
             <div style="display:flex;gap:8px;align-items:center">
               <input id="prueba-email-dest" type="email" class="fi" placeholder="correo@ejemplo.com" style="flex:1;padding:7px 10px;font-size:12px">
               <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="white-space:nowrap">Enviar →</button>
@@ -5902,22 +5917,21 @@ function _poblarSelectsPrueba() {
 }
 
 function actualizarPreviaEmailPrueba() {
-  const sel    = document.getElementById('prueba-email-rec');
-  const wrap   = document.getElementById('prueba-email-preview');
-  const elAsu  = document.getElementById('prueba-email-prev-asunto');
-  const elMsg  = document.getElementById('prueba-email-prev-msg');
+  const sel   = document.getElementById('prueba-email-rec');
+  const wrap  = document.getElementById('prueba-email-preview');
+  const elAsu = document.getElementById('prueba-email-prev-asunto');
   if (!sel || !wrap) return;
   const emailRecs = (_recLista || []).filter(r => r.activo && r.email_activo);
   const rec = emailRecs[parseInt(sel.value)] || null;
   if (!rec) { wrap.style.display = 'none'; return; }
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
   const negocio = u.nombre_negocio || 'Tu negocio';
-  const hoy = new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'America/Santiago' });
-  const vars = { nombre: 'Cliente de prueba', negocio, fecha: hoy, hora: '15:00', profesional: 'Dr. Ejemplo', servicio: 'Consulta' };
-  const render = t => (t || '').replace(/\{(\w+)\}/g, (_, k) => vars[k] || `{${k}}`);
+  const render = t => (t || '').replace(/\{(\w+)\}/g, (_, k) => ({ negocio, nombre: 'Cliente de prueba', fecha: 'hoy', hora: '15:00', profesional: 'profesional', servicio: 'servicio' })[k] || `{${k}}`);
   if (elAsu) elAsu.textContent = render(rec.email_asunto || 'Recordatorio: tu cita en {negocio}');
-  if (elMsg) elMsg.textContent = render(rec.email_mensaje || '') || '(sin mensaje adicional)';
   wrap.style.display = 'block';
+  // Pre-llenar mensaje adicional con el del recordatorio (sin sobreescribir si el usuario ya escribió algo)
+  const elMensaje = document.getElementById('prueba-email-mensaje');
+  if (elMensaje && !elMensaje._editado) elMensaje.value = rec.email_mensaje || '';
 }
 
 function actualizarPreviaWaPrueba() {
@@ -5944,17 +5958,19 @@ function actualizarPreviaWaPrueba() {
 async function enviarEmailDePrueba() {
   const btn = document.getElementById('btn-prueba-email');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-  const to    = (document.getElementById('prueba-email-dest')?.value || '').trim();
-  const selEl = document.getElementById('prueba-email-rec');
-  const emailRecs = (_recLista || []).filter(r => r.activo && r.email_activo);
-  const rec   = emailRecs[parseInt(selEl?.value ?? '0')] || null;
-  const asunto  = rec?.email_asunto  || document.getElementById('rf-email-asunto')?.value  || '';
-  const mensaje = rec?.email_mensaje || document.getElementById('rf-email-mensaje')?.value || '';
+  const to          = (document.getElementById('prueba-email-dest')?.value || '').trim();
+  const profesional = (document.getElementById('prueba-email-profesional')?.value || '').trim();
+  const servicio    = (document.getElementById('prueba-email-servicio')?.value || '').trim();
+  const mensaje     = (document.getElementById('prueba-email-mensaje')?.value || '').trim();
+  const selEl       = document.getElementById('prueba-email-rec');
+  const emailRecs   = (_recLista || []).filter(r => r.activo && r.email_activo);
+  const rec         = emailRecs[parseInt(selEl?.value ?? '0')] || null;
+  const asunto      = rec?.email_asunto || '';
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'email_prueba', to, asunto, mensaje })
+      body: JSON.stringify({ type: 'email_prueba', to, asunto, mensaje, profesional, servicio })
     });
     const data = await r.json().catch(()=>({}));
     if (r.ok) toast('✓ Email de prueba enviado' + (to ? ` a ${to}` : ''));
@@ -5962,6 +5978,10 @@ async function enviarEmailDePrueba() {
   } catch(e) { toast('Error al enviar el email de prueba'); }
   if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; }
 }
+// Marcar el textarea como editado manualmente para no sobreescribirlo al cambiar el select
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('prueba-email-mensaje')?.addEventListener('input', function() { this._editado = true; });
+});
 
 async function enviarWaDePrueba() {
   const btn = document.getElementById('btn-prueba-wa');
