@@ -389,7 +389,9 @@ export default async function handler(req, res) {
       { headers: sh }
     );
     const [cli] = await rCli.json().catch(() => []);
-    if (!cli?.email) return res.status(400).json({ error: 'No hay email configurado para este negocio. Agrégalo en Configuración → General.' });
+
+    const destEmail = (body.to || '').trim() || cli?.email;
+    if (!destEmail) return res.status(400).json({ error: 'Ingresa un email destino o configura el email del negocio en Configuración → General.' });
 
     const vars = {
       nombre:      'Cliente de prueba',
@@ -397,7 +399,7 @@ export default async function handler(req, res) {
       hora:        '15:00',
       profesional: 'Dr. Ejemplo',
       servicio:    'Consulta',
-      negocio:     cli.nombre_negocio || 'Tu negocio'
+      negocio:     cli?.nombre_negocio || 'Tu negocio'
     };
     const asuntoFinal  = renderTemplate(body.asunto  || 'Recordatorio: tu cita en {negocio}', vars);
     const mensajeFinal = renderTemplate(body.mensaje || '', vars);
@@ -409,7 +411,7 @@ export default async function handler(req, res) {
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Attempo <contacto@attempo.cl>',
-          to: [cli.email],
+          to: [destEmail],
           subject: `[Prueba] ${asuntoFinal}`,
           html: htmlBody
         })
@@ -418,6 +420,47 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     } catch(e) {
       console.error('email_prueba exception:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
+  // — WhatsApp de prueba —
+  if (body.type === 'wa_prueba') {
+    const phone = (body.phone || '').replace(/\D/g, '');
+    if (!phone) return res.status(400).json({ error: 'Ingresa un número de teléfono' });
+
+    const token = req.headers['x-session-token'];
+    if (!token) return res.status(401).json({ error: 'No autorizado' });
+    const dot = token.lastIndexOf('.');
+    const parts = token.slice(0, dot).split(':');
+    const cliente_id = parts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+
+    const rCli = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,canales_meta&limit=1`,
+      { headers: sh }
+    );
+    const [cli] = await rCli.json().catch(() => []);
+    const waPhoneId = cli?.canales_meta?.wa_phone_number_id;
+    const waToken   = cli?.canales_meta?.wa_token;
+    if (!waPhoneId || !waToken) return res.status(400).json({ error: 'No hay credenciales de WhatsApp configuradas para este negocio' });
+
+    const negocio = cli.nombre_negocio || 'Tu negocio';
+    const fechaHoy = new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'America/Santiago' });
+    const vars = { nombre: 'Cliente de prueba', fecha: fechaHoy, hora: '15:00', negocio };
+    const waBody = `[Prueba] ${renderTemplate(body.mensaje || 'Hola {nombre}, te recordamos tu cita el {fecha} a las {hora} en {negocio}.', vars)}`;
+
+    try {
+      const waRes = await fetch(`https://graph.facebook.com/v20.0/${waPhoneId}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${waToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: waBody } })
+      });
+      if (!waRes.ok) { const err = await waRes.text(); console.error('wa_prueba error:', err); return res.status(500).json({ error: 'Error al enviar WhatsApp' }); }
+      return res.status(200).json({ ok: true });
+    } catch(e) {
+      console.error('wa_prueba exception:', e.message);
       return res.status(500).json({ error: 'Error interno' });
     }
   }

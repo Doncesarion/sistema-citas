@@ -2605,7 +2605,21 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <!-- Acciones globales -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:2px">
           <button class="btn-sm" id="btn-enviar-rec" onclick="enviarRecordatoriosAhora()" style="color:var(--a);border-color:rgba(108,92,228,0.3)">Enviar pendientes ahora</button>
-          <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="color:var(--t2);border-color:var(--b1)">Enviar prueba →</button>
+          <button class="btn-sm" onclick="togglePanelPrueba()" style="color:var(--t2);border-color:var(--b1)">Enviar prueba →</button>
+        </div>
+        <!-- Panel de prueba -->
+        <div id="panel-prueba-rec" style="display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:2px">Enviar prueba de recordatorio</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--t3);min-width:76px">📧 Email</span>
+            <input id="prueba-email-dest" type="email" class="fi" placeholder="correo@ejemplo.com" style="flex:1;padding:6px 10px;font-size:12px">
+            <button class="btn-sm" id="btn-prueba-email" onclick="enviarEmailDePrueba()" style="white-space:nowrap">Enviar →</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--t3);min-width:76px">📲 WhatsApp</span>
+            <input id="prueba-wa-phone" type="tel" class="fi" placeholder="+56912345678" style="flex:1;padding:6px 10px;font-size:12px">
+            <button class="btn-sm" id="btn-prueba-wa" onclick="enviarWaDePrueba()" style="white-space:nowrap;color:#25D366;border-color:rgba(37,211,102,0.3)">Enviar →</button>
+          </div>
         </div>
       </div>
 
@@ -5845,22 +5859,48 @@ function updateRecPreview() {
   if (waNeg) waNeg.textContent = vars.negocio;
 }
 
+function togglePanelPrueba() {
+  const panel = document.getElementById('panel-prueba-rec');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
+
 async function enviarEmailDePrueba() {
   const btn = document.getElementById('btn-prueba-email');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-  const asunto  = document.getElementById('rec-email-asunto')?.value  || '';
-  const mensaje = document.getElementById('rec-email-mensaje')?.value || '';
+  const to      = (document.getElementById('prueba-email-dest')?.value || '').trim();
+  const asunto  = document.getElementById('rf-email-asunto')?.value  || '';
+  const mensaje = document.getElementById('rf-email-mensaje')?.value || '';
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'email_prueba', asunto, mensaje })
+      body: JSON.stringify({ type: 'email_prueba', to, asunto, mensaje })
     });
     const data = await r.json().catch(()=>({}));
-    if (r.ok) toast('✓ Email de prueba enviado a tu correo');
+    if (r.ok) toast('✓ Email de prueba enviado' + (to ? ` a ${to}` : ''));
     else toast('Error: ' + (data.error || r.status));
   } catch(e) { toast('Error al enviar el email de prueba'); }
-  if (btn) { btn.disabled = false; btn.textContent = 'Enviar prueba →'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; }
+}
+
+async function enviarWaDePrueba() {
+  const btn = document.getElementById('btn-prueba-wa');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  const phone   = (document.getElementById('prueba-wa-phone')?.value || '').trim();
+  const mensaje = document.getElementById('rf-wa-mensaje')?.value || '';
+  if (!phone) { toast('Ingresa un número de teléfono'); if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; } return; }
+  try {
+    const r = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'wa_prueba', phone, mensaje })
+    });
+    const data = await r.json().catch(()=>({}));
+    if (r.ok) toast('✓ WhatsApp de prueba enviado a ' + phone);
+    else toast('Error: ' + (data.error || r.status));
+  } catch(e) { toast('Error al enviar el WhatsApp de prueba'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; }
 }
 
 /* ════ CAMPAÑAS Y PROMOCIONES ════ */
