@@ -1,6 +1,17 @@
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, respuesta) {
+  const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const mensajes = [{ role: 'user', content: mensaje, name: canal_user_name || canal_user_id }];
+  if (respuesta) mensajes.push({ role: 'assistant', content: respuesta });
+  fetch(`${SUPABASE_URL}/rest/v1/web_leads`, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ session_id: canal_user_id, mensajes, tipo: 'whatsapp_msg', pagina: canal })
+  }).catch(e => console.error('[meta-lead]', e.message));
+}
+
 function incUso(cliente_id, campo) {
   const mes = new Date().toISOString().slice(0, 7);
   fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_uso`, {
@@ -75,7 +86,19 @@ export default async function handler(req, res) {
     const r = await fetch(supaUrl, { headers: sh });
     const [cli] = await r.json();
     if (!cli) {
-      console.log('meta-webhook: cliente no encontrado para', channelKey, channelValue);
+      console.log('meta-webhook: cliente no encontrado para', channelKey, channelValue, '— guardando como lead attempo');
+      // Mensaje a un número/canal de attempo (no de un cliente) → lead
+      const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+      await fetch(`${SUPABASE_URL}/rest/v1/web_leads`, {
+        method: 'POST',
+        headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          session_id: canal_user_id,
+          mensajes: [{ role: 'user', content: mensaje, name: canal_user_name || canal_user_id }],
+          tipo: 'whatsapp_msg',
+          pagina: canal
+        })
+      }).catch(e => console.error('[meta-lead]', e.message));
       return res.status(200).end();
     }
     cliente_id  = cli.id;
@@ -117,6 +140,14 @@ export default async function handler(req, res) {
     console.error('meta-webhook: error buscando cliente:', e.message);
     return res.status(200).end();
   }
+
+  // Detectar si es un canal propio de attempo (para capturar como lead)
+  const attempoChannels = [
+    process.env.ATTEMPO_WA_PHONE_ID,
+    process.env.ATTEMPO_FB_PAGE_ID,
+    process.env.ATTEMPO_IG_ACCOUNT_ID
+  ].filter(Boolean);
+  const isAttempoChannel = !!(channelValue && attempoChannels.includes(channelValue));
 
   // ── Guardar conversación y mensaje entrante ───────────────────────────────
   let conversacion_id = null;
@@ -168,13 +199,18 @@ export default async function handler(req, res) {
     const botData = await botRes.json();
     if (botData.pausa) {
       console.log('meta-webhook: bot pausado para', canal_user_id);
+      if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
       return res.status(200).end();
     }
     respuesta = botData.respuesta || '';
   } catch (e) {
     console.error('meta-webhook: error llamando bot-chat:', e.message);
+    if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
     return res.status(200).end();
   }
+
+  // ── Guardar lead de attempo (usuario + respuesta del bot) ─────────────────
+  if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, respuesta);
 
   // ── Guardar respuesta del bot ─────────────────────────────────────────────
   if (respuesta && conversacion_id) {

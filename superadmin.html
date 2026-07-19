@@ -454,6 +454,7 @@
       Actualizar
     </button>
   </div>
+  <div id="leads-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
   <div id="leads-list"><div style="text-align:center;padding:40px;color:#9ca3af;font-size:14px">Cargando conversaciones...</div></div>
 </div>
 
@@ -1472,6 +1473,288 @@ function getSaToken() {
   try { return localStorage.getItem('sa_token') || ''; } catch(e) { return ''; }
 }
 
+function openMergePicker(sourceKey) {
+  const sessions = window._wlSessions || {};
+  const order = window._wlOrder || [];
+  const others = order.filter(k => k !== sourceKey);
+  if (!others.length) { toast('No hay otras conversaciones para fusionar'); return; }
+  const src = sessions[sourceKey];
+  const srcPreview = src.mensajes.find(m => m.role==='user')?.content?.slice(0,40) || sourceKey.slice(0,20);
+
+  let overlay = document.getElementById('merge-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'merge-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center';
+    overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:95vw;max-height:70vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="font-size:15px;font-weight:700;color:#111">Fusionar conversación</div>
+    <div style="font-size:12px;color:#6b7280;background:#f9fafb;padding:8px 12px;border-radius:8px">Origen: <em>${srcPreview.replace(/</g,'&lt;')}…</em></div>
+    <input id="merge-search" placeholder="Buscar por mensaje o ID…" oninput="filterMergeList()" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:13px;font-family:inherit;outline:none">
+    <div id="merge-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px">
+      ${others.map(k => {
+        const s = sessions[k];
+        const tipos = [...new Set(Object.values(s.sub).map(v=>v.tipo))];
+        const icono = tipos.includes('whatsapp_msg') ? '📲' : tipos.includes('whatsapp') ? '📱' : '💬';
+        const pv = s.mensajes.find(m=>m.role==='user')?.content?.slice(0,60) || k.slice(0,30);
+        const dt = new Date(s.last_at);
+        const dtStr = `${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+        return `<div class="merge-item" data-key="${k}" data-text="${pv.toLowerCase()}" onclick="doMerge('${sourceKey}','${k}')"
+          style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s"
+          onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background=''">
+          <span style="font-size:16px">${icono}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pv.replace(/</g,'&lt;')}</div>
+            <div style="font-size:11px;color:#9ca3af">${dtStr} · ${s.mensajes.length} msg</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <button onclick="document.getElementById('merge-overlay').remove()" style="padding:8px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;color:#6b7280;font-size:13px;cursor:pointer;font-family:inherit">Cancelar</button>
+  </div>`;
+}
+
+function filterMergeList() {
+  const q = document.getElementById('merge-search')?.value.toLowerCase() || '';
+  document.querySelectorAll('.merge-item').forEach(el => {
+    el.style.display = !q || el.dataset.text.includes(q) ? '' : 'none';
+  });
+}
+
+async function doMerge(keyA, keyB) {
+  document.getElementById('merge-overlay')?.remove();
+  const sessions = window._wlSessions || {};
+  const subA = Object.keys(sessions[keyA]?.sub || {});
+  const subB = Object.keys(sessions[keyB]?.sub || {});
+  // Usar la primera session_id real de cada grupo
+  const sa = subA[0], sb = subB[0];
+  if (!sa || !sb) return;
+  try {
+    const r = await fetch('/api/usuarios-admin?action=merge-leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-sa-token': getSaToken() },
+      body: JSON.stringify({ session_a: sa, session_b: sb })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) { toast('✓ Conversaciones fusionadas'); cargarWebLeads(); }
+    else toastErr(d.error || 'Error al fusionar');
+  } catch(e) { toastErr('Error de red'); }
+}
+
+async function doUnmerge(sessionId) {
+  if (!confirm('¿Desvincular esta sesión del grupo?')) return;
+  try {
+    const r = await fetch('/api/usuarios-admin?action=unmerge-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-sa-token': getSaToken() },
+      body: JSON.stringify({ session_id: sessionId })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) { toast('Sesión desvinculada'); cargarWebLeads(); }
+    else toastErr(d.error || 'Error al desvincular');
+  } catch(e) { toastErr('Error de red'); }
+}
+
+async function toggleBotPausa(btn) {
+  const pausa = btn.dataset.pausa !== 'true'; // toggle
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/usuarios-admin?action=toggle-bot-pausa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-sa-token': getSaToken() },
+      body: JSON.stringify({ canal_user_id: btn.dataset.to, canal: btn.dataset.canal || 'whatsapp', pausa })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) {
+      btn.dataset.pausa = pausa ? 'true' : 'false';
+      if (pausa) {
+        btn.textContent = '⏸ Bot pausado';
+        btn.style.cssText = btn.style.cssText.replace(/background:[^;]+/, 'background:#fef3c7').replace(/color:[^;]+/, 'color:#92400e').replace(/border:[^;]+/, 'border:1px solid #fde68a');
+      } else {
+        btn.textContent = '🤖 Bot activo';
+        btn.style.cssText = btn.style.cssText.replace(/background:[^;]+/, 'background:#f0fdf4').replace(/color:[^;]+/, 'color:#15803d').replace(/border:[^;]+/, 'border:1px solid #d1fae5');
+      }
+      toast(pausa ? 'Bot pausado — tú controlas la conversación' : 'Bot reactivado');
+    } else { toastErr(d.error || 'Error al cambiar estado del bot'); }
+  } catch(e) { toastErr('Error de red'); }
+  finally { btn.disabled = false; }
+}
+
+async function sendWaReply(btn) {
+  const form = btn.closest('.wa-reply-form');
+  const ta = form.querySelector('textarea');
+  const mensaje = ta.value.trim();
+  if (!mensaje) return;
+  const to = btn.dataset.to;
+  const canal = btn.dataset.canal || 'whatsapp';
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+  try {
+    const r = await fetch('/api/usuarios-admin?action=send-wa-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-sa-token': getSaToken() },
+      body: JSON.stringify({ to, mensaje, canal })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) {
+      ta.value = '';
+      const bubble = document.createElement('div');
+      bubble.style.cssText = 'display:flex;justify-content:flex-start;margin-bottom:8px';
+      bubble.innerHTML = `<div style="max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;background:#6C5CE4;color:#fff;border-bottom-left-radius:3px">${mensaje.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+      form.insertAdjacentElement('beforebegin', bubble);
+      // Marcar bot como pausado en el toggle
+      const toggleBtn = form.querySelector('.bot-toggle');
+      if (toggleBtn && toggleBtn.dataset.pausa !== 'true') {
+        toggleBtn.dataset.pausa = 'true';
+        toggleBtn.textContent = '⏸ Bot pausado';
+        toggleBtn.style.background = '#fef3c7';
+        toggleBtn.style.color = '#92400e';
+        toggleBtn.style.borderColor = '#fde68a';
+      }
+      toast('✓ Mensaje enviado · Bot pausado automáticamente');
+    } else {
+      toastErr(d.error || 'Error al enviar');
+    }
+  } catch(e) { toastErr('Error de red'); }
+  finally { btn.disabled = false; btn.textContent = 'Enviar'; }
+}
+
+const _CANAL_CFG = {
+  chat:         { bg:'#6C5CE4', txt:'#fff', label:'💬 Chat Attia',    filter:'chat' },
+  whatsapp:     { bg:'#128C7E', txt:'#fff', label:'📱 WhatsApp',       filter:'whatsapp' },
+  wa_business:  { bg:'#25D366', txt:'#fff', label:'📲 WA Business',    filter:'wa_business' },
+  messenger:    { bg:'#0084FF', txt:'#fff', label:'💬 Messenger',       filter:'messenger' },
+  instagram:    { bg:'#C13584', txt:'#fff', label:'📸 Instagram',       filter:'instagram' },
+};
+function _canalKey(tipo, pagina) {
+  if (tipo === 'whatsapp') return 'whatsapp';
+  if (tipo === 'chat') return 'chat';
+  if (tipo === 'whatsapp_msg') {
+    if (pagina === 'messenger') return 'messenger';
+    if (pagina === 'instagram') return 'instagram';
+    return 'wa_business';
+  }
+  return 'chat';
+}
+function _tipoBadge(tipo, pagina) {
+  const cfg = _CANAL_CFG[_canalKey(tipo, pagina)];
+  return `<span style="font-size:11px;font-weight:700;color:${cfg.txt};background:${cfg.bg};padding:2px 9px;border-radius:6px">${cfg.label}</span>`;
+}
+function _sessionMatchesFilter(s, filter) {
+  if (filter === 'all') return true;
+  return Object.values(s.sub).some(v => _canalKey(v.tipo, v.pagina) === filter);
+}
+function renderWebLeads(filter) {
+  filter = filter || 'all';
+  const el = document.getElementById('leads-list');
+  const filterEl = document.getElementById('leads-filter');
+  const sessions = window._wlSessions || {};
+  const order = window._wlOrder || [];
+  // Contar por canal para mostrar en filtros
+  const counts = { all: 0, chat: 0, whatsapp: 0, wa_business: 0, messenger: 0, instagram: 0 };
+  order.forEach(k => { counts.all++; Object.values(sessions[k].sub).forEach(v => { const ck = _canalKey(v.tipo, v.pagina); if (counts[ck] !== undefined) counts[ck]++; }); });
+  // Render filtros
+  if (filterEl) {
+    const FILTROS = [
+      { key:'all', label:'Todos' },
+      { key:'chat', label:'💬 Chat Attia' },
+      { key:'wa_business', label:'📲 WA Business' },
+      { key:'messenger', label:'💬 Messenger' },
+      { key:'instagram', label:'📸 Instagram' },
+      { key:'whatsapp', label:'📱 WhatsApp' },
+    ];
+    filterEl.innerHTML = FILTROS.filter(f => f.key==='all' || counts[f.key]>0).map(f => {
+      const cfg = f.key === 'all' ? null : _CANAL_CFG[f.key];
+      const isActive = filter === f.key;
+      const activeBg = cfg ? cfg.bg : '#1f2937';
+      const style = isActive
+        ? `background:${activeBg};color:#fff;border:1px solid ${activeBg}`
+        : 'background:#fff;color:#6b7280;border:1px solid #e5e7eb';
+      return `<button onclick="renderWebLeads('${f.key}')" style="${style};font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;font-family:inherit;transition:all .15s">
+        ${f.label} <span style="font-weight:400;opacity:.75">${counts[f.key]}</span>
+      </button>`;
+    }).join('');
+  }
+  const filtered = order.filter(k => _sessionMatchesFilter(sessions[k], filter));
+  if (!filtered.length) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:#9ca3af;font-size:14px">No hay conversaciones de este canal aún.</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(sid => {
+    const s = sessions[sid];
+    const subList = Object.entries(s.sub);
+    const isMerged = subList.length > 1;
+    const dominante = (() => { const tipos = subList.map(([,v])=>v.tipo); return tipos.includes('whatsapp_msg')?'whatsapp_msg':tipos.includes('whatsapp')?'whatsapp':'chat'; })();
+    const isWa = dominante === 'whatsapp';
+    const isWaMsg = dominante === 'whatsapp_msg';
+    const waSub = subList.find(([,v]) => v.tipo === 'whatsapp_msg');
+    const replyTo = waSub ? waSub[0] : null;
+    const replyCanal = waSub ? (waSub[1].pagina || 'whatsapp') : null;
+    const primerMsg = s.mensajes.find(m => m.role === 'user');
+    const contactName = primerMsg?.name || (replyTo || sid);
+    const preview = primerMsg ? primerMsg.content.slice(0, 100) + (primerMsg.content.length > 100 ? '...' : '') : '—';
+    const dt = new Date(s.last_at);
+    const dtStr = `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const badgesHtml = isMerged
+      ? [...new Map(subList.map(([,v])=>[_canalKey(v.tipo,v.pagina),v])).entries()].map(([k,v])=>_tipoBadge(v.tipo,v.pagina)).join('')
+      : _tipoBadge(dominante, s.pagina);
+    const mergeBtn = `<button onclick="event.stopPropagation();openMergePicker('${sid}')" title="Fusionar"
+      style="font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;cursor:pointer;font-family:inherit;line-height:1.4">🔗</button>`;
+    const subBadgesHtml = isMerged ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">
+      ${subList.map(([ssid,sv])=>`<span style="font-size:10px;background:#f3f4f6;color:#6b7280;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px">
+        ${_CANAL_CFG[_canalKey(sv.tipo,sv.pagina)].label.split(' ')[0]} ${ssid.length>20?ssid.slice(0,18)+'…':ssid}
+        <span onclick="event.stopPropagation();doUnmerge('${ssid}')" style="cursor:pointer;color:#9ca3af;font-size:12px">×</span>
+      </span>`).join('')}
+    </div>` : '';
+    const bubblesHtml = s.mensajes.map(m => {
+      const isUser = m.role === 'user';
+      const cfg = isWaMsg ? (isUser?_CANAL_CFG.wa_business:_CANAL_CFG.chat) : (isUser?_CANAL_CFG.chat:{bg:'#f3f4f6',txt:'#1f2937'});
+      return `<div style="display:flex;${isUser?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:8px">
+        <div style="max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;background:${cfg.bg};color:${cfg.txt};${isUser?'border-bottom-right-radius:3px':'border-bottom-left-radius:3px'}">
+          ${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+        </div>
+      </div>`;
+    }).join('');
+    const replyHtml = replyTo ? `<div class="wa-reply-form" style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <button class="bot-toggle" data-to="${replyTo}" data-canal="${replyCanal}" data-pausa="false" onclick="toggleBotPausa(this)"
+          style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid #d1fae5;background:#f0fdf4;color:#15803d;cursor:pointer;font-family:inherit">🤖 Bot activo</button>
+        <span style="font-size:11px;color:#9ca3af">Enter envía · Shift+Enter nueva línea</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <textarea placeholder="Escribe tu respuesta…" rows="2" style="flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:13px;font-family:inherit;resize:none;outline:none"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendWaReply(this.closest('.wa-reply-form').querySelector('[data-to]'))}"></textarea>
+        <button data-to="${replyTo}" data-canal="${replyCanal}" onclick="sendWaReply(this)"
+          style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit">Enviar</button>
+      </div>
+    </div>` : '';
+    const chatHtml = isWa
+      ? `<div style="padding:12px;background:#e7f9ef;border-radius:8px;font-size:13px;color:#065f46">Clic en botón WhatsApp — mensaje pre-cargado.<br><br><strong>Mensaje:</strong> ${primerMsg?.content?.replace(/</g,'&lt;')||'—'}</div>`
+      : bubblesHtml + replyHtml;
+    const borderColor = isMerged?'#c4b5fd':isWaMsg?(replyCanal==='messenger'?'#93c5fd':replyCanal==='instagram'?'#f9a8d4':'#86efac'):isWa?'#6ee7b7':'#e5e7eb';
+    const contactInfo = (isWaMsg||isMerged) ? `<div style="font-size:12px;color:#6b7280;margin-bottom:1px">📞 ${contactName.replace(/</g,'&lt;')}</div>` : '';
+    return `<div style="background:#fff;border:1px solid ${borderColor};border-radius:12px;margin-bottom:10px;overflow:hidden">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.lead-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(180deg)'"
+        style="padding:13px 15px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;user-select:none">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap">
+            ${badgesHtml}
+            ${isMerged?'<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600">🔗 Fusionado</span>':''}
+            <span style="font-size:11px;color:#9ca3af">${s.mensajes.length} msg · ${dtStr}</span>
+            ${mergeBtn}
+          </div>
+          ${contactInfo}${subBadgesHtml}
+          <div style="font-size:13px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${preview.replace(/</g,'&lt;')}</div>
+        </div>
+        <svg class="lead-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:3px;transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div style="display:none;padding:15px;border-top:1px solid #f3f4f6;background:#fafafa">${chatHtml}</div>
+    </div>`;
+  }).join('');
+}
+
 async function cargarWebLeads() {
   const el = document.getElementById('leads-list');
   if (!el) return;
@@ -1490,60 +1773,26 @@ async function cargarWebLeads() {
       el.innerHTML = '<div style="text-align:center;padding:60px;color:#9ca3af;font-size:14px">No hay conversaciones aún.<br>Aparecerán aquí cuando alguien use el chat de attempo.cl</div>';
       return;
     }
-    // Agrupar por session_id preservando orden de llegada
+    // Agrupar por group_id (si existe) o session_id
     const sessions = {};
     const sessionOrder = [];
     rows.forEach(row => {
-      if (!sessions[row.session_id]) {
-        sessions[row.session_id] = { mensajes: [], first_at: row.created_at, last_at: row.created_at, ip: row.ip, tipo: row.tipo || 'chat', pagina: row.pagina || null };
-        sessionOrder.push(row.session_id);
+      const key = row.group_id || row.session_id;
+      if (!sessions[key]) {
+        sessions[key] = { mensajes: [], first_at: row.created_at, last_at: row.created_at, ip: row.ip,
+          tipo: row.tipo || 'chat', pagina: row.pagina || null, group_id: row.group_id || null,
+          sub: {} }; // sub: { session_id: { tipo, pagina } }
+        sessionOrder.push(key);
       }
-      sessions[row.session_id].mensajes.push(...(row.mensajes || []));
-      if (row.created_at > sessions[row.session_id].last_at) sessions[row.session_id].last_at = row.created_at;
-      if (!sessions[row.session_id].tipo && row.tipo) sessions[row.session_id].tipo = row.tipo;
-      if (!sessions[row.session_id].pagina && row.pagina) sessions[row.session_id].pagina = row.pagina;
+      const s = sessions[key];
+      if (!s.sub[row.session_id]) s.sub[row.session_id] = { tipo: row.tipo || 'chat', pagina: row.pagina };
+      s.mensajes = [...(row.mensajes || []), ...s.mensajes];
+      if (row.created_at > s.last_at) s.last_at = row.created_at;
+      if (row.created_at < s.first_at) s.first_at = row.created_at;
     });
-    el.innerHTML = sessionOrder.map((sid, i) => {
-      const s = sessions[sid];
-      const isWa = s.tipo === 'whatsapp';
-      const primerMsg = s.mensajes.find(m => m.role === 'user');
-      const preview = primerMsg ? primerMsg.content.slice(0, 100) + (primerMsg.content.length > 100 ? '...' : '') : '—';
-      const exchanges = Math.floor(s.mensajes.length / 2);
-      const dt = new Date(s.last_at);
-      const dtStr = `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
-      const tipoBadge = isWa
-        ? `<span style="font-size:11px;font-weight:700;color:#15803d;background:#f0fdf4;padding:2px 8px;border-radius:6px">📱 WhatsApp</span>`
-        : `<span style="font-size:11px;font-weight:700;color:#6C5CE4;background:#f5f3ff;padding:2px 8px;border-radius:6px">💬 Chat Attia</span>`;
-      const paginaBadge = s.pagina && s.pagina !== '/' ? `<span style="font-size:10px;color:#d1d5db;font-family:monospace">${s.pagina}</span>` : '';
-      const chatHtml = isWa
-        ? `<div style="padding:12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#166534">El visitante hizo clic en el botón de WhatsApp y abrió la app con el mensaje pre-cargado.<br><br><strong>Mensaje:</strong> ${primerMsg?.content?.replace(/</g,'&lt;') || '—'}</div>`
-        : s.mensajes.map(m => {
-            const isUser = m.role === 'user';
-            return `<div style="display:flex;${isUser?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:8px">
-              <div style="max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;
-                ${isUser?'background:#6C5CE4;color:#fff;border-bottom-right-radius:3px':'background:#f3f4f6;color:#1f2937;border-bottom-left-radius:3px'}">
-                ${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-              </div>
-            </div>`;
-          }).join('');
-      return `<div style="background:#fff;border:1px solid ${isWa?'#bbf7d0':'#e5e7eb'};border-radius:12px;margin-bottom:12px;overflow:hidden">
-        <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.lead-chevron').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(180deg)'"
-          style="padding:14px 16px;cursor:pointer;display:flex;align-items:flex-start;gap:12px;user-select:none">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-              ${tipoBadge}
-              ${isWa ? '' : `<span style="font-size:11px;color:#9ca3af">${exchanges} intercambio${exchanges!==1?'s':''}</span>`}
-              <span style="font-size:11px;color:#9ca3af">${dtStr}</span>
-              ${s.ip ? `<span style="font-size:11px;color:#d1d5db;font-family:monospace">${s.ip}</span>` : ''}
-              ${paginaBadge}
-            </div>
-            <div style="font-size:13px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview.replace(/</g,'&lt;')}</div>
-          </div>
-          <svg class="lead-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div style="display:none;padding:16px;border-top:1px solid #f3f4f6;background:#fafafa">${chatHtml}</div>
-      </div>`;
-    }).join('');
+    window._wlSessions = sessions;
+    window._wlOrder = sessionOrder;
+    renderWebLeads('all');
   } catch(e) {
     el.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;font-size:14px">Error: ${e.message}</div>`;
   }

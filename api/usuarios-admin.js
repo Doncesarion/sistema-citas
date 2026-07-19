@@ -488,6 +488,14 @@ export default async function handler(req, res) {
     return res.status(r.status).json(await r.json());
   }
 
+  // OPTIONS preflight para web-lead-save (cross-origin desde attempo.cl)
+  if (req.query.action === 'web-lead-save') {
+    res.setHeader('Access-Control-Allow-Origin', 'https://attempo.cl');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(204).end();
+  }
+
   // POST ?action=web-lead-save — guardar lead del sitio web (chat Attia o clic WA), sin auth
   if (req.method === 'POST' && req.query.action === 'web-lead-save') {
     const { session_id, mensajes, ip, tipo, pagina } = req.body || {};
@@ -507,6 +515,113 @@ export default async function handler(req, res) {
   // ── Todas las demás rutas requieren token válido ───────────────────────────
   if (!verifyToken(req.headers['x-sa-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  // POST ?action=merge-leads — SA: fusionar dos sesiones en un grupo
+  if (req.method === 'POST' && req.query.action === 'merge-leads') {
+    const { session_a, session_b } = req.body || {};
+    if (!session_a || !session_b || session_a === session_b) return res.status(400).json({ error: 'IDs inválidos' });
+    try {
+      const [rA, rB] = await Promise.all([
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_a)}&select=group_id&limit=1`, { headers: _sh }),
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_b)}&select=group_id&limit=1`, { headers: _sh })
+      ]);
+      const [rowA] = await rA.json().catch(() => []);
+      const [rowB] = await rB.json().catch(() => []);
+      const canonical = rowA?.group_id || rowB?.group_id || session_a;
+      const patches = [
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_a)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) }),
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_b)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) })
+      ];
+      if (rowA?.group_id) patches.push(fetch(`${_SUPA_URL}/rest/v1/web_leads?group_id=eq.${encodeURIComponent(rowA.group_id)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) }));
+      if (rowB?.group_id && rowB.group_id !== canonical) patches.push(fetch(`${_SUPA_URL}/rest/v1/web_leads?group_id=eq.${encodeURIComponent(rowB.group_id)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) }));
+      await Promise.all(patches);
+      return res.status(200).json({ ok: true, group_id: canonical });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // POST ?action=unmerge-lead — SA: desvincular una sesión de su grupo
+  if (req.method === 'POST' && req.query.action === 'unmerge-lead') {
+    const { session_id } = req.body || {};
+    if (!session_id) return res.status(400).json({ error: 'session_id requerido' });
+    try {
+      const r = await fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_id)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: null }) });
+      if (!r.ok) return res.status(500).json({ error: 'Error al desvincular' });
+      return res.status(200).json({ ok: true });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // POST ?action=toggle-bot-pausa — SA: activar/pausar bot para una conversación
+  if (req.method === 'POST' && req.query.action === 'toggle-bot-pausa') {
+    const { canal_user_id, canal, pausa } = req.body || {};
+    if (!canal_user_id || !canal || typeof pausa !== 'boolean') return res.status(400).json({ error: 'Datos incompletos' });
+    const channelKey   = canal === 'whatsapp' ? 'wa_phone_number_id' : canal === 'messenger' ? 'fb_page_id' : 'ig_account_id';
+    const channelValue = canal === 'whatsapp' ? process.env.ATTEMPO_WA_PHONE_ID : canal === 'messenger' ? process.env.ATTEMPO_FB_PAGE_ID : process.env.ATTEMPO_IG_ACCOUNT_ID;
+    if (!channelValue) return res.status(500).json({ error: 'Canal no configurado' });
+    try {
+      const rCli = await fetch(`${_SUPA_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id&limit=1`, { headers: _sh });
+      const [cli] = await rCli.json().catch(() => []);
+      if (!cli) return res.status(404).json({ error: 'Canal no encontrado' });
+      const r = await fetch(`${_SUPA_URL}/rest/v1/chat_sessions?cliente_id=eq.${encodeURIComponent(cli.id)}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}`, {
+        method: 'PATCH',
+        headers: { ..._sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ pausa_bot: pausa })
+      });
+      if (!r.ok) { const err = await r.text().catch(() => ''); return res.status(500).json({ error: 'Error al actualizar', detail: err.slice(0,100) }); }
+      return res.status(200).json({ ok: true, pausa });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // POST ?action=send-wa-reply — SA: responder a un lead desde el panel
+  if (req.method === 'POST' && req.query.action === 'send-wa-reply') {
+    const { to, mensaje, canal } = req.body || {};
+    if (!to || !mensaje || !canal) return res.status(400).json({ error: 'Datos incompletos' });
+    if (typeof mensaje !== 'string' || mensaje.length > 4096) return res.status(400).json({ error: 'Mensaje inválido' });
+    const channelKey   = canal === 'whatsapp' ? 'wa_phone_number_id' : canal === 'messenger' ? 'fb_page_id' : 'ig_account_id';
+    const channelValue = canal === 'whatsapp' ? process.env.ATTEMPO_WA_PHONE_ID : canal === 'messenger' ? process.env.ATTEMPO_FB_PAGE_ID : process.env.ATTEMPO_IG_ACCOUNT_ID;
+    if (!channelValue) return res.status(500).json({ error: 'Canal no configurado en env vars' });
+    try {
+      const rCli = await fetch(`${_SUPA_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id,canales_meta&limit=1`, { headers: _sh });
+      const [cli] = await rCli.json().catch(() => []);
+      if (!cli) return res.status(404).json({ error: 'Canal no encontrado' });
+      const meta = cli.canales_meta || {};
+      const accessToken = canal === 'whatsapp' ? meta.wa_token : canal === 'messenger' ? meta.fb_token : meta.ig_token;
+      if (!accessToken) return res.status(500).json({ error: 'Access token no configurado' });
+      let sendRes;
+      if (canal === 'whatsapp') {
+        sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messaging_product: 'whatsapp', to, type: 'text', text: { body: mensaje } })
+        });
+      } else if (canal === 'messenger') {
+        sendRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: { id: to }, message: { text: mensaje } })
+        });
+      } else {
+        sendRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: { id: to }, message: { text: mensaje } })
+        });
+      }
+      if (!sendRes.ok) { const err = await sendRes.text().catch(() => ''); console.error('[send-wa-reply]', sendRes.status, err.slice(0,200)); return res.status(500).json({ error: 'Error Meta API: ' + sendRes.status }); }
+      // Guardar respuesta en web_leads
+      fetch(`${_SUPA_URL}/rest/v1/web_leads`, {
+        method: 'POST',
+        headers: { ..._sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ session_id: to, mensajes: [{ role: 'assistant', content: mensaje }], tipo: 'whatsapp_msg', pagina: canal })
+      }).catch(() => {});
+      // Auto-pausar el bot al responder manualmente
+      fetch(`${_SUPA_URL}/rest/v1/chat_sessions?cliente_id=eq.${encodeURIComponent(cli.id || '')}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(to)}`, {
+        method: 'PATCH',
+        headers: { ..._sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ pausa_bot: true })
+      }).catch(() => {});
+      return res.status(200).json({ ok: true });
+    } catch(e) { console.error('[send-wa-reply] exception:', e.message); return res.status(500).json({ error: 'Error interno' }); }
   }
 
   // GET ?action=web-leads — SA: conversaciones del chat de attempo.cl
