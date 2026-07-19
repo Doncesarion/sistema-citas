@@ -1455,9 +1455,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ── CONFIG CONTEXT ── -->
 <div id="sb-config" class="sb-ctx"></div>
 
-<!-- ── BANDEJA CONTEXT (vacío — solo muestra el contador de plan al fondo) ── -->
-<div id="sb-bandeja" class="sb-ctx"></div>
-
 <!-- ── CONTADOR MSG IA ── -->
 <div class="sb-msg-counter" id="sb-msg-counter" style="display:none">
   <div class="sb-msg-counter-label">
@@ -1824,6 +1821,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </table>
       </div>
     </div>
+    <div class="sb-msg-counter inline-ia-counter" id="inline-ia-liq" style="display:none;margin-top:8px">
+      <div class="sb-msg-counter-label">
+        <span>Mensajes IA este mes</span>
+        <span class="inline-ia-nums">— / —</span>
+      </div>
+      <div class="sb-msg-counter-bar">
+        <div class="inline-ia-fill sb-msg-counter-fill" style="width:0%"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2059,6 +2065,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="breporte" id="breporte"></div>
       <div class="blist-items" id="blist-items">
         <div class="blist-empty" id="blist-empty">Cargando conversaciones...</div>
+      </div>
+      <div class="sb-msg-counter inline-ia-counter" id="inline-ia-bandeja" style="display:none">
+        <div class="sb-msg-counter-label">
+          <span>Mensajes IA este mes</span>
+          <span class="inline-ia-nums">— / —</span>
+        </div>
+        <div class="sb-msg-counter-bar">
+          <div class="inline-ia-fill sb-msg-counter-fill" style="width:0%"></div>
+        </div>
       </div>
     </div>
 
@@ -3336,8 +3351,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
     </div>
 
-
-
+    <div class="sb-msg-counter inline-ia-counter" id="inline-ia-config" style="display:none;margin-top:8px">
+      <div class="sb-msg-counter-label">
+        <span>Mensajes IA este mes</span>
+        <span class="inline-ia-nums">— / —</span>
+      </div>
+      <div class="sb-msg-counter-bar">
+        <div class="inline-ia-fill sb-msg-counter-fill" style="width:0%"></div>
+      </div>
+    </div>
 
   </div>
 </div>
@@ -3806,7 +3828,7 @@ function sv(v, btn, skipPush) {
 
   // Sidebar context switch
   const sidebar = document.querySelector('aside.sb');
-  if (sidebar) sidebar.style.display = '';
+  if (sidebar) sidebar.style.display = (v === 'config' || v === 'bandeja') ? 'none' : '';
   document.querySelectorAll('.sb-ctx').forEach(el => { el.style.display = 'none'; });
   const sbCtx = document.getElementById('sb-' + v);
   if (sbCtx) { sbCtx.style.display = 'flex'; sbCtx.style.flexDirection = 'column'; sbCtx.style.height = '100%'; }
@@ -12626,11 +12648,19 @@ async function cargarStatsIA() {
 
     const nums = document.getElementById('sb-msg-nums');
     const fill = document.getElementById('sb-msg-fill');
-    if (nums) nums.textContent = `${msg_ia_mes.toLocaleString('es-CL')} / ${limite.toLocaleString('es-CL')}`;
-    if (fill) {
-      fill.style.width = pct + '%';
-      fill.className = 'sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
-    }
+    const numsText = `${msg_ia_mes.toLocaleString('es-CL')} / ${limite.toLocaleString('es-CL')}`;
+    const fillClass = 'sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
+    if (nums) nums.textContent = numsText;
+    if (fill) { fill.style.width = pct + '%'; fill.className = fillClass; }
+
+    // Sync inline counters (bandeja, config, liquidaciones)
+    document.querySelectorAll('.inline-ia-counter').forEach(el => {
+      el.style.display = 'block';
+      const n = el.querySelector('.inline-ia-nums');
+      const f = el.querySelector('.inline-ia-fill');
+      if (n) n.textContent = numsText;
+      if (f) { f.style.width = pct + '%'; f.className = 'inline-ia-fill sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : ''); }
+    });
   } catch (e) {
     console.error('bandeja: error cargando stats IA', e);
   }
