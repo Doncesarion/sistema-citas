@@ -186,6 +186,8 @@ async function procesarReactivacion(sh, shJson) {
 // ── Lógica de envío de recordatorios ─────────────────────────────────────────
 // Corre cada hora: calcula dinámicamente qué citas entran en la ventana de cada recordatorio.
 // Ejemplo: si son las 14:00 y el recordatorio es "2h antes", busca citas de las 16:xx de hoy.
+const REC_LIMITE_PLAN = { inicio: 300, pro: 1000, clinica_ia: 3000 };
+
 async function procesarRecordatorios(sh, shJson) {
   const resend_key = process.env.RESEND_API_KEY;
   if (!resend_key) return { enviados: 0, errores: ['Sin RESEND_API_KEY'] };
@@ -207,14 +209,29 @@ async function procesarRecordatorios(sh, shJson) {
 
   try {
     const rCli = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,direccion,recordatorios_config,canales_meta`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,direccion,recordatorios_config,canales_meta,tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual`,
       { headers: sh }
     );
     const clientes = await rCli.json();
     if (!Array.isArray(clientes)) return { enviados, errores: ['Error cargando clientes'] };
 
+    const mesActual = new Date().toISOString().slice(0, 7);
+
     for (const cli of clientes) {
       const cfg = cli.recordatorios_config || {};
+
+      // Verificar y/o resetear contador mensual
+      let recCount = cli.rec_mes_count || 0;
+      let recLimitExtra = cli.rec_mes_limit_extra || 0;
+      if (cli.rec_mes_key !== mesActual) {
+        recCount = 0; recLimitExtra = 0;
+        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cli.id}`, {
+          method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ rec_mes_count: 0, rec_mes_key: mesActual, rec_mes_limit_extra: 0 })
+        }).catch(() => {});
+      }
+      const recLimite = (REC_LIMITE_PLAN[cli.tipo_plan] || 300) + recLimitExtra + (cli.rec_limite_extra_mensual || 0);
+      let recCountInicio = recCount;
 
       // Compatibilidad formato antiguo
       const lista = Array.isArray(cfg.lista) ? cfg.lista
@@ -260,7 +277,7 @@ async function procesarRecordatorios(sh, shJson) {
             let enviado = false;
 
             // — Enviar Email —
-            if (rec.email_activo) {
+            if (rec.email_activo && recCount < recLimite) {
               const asunto       = renderTemplate(rec.email_asunto || 'Recordatorio: tu cita en {negocio}', vars);
               const mensajeExtra = renderTemplate(rec.email_mensaje || '', vars);
               const emailRes = await fetch('https://api.resend.com/emails', {
@@ -274,12 +291,14 @@ async function procesarRecordatorios(sh, shJson) {
                   html: emailRecordatorioHtml({ nombre: vars.nombre, fecha: fechaFmt, hora: horaFmt, profesional: profNombre, servicio: vars.servicio, negocio: negocioNombre, direccion: cli.direccion || '', intro: renderTemplate(rec.email_intro || '', vars), mensaje_extra: mensajeExtra, cita_id: cita.id })
                 })
               });
-              if (emailRes.ok) { enviados++; enviado = true; }
+              if (emailRes.ok) { enviados++; enviado = true; recCount++; }
               else { const errTxt = await emailRes.text().catch(() => ''); console.error('recordatorio email error', emailRes.status, errTxt); errores.push(`cita ${cita.id}: ${emailRes.status}`); }
+            } else if (rec.email_activo && recCount >= recLimite) {
+              console.log(`Cliente ${cli.id}: límite recordatorios alcanzado (${recCount}/${recLimite}), omitiendo email cita ${cita.id}`);
             }
 
             // — Enviar WhatsApp —
-            if (rec.wa_activo && cita.telefono_paciente) {
+            if (rec.wa_activo && cita.telefono_paciente && recCount < recLimite) {
               const waPhoneId = cli.canales_meta?.wa_phone_number_id;
               const waToken   = cli.canales_meta?.wa_token;
               if (waPhoneId && waToken) {
@@ -298,13 +317,15 @@ async function procesarRecordatorios(sh, shJson) {
                     text: { body: waBody }
                   })
                 });
-                if (waRes.ok) { enviados++; enviado = true; }
+                if (waRes.ok) { enviados++; enviado = true; recCount++; }
                 else {
                   const errTxt = await waRes.text().catch(() => '');
                   console.error('recordatorio wa error', waRes.status, errTxt);
                   errores.push(`cita ${cita.id} wa: ${waRes.status}`);
                 }
               }
+            } else if (rec.wa_activo && recCount >= recLimite) {
+              console.log(`Cliente ${cli.id}: límite recordatorios alcanzado (${recCount}/${recLimite}), omitiendo WA cita ${cita.id}`);
             }
 
             // — Marcar como enviado para no reenviar —
@@ -320,6 +341,14 @@ async function procesarRecordatorios(sh, shJson) {
           console.error(`error procesando cliente ${cli.id} rec ${rec.id}:`, e.message);
           errores.push(`cliente ${cli.id}: ${e.message}`);
         }
+      }
+
+      // Actualizar contador mensual si hubo envíos
+      if (recCount !== recCountInicio) {
+        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cli.id}`, {
+          method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ rec_mes_count: recCount, rec_mes_key: mesActual })
+        }).catch(() => {});
       }
     }
   } catch(e) {

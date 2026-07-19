@@ -920,6 +920,25 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .sb-msg-counter-fill{height:100%;border-radius:3px;background:var(--a);transition:width .4s ease}
 .sb-msg-counter-fill.warn{background:var(--amber)}
 .sb-msg-counter-fill.full{background:var(--red)}
+.sb-rec-counter{padding:10px 14px 14px;border-top:1px solid var(--b1);flex-shrink:0}
+.sb-rec-btn{margin-top:7px;width:100%;padding:5px 0;font-size:11px;font-weight:600;color:var(--a);background:rgba(108,92,228,0.07);border:1px solid rgba(108,92,228,0.18);border-radius:6px;cursor:pointer;transition:background .15s}
+.sb-rec-btn:hover{background:rgba(108,92,228,0.14)}
+#modal-rec-mas{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:600;display:none;align-items:center;justify-content:center;padding:20px}
+#modal-rec-mas .mrm-box{background:#fff;border-radius:16px;padding:28px 28px 24px;max-width:460px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.22)}
+.mrm-title{font-size:17px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.mrm-sub{font-size:13px;color:var(--t3);margin-bottom:22px}
+.mrm-tabs{display:flex;gap:2px;background:var(--adim);border-radius:9px;padding:3px;margin-bottom:20px}
+.mrm-tab{flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;border-radius:7px;background:none;color:var(--t3);cursor:pointer;transition:all .15s}
+.mrm-tab.on{background:#fff;color:var(--a);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.mrm-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.mrm-opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--b1);border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s}
+.mrm-opt:hover,.mrm-opt.on{border-color:var(--a);background:rgba(108,92,228,0.04)}
+.mrm-opt input[type=radio]{accent-color:var(--a)}
+.mrm-opt-info{flex:1}
+.mrm-opt-label{font-size:13px;font-weight:600;color:var(--t1)}
+.mrm-opt-desc{font-size:11px;color:var(--t3);margin-top:1px}
+.mrm-wa-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 0;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:background .15s}
+.mrm-wa-btn:hover{background:#1ebe5c}
 
 @media(max-width:768px){
   .blist{width:100%;position:absolute;z-index:10;height:100%;left:0;top:0;background:#fff;transition:transform .28s cubic-bezier(.4,0,.2,1)}
@@ -1466,7 +1485,63 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
 </div>
 
+<!-- ── CONTADOR RECORDATORIOS ── -->
+<div class="sb-rec-counter" id="sb-rec-counter" style="display:none">
+  <div class="sb-msg-counter-label">
+    <span>Recordatorios este mes</span>
+    <span id="sb-rec-nums">— / —</span>
+  </div>
+  <div class="sb-msg-counter-bar">
+    <div class="sb-msg-counter-fill" id="sb-rec-fill" style="width:0%"></div>
+  </div>
+  <button class="sb-rec-btn" id="sb-rec-btn" onclick="abrirModalRecMas()" style="display:none">+ Obtener más recordatorios</button>
+</div>
+
 </aside>
+
+<!-- ═══ MODAL — OBTENER MÁS RECORDATORIOS ═══ -->
+<div id="modal-rec-mas" onclick="if(event.target===this)cerrarModalRecMas()">
+  <div class="mrm-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <div class="mrm-title">Obtener más recordatorios</div>
+      <button onclick="cerrarModalRecMas()" style="background:none;border:none;font-size:20px;color:var(--t3);cursor:pointer;line-height:1;padding:0 0 0 12px">×</button>
+    </div>
+    <div class="mrm-sub" id="mrm-uso-txt">Calculando uso...</div>
+
+    <div class="mrm-tabs">
+      <button class="mrm-tab on" id="mrm-tab-topup" onclick="mrmTab('topup')">Top-up este mes</button>
+      <button class="mrm-tab" id="mrm-tab-mensual" onclick="mrmTab('mensual')">Subir cupo mensual</button>
+    </div>
+
+    <!-- Panel: Top-up -->
+    <div id="mrm-panel-topup">
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px">Créditos extra solo para este mes. No se renuevan.</div>
+      <div class="mrm-opts">
+        <label class="mrm-opt"><input type="radio" name="topup" value="100"> <div class="mrm-opt-info"><div class="mrm-opt-label">+100 recordatorios</div><div class="mrm-opt-desc">Ideal si solo necesitas cubrir el mes actual</div></div></label>
+        <label class="mrm-opt"><input type="radio" name="topup" value="300"> <div class="mrm-opt-info"><div class="mrm-opt-label">+300 recordatorios</div><div class="mrm-opt-desc">Margen cómodo para el mes</div></div></label>
+        <label class="mrm-opt"><input type="radio" name="topup" value="500"> <div class="mrm-opt-info"><div class="mrm-opt-label">+500 recordatorios</div><div class="mrm-opt-desc">Para meses de alta actividad</div></div></label>
+      </div>
+      <a id="mrm-wa-topup" href="#" target="_blank" class="mrm-wa-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Solicitar por WhatsApp
+      </a>
+    </div>
+
+    <!-- Panel: Mensual -->
+    <div id="mrm-panel-mensual" style="display:none">
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px">Aumenta tu cupo todos los meses de forma permanente.</div>
+      <div class="mrm-opts">
+        <label class="mrm-opt"><input type="radio" name="mensual" value="200"> <div class="mrm-opt-info"><div class="mrm-opt-label">+200 / mes</div><div class="mrm-opt-desc">Pequeño aumento continuo</div></div></label>
+        <label class="mrm-opt"><input type="radio" name="mensual" value="500"> <div class="mrm-opt-info"><div class="mrm-opt-label">+500 / mes</div><div class="mrm-opt-desc">Para clínicas en crecimiento</div></div></label>
+        <label class="mrm-opt"><input type="radio" name="mensual" value="1000"> <div class="mrm-opt-info"><div class="mrm-opt-label">+1.000 / mes</div><div class="mrm-opt-desc">Volumen alto sin límites</div></div></label>
+      </div>
+      <a id="mrm-wa-mensual" href="#" target="_blank" class="mrm-wa-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Solicitar por WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
 
 <!-- ─── MAIN ─── -->
 <div class="main" id="main">
@@ -1830,6 +1905,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="inline-ia-fill sb-msg-counter-fill" style="width:0%"></div>
       </div>
     </div>
+    <div class="sb-rec-counter inline-rec-counter" id="inline-rec-liq" style="display:none;border-top:1px solid var(--b1);margin-top:0;padding:10px 0 4px">
+      <div class="sb-msg-counter-label">
+        <span>Recordatorios este mes</span>
+        <span class="inline-rec-nums">— / —</span>
+      </div>
+      <div class="sb-msg-counter-bar">
+        <div class="inline-rec-fill sb-msg-counter-fill" style="width:0%"></div>
+      </div>
+      <button class="sb-rec-btn inline-rec-mas-btn" onclick="abrirModalRecMas()" style="display:none">+ Obtener más recordatorios</button>
+    </div>
   </div>
 </div>
 
@@ -2074,6 +2159,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="sb-msg-counter-bar">
           <div class="inline-ia-fill sb-msg-counter-fill" style="width:0%"></div>
         </div>
+      </div>
+      <div class="sb-rec-counter inline-rec-counter" id="inline-rec-bandeja" style="display:none">
+        <div class="sb-msg-counter-label">
+          <span>Recordatorios este mes</span>
+          <span class="inline-rec-nums">— / —</span>
+        </div>
+        <div class="sb-msg-counter-bar">
+          <div class="inline-rec-fill sb-msg-counter-fill" style="width:0%"></div>
+        </div>
+        <button class="sb-rec-btn inline-rec-mas-btn" onclick="abrirModalRecMas()" style="display:none">+ Obtener más recordatorios</button>
       </div>
     </div>
 
@@ -3359,6 +3454,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="sb-msg-counter-bar">
         <div class="inline-ia-fill sb-msg-counter-fill" style="width:0%"></div>
       </div>
+    </div>
+    <div class="sb-rec-counter inline-rec-counter" id="inline-rec-config" style="display:none;padding:10px 0 4px">
+      <div class="sb-msg-counter-label">
+        <span>Recordatorios este mes</span>
+        <span class="inline-rec-nums">— / —</span>
+      </div>
+      <div class="sb-msg-counter-bar">
+        <div class="inline-rec-fill sb-msg-counter-fill" style="width:0%"></div>
+      </div>
+      <button class="sb-rec-btn inline-rec-mas-btn" onclick="abrirModalRecMas()" style="display:none">+ Obtener más recordatorios</button>
     </div>
 
   </div>
@@ -11652,6 +11757,7 @@ let _bPollTimer   = null;
 let _bMsgPollTimer = null;
 let _bInited      = false;
 const PLAN_LIMITE = { inicio: 0, pro: 2000, 'clinica_ia': 5000 };
+const REC_LIMITE  = { inicio: 300, pro: 1000, clinica_ia: 3000 };
 
 // ── Helpers avatar ─────────────────────────────────────────────────────────────
 const _B_COLORS = ['#6c5ce4','#7c3aed','#2563eb','#0891b2','#059669','#d97706','#dc2626','#db2777'];
@@ -12631,40 +12737,123 @@ function iniciarPollBandeja() {
 // ── Estadísticas IA ───────────────────────────────────────────────────────────
 async function cargarStatsIA() {
   const plan = planActual();
-  const limite = PLAN_LIMITE[plan] || 0;
-  if (limite === 0) return; // Plan Inicio no tiene bot
+  const limiteIA = PLAN_LIMITE[plan] || 0;
+  const limiteRec = REC_LIMITE[plan] || REC_LIMITE.inicio;
 
-  const counter = document.getElementById('sb-msg-counter');
-  if (counter) counter.style.display = 'block';
+  if (limiteIA > 0) {
+    const counter = document.getElementById('sb-msg-counter');
+    if (counter) counter.style.display = 'block';
+  }
 
   try {
-    const r = await fetch('/api/bandeja?action=stats', {
-      headers: _bandejaH()
-    });
+    const r = await fetch('/api/bandeja?action=stats', { headers: _bandejaH() });
     if (!r.ok) return;
-    const { msg_ia_mes } = await r.json();
-    _bMsgIaCached = msg_ia_mes;
-    const pct = Math.min(100, Math.round((msg_ia_mes / limite) * 100));
+    const data = await r.json();
+    const { msg_ia_mes, rec_mes_count = 0, rec_mes_limit_extra = 0, rec_limite_extra_mensual = 0 } = data;
 
-    const nums = document.getElementById('sb-msg-nums');
-    const fill = document.getElementById('sb-msg-fill');
-    const numsText = `${msg_ia_mes.toLocaleString('es-CL')} / ${limite.toLocaleString('es-CL')}`;
-    const fillClass = 'sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
-    if (nums) nums.textContent = numsText;
-    if (fill) { fill.style.width = pct + '%'; fill.className = fillClass; }
+    // — Contador IA —
+    if (limiteIA > 0) {
+      _bMsgIaCached = msg_ia_mes;
+      const pct = Math.min(100, Math.round((msg_ia_mes / limiteIA) * 100));
+      const numsText = `${msg_ia_mes.toLocaleString('es-CL')} / ${limiteIA.toLocaleString('es-CL')}`;
+      const fillClass = 'sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
+      const nums = document.getElementById('sb-msg-nums');
+      const fill = document.getElementById('sb-msg-fill');
+      if (nums) nums.textContent = numsText;
+      if (fill) { fill.style.width = pct + '%'; fill.className = fillClass; }
+      document.querySelectorAll('.inline-ia-counter').forEach(el => {
+        el.style.display = 'block';
+        const n = el.querySelector('.inline-ia-nums');
+        const f = el.querySelector('.inline-ia-fill');
+        if (n) n.textContent = numsText;
+        if (f) { f.style.width = pct + '%'; f.className = 'inline-ia-fill sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : ''); }
+      });
+    }
 
-    // Sync inline counters (bandeja, config, liquidaciones)
-    document.querySelectorAll('.inline-ia-counter').forEach(el => {
+    // — Contador Recordatorios —
+    const totalLimiteRec = limiteRec + rec_mes_limit_extra + rec_limite_extra_mensual;
+    const pctRec = Math.min(100, Math.round((rec_mes_count / totalLimiteRec) * 100));
+    const numsTextRec = `${rec_mes_count.toLocaleString('es-CL')} / ${totalLimiteRec.toLocaleString('es-CL')}`;
+    const fillClassRec = 'sb-msg-counter-fill' + (pctRec >= 100 ? ' full' : pctRec >= 80 ? ' warn' : '');
+    const mostrarBoton = pctRec >= 80;
+
+    const sbRec = document.getElementById('sb-rec-counter');
+    if (sbRec) sbRec.style.display = 'block';
+    const sbRecNums = document.getElementById('sb-rec-nums');
+    const sbRecFill = document.getElementById('sb-rec-fill');
+    const sbRecBtn  = document.getElementById('sb-rec-btn');
+    if (sbRecNums) sbRecNums.textContent = numsTextRec;
+    if (sbRecFill) { sbRecFill.style.width = pctRec + '%'; sbRecFill.className = fillClassRec; }
+    if (sbRecBtn)  sbRecBtn.style.display = mostrarBoton ? '' : 'none';
+
+    document.querySelectorAll('.inline-rec-counter').forEach(el => {
       el.style.display = 'block';
-      const n = el.querySelector('.inline-ia-nums');
-      const f = el.querySelector('.inline-ia-fill');
-      if (n) n.textContent = numsText;
-      if (f) { f.style.width = pct + '%'; f.className = 'inline-ia-fill sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : ''); }
+      const n = el.querySelector('.inline-rec-nums');
+      const f = el.querySelector('.inline-rec-fill');
+      const b = el.querySelector('.inline-rec-mas-btn');
+      if (n) n.textContent = numsTextRec;
+      if (f) { f.style.width = pctRec + '%'; f.className = 'inline-rec-fill sb-msg-counter-fill' + (pctRec >= 100 ? ' full' : pctRec >= 80 ? ' warn' : ''); }
+      if (b) b.style.display = mostrarBoton ? '' : 'none';
     });
+
+    // Guardar para el modal
+    window._recStatsCache = { rec_mes_count, totalLimiteRec, pctRec };
   } catch (e) {
-    console.error('bandeja: error cargando stats IA', e);
+    console.error('bandeja: error cargando stats', e);
   }
 }
+
+// ── Modal "Obtener más recordatorios" ──────────────────────────────────────
+const WA_SOPORTE = '56912345678'; // TODO: reemplazar con tu número de soporte
+
+function abrirModalRecMas() {
+  const modal = document.getElementById('modal-rec-mas');
+  if (!modal) return;
+  const { rec_mes_count = 0, totalLimiteRec = 0 } = window._recStatsCache || {};
+  const sub = document.getElementById('mrm-uso-txt');
+  if (sub) sub.textContent = `Usados este mes: ${rec_mes_count.toLocaleString('es-CL')} de ${totalLimiteRec.toLocaleString('es-CL')} recordatorios`;
+  mrmTab('topup');
+  _mrmActualizarWa();
+  modal.style.display = 'flex';
+}
+
+function cerrarModalRecMas() {
+  const modal = document.getElementById('modal-rec-mas');
+  if (modal) modal.style.display = 'none';
+}
+
+function mrmTab(tab) {
+  document.getElementById('mrm-tab-topup').classList.toggle('on', tab === 'topup');
+  document.getElementById('mrm-tab-mensual').classList.toggle('on', tab === 'mensual');
+  document.getElementById('mrm-panel-topup').style.display  = tab === 'topup' ? '' : 'none';
+  document.getElementById('mrm-panel-mensual').style.display = tab === 'mensual' ? '' : 'none';
+}
+
+function _mrmActualizarWa() {
+  const negocio = document.getElementById('cfg-nombre')?.value || document.title.replace('Attempo — ','') || 'mi negocio';
+
+  // Top-up
+  const topupVal = document.querySelector('input[name="topup"]:checked')?.value || '100';
+  const msgTopup = encodeURIComponent(`Hola, necesito agregar ${topupVal} recordatorios extra para este mes en mi cuenta de ${negocio} (attempo). ¿Me pueden ayudar?`);
+  const waTopup = document.getElementById('mrm-wa-topup');
+  if (waTopup) waTopup.href = `https://wa.me/${WA_SOPORTE}?text=${msgTopup}`;
+
+  // Mensual
+  const mensualVal = document.querySelector('input[name="mensual"]:checked')?.value || '200';
+  const msgMensual = encodeURIComponent(`Hola, quiero aumentar mi cupo mensual de recordatorios en +${mensualVal}/mes en mi cuenta de ${negocio} (attempo). ¿Me pueden ayudar?`);
+  const waMensual = document.getElementById('mrm-wa-mensual');
+  if (waMensual) waMensual.href = `https://wa.me/${WA_SOPORTE}?text=${msgMensual}`;
+}
+
+// Actualizar links de WA al cambiar selección
+document.addEventListener('change', e => {
+  if (e.target.name === 'topup' || e.target.name === 'mensual') {
+    _mrmActualizarWa();
+    // Estilo visual de opción seleccionada
+    e.target.closest('.mrm-opts')?.querySelectorAll('.mrm-opt').forEach(o => o.classList.remove('on'));
+    e.target.closest('.mrm-opt')?.classList.add('on');
+  }
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatBTiempo(iso) {

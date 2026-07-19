@@ -48,16 +48,31 @@ export default async function handler(req, res) {
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const shJ = { ...sh, 'Content-Type': 'application/json' };
 
-  // ── GET ?action=stats — contador msg IA del mes ───────────────────────────
+  // ── GET ?action=stats — contadores IA + recordatorios del mes ────────────
   if (req.method === 'GET' && req.query.action === 'stats') {
     const now  = new Date();
     const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/mensajes?cliente_id=eq.${cliente_id}&rol=eq.bot&created_at=gte.${from}&select=id`,
-      { headers: sh }
-    );
-    const data = await r.json();
-    return res.status(200).json({ msg_ia_mes: Array.isArray(data) ? data.length : 0 });
+    const mesKey = now.toISOString().slice(0, 7); // 'YYYY-MM'
+
+    const [rMsg, rCli] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/mensajes?cliente_id=eq.${cliente_id}&rol=eq.bot&created_at=gte.${from}&select=id`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual`, { headers: sh })
+    ]);
+    const msgData = await rMsg.json();
+    const [cli]   = await rCli.json();
+
+    const rec_mes_count          = (cli?.rec_mes_key === mesKey ? cli.rec_mes_count : 0) || 0;
+    const rec_mes_limit_extra    = (cli?.rec_mes_key === mesKey ? cli.rec_mes_limit_extra : 0) || 0;
+    const rec_limite_extra_mensual = cli?.rec_limite_extra_mensual || 0;
+    const tipo_plan              = cli?.tipo_plan || 'inicio';
+
+    return res.status(200).json({
+      msg_ia_mes: Array.isArray(msgData) ? msgData.length : 0,
+      rec_mes_count,
+      rec_mes_limit_extra,
+      rec_limite_extra_mensual,
+      tipo_plan
+    });
   }
 
   // ── GET ?id=xxx — mensajes de una conversación ────────────────────────────
