@@ -1493,12 +1493,29 @@ function openMergePicker(sourceKey) {
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
   }
-  overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:480px;max-width:95vw;max-height:75vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+  // Contar canales disponibles en la lista para mostrar filtros
+  const channelCounts = {};
+  others.forEach(k => {
+    Object.values(sessions[k].sub).forEach(v => {
+      const ck = _canalKey(v.tipo, v.pagina);
+      channelCounts[ck] = (channelCounts[ck] || 0) + 1;
+    });
+  });
+  const channelFilters = Object.keys(channelCounts).filter(ck => _CANAL_CFG[ck]);
+
+  overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;width:480px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
     <div style="font-size:15px;font-weight:700;color:#111">Fusionar conversación</div>
     <div style="font-size:12px;background:#f9fafb;padding:9px 12px;border-radius:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       ${srcBadges} <strong style="color:#374151">${srcDisplay.replace(/</g,'&lt;')}</strong>
       <span style="color:#9ca3af">→ selecciona con quién fusionar</span>
     </div>
+    ${channelFilters.length > 1 ? `<div id="merge-channel-filters" style="display:flex;flex-wrap:wrap;gap:6px">
+      <button onclick="setMergeFilter('all')" data-cf="all" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:16px;cursor:pointer;font-family:inherit;border:1px solid #1f2937;background:#1f2937;color:#fff">Todos</button>
+      ${channelFilters.map(ck => {
+        const cfg = _CANAL_CFG[ck];
+        return `<button onclick="setMergeFilter('${ck}')" data-cf="${ck}" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:16px;cursor:pointer;font-family:inherit;border:1px solid #e5e7eb;background:#fff;color:#6b7280">${cfg.label} <span style="font-weight:400;opacity:.7">${channelCounts[ck]}</span></button>`;
+      }).join('')}
+    </div>` : ''}
     <input id="merge-search" placeholder="Buscar por nombre, teléfono o mensaje…" oninput="filterMergeList()" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none">
     <div id="merge-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px">
       ${others.map(k => {
@@ -1509,11 +1526,12 @@ function openMergePicker(sourceKey) {
         const phoneOrId = /^\d+$/.test(firstId) ? '+'+firstId : (firstId.length===36 ? null : firstId.slice(0,16));
         const displayName = name || phoneOrId || 'Anónimo';
         const badges = [...new Map(subList.map(([,v])=>[_canalKey(v.tipo,v.pagina),v])).entries()].map(([,v])=>_tipoBadge(v.tipo,v.pagina)).join('');
+        const itemChannels = [...new Set(subList.map(([,v])=>_canalKey(v.tipo,v.pagina)))].join(' ');
         const pv = s.mensajes.find(m=>m.role==='user')?.content?.slice(0,70) || '';
         const dt = new Date(s.last_at);
         const dtStr = `${dt.getDate()}/${dt.getMonth()+1} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
         const searchText = [displayName, firstId, pv].join(' ').toLowerCase().replace(/"/g,'');
-        return `<div class="merge-item" data-key="${k}" data-text="${searchText}" onclick="doMerge('${sourceKey}','${k}')"
+        return `<div class="merge-item" data-key="${k}" data-text="${searchText}" data-channels="${itemChannels}" onclick="doMerge('${sourceKey}','${k}')"
           style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:background .12s"
           onmouseover="this.style.background='#f5f3ff';this.style.borderColor='#c4b5fd'" onmouseout="this.style.background='';this.style.borderColor='#e5e7eb'">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:${pv?'4':'0'}px">
@@ -1529,10 +1547,26 @@ function openMergePicker(sourceKey) {
   </div>`;
 }
 
+function setMergeFilter(ck) {
+  window._mergeChannelFilter = ck;
+  document.querySelectorAll('[data-cf]').forEach(btn => {
+    const active = btn.dataset.cf === ck;
+    const cfg = ck !== 'all' && ck in _CANAL_CFG ? _CANAL_CFG[ck] : null;
+    const activeBg = cfg ? cfg.bg : '#1f2937';
+    btn.style.background = active ? activeBg : '#fff';
+    btn.style.color = active ? '#fff' : '#6b7280';
+    btn.style.borderColor = active ? activeBg : '#e5e7eb';
+  });
+  filterMergeList();
+}
+
 function filterMergeList() {
-  const q = document.getElementById('merge-search')?.value.toLowerCase() || '';
+  const q = (document.getElementById('merge-search')?.value || '').toLowerCase();
+  const cf = window._mergeChannelFilter || 'all';
   document.querySelectorAll('.merge-item').forEach(el => {
-    el.style.display = !q || el.dataset.text.includes(q) ? '' : 'none';
+    const textOk = !q || el.dataset.text.includes(q);
+    const chanOk = cf === 'all' || (el.dataset.channels || '').split(' ').includes(cf);
+    el.style.display = textOk && chanOk ? '' : 'none';
   });
 }
 
