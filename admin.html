@@ -2595,9 +2595,24 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               </div>
             </div>
 
-            <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:2px">
+            <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:2px;flex-wrap:wrap">
               <button onclick="cerrarFormRec()" style="padding:7px 16px;border-radius:var(--r);border:1px solid var(--b1);background:transparent;color:var(--t2);font-size:13px;cursor:pointer">Cancelar</button>
+              <button onclick="togglePanelPruebaInline()" style="padding:7px 14px;border-radius:var(--r);border:1px solid var(--b1);background:transparent;color:var(--t3);font-size:13px;cursor:pointer">Enviar prueba →</button>
               <button class="btn-a" onclick="guardarRecordatorio()" style="padding:7px 20px;font-size:13px">Guardar</button>
+            </div>
+            <!-- Panel prueba inline (dentro del formulario) -->
+            <div id="panel-prueba-inline" style="display:none;margin-top:8px;background:var(--bg2);border:1px solid var(--b1);border-radius:8px;padding:12px;flex-direction:column;gap:8px">
+              <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Enviar esta versión de prueba</div>
+              <div id="panel-prueba-inline-email" style="display:flex;gap:6px;align-items:center">
+                <span style="font-size:12px;color:var(--t3);white-space:nowrap">📧</span>
+                <input id="inline-prueba-email-dest" type="email" class="fi" placeholder="correo@ejemplo.com" style="flex:1;padding:6px 10px;font-size:12px">
+                <button class="btn-sm" id="btn-inline-prueba-email" onclick="enviarPruebaInlineEmail()" style="white-space:nowrap">Enviar →</button>
+              </div>
+              <div id="panel-prueba-inline-wa" style="display:flex;gap:6px;align-items:center">
+                <span style="font-size:12px;color:var(--t3);white-space:nowrap">📲</span>
+                <input id="inline-prueba-wa-phone" type="tel" class="fi" placeholder="+56912345678" style="flex:1;padding:6px 10px;font-size:12px">
+                <button class="btn-sm" id="btn-inline-prueba-wa" onclick="enviarPruebaInlineWa()" style="white-space:nowrap;color:#25D366;border-color:rgba(37,211,102,0.3)">Enviar →</button>
+              </div>
             </div>
           </div>
         </div>
@@ -5649,6 +5664,63 @@ function cerrarFormRec() {
   const agregar = document.getElementById('btn-rec-agregar');
   if (agregar) agregar.style.display = 'flex';
   _recFormIdx = null;
+  // Cerrar panel prueba inline al cerrar el form
+  const pi = document.getElementById('panel-prueba-inline');
+  if (pi) pi.style.display = 'none';
+}
+
+function togglePanelPruebaInline() {
+  const panel = document.getElementById('panel-prueba-inline');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  // Mostrar/ocultar filas según canales activos en el form
+  if (!isOpen) {
+    const emailActivo = document.getElementById('rf-email-activo')?.checked;
+    const waActivo    = document.getElementById('rf-wa-activo')?.checked;
+    const rowEmail = document.getElementById('panel-prueba-inline-email');
+    const rowWa    = document.getElementById('panel-prueba-inline-wa');
+    if (rowEmail) rowEmail.style.display = emailActivo ? 'flex' : 'none';
+    if (rowWa)    rowWa.style.display    = waActivo    ? 'flex' : 'none';
+  }
+}
+
+async function enviarPruebaInlineEmail() {
+  const btn = document.getElementById('btn-inline-prueba-email');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  const to      = (document.getElementById('inline-prueba-email-dest')?.value || '').trim();
+  const asunto  = (document.getElementById('rf-email-asunto')?.value  || '').trim();
+  const mensaje = (document.getElementById('rf-email-mensaje')?.value || '').trim();
+  try {
+    const r = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'email_prueba', to, asunto, mensaje })
+    });
+    const data = await r.json().catch(()=>({}));
+    if (r.ok) toast('✓ Email de prueba enviado' + (to ? ` a ${to}` : ''));
+    else toast('Error: ' + (data.error || r.status));
+  } catch(e) { toast('Error al enviar el email de prueba'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; }
+}
+
+async function enviarPruebaInlineWa() {
+  const btn = document.getElementById('btn-inline-prueba-wa');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  const phone   = (document.getElementById('inline-prueba-wa-phone')?.value || '').trim();
+  const mensaje = (document.getElementById('rf-wa-mensaje')?.value || '').trim();
+  if (!phone) { toast('Ingresa un número de teléfono'); if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; } return; }
+  try {
+    const r = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'wa_prueba', phone, mensaje })
+    });
+    const data = await r.json().catch(()=>({}));
+    if (r.ok) toast('✓ WhatsApp de prueba enviado a ' + phone);
+    else toast('Error: ' + (data.error || r.status));
+  } catch(e) { toast('Error al enviar el WhatsApp de prueba'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar →'; }
 }
 
 /* ════ WIDGET WEB ════ */
