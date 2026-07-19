@@ -12806,7 +12806,7 @@ async function cargarStatsIA() {
 // ── Modal "Obtener más recordatorios" ──────────────────────────────────────
 const WA_SOPORTE = '56957285407';
 
-function abrirModalRecMas() {
+window.abrirModalRecMas = function abrirModalRecMas() {
   const modal = document.getElementById('modal-rec-mas');
   if (!modal) return;
   const { rec_mes_count = 0, totalLimiteRec = 0 } = window._recStatsCache || {};
@@ -12817,12 +12817,12 @@ function abrirModalRecMas() {
   modal.style.display = 'flex';
 }
 
-function cerrarModalRecMas() {
+window.cerrarModalRecMas = function cerrarModalRecMas() {
   const modal = document.getElementById('modal-rec-mas');
   if (modal) modal.style.display = 'none';
 }
 
-function mrmTab(tab) {
+window.mrmTab = function mrmTab(tab) {
   document.getElementById('mrm-tab-topup').classList.toggle('on', tab === 'topup');
   document.getElementById('mrm-tab-mensual').classList.toggle('on', tab === 'mensual');
   document.getElementById('mrm-panel-topup').style.display  = tab === 'topup' ? '' : 'none';
