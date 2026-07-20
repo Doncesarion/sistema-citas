@@ -267,6 +267,99 @@ async function handleSubPayment(req, res, clienteIdOverride = null) {
   return res.json({ ok: true, payment_url });
 }
 
+// Precios y códigos de recordatorio
+const REC_TOPUP   = { A: { cant: 100, monto: 1990 }, B: { cant: 300, monto: 4990 }, C: { cant: 500, monto: 7990 } };
+const REC_MENSUAL = { A: { cant: 200, monto: 1990 }, B: { cant: 500, monto: 3990 }, C: { cant: 1000, monto: 6990 } };
+
+async function handleRecPayment(req, res, cliente_id) {
+  const { subtipo, codigo, monto } = req.body || {};
+  const mapaValido = subtipo === 'topup' ? REC_TOPUP : subtipo === 'mensual' ? REC_MENSUAL : null;
+  if (!mapaValido || !mapaValido[codigo]) return res.status(400).json({ error: 'Opción inválida' });
+
+  const esperado = mapaValido[codigo].monto;
+  if (parseInt(monto) !== esperado) return res.status(400).json({ error: 'Monto no coincide' });
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}&select=id,email,nombre_negocio&limit=1`, { headers: sh });
+  const [cliente] = await cr.json();
+  if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
+  if (!cliente.email) return res.status(400).json({ error: 'Sin email registrado' });
+
+  const tipoCode    = subtipo === 'topup' ? 'T' : 'M';
+  const uuidClean   = cliente_id.replace(/-/g, '');
+  const suffix      = String(Date.now() % 10000).padStart(4, '0');
+  const commerceOrder = `RC${tipoCode}${codigo}${uuidClean}${suffix}`; // 40 chars
+
+  const labels = { topup: 'Top-up', mensual: 'Cupo mensual +mensual' };
+  const params = {
+    apiKey:          process.env.FLOW_API_KEY,
+    commerceOrder,
+    subject:         `attempo — ${labels[subtipo]} +${mapaValido[codigo].cant} recordatorios`,
+    currency:        'CLP',
+    amount:          String(monto),
+    email:           cliente.email,
+    urlConfirmation: `${BASE_URL}/api/flow-confirm`,
+    urlReturn:       `${BASE_URL}/api/flow?ret=1&tipo=rec`
+  };
+  params.s = flowSign(params);
+
+  let flowResp, flowData;
+  try {
+    flowResp = await fetch(`${FLOW_API_URL}/payment/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params)
+    });
+    flowData = await flowResp.json();
+  } catch(e) {
+    console.error('flow rec: create error:', e.message);
+    return res.status(502).json({ error: 'No se pudo conectar con Flow' });
+  }
+
+  if (!flowResp.ok || flowData.code) {
+    console.error('flow rec: create error:', JSON.stringify(flowData));
+    return res.status(502).json({ error: flowData.message || `Error Flow [${flowData.code}]` });
+  }
+
+  return res.json({ ok: true, payment_url: `${flowData.url}?token=${flowData.token}` });
+}
+
+async function handleRecWebhook(commerceOrder, res, sh) {
+  // Formato: RC{T|M}{A|B|C}{uuid32}{4d} = 40 chars
+  if (commerceOrder.length < 40) return res.status(200).send('ok');
+  const tipoCode  = commerceOrder[2]; // T=topup, M=mensual
+  const codigo    = commerceOrder[3]; // A, B, C
+  const uuidClean = commerceOrder.slice(4, 36);
+  if (uuidClean.length !== 32) return res.status(200).send('ok');
+
+  const mapa    = tipoCode === 'T' ? REC_TOPUP : tipoCode === 'M' ? REC_MENSUAL : null;
+  if (!mapa || !mapa[codigo]) return res.status(200).send('ok');
+  const cantidad = mapa[codigo].cant;
+
+  const cliente_id = `${uuidClean.slice(0,8)}-${uuidClean.slice(8,12)}-${uuidClean.slice(12,16)}-${uuidClean.slice(16,20)}-${uuidClean.slice(20)}`;
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}&select=rec_mes_limit_extra,rec_limite_extra_mensual,rec_mes_key&limit=1`, { headers: sh });
+  const [cli] = await cr.json();
+
+  const mesActual = new Date().toISOString().slice(0, 7);
+  let patch;
+
+  if (tipoCode === 'T') {
+    const actual = (cli?.rec_mes_key === mesActual ? cli.rec_mes_limit_extra : 0) || 0;
+    patch = { rec_mes_limit_extra: actual + cantidad, rec_mes_key: mesActual };
+  } else {
+    patch = { rec_limite_extra_mensual: (cli?.rec_limite_extra_mensual || 0) + cantidad };
+  }
+
+  await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}`, {
+    method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify(patch)
+  }).catch(e => console.error('flow rec webhook patch error:', e.message));
+
+  console.log(`flow rec webhook: ${tipoCode === 'T' ? 'top-up' : 'mensual'} +${cantidad} cliente=${cliente_id}`);
+  return res.status(200).send('ok');
+}
+
 async function handleFlowWebhook(req, res) {
   const token = req.body?.token;
   if (!token) return res.status(200).send('ok');
@@ -321,6 +414,11 @@ async function handleFlowWebhook(req, res) {
   // Suscripción attempo (orden empieza con 'AT')
   if (commerceOrder.startsWith('AT')) {
     return handleSubWebhook(commerceOrder, statusData, res);
+  }
+
+  // Compra de créditos de recordatorio (orden empieza con 'RC')
+  if (commerceOrder.startsWith('RC')) {
+    return handleRecWebhook(commerceOrder, res, sh);
   }
 
   const cita_id = commerceOrder;
@@ -388,7 +486,9 @@ export default async function handler(req, res) {
   if (req.query?.ret === '1') {
     const dest = req.query.tipo === 'cita'
       ? `${BASE_URL}/pago-exitoso.html?tipo=cita${req.query.slug ? '&slug=' + encodeURIComponent(req.query.slug) : ''}`
-      : `${BASE_URL}/pago-exitoso${req.query.plan ? '?plan=' + encodeURIComponent(req.query.plan) : ''}`;
+      : req.query.tipo === 'rec'
+        ? `${BASE_URL}/agenda?rec_ok=1`
+        : `${BASE_URL}/pago-exitoso${req.query.plan ? '?plan=' + encodeURIComponent(req.query.plan) : ''}`;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -419,6 +519,13 @@ export default async function handler(req, res) {
     const session = verifySessionToken(req.headers['x-session-token']);
     if (!session) return res.status(401).json({ error: 'No autorizado' });
     return handleSubPayment(req, res, session.cliente_id);
+  }
+
+  // — Compra de créditos de recordatorio —
+  if (req.body?.tipo === 'rec_credito') {
+    const session = verifySessionToken(req.headers['x-session-token']);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
+    return handleRecPayment(req, res, session.cliente_id);
   }
 
   const session = verifySessionToken(req.headers['x-session-token']);
