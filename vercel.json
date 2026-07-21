@@ -24,7 +24,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PATCH, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key, x-session-token, x-override-cliente-id, Authorization" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-sa-token, x-internal-key, x-session-token, x-override-cliente-id, x-sa-impersona, Authorization" }
       ]
     }
   ],

@@ -708,9 +708,16 @@ export default async function handler(req, res) {
     const _cshG = { apikey: _CKEY, Authorization: `Bearer ${_CKEY}` };
     const action = req.query.action;
 
+    // Helper: obtiene cliente_id respetando impersonación superadmin
+    function _cotClienteId() {
+      const override = req.headers['x-override-cliente-id'];
+      if (override && verifyToken(req.headers['x-sa-impersona'])) return override;
+      return getClienteIdFromToken(req.headers['x-session-token']);
+    }
+
     // GET cot-lista — listar cotizaciones del cliente autenticado
     if (req.method === 'GET' && action === 'cot-lista') {
-      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const r = await fetch(`${_CURL}/rest/v1/cotizaciones?cliente_id=eq.${cid}&order=created_at.desc&limit=100`, { headers: _cshG });
       return res.status(200).json(await r.json());
@@ -718,7 +725,7 @@ export default async function handler(req, res) {
 
     // POST cot-guardar — crear o actualizar cotización
     if (req.method === 'POST' && action === 'cot-guardar') {
-      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { id, datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url } = req.body || {};
       if (id) {
@@ -745,7 +752,7 @@ export default async function handler(req, res) {
 
     // POST cot-enviar — enviar cotización por email y/o WhatsApp
     if (req.method === 'POST' && action === 'cot-enviar') {
-      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { id, canales } = req.body || {};
       if (!id) return res.status(400).json({ error: 'id requerido' });
@@ -794,7 +801,7 @@ export default async function handler(req, res) {
 
     // DELETE cot-eliminar — eliminar borrador
     if (req.method === 'DELETE' && action === 'cot-eliminar') {
-      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'id requerido' });
@@ -831,7 +838,7 @@ export default async function handler(req, res) {
 
     // GET cot-config — datos del negocio para cotizaciones
     if (req.method === 'GET' && action === 'cot-config') {
-      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const r = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,telefono,direccion,logo_url&limit=1`, { headers: _cshG });
       return res.status(200).json((await r.json())[0] || {});
@@ -839,7 +846,7 @@ export default async function handler(req, res) {
 
     // PATCH cot-logo — guardar logo_url
     if (req.method === 'PATCH' && action === 'cot-logo') {
-      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { logo_url } = req.body || {};
       await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {

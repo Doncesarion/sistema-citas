@@ -3926,7 +3926,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <script>
 /* ════ VIEW SWITCHING ════ */
 function sv(v, btn, skipPush) {
-  const views = ['agenda','clientes','ventas','bandeja','reportes','config','liquidaciones'];
+  const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
     if (!el) return;
@@ -13886,10 +13886,13 @@ let _cotId     = null;  // id de la cotización en edición (null = nueva)
 let _cotPendingId = null; // id pendiente de enviar tras guardar
 
 function _cotH() {
-  const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  const tok = localStorage.getItem('attempo_session_token') || '';
-  const h   = { 'Content-Type': 'application/json', 'x-session-token': tok };
-  if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
+  const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  const h = { 'Content-Type': 'application/json', 'x-session-token': sesToken() };
+  if (u._impersonando && u.cliente_id) {
+    h['x-override-cliente-id'] = u.cliente_id;
+    const sa = localStorage.getItem('attempo_sa_impersona');
+    if (sa) h['x-sa-impersona'] = sa;
+  }
   return h;
 }
 
