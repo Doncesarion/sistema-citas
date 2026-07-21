@@ -64,6 +64,15 @@
     .btn-danger{background:var(--danger-light);color:var(--danger);border:1px solid var(--danger-border)}
     .btn-warn{background:var(--warn-light);color:var(--warn);border:1px solid var(--warn-border)}
     .btn-sm{padding:5px 10px;font-size:11px}
+    .sa-menu{position:relative;display:inline-block}
+    .sa-menu-btn{padding:4px 10px;font-size:16px;letter-spacing:2px;line-height:1;cursor:pointer;border-radius:8px}
+    .sa-menu-drop{position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.10);min-width:160px;z-index:200;padding:4px 0;display:none}
+    .sa-menu-drop.open{display:block}
+    .sa-menu-drop button,.sa-menu-drop a{display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;font-size:13px;color:var(--gray-600);background:none;border:none;cursor:pointer;text-decoration:none;white-space:nowrap;text-align:left}
+    .sa-menu-drop button:hover,.sa-menu-drop a:hover{background:var(--gray-100);color:var(--gray-900)}
+    .sa-menu-drop .drop-sep{height:1px;background:var(--gray-100);margin:4px 0}
+    .sa-menu-drop .drop-danger{color:var(--danger)!important}
+    .sa-menu-drop .drop-danger:hover{background:var(--danger-light)!important}
 
     /* TABLE */
     table{width:100%;border-collapse:collapse}
@@ -824,16 +833,21 @@ function renderTabla(lista) {
             </td>
             <td data-label="Expira" style="font-size:12px">${esPermanente?'<span style="color:#7c3aed;font-size:11px">Sin vencimiento</span>':ffc(c.fecha_expiracion)}</td>
             <td class="td-actions">
-              <div style="display:flex;gap:5px;flex-wrap:wrap">
-                <button class="btn btn-outline btn-sm" onclick="verCuentaCliente('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\'") || ''}')" style="display:flex;align-items:center;gap:4px">${svg('eye')} Ver</button>
-                <button class="btn btn-outline btn-sm" onclick="editarCliente('${c.id}')" style="display:flex;align-items:center;gap:4px">${svg('pencil')} Editar</button>
-                <button class="btn btn-success btn-sm" onclick="abrirModalPago('${c.id}')" style="display:flex;align-items:center;gap:4px">${svg('card')} Pago</button>
-                <button class="btn btn-outline btn-sm" onclick="abrirModalFlowSub('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\'") || ''}')" style="display:flex;align-items:center;gap:4px;color:var(--accent);border-color:var(--accent)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Flow</button>
-                <button class="btn btn-outline btn-sm" onclick="verHistorialPagos('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\\'")||''}')" style="display:flex;align-items:center;gap:4px">${svg('clock')} Historial</button>
-                ${c.activo
-                  ? `<button class="btn btn-warn btn-sm" onclick="toggleActivo('${c.id}',false)" style="display:flex;align-items:center;gap:4px">${svg('pause')} Pausar</button>`
-                  : `<button class="btn btn-success btn-sm" onclick="toggleActivo('${c.id}',true)" style="display:flex;align-items:center;gap:4px">${svg('play')} Activar</button>`}
-                <button class="btn btn-danger btn-sm" onclick="eliminarCliente('${c.id}','${c.nombre_negocio}')" title="Eliminar" style="display:flex;align-items:center;justify-content:center">${svg('trash')}</button>
+              <div class="sa-menu">
+                <button class="btn btn-outline btn-sm sa-menu-btn" onclick="toggleSaMenu(this)">···</button>
+                <div class="sa-menu-drop">
+                  <button onclick="closeSaMenus();verCuentaCliente('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\'") || ''}')">${svg('eye')} Ver panel</button>
+                  <button onclick="closeSaMenus();editarCliente('${c.id}')">${svg('pencil')} Editar</button>
+                  <div class="drop-sep"></div>
+                  <button onclick="closeSaMenus();abrirModalPago('${c.id}')">${svg('card')} Registrar pago</button>
+                  <button onclick="closeSaMenus();abrirModalFlowSub('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\'") || ''}')" style="color:var(--accent)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Suscripción Flow</button>
+                  <button onclick="closeSaMenus();verHistorialPagos('${c.id}','${c.nombre_negocio?.replace(/'/g,"\\\'")||''}')">${svg('clock')} Historial pagos</button>
+                  <div class="drop-sep"></div>
+                  ${c.activo
+                    ? `<button onclick="closeSaMenus();toggleActivo('${c.id}',false)">${svg('pause')} Pausar cuenta</button>`
+                    : `<button onclick="closeSaMenus();toggleActivo('${c.id}',true)" style="color:var(--success)">${svg('play')} Activar cuenta</button>`}
+                  <button class="drop-danger" onclick="closeSaMenus();eliminarCliente('${c.id}','${c.nombre_negocio}')">${svg('trash')} Eliminar</button>
+                </div>
               </div>
             </td>
           </tr>`;
@@ -1275,21 +1289,27 @@ async function toggleActivo(id, activo) {
 
 async function verCuentaCliente(clienteId, nombreNegocio) {
   try {
-    const res = await fetch(
-      `${SUPA_URL}/rest/v1/usuarios?cliente_id=eq.${clienteId}&rol=eq.admin&limit=1&select=id,username,nombre,rol,destino,cliente_id`,
-      { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } }
-    );
-    const data = await res.json();
-    const u = data.length ? data[0] : {
+    const [resU, resCli] = await Promise.all([
+      fetch(`${SUPA_URL}/rest/v1/usuarios?cliente_id=eq.${clienteId}&rol=eq.admin&limit=1&select=id,username,nombre,rol,destino,cliente_id`,
+        { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } }),
+      fetch(`${SUPA_URL}/rest/v1/clientes_sistema?id=eq.${clienteId}&select=tipo_plan&limit=1`,
+        { headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY } })
+    ]);
+    const dataU   = await resU.json();
+    const dataCli = await resCli.json();
+    const u = dataU.length ? dataU[0] : {
       nombre: nombreNegocio,
       rol: 'admin',
       cliente_id: clienteId,
       destino: '/admin'
     };
+    const tipo_plan = dataCli[0]?.tipo_plan || 'inicio';
     localStorage.setItem('attempo_original_user', JSON.stringify({ _superadmin: true }));
+    localStorage.setItem('attempo_sa_impersona', localStorage.getItem('sa_token') || '');
     localStorage.setItem('attempo_user', JSON.stringify({
       ...u,
       nombre_negocio: nombreNegocio,
+      tipo_plan,
       _impersonando: true
     }));
     window.open('/admin', '_blank');
@@ -2092,6 +2112,19 @@ function abrirInvoiceAtmp(p, cli) {
 </body></html>`);
   win.document.close();
 }
+
+function toggleSaMenu(btn) {
+  const drop = btn.nextElementSibling;
+  const isOpen = drop.classList.contains('open');
+  closeSaMenus();
+  if (!isOpen) drop.classList.add('open');
+}
+function closeSaMenus() {
+  document.querySelectorAll('.sa-menu-drop.open').forEach(d => d.classList.remove('open'));
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.sa-menu')) closeSaMenus();
+});
 </script>
 </body>
 </html>
