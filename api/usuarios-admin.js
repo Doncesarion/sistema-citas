@@ -330,25 +330,30 @@ export default async function handler(req, res) {
       if (process.env.RESEND_API_KEY) {
         const planLabel = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
         const loginUrl = `${BASE_URL}/login`;
-        fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: 'attempo <contacto@attempo.cl>',
-            to: [emailLower],
-            subject: `¡Bienvenido/a a attempo, ${negocio}!`,
-            headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
-            html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
+        try {
+          const emailResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'attempo <contacto@attempo.cl>',
+              to: [emailLower],
+              subject: `Tu cuenta attempo está lista`,
+              headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
+              html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
 <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
   <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px">
     <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.03em">attempo</span>
   </div>
   <div style="padding:32px">
-    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">¡Tu cuenta está lista! 🎉</h2>
-    <p style="margin:0 0 20px;font-size:14px;color:#5E5880;line-height:1.6">Hola <b>${negocio}</b>, creamos tu cuenta en attempo con el <b>Plan ${planLabel[plan] || plan}</b>. Tienes <b>12 días de prueba gratis</b> para explorar la plataforma.</p>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">Tu cuenta está lista</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E5880;line-height:1.6">Hola <b>${negocio}</b>, tu cuenta fue creada con el <b>Plan ${planLabel[plan] || plan}</b>. Tienes <b>12 días de prueba gratis</b> para explorar la plataforma.</p>
     <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
-      <div style="margin-bottom:12px"><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tu acceso</span><br><span style="font-size:15px;font-weight:600;color:#16143A">${emailLower}</span></div>
-      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tu enlace de agendamiento</span><br><a href="${BASE_URL}/${slug}" style="font-size:13px;color:#6C5CE4;text-decoration:none;font-weight:500">${BASE_URL}/${slug}</a></div>
+      <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tus datos de acceso</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:10px">
+        <tr><td style="padding:6px 0;font-size:12px;color:#9C96B4;width:90px">Email</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#16143A">${emailLower}</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#9C96B4">Contraseña</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#16143A;font-family:monospace">${password}</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#9C96B4">Tu link</td><td style="padding:6px 0"><a href="${BASE_URL}/${slug}" style="font-size:13px;color:#6C5CE4;text-decoration:none;font-weight:500">${BASE_URL}/${slug}</a></td></tr>
+      </table>
     </div>
     <a href="${loginUrl}" style="display:block;text-align:center;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Ir a mi panel →</a>
     <p style="margin:0;font-size:13px;color:#9C96B4;line-height:1.5">Si tienes dudas, escríbenos a <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
@@ -357,8 +362,19 @@ export default async function handler(req, res) {
     <p style="margin:0;font-size:11px;color:#C4C0D8">© attempo · <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
   </div>
 </div></body></html>`
-          })
-        }).catch(e => console.error('auto-registro: email error', e.message));
+            })
+          });
+          const emailData = await emailResp.json();
+          if (!emailResp.ok) {
+            console.error('auto-registro: email error', emailResp.status, JSON.stringify(emailData));
+          } else {
+            console.error('auto-registro: email enviado id=', emailData.id);
+          }
+        } catch(emailErr) {
+          console.error('auto-registro: email excepción', emailErr.message);
+        }
+      } else {
+        console.error('auto-registro: sin RESEND_API_KEY, email omitido');
       }
 
       return res.status(200).json({ ok: true, cliente_id, nombre: negocio, tipo_plan: plan, session_token });
@@ -680,6 +696,157 @@ export default async function handler(req, res) {
     }
 
     return res.status(response.status).json(data);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // ── COTIZACIONES ──────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  if (req.query.action && req.query.action.startsWith('cot-')) {
+    const _CKEY = process.env.SUPABASE_SERVICE_KEY;
+    const _CURL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const _csh  = { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': 'application/json' };
+    const _cshG = { apikey: _CKEY, Authorization: `Bearer ${_CKEY}` };
+    const action = req.query.action;
+
+    // GET cot-lista — listar cotizaciones del cliente autenticado
+    if (req.method === 'GET' && action === 'cot-lista') {
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const r = await fetch(`${_CURL}/rest/v1/cotizaciones?cliente_id=eq.${cid}&order=created_at.desc&limit=100`, { headers: _cshG });
+      return res.status(200).json(await r.json());
+    }
+
+    // POST cot-guardar — crear o actualizar cotización
+    if (req.method === 'POST' && action === 'cot-guardar') {
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id, datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url } = req.body || {};
+      if (id) {
+        const r = await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
+          method: 'PATCH', headers: { ..._csh, Prefer: 'return=representation' },
+          body: JSON.stringify({ datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url })
+        });
+        const d = await r.json();
+        return res.status(200).json(d[0] || {});
+      } else {
+        const rMax = await fetch(`${_CURL}/rest/v1/cotizaciones?cliente_id=eq.${cid}&select=numero&order=numero.desc&limit=1`, { headers: _cshG });
+        const mx = await rMax.json();
+        const numero = ((mx[0]?.numero) || 0) + 1;
+        const dias = parseInt(condiciones?.validez_dias || 15);
+        const fVenc = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
+        const r = await fetch(`${_CURL}/rest/v1/cotizaciones`, {
+          method: 'POST', headers: { ..._csh, Prefer: 'return=representation' },
+          body: JSON.stringify({ cliente_id: cid, numero, datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url, fecha_vencimiento: fVenc })
+        });
+        const d = await r.json();
+        return res.status(201).json(d[0] || {});
+      }
+    }
+
+    // POST cot-enviar — enviar cotización por email y/o WhatsApp
+    if (req.method === 'POST' && action === 'cot-enviar') {
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id, canales } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'id requerido' });
+      const [rCot, rCli] = await Promise.all([
+        fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}&limit=1`, { headers: _cshG }),
+        fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,telefono,direccion,logo_url,canales_meta&limit=1`, { headers: _cshG })
+      ]);
+      const cot = (await rCot.json())[0];
+      const cli = (await rCli.json())[0];
+      if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
+      const publicUrl = `${BASE_URL}/cotizacion?token=${cot.token_respuesta}`;
+      const errors = [];
+      const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0) * (parseFloat(it.cantidad)||1) * (1 - (parseFloat(it.descuento)||0)/100), 0);
+      const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
+      const totalFmt = '$' + total.toLocaleString('es-CL');
+      if (canales?.includes('email') && cot.datos_destinatario?.email) {
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Attempo <contacto@attempo.cl>',
+              to: [cot.datos_destinatario.email],
+              subject: `Cotización N° ${cot.numero} — ${cli?.nombre_negocio || 'Cotización'}`,
+              html: buildCotizacionEmail({ cot, cli, publicUrl, totalFmt })
+            })
+          });
+        } catch(e) { errors.push('email: ' + e.message); }
+      }
+      if (canales?.includes('whatsapp') && cot.datos_destinatario?.telefono && cli?.canales_meta?.wa_phone_number_id && cli?.canales_meta?.wa_token) {
+        let phone = String(cot.datos_destinatario.telefono).replace(/\D/g,'');
+        if (!phone.startsWith('56') && phone.length === 9) phone = '56' + phone;
+        try {
+          await fetch(`https://graph.facebook.com/v20.0/${cli.canales_meta.wa_phone_number_id}/messages`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${cli.canales_meta.wa_token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: `Hola, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nPuedes revisarla y responderla aquí:\n${publicUrl}` } })
+          });
+        } catch(e) { errors.push('whatsapp: ' + e.message); }
+      }
+      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
+        method: 'PATCH', headers: _csh, body: JSON.stringify({ estado: 'enviada' })
+      });
+      return res.status(200).json({ ok: true, ...(errors.length && { errors }) });
+    }
+
+    // DELETE cot-eliminar — eliminar borrador
+    if (req.method === 'DELETE' && action === 'cot-eliminar') {
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id } = req.query;
+      if (!id) return res.status(400).json({ error: 'id requerido' });
+      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}&estado=eq.borrador`, {
+        method: 'DELETE', headers: _cshG
+      });
+      return res.status(200).json({ ok: true });
+    }
+
+    // GET cot-publica — página pública (sin auth)
+    if (req.method === 'GET' && action === 'cot-publica') {
+      const { token } = req.query;
+      if (!token) return res.status(400).json({ error: 'token requerido' });
+      const r = await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}&limit=1`, { headers: _cshG });
+      const cot = (await r.json())[0];
+      if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
+      const rCli = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}&select=nombre_negocio,email,telefono,direccion,logo_url&limit=1`, { headers: _cshG });
+      const cli = (await rCli.json())[0] || {};
+      return res.status(200).json({ cotizacion: cot, negocio: cli });
+    }
+
+    // POST cot-responder — cliente acepta o rechaza (sin auth)
+    if (req.method === 'POST' && action === 'cot-responder') {
+      const { token, accion, comentario } = req.body || {};
+      if (!token || !['aceptada','rechazada'].includes(accion)) return res.status(400).json({ error: 'Datos inválidos' });
+      const rCheck = await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}&estado=eq.enviada&limit=1`, { headers: _cshG });
+      if (!(await rCheck.json())[0]) return res.status(409).json({ error: 'Esta cotización ya fue respondida o no está disponible' });
+      await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}`, {
+        method: 'PATCH', headers: _csh,
+        body: JSON.stringify({ estado: accion, respuesta: { accion, comentario: comentario || null, fecha: new Date().toISOString() } })
+      });
+      return res.status(200).json({ ok: true, estado: accion });
+    }
+
+    // GET cot-config — datos del negocio para cotizaciones
+    if (req.method === 'GET' && action === 'cot-config') {
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const r = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,telefono,direccion,logo_url&limit=1`, { headers: _cshG });
+      return res.status(200).json((await r.json())[0] || {});
+    }
+
+    // PATCH cot-logo — guardar logo_url
+    if (req.method === 'PATCH' && action === 'cot-logo') {
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { logo_url } = req.body || {};
+      await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+        method: 'PATCH', headers: _csh, body: JSON.stringify({ logo_url })
+      });
+      return res.status(200).json({ ok: true });
+    }
   }
 
   // ── Gestión de usuarios y negocios ────────────────────────────────────────
@@ -1004,6 +1171,32 @@ export default async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: 'Error interno' });
   }
+}
+
+function buildCotizacionEmail({ cot, cli, publicUrl, totalFmt }) {
+  const nombre  = cot.datos_destinatario?.nombre || 'Estimado/a';
+  const negocio = cli?.nombre_negocio || 'Tu proveedor';
+  const logo    = cli?.logo_url;
+  const logoHtml = logo
+    ? `<img src="${logo}" alt="${negocio}" style="max-height:48px;max-width:160px;display:block;margin:0 0 4px">`
+    : `<div style="font-size:20px;font-weight:700;color:#fff">${negocio}</div>`;
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+<tr><td style="background:#1E1B3A;padding:24px 32px">${logoHtml}<div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px">Cotización N° ${cot.numero}</div></td></tr>
+<tr><td style="padding:32px">
+  <p style="margin:0 0 16px;color:#374151;font-size:15px">Hola <strong>${nombre}</strong>,</p>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.6"><strong>${negocio}</strong> te ha enviado una cotización por un total de <strong style="color:#6C5CE4">${totalFmt}</strong>. Haz clic en el botón para revisarla y responderla.</p>
+  <table width="100%"><tr><td align="center" style="padding:0 0 24px">
+    <a href="${publicUrl}" style="display:inline-block;padding:14px 36px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600">Ver cotización →</a>
+  </td></tr></table>
+  <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center">Esta cotización vence el ${cot.fecha_vencimiento || '—'}.</p>
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:14px 32px;text-align:center;border-top:1px solid #ede9fe">
+  <p style="margin:0;color:#9ca3af;font-size:12px">Enviado vía attempo · <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none">attempo.cl</a></p>
+</td></tr>
+</table></td></tr></table></body></html>`;
 }
 
 function inviteHtml({ nombre, username, tempPassword, rolLabel, loginUrl }) {

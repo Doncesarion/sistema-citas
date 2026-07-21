@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cotización</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh;padding:24px 16px}
+.wrap{max-width:760px;margin:0 auto}
+.card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);margin-bottom:20px}
+.hdr{padding:24px 32px;background:#1E1B3A;color:#fff}
+.hdr-logo{max-height:56px;max-width:200px;object-fit:contain;margin-bottom:8px;display:block}
+.hdr-biz{font-size:20px;font-weight:700;margin-bottom:2px}
+.hdr-sub{font-size:13px;opacity:.75}
+.hdr-num{font-size:13px;opacity:.75;margin-top:4px}
+.body{padding:28px 32px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:560px){.info-grid{grid-template-columns:1fr}}
+.info-block{background:#f8f8f8;border-radius:10px;padding:14px 16px}
+.info-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px}
+.info-val{font-size:14px;font-weight:500;line-height:1.5}
+.items-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px}
+.items-table th{text-align:left;padding:10px 12px;background:#f0f0f0;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#555}
+.items-table th:not(:first-child){text-align:right}
+.items-table td{padding:10px 12px;border-bottom:1px solid #eee}
+.items-table td:not(:first-child){text-align:right;font-family:monospace}
+.totales{display:flex;justify-content:flex-end;margin-bottom:24px}
+.totales-box{min-width:260px;border:1px solid #eee;border-radius:10px;overflow:hidden}
+.tot-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:13px}
+.tot-row+.tot-row{border-top:1px solid #eee}
+.tot-row.total{font-size:16px;font-weight:700;background:#f8f8ff}
+.tot-row .mno{font-family:monospace}
+.notas{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:14px 16px;margin-bottom:24px}
+.notas-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px}
+.notas-txt{font-size:13px;line-height:1.6;color:#444}
+.conds{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.cond-item{font-size:12px;color:#666}
+.cond-item strong{color:#333}
+/* Respuesta */
+.resp-box{text-align:center;padding:28px 32px;border-top:2px solid #f0f0f0}
+.resp-title{font-size:16px;font-weight:600;color:#1a1a1a;margin-bottom:8px}
+.resp-sub{font-size:13px;color:#666;margin-bottom:20px}
+.resp-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.btn-aceptar{background:#16a34a;color:#fff;border:none;padding:13px 32px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+.btn-rechazar{background:#fff;color:#dc2626;border:2px solid #dc2626;padding:13px 32px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+.btn-aceptar:disabled,.btn-rechazar:disabled{opacity:.5;cursor:not-allowed}
+.comentario-wrap{max-width:420px;margin:0 auto}
+.comentario-wrap textarea{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;margin-bottom:10px}
+.badge{display:inline-block;padding:8px 20px;border-radius:20px;font-size:14px;font-weight:700;color:#fff}
+.badge-aceptada{background:#16a34a}
+.badge-rechazada{background:#dc2626}
+.badge-enviada{background:#f59e0b}
+.badge-vencida{background:#6b7280}
+.loading{text-align:center;padding:60px 32px;color:#888;font-size:15px}
+.error-box{text-align:center;padding:60px 32px;color:#dc2626;font-size:15px}
+.footer{text-align:center;color:#bbb;font-size:11px;padding:12px 0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading" class="card loading">Cargando cotización...</div>
+  <div id="main" style="display:none">
+    <div class="card">
+      <div class="hdr">
+        <img id="biz-logo" class="hdr-logo" src="" alt="" style="display:none">
+        <div class="hdr-biz" id="biz-nombre"></div>
+        <div class="hdr-sub" id="biz-info"></div>
+        <div class="hdr-num" id="cot-num"></div>
+      </div>
+      <div class="body">
+        <div class="info-grid">
+          <div class="info-block">
+            <div class="info-label">Destinatario</div>
+            <div class="info-val" id="dest-info"></div>
+          </div>
+          <div class="info-block">
+            <div class="info-label">Fechas</div>
+            <div class="info-val" id="fecha-info"></div>
+          </div>
+        </div>
+
+        <table class="items-table" id="items-table">
+          <thead><tr>
+            <th>Descripción</th>
+            <th>Cant.</th>
+            <th>Precio unit.</th>
+            <th>Dto.</th>
+            <th>Total</th>
+          </tr></thead>
+          <tbody id="items-tbody"></tbody>
+        </table>
+
+        <div class="totales">
+          <div class="totales-box">
+            <div class="tot-row"><span>Neto</span><span class="mno" id="tot-neto"></span></div>
+            <div class="tot-row" id="iva-row"><span>IVA 19%</span><span class="mno" id="tot-iva"></span></div>
+            <div class="tot-row total"><span>Total</span><span class="mno" id="tot-total"></span></div>
+          </div>
+        </div>
+
+        <div class="conds" id="conds"></div>
+        <div class="notas" id="notas-box" style="display:none">
+          <div class="notas-label">Observaciones</div>
+          <div class="notas-txt" id="notas-txt"></div>
+        </div>
+      </div>
+
+      <!-- PDF subido externamente -->
+      <div id="pdf-ext-box" style="display:none;padding:0 32px 20px">
+        <a id="pdf-ext-link" href="#" target="_blank" style="display:inline-block;padding:10px 20px;background:#1E1B3A;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">Ver PDF adjunto →</a>
+      </div>
+
+      <!-- Sección de respuesta -->
+      <div id="resp-section" class="resp-box">
+        <div id="resp-estado" style="display:none;margin-bottom:8px"></div>
+        <div id="resp-accion">
+          <div class="resp-title">¿Aceptas esta cotización?</div>
+          <div class="resp-sub">Tu respuesta quedará registrada.</div>
+          <div class="resp-btns">
+            <button class="btn-aceptar" onclick="responderCot('aceptada')">✓ Aceptar</button>
+            <button class="btn-rechazar" onclick="mostrarComentario('rechazada')">✗ Rechazar</button>
+          </div>
+          <div class="comentario-wrap" id="rechazar-form" style="display:none">
+            <textarea id="motivo-txt" rows="3" placeholder="Motivo del rechazo (opcional)"></textarea>
+            <button class="btn-rechazar" onclick="responderCon('rechazada')">Confirmar rechazo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="error-box" class="card error-box" style="display:none">Cotización no encontrada o link inválido.</div>
+  <div class="footer">Enviado vía <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none">attempo</a></div>
+</div>
+
+<script>
+const API = '/api/usuarios-admin';
+let _token = '';
+let _cotEstado = '';
+
+async function init() {
+  const params = new URLSearchParams(location.search);
+  _token = params.get('token') || '';
+  if (!_token) { showError(); return; }
+  try {
+    const r   = await fetch(`${API}?action=cot-publica&token=${encodeURIComponent(_token)}`);
+    if (!r.ok) { showError(); return; }
+    const { cotizacion: cot, negocio } = await r.json();
+    _cotEstado = cot.estado;
+    render(cot, negocio);
+  } catch(e) { showError(); }
+}
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error-box').style.display = 'block';
+}
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString('es-CL'); }
+
+function render(cot, neg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  document.title = `Cotización N° ${cot.numero} — ${neg.nombre_negocio || ''}`;
+
+  if (neg.logo_url) {
+    const img = document.getElementById('biz-logo');
+    img.src = neg.logo_url; img.style.display = 'block';
+  }
+  document.getElementById('biz-nombre').textContent = neg.nombre_negocio || '';
+  const infoParts = [neg.direccion, neg.email, neg.telefono].filter(Boolean);
+  document.getElementById('biz-info').textContent = infoParts.join(' · ');
+  document.getElementById('cot-num').textContent = `Cotización N° ${cot.numero}`;
+
+  const d = cot.datos_destinatario || {};
+  const destParts = [d.nombre, d.rut?`RUT: ${d.rut}`:'', d.giro, d.direccion, d.email, d.telefono].filter(Boolean);
+  document.getElementById('dest-info').innerHTML = destParts.join('<br>');
+
+  document.getElementById('fecha-info').innerHTML = [
+    `Emisión: <strong>${cot.fecha_emision || '—'}</strong>`,
+    `Vence: <strong>${cot.fecha_vencimiento || '—'}</strong>`
+  ].join('<br>');
+
+  const items = cot.items || [];
+  let neto = 0;
+  document.getElementById('items-tbody').innerHTML = items.map(it => {
+    const tot = (it.precio_unitario||0)*(it.cantidad||1)*(1-(it.descuento||0)/100);
+    neto += tot;
+    return `<tr><td>${it.descripcion}</td><td>${it.cantidad}</td><td>${fmt(it.precio_unitario)}</td><td>${it.descuento||0}%</td><td>${fmt(tot)}</td></tr>`;
+  }).join('');
+
+  if (!items.length) document.getElementById('items-table').style.display = 'none';
+
+  const iva   = cot.incluye_iva ? Math.round(neto*0.19) : 0;
+  const total = Math.round(neto) + iva;
+  document.getElementById('tot-neto').textContent  = fmt(neto);
+  document.getElementById('tot-iva').textContent   = fmt(iva);
+  document.getElementById('tot-total').textContent = fmt(total);
+  if (!cot.incluye_iva) document.getElementById('iva-row').style.display = 'none';
+
+  const conds = cot.condiciones || {};
+  const condParts = [];
+  if (conds.plazo_entrega) condParts.push(`Plazo de entrega: <strong>${conds.plazo_entrega}</strong>`);
+  if (conds.forma_pago)    condParts.push(`Forma de pago: <strong>${conds.forma_pago}</strong>`);
+  if (conds.validez_dias)  condParts.push(`Validez: <strong>${conds.validez_dias} días</strong>`);
+  document.getElementById('conds').innerHTML = condParts.map(p => `<span class="cond-item">${p}</span>`).join('');
+
+  if (cot.notas) {
+    document.getElementById('notas-txt').textContent = cot.notas;
+    document.getElementById('notas-box').style.display = 'block';
+  }
+
+  if (cot.archivo_externo_url) {
+    document.getElementById('pdf-ext-link').href = cot.archivo_externo_url;
+    document.getElementById('pdf-ext-box').style.display = 'block';
+  }
+
+  const respSec = document.getElementById('resp-section');
+  if (cot.estado === 'enviada') {
+    // mostrar botones
+  } else if (cot.estado === 'aceptada' || cot.estado === 'rechazada') {
+    document.getElementById('resp-accion').style.display = 'none';
+    const est = document.getElementById('resp-estado');
+    est.style.display = 'block';
+    const lbl = cot.estado === 'aceptada' ? 'Aceptada' : 'Rechazada';
+    const cls = cot.estado === 'aceptada' ? 'badge-aceptada' : 'badge-rechazada';
+    const fecha = cot.respuesta?.fecha ? new Date(cot.respuesta.fecha).toLocaleDateString('es-CL') : '';
+    est.innerHTML = `<span class="badge ${cls}">${lbl}</span><p style="margin-top:10px;color:#666;font-size:13px">Esta cotización fue ${lbl.toLowerCase()} el ${fecha}.${cot.respuesta?.comentario?'<br><em>'+cot.respuesta.comentario+'</em>':''}</p>`;
+  } else {
+    // vencida, borrador
+    document.getElementById('resp-accion').style.display = 'none';
+    document.getElementById('resp-estado').style.display = 'block';
+    const badgeClass = cot.estado === 'vencida' ? 'badge-vencida' : 'badge-enviada';
+    const lbl = { vencida:'Vencida', borrador:'No enviada' }[cot.estado] || cot.estado;
+    document.getElementById('resp-estado').innerHTML = `<span class="badge ${badgeClass}">${lbl}</span><p style="margin-top:10px;color:#666;font-size:13px">Esta cotización no está disponible para responder.</p>`;
+  }
+}
+
+function mostrarComentario(accion) {
+  document.getElementById('rechazar-form').style.display = 'block';
+  document.querySelector('.resp-btns').style.display = 'none';
+}
+
+async function responderCot(accion) {
+  const comentario = '';
+  await enviarRespuesta(accion, comentario);
+}
+
+async function responderCon(accion) {
+  const comentario = document.getElementById('motivo-txt').value.trim();
+  await enviarRespuesta(accion, comentario);
+}
+
+async function enviarRespuesta(accion, comentario) {
+  document.querySelectorAll('.btn-aceptar,.btn-rechazar').forEach(b => b.disabled = true);
+  try {
+    const r = await fetch(`${API}?action=cot-responder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: _token, accion, comentario })
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(d.error || 'Error'); return; }
+    const lbl = accion === 'aceptada' ? 'Aceptada' : 'Rechazada';
+    const cls = accion === 'aceptada' ? 'badge-aceptada' : 'badge-rechazada';
+    document.getElementById('resp-accion').innerHTML = `<span class="badge ${cls}">${lbl}</span><p style="margin-top:12px;color:#555;font-size:14px">Gracias. Tu respuesta fue registrada.</p>`;
+  } catch(e) { alert('Error de red, intenta nuevamente'); document.querySelectorAll('.btn-aceptar,.btn-rechazar').forEach(b => b.disabled = false); }
+}
+
+init();
+</script>
+</body>
+</html>

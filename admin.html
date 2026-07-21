@@ -1258,6 +1258,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ntab on"  onclick="sv('agenda',this)"        id="ntab-agenda">Agenda</button>
       <button class="ntab"     onclick="sv('clientes',this)"      id="ntab-clientes">Clientes</button>
       <button class="ntab"     onclick="sv('ventas',this)"        id="ntab-ventas">Ventas</button>
+      <button class="ntab"     onclick="sv('cotizaciones',this)"  id="ntab-cotizaciones">Cotizaciones</button>
       <button class="ntab"     onclick="sv('bandeja',this)"       id="ntab-bandeja" style="position:relative">Bandeja <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"     onclick="sv('reportes',this)"      id="ntab-reportes">Reportes</button>
       <button class="ntab"     onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Liquidaciones</button>
@@ -1404,6 +1405,27 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </button>
   </div>
 </div><!-- end sb-ventas -->
+
+<!-- ── COTIZACIONES CONTEXT ── -->
+<div id="sb-cotizaciones" class="sb-ctx">
+  <div class="sb-section">
+    <div class="sb-label">Estado</div>
+    <button class="sbi on" id="csb-todos"     onclick="filterCotizaciones('',this)">Todas</button>
+    <button class="sbi"    id="csb-borrador"  onclick="filterCotizaciones('borrador',this)"><span class="sbi-dot" style="background:#9ca3af"></span>Borrador</button>
+    <button class="sbi"    id="csb-enviada"   onclick="filterCotizaciones('enviada',this)"><span class="sbi-dot" style="background:var(--amber)"></span>Enviadas</button>
+    <button class="sbi"    id="csb-aceptada"  onclick="filterCotizaciones('aceptada',this)"><span class="sbi-dot" style="background:var(--green)"></span>Aceptadas</button>
+    <button class="sbi"    id="csb-rechazada" onclick="filterCotizaciones('rechazada',this)"><span class="sbi-dot" style="background:var(--red,#dc2626)"></span>Rechazadas</button>
+    <button class="sbi"    id="csb-vencida"   onclick="filterCotizaciones('vencida',this)"><span class="sbi-dot" style="background:#6b7280"></span>Vencidas</button>
+  </div>
+  <div style="flex:1"></div>
+  <div class="sb-section">
+    <div class="sb-label">Configuración</div>
+    <button class="sbi" onclick="openCotLogoModal()">
+      <svg class="sbi-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="5.5" cy="7" r="1.2"/><path d="M1 11l3.5-3.5 2.5 2 3-3 4 4"/></svg>
+      Logo y datos
+    </button>
+  </div>
+</div><!-- end sb-cotizaciones -->
 
 <!-- ── REPORTES CONTEXT ── -->
 <div id="sb-reportes" class="sb-ctx">
@@ -1827,6 +1849,37 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
 </div>
 
+<!-- ═══ COTIZACIONES ═══ -->
+<div id="v-cotizaciones" style="display:none">
+  <div class="vp">
+    <div class="vh">Cotizaciones
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm" onclick="openSubirCotPDF()">↑ Subir PDF</button>
+        <button class="btn-new" onclick="openCotModal()">+ Nueva cotización</button>
+      </div>
+    </div>
+    <!-- KPIs -->
+    <div class="sg">
+      <div class="sc"><div class="sc-lbl">Enviadas</div><div class="sc-val"><span class="hi" id="cot-kpi-env">—</span></div><div class="sc-delta" id="cot-kpi-env-sub">este mes</div></div>
+      <div class="sc"><div class="sc-lbl">Aceptadas</div><div class="sc-val"><span class="hi" id="cot-kpi-acep" style="color:var(--green)">—</span></div><div class="sc-delta" id="cot-kpi-acep-sub"></div></div>
+      <div class="sc"><div class="sc-lbl">Rechazadas</div><div class="sc-val"><span class="hi" id="cot-kpi-rech" style="color:#dc2626">—</span></div><div class="sc-delta" id="cot-kpi-rech-sub"></div></div>
+      <div class="sc"><div class="sc-lbl">Pendientes respuesta</div><div class="sc-val"><span class="hi" id="cot-kpi-pend" style="color:var(--amber)">—</span></div><div class="sc-delta" id="cot-kpi-pend-sub"></div></div>
+    </div>
+    <!-- Tabla -->
+    <div class="tw">
+      <div class="thb"><span class="tt">Cotizaciones</span></div>
+      <table>
+        <thead><tr>
+          <th>N°</th><th>Destinatario</th><th>Emisión</th><th>Vence</th><th>Total</th><th>Estado</th><th style="min-width:140px">Acciones</th>
+        </tr></thead>
+        <tbody id="cot-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ REPORTES ═══ -->
 <div id="v-liquidaciones" style="display:none">
   <div class="vp">
@@ -2138,11 +2191,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <input class="blist-search" type="search" placeholder="Buscar contacto..." id="bsearch" oninput="filtrarBandeja()">
         </div>
         <div class="blist-filters" id="blist-filters">
-          <button class="bfilt on" data-canal="todos" onclick="filtrarBandejaCanal('todos',this)">Todos</button>
-          <button class="bfilt" data-canal="whatsapp" onclick="filtrarBandejaCanal('whatsapp',this)">WhatsApp</button>
-          <button class="bfilt" data-canal="instagram" onclick="filtrarBandejaCanal('instagram',this)">Instagram</button>
-          <button class="bfilt" data-canal="messenger" onclick="filtrarBandejaCanal('messenger',this)">Messenger</button>
-          <button class="bfilt" data-canal="attia" onclick="filtrarBandejaCanal('attia',this)">Attia</button>
+          <button class="bfilt on" id="bfilt-todos"      data-canal="todos"      onclick="filtrarBandejaCanal('todos',this)">Todos</button>
+          <button class="bfilt"    id="bfilt-whatsapp"   data-canal="whatsapp"   onclick="filtrarBandejaCanal('whatsapp',this)" style="display:none">WhatsApp</button>
+          <button class="bfilt"    id="bfilt-instagram"  data-canal="instagram"  onclick="filtrarBandejaCanal('instagram',this)" style="display:none">Instagram</button>
+          <button class="bfilt"    id="bfilt-messenger"  data-canal="messenger"  onclick="filtrarBandejaCanal('messenger',this)" style="display:none">Messenger</button>
+          <button class="bfilt"    id="bfilt-attia"      data-canal="attia"      onclick="filtrarBandejaCanal('attia',this)" style="display:none">Attia</button>
         </div>
       </div>
       <div class="breporte" id="breporte"></div>
@@ -2375,44 +2428,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div style="font-size:11px;color:var(--t4);margin-top:6px">Puedes escribir en texto libre, con guiones o como prefieras. Máx. 6.000 caracteres.</div>
       </div>
 
-      <!-- Canales conectados -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:13px;font-weight:600;color:var(--t1)">Canales de mensajería</div>
-          <button class="btn-sm" style="color:var(--a);border-color:var(--a)" onclick="showBandejaTab('canales',null)">Configurar →</button>
-        </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Estado actual de los canales donde responde el asistente.</div>
-        <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--b1)">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:30px;height:30px;border-radius:8px;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              </div>
-              <div style="font-size:13px;font-weight:500;color:var(--t1)">WhatsApp Business</div>
-            </div>
-            <div id="bot-canal-wa-badge"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Cargando…</span></div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--b1)">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12 0C5.373 0 0 5.37 0 12c0 3.679 1.636 6.973 4.234 9.25V24l3.875-2.127A12.24 12.24 0 0012 22c6.627 0 12-4.37 12-12S18.627 0 12 0zm1.193 15.87l-3.06-3.26-5.969 3.26 6.567-6.972 3.134 3.26 5.896-3.26-6.568 6.972z"/></svg>
-              </div>
-              <div style="font-size:13px;font-weight:500;color:var(--t1)">Facebook Messenger</div>
-            </div>
-            <div id="bot-canal-fb-badge"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Cargando…</span></div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-              </div>
-              <div style="font-size:13px;font-weight:500;color:var(--t1)">Instagram Direct</div>
-            </div>
-            <div id="bot-canal-ig-badge"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(156,150,180,0.1);color:var(--t3);border:1px solid var(--b1)">Cargando…</span></div>
-          </div>
-        </div>
-      </div>
-
       <!-- Probar bot -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Probar el asistente</div>
@@ -2439,7 +2454,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="vh" style="margin-bottom:4px">
           <span>Canales de mensajería</span>
         </div>
-        <p style="font-size:12px;color:var(--t3);margin-bottom:20px">Conecta tus canales para que el chatbot IA responda y agende citas desde WhatsApp, Messenger e Instagram.</p>
+        <p id="canales-desc" style="font-size:12px;color:var(--t3);margin-bottom:20px">Conecta tus canales para que el chatbot IA responda y agende citas desde WhatsApp, Messenger e Instagram.</p>
 
         <!-- Webhook URL -->
         <div class="card" style="padding:16px;margin-bottom:16px">
@@ -2498,7 +2513,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
 
         <!-- Messenger -->
-        <div class="card" style="margin-bottom:12px;overflow:hidden;border-left:3px solid #0099FF">
+        <div id="canal-messenger-card" class="card" style="margin-bottom:12px;overflow:hidden;border-left:3px solid #0099FF">
           <div style="padding:16px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px">
             <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,153,255,0.25)">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M12 0C5.373 0 0 5.37 0 12c0 3.679 1.636 6.973 4.234 9.25V24l3.875-2.127A12.24 12.24 0 0012 22c6.627 0 12-4.37 12-12S18.627 0 12 0zm1.193 15.87l-3.06-3.26-5.969 3.26 6.567-6.972 3.134 3.26 5.896-3.26-6.568 6.972z"/></svg>
@@ -2532,7 +2547,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
 
         <!-- Instagram -->
-        <div class="card" style="margin-bottom:20px;overflow:hidden;border-left:3px solid #DD2A7B">
+        <div id="canal-instagram-card" class="card" style="margin-bottom:20px;overflow:hidden;border-left:3px solid #DD2A7B">
           <div style="padding:16px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:12px">
             <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(221,42,123,0.25)">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
@@ -3938,15 +3953,16 @@ function sv(v, btn, skipPush) {
   // Refrescar contador de plan en cada cambio de sección
   if (typeof cargarStatsIA === 'function') cargarStatsIA();
 
-  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración',liquidaciones:'Liquidaciones'};
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración',liquidaciones:'Liquidaciones'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')        cargarVentas();
+  if (v === 'cotizaciones')  initCotizaciones();
   if (v === 'reportes')     cargarReportes();
   if (v === 'liquidaciones') cargarLiquidaciones();
   if (v === 'clientes')      loadClientesView();
   if (v === 'config')        showCfg('general', document.getElementById('ctab-general'), true);
-  if (v === 'bandeja') { initBandeja(); showBandejaTab('conversaciones', null, true); }
+  if (v === 'bandeja') { initBandeja(); const _bPerms = PLAN_PERMISOS[planActual()] || PLAN_PERMISOS.inicio; showBandejaTab((_bPerms.bsecTabs || ['conversaciones'])[0], null, true); }
   if (!skipPush) {
     const slug = v === 'config' ? 'configuracion' : v;
     history.pushState({ section: v }, '', '/' + slug);
@@ -8265,50 +8281,67 @@ function handleLogoUpload(input) {
 }
 
 /* ════ RESTRICCIONES POR PLAN ════ */
+const _BSEC_FULL  = ['conversaciones','chatbot','canales','recordatorios','widget'];
+const _BSEC_BASIC = ['canales','recordatorios','widget'];
 const PLAN_PERMISOS = {
   inicio: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
+    bsecTabs: _BSEC_BASIC, soloWA: true,
     defaultView: 'agenda', nuevaReserva: true
   },
   pro: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
+    bsecTabs: _BSEC_BASIC, soloWA: true,
     defaultView: 'agenda', nuevaReserva: true
   },
   clinica_ia: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
+    bsecTabs: _BSEC_FULL,
+    defaultView: 'agenda', nuevaReserva: true
+  },
+  demo: {
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-cotizaciones','ntab-bandeja','ntab-config'],
+    cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
+    bsecTabs: _BSEC_BASIC, soloWA: true,
     defaultView: 'agenda', nuevaReserva: true
   },
   chatbot_2k: {
     tabs:    ['ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general'],
+    bsecTabs: _BSEC_FULL,
     defaultView: 'bandeja', nuevaReserva: false
   },
   chatbot_5k: {
     tabs:    ['ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general'],
+    bsecTabs: _BSEC_FULL,
     defaultView: 'bandeja', nuevaReserva: false
   },
   chatbot_8k: {
     tabs:    ['ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general'],
+    bsecTabs: _BSEC_FULL,
     defaultView: 'bandeja', nuevaReserva: false
   },
   chatbot_2k_agenda: {
     tabs:    ['ntab-agenda','ntab-clientes','ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
+    bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
   },
   chatbot_5k_agenda: {
     tabs:    ['ntab-agenda','ntab-clientes','ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
+    bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
   },
   chatbot_8k_agenda: {
     tabs:    ['ntab-agenda','ntab-clientes','ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
+    bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
   }
 };
@@ -8319,6 +8352,7 @@ function aplicarRestriccionesPlan() {
 
   const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'];
   const todosCfgTabs  = ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'];
+  const todosBsecTabs = ['conversaciones','chatbot','canales','recordatorios','widget'];
 
   todosMainTabs.forEach(id => {
     const el = document.getElementById(id);
@@ -8328,6 +8362,26 @@ function aplicarRestriccionesPlan() {
     const el = document.getElementById(id);
     if (el) el.style.display = perms.cfgTabs.includes(id) ? '' : 'none';
   });
+
+  const bsecTabs = perms.bsecTabs || todosBsecTabs;
+  todosBsecTabs.forEach(t => {
+    const el = document.getElementById('bsectab-' + t);
+    if (el) el.style.display = bsecTabs.includes(t) ? '' : 'none';
+  });
+
+  // Canales de mensajería: planes soloWA solo muestran WhatsApp
+  const msCard = document.getElementById('canal-messenger-card');
+  const igCard = document.getElementById('canal-instagram-card');
+  const descEl = document.getElementById('canales-desc');
+  if (perms.soloWA) {
+    if (msCard) msCard.style.display = 'none';
+    if (igCard) igCard.style.display = 'none';
+    if (descEl) descEl.textContent = 'Conecta tu cuenta de WhatsApp Business para enviar recordatorios y notificaciones a tus pacientes.';
+  } else {
+    if (msCard) msCard.style.display = '';
+    if (igCard) igCard.style.display = '';
+    if (descEl) descEl.textContent = 'Conecta tus canales para que el chatbot IA responda y agende citas desde WhatsApp, Messenger e Instagram.';
+  }
 
   const btnNew = document.querySelector('.btn-new');
   if (btnNew) btnNew.style.display = perms.nuevaReserva ? '' : 'none';
@@ -11790,7 +11844,11 @@ function sesToken() {
 function _bandejaH(extra = {}) {
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
   const h = { 'x-session-token': sesToken(), ...extra };
-  if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
+  if (u._impersonando && u.cliente_id) {
+    h['x-override-cliente-id'] = u.cliente_id;
+    const sa = localStorage.getItem('attempo_sa_impersona');
+    if (sa) h['x-sa-impersona'] = sa;
+  }
   return h;
 }
 
@@ -11855,6 +11913,18 @@ function renderListaBandeja() {
   const container = document.getElementById('blist-items');
   const q = (document.getElementById('bsearch')?.value || '').toLowerCase().trim();
 
+  // Filtros de canal: WhatsApp y Attia siempre visibles; Instagram/Messenger solo si hay convs y el plan lo permite
+  const _fPerms = PLAN_PERMISOS[planActual()] || PLAN_PERMISOS.inicio;
+  const _fActivos = new Set((_bConvs || []).map(c => c.canal).filter(Boolean));
+  const _fWA  = document.getElementById('bfilt-whatsapp');
+  const _fIG  = document.getElementById('bfilt-instagram');
+  const _fMS  = document.getElementById('bfilt-messenger');
+  const _fAT  = document.getElementById('bfilt-attia');
+  if (_fWA) _fWA.style.display = '';
+  if (_fAT) _fAT.style.display = '';
+  if (_fIG) _fIG.style.display = (!_fPerms.soloWA && _fActivos.has('instagram')) ? '' : 'none';
+  if (_fMS) _fMS.style.display = (!_fPerms.soloWA && _fActivos.has('messenger')) ? '' : 'none';
+
   let convsFiltradas = _bConvs.filter(c => {
     if (_bFiltroCanal !== 'todos' && c.canal !== _bFiltroCanal) return false;
     if (q) {
@@ -11865,8 +11935,12 @@ function renderListaBandeja() {
   });
 
   if (!convsFiltradas.length) {
+    const _epPerms = PLAN_PERMISOS[planActual()] || PLAN_PERMISOS.inicio;
+    const _epDefault = _epPerms.soloWA
+      ? 'No hay conversaciones aún.<br>Los mensajes de WhatsApp aparecerán aquí.'
+      : 'No hay conversaciones aún.<br>Los mensajes de WhatsApp, Instagram y Messenger aparecerán aquí.';
     container.innerHTML = '<div class="blist-empty">' +
-      (q || _bFiltroCanal !== 'todos' ? 'Sin resultados' : 'No hay conversaciones aún.<br>Los mensajes de WhatsApp, Instagram y Messenger aparecerán aquí.') +
+      (q || _bFiltroCanal !== 'todos' ? 'Sin resultados' : _epDefault) +
       '</div>';
     return;
   }
@@ -13602,6 +13676,166 @@ async function actualizarComision(especialistaId, pct, inputEl) {
   </div>
 </div>
 
+<!-- ═══ MODAL COTIZACIÓN — CREAR / EDITAR ═══ -->
+<div class="overlay" id="cot-ov" onclick="if(event.target===this)closeCotModal()" style="display:none">
+  <div class="modal" style="max-width:820px;max-height:93vh;overflow-y:auto;width:96%">
+    <div class="modal-head">
+      <span id="cot-modal-title">Nueva cotización</span>
+      <button class="mclose" onclick="closeCotModal()">×</button>
+    </div>
+    <div class="mbody" style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- Sección: Destinatario -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Destinatario</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="fg"><label>Nombre / Razón social *</label><input id="cot-f-nombre" placeholder="Empresa o persona"></div>
+          <div class="fg"><label>RUT</label><input id="cot-f-rut" placeholder="12.345.678-9"></div>
+          <div class="fg"><label>Giro / Actividad</label><input id="cot-f-giro" placeholder="Ej: Servicios médicos"></div>
+          <div class="fg"><label>Dirección</label><input id="cot-f-dir" placeholder="Calle 123, Ciudad"></div>
+          <div class="fg"><label>Email *</label><input type="email" id="cot-f-email" placeholder="cliente@empresa.cl"></div>
+          <div class="fg"><label>Teléfono</label><input id="cot-f-tel" placeholder="+56 9 1234 5678"></div>
+        </div>
+      </div>
+
+      <!-- Sección: Ítems -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Ítems</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="border-bottom:2px solid var(--b1)">
+                <th style="text-align:left;padding:6px 8px;font-weight:600;color:var(--t2)">Descripción *</th>
+                <th style="text-align:right;padding:6px 8px;font-weight:600;color:var(--t2);width:72px">Cant.</th>
+                <th style="text-align:right;padding:6px 8px;font-weight:600;color:var(--t2);width:120px">Precio unit.</th>
+                <th style="text-align:right;padding:6px 8px;font-weight:600;color:var(--t2);width:80px">Dto. %</th>
+                <th style="text-align:right;padding:6px 8px;font-weight:600;color:var(--t2);width:110px">Total</th>
+                <th style="width:32px"></th>
+              </tr>
+            </thead>
+            <tbody id="cot-items-tbody"></tbody>
+          </table>
+        </div>
+        <button class="btn-sm" onclick="addCotItem()" style="margin-top:10px">+ Agregar ítem</button>
+      </div>
+
+      <!-- Sección: Totales -->
+      <div style="display:flex;justify-content:flex-end">
+        <div style="min-width:280px;background:var(--surface-hi);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:13px">
+            <span style="color:var(--t3)">Neto</span>
+            <span style="font-family:var(--mono)" id="cot-total-neto">$0</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding-bottom:8px;border-bottom:1px solid var(--b1)">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--t3)">
+              <input type="checkbox" id="cot-f-iva" checked onchange="recalcCotTotales()">
+              IVA 19%
+            </label>
+            <span style="font-family:var(--mono)" id="cot-total-iva">$0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700">
+            <span style="color:var(--t1)">Total</span>
+            <span style="font-family:var(--mono);color:var(--a)" id="cot-total">$0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección: Condiciones -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Condiciones</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="fg"><label>Validez (días)</label><input type="number" id="cot-f-validez" value="15" min="1"></div>
+          <div class="fg"><label>Plazo de entrega</label><input id="cot-f-plazo" placeholder="5 días hábiles"></div>
+          <div class="fg"><label>Forma de pago</label><input id="cot-f-pago" placeholder="Transferencia bancaria"></div>
+        </div>
+        <div class="fg" style="margin-top:10px"><label>Observaciones</label><textarea id="cot-f-obs" rows="3" style="resize:vertical;width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--font)"></textarea></div>
+      </div>
+
+    </div>
+    <div class="mfoot" style="justify-content:space-between">
+      <button class="btn-g" onclick="closeCotModal()">Cancelar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm" onclick="previewCotPDF()">Vista previa PDF</button>
+        <button class="btn-a" onclick="saveCot('borrador')">Guardar borrador</button>
+        <button class="btn-a" style="background:var(--green,#16a34a)" onclick="saveCotYEnviar()">Guardar y enviar →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL COTIZACIÓN — ENVIAR ═══ -->
+<div class="overlay" id="cot-env-ov" onclick="if(event.target===this)closeCotEnviarModal()" style="display:none">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head"><span>Enviar cotización</span><button class="mclose" onclick="closeCotEnviarModal()">×</button></div>
+    <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
+      <p style="margin:0;color:var(--t2);font-size:14px">Elige los canales para enviar la cotización al destinatario:</p>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r)">
+        <input type="checkbox" id="cot-env-email" checked>
+        <div>
+          <div style="font-size:14px;font-weight:500">Email</div>
+          <div style="font-size:12px;color:var(--t3)" id="cot-env-email-val">—</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r)">
+        <input type="checkbox" id="cot-env-wa">
+        <div>
+          <div style="font-size:14px;font-weight:500">WhatsApp</div>
+          <div style="font-size:12px;color:var(--t3)" id="cot-env-wa-val">—</div>
+        </div>
+      </label>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeCotEnviarModal()">Cancelar</button>
+      <button class="btn-a" id="cot-env-btn" onclick="enviarCot()">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL COTIZACIÓN — SUBIR PDF ═══ -->
+<div class="overlay" id="cot-subir-ov" onclick="if(event.target===this)closeCotSubirModal()" style="display:none">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-head"><span>Subir cotización en PDF</span><button class="mclose" onclick="closeCotSubirModal()">×</button></div>
+    <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
+      <p style="margin:0;color:var(--t2);font-size:13px">Si ya tienes una cotización hecha en otro programa, súbela aquí para registrarla y enviarla por email o WhatsApp.</p>
+      <div class="fg"><label>Nombre del destinatario *</label><input id="csub-nombre" placeholder="Empresa o persona"></div>
+      <div class="fg"><label>Email</label><input type="email" id="csub-email" placeholder="cliente@empresa.cl"></div>
+      <div class="fg"><label>Teléfono WhatsApp</label><input id="csub-tel" placeholder="+56 9 1234 5678"></div>
+      <div class="fg"><label>Archivo PDF *</label><input type="file" id="csub-file" accept=".pdf" style="padding:6px 0"></div>
+      <div id="csub-progress" style="display:none;font-size:12px;color:var(--t3)">Subiendo...</div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeCotSubirModal()">Cancelar</button>
+      <button class="btn-a" id="csub-btn" onclick="subirCotPDF()">Subir y guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL COTIZACIÓN — LOGO ═══ -->
+<div class="overlay" id="cot-logo-ov" onclick="if(event.target===this)closeCotLogoModal()" style="display:none">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-head"><span>Logo y datos del negocio</span><button class="mclose" onclick="closeCotLogoModal()">×</button></div>
+    <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
+      <p style="margin:0;color:var(--t2);font-size:13px">El logo y los datos de tu negocio aparecerán en todas las cotizaciones que envíes.</p>
+      <div id="cot-logo-preview" style="display:none;text-align:center;padding:12px;background:var(--surface-hi);border-radius:var(--r);border:1px solid var(--b1)">
+        <img id="cot-logo-img" src="" alt="Logo" style="max-height:60px;max-width:200px">
+      </div>
+      <div class="fg">
+        <label>Subir logo (imagen)</label>
+        <input type="file" id="cot-logo-file" accept="image/*" onchange="previewLogoUpload(this)" style="padding:6px 0">
+      </div>
+      <div class="fg">
+        <label>O pegar URL del logo</label>
+        <input id="cot-logo-url" placeholder="https://..." oninput="previewLogoUrl(this.value)">
+      </div>
+      <div style="font-size:11px;color:var(--t3)">Datos del negocio (nombre, dirección, teléfono) se toman del perfil de Configuración → General.</div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="closeCotLogoModal()">Cancelar</button>
+      <button class="btn-a" id="cot-logo-btn" onclick="saveCotLogo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ MODAL AYUDA ═══ -->
 <div class="overlay" id="help-ov" onclick="if(event.target===this)closeHelp()">
   <div class="modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
@@ -13641,6 +13875,431 @@ async function actualizarComision(especialistaId, pct, inputEl) {
     <div class="mfoot"><button class="btn-a" onclick="closeHelp()">Cerrar</button></div>
   </div>
 </div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   MÓDULO COTIZACIONES
+   ══════════════════════════════════════════════════════════════ */
+let _cotData   = [];    // todas las cotizaciones cargadas
+let _cotFiltro = '';    // filtro de estado activo
+let _cotId     = null;  // id de la cotización en edición (null = nueva)
+let _cotPendingId = null; // id pendiente de enviar tras guardar
+
+function _cotH() {
+  const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const h   = { 'Content-Type': 'application/json', 'x-session-token': tok };
+  if (u._impersonando && u.cliente_id) h['x-override-cliente-id'] = u.cliente_id;
+  return h;
+}
+
+// ── Inicializar vista ────────────────────────────────────────
+async function initCotizaciones() {
+  document.getElementById('cot-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>';
+  try {
+    const r = await fetch('/api/usuarios-admin?action=cot-lista', { headers: _cotH() });
+    _cotData = await r.json();
+    if (!Array.isArray(_cotData)) _cotData = [];
+    renderCotizaciones();
+    actualizarCotKPIs();
+    checkCotVencidas();
+  } catch(e) {
+    document.getElementById('cot-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3)">Error al cargar</td></tr>';
+  }
+}
+
+function actualizarCotKPIs() {
+  const env  = _cotData.filter(c => c.estado === 'enviada').length;
+  const acep = _cotData.filter(c => c.estado === 'aceptada').length;
+  const rech = _cotData.filter(c => c.estado === 'rechazada').length;
+  const pend = _cotData.filter(c => c.estado === 'enviada').length;
+  document.getElementById('cot-kpi-env').textContent  = env;
+  document.getElementById('cot-kpi-acep').textContent = acep;
+  document.getElementById('cot-kpi-rech').textContent = rech;
+  document.getElementById('cot-kpi-pend').textContent = pend;
+  const tot = _cotData.filter(c => c.estado !== 'borrador').length;
+  document.getElementById('cot-kpi-acep-sub').textContent = tot ? Math.round(acep/tot*100)+'% tasa' : '';
+}
+
+function checkCotVencidas() {
+  const hoy = new Date().toISOString().split('T')[0];
+  _cotData.filter(c => c.estado === 'enviada' && c.fecha_vencimiento && c.fecha_vencimiento < hoy)
+    .forEach(c => c.estado = 'vencida');
+}
+
+function filterCotizaciones(estado, btn) {
+  _cotFiltro = estado;
+  document.querySelectorAll('#sb-cotizaciones .sbi').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  renderCotizaciones();
+}
+
+function renderCotizaciones() {
+  const lista = _cotFiltro ? _cotData.filter(c => c.estado === _cotFiltro) : _cotData;
+  const hoy   = new Date().toISOString().split('T')[0];
+  const tbody = document.getElementById('cot-tbody');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--t3);font-size:13px">${_cotFiltro ? 'Sin cotizaciones en este estado' : 'Aún no hay cotizaciones — crea la primera con el botón "+"'}</td></tr>`;
+    return;
+  }
+  const estadoInfo = { borrador:{lbl:'Borrador',bg:'#9ca3af'}, enviada:{lbl:'Enviada',bg:'#f59e0b'}, aceptada:{lbl:'Aceptada',bg:'#16a34a'}, rechazada:{lbl:'Rechazada',bg:'#dc2626'}, vencida:{lbl:'Vencida',bg:'#6b7280'} };
+  tbody.innerHTML = lista.map(c => {
+    const info  = estadoInfo[c.estado] || {lbl:c.estado,bg:'#9ca3af'};
+    const neto  = (c.items||[]).reduce((s,it) => s+(parseFloat(it.precio_unitario)||0)*(parseFloat(it.cantidad)||1)*(1-(parseFloat(it.descuento)||0)/100),0);
+    const total = c.incluye_iva ? Math.round(neto*1.19) : Math.round(neto);
+    const venc  = c.fecha_vencimiento || '—';
+    const vencStyle = c.fecha_vencimiento && c.fecha_vencimiento < hoy && c.estado === 'enviada' ? 'color:#dc2626;font-weight:600' : '';
+    const acciones = [];
+    if (c.estado === 'borrador') {
+      acciones.push(`<button class="btn-sm" onclick="openCotModal('${c.id}')">Editar</button>`);
+      acciones.push(`<button class="btn-sm" style="background:var(--green,#16a34a);color:#fff" onclick="abrirEnviarCotDirecto('${c.id}')">Enviar</button>`);
+      acciones.push(`<button class="btn-sm" onclick="deleteCot('${c.id}')" style="color:#dc2626">Eliminar</button>`);
+    } else if (c.estado === 'enviada') {
+      acciones.push(`<button class="btn-sm" onclick="verCot('${c.id}')">Ver</button>`);
+      acciones.push(`<button class="btn-sm" onclick="abrirEnviarCotDirecto('${c.id}')">Reenviar</button>`);
+    } else {
+      acciones.push(`<button class="btn-sm" onclick="verCot('${c.id}')">Ver</button>`);
+    }
+    if (c.archivo_externo_url) acciones.push(`<a class="btn-sm" href="${c.archivo_externo_url}" target="_blank">PDF ↗</a>`);
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:13px;color:var(--t3)">#${c.numero}</td>
+      <td style="font-weight:500">${c.datos_destinatario?.nombre || '—'}</td>
+      <td style="font-size:12px;color:var(--t3)">${c.fecha_emision || '—'}</td>
+      <td style="font-size:12px;${vencStyle}">${venc}</td>
+      <td style="font-family:var(--mono);font-size:13px">$${total.toLocaleString('es-CL')}</td>
+      <td><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;background:${info.bg}">${info.lbl}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">${acciones.join('')}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal crear/editar ───────────────────────────────────────
+function openCotModal(id) {
+  _cotId = id || null;
+  document.getElementById('cot-modal-title').textContent = id ? 'Editar cotización' : 'Nueva cotización';
+  document.getElementById('cot-items-tbody').innerHTML = '';
+  if (id) {
+    const c = _cotData.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('cot-f-nombre').value  = c.datos_destinatario?.nombre || '';
+    document.getElementById('cot-f-rut').value     = c.datos_destinatario?.rut || '';
+    document.getElementById('cot-f-giro').value    = c.datos_destinatario?.giro || '';
+    document.getElementById('cot-f-dir').value     = c.datos_destinatario?.direccion || '';
+    document.getElementById('cot-f-email').value   = c.datos_destinatario?.email || '';
+    document.getElementById('cot-f-tel').value     = c.datos_destinatario?.telefono || '';
+    document.getElementById('cot-f-iva').checked   = c.incluye_iva !== false;
+    document.getElementById('cot-f-validez').value = c.condiciones?.validez_dias || 15;
+    document.getElementById('cot-f-plazo').value   = c.condiciones?.plazo_entrega || '';
+    document.getElementById('cot-f-pago').value    = c.condiciones?.forma_pago || '';
+    document.getElementById('cot-f-obs').value     = c.notas || '';
+    (c.items || []).forEach(it => addCotItem(it));
+  } else {
+    document.getElementById('cot-f-nombre').value  = '';
+    document.getElementById('cot-f-rut').value     = '';
+    document.getElementById('cot-f-giro').value    = '';
+    document.getElementById('cot-f-dir').value     = '';
+    document.getElementById('cot-f-email').value   = '';
+    document.getElementById('cot-f-tel').value     = '';
+    document.getElementById('cot-f-iva').checked   = true;
+    document.getElementById('cot-f-validez').value = 15;
+    document.getElementById('cot-f-plazo').value   = '';
+    document.getElementById('cot-f-pago').value    = '';
+    document.getElementById('cot-f-obs').value     = '';
+    addCotItem();
+  }
+  recalcCotTotales();
+  document.getElementById('cot-ov').style.display = 'flex';
+}
+
+function closeCotModal() { document.getElementById('cot-ov').style.display = 'none'; }
+
+function addCotItem(it = {}) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="padding:4px 4px"><input class="ci-desc" value="${(it.descripcion||'').replace(/"/g,'&quot;')}" oninput="recalcCotTotales()" placeholder="Descripción del servicio o producto" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--font);box-sizing:border-box"></td>
+    <td style="padding:4px 4px"><input class="ci-cant" type="number" min="0.01" step="any" value="${parseFloat(it.cantidad)||1}" oninput="recalcCotTotales()" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
+    <td style="padding:4px 4px"><input class="ci-precio" type="number" min="0" step="any" value="${parseFloat(it.precio_unitario)||''}" oninput="recalcCotTotales()" placeholder="0" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
+    <td style="padding:4px 4px"><input class="ci-dto" type="number" min="0" max="100" step="any" value="${parseFloat(it.descuento)||0}" oninput="recalcCotTotales()" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
+    <td style="padding:4px 8px;text-align:right;font-size:13px;font-family:var(--mono);color:var(--a);white-space:nowrap" class="ci-row-total">$0</td>
+    <td style="padding:4px 2px;text-align:center"><button onclick="this.closest('tr').remove();recalcCotTotales()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px" title="Eliminar">×</button></td>`;
+  document.getElementById('cot-items-tbody').appendChild(tr);
+  recalcCotTotales();
+}
+
+function recalcCotTotales() {
+  let neto = 0;
+  document.querySelectorAll('#cot-items-tbody tr').forEach(tr => {
+    const precio = parseFloat(tr.querySelector('.ci-precio')?.value) || 0;
+    const cant   = parseFloat(tr.querySelector('.ci-cant')?.value)   || 1;
+    const dto    = parseFloat(tr.querySelector('.ci-dto')?.value)    || 0;
+    const rowTot = precio * cant * (1 - dto/100);
+    neto += rowTot;
+    const el = tr.querySelector('.ci-row-total');
+    if (el) el.textContent = '$' + Math.round(rowTot).toLocaleString('es-CL');
+  });
+  const conIva  = document.getElementById('cot-f-iva')?.checked;
+  const iva     = conIva ? Math.round(neto * 0.19) : 0;
+  const total   = Math.round(neto) + iva;
+  document.getElementById('cot-total-neto').textContent = '$' + Math.round(neto).toLocaleString('es-CL');
+  document.getElementById('cot-total-iva').textContent  = conIva ? '$' + iva.toLocaleString('es-CL') : '$0';
+  document.getElementById('cot-total').textContent      = '$' + total.toLocaleString('es-CL');
+}
+
+function getCotFormData() {
+  const items = Array.from(document.querySelectorAll('#cot-items-tbody tr')).map(tr => ({
+    descripcion:    tr.querySelector('.ci-desc')?.value.trim()   || '',
+    cantidad:       parseFloat(tr.querySelector('.ci-cant')?.value)  || 1,
+    precio_unitario:parseFloat(tr.querySelector('.ci-precio')?.value)|| 0,
+    descuento:      parseFloat(tr.querySelector('.ci-dto')?.value)   || 0
+  })).filter(it => it.descripcion);
+  return {
+    datos_destinatario: {
+      nombre:   document.getElementById('cot-f-nombre').value.trim(),
+      rut:      document.getElementById('cot-f-rut').value.trim(),
+      giro:     document.getElementById('cot-f-giro').value.trim(),
+      direccion:document.getElementById('cot-f-dir').value.trim(),
+      email:    document.getElementById('cot-f-email').value.trim(),
+      telefono: document.getElementById('cot-f-tel').value.trim()
+    },
+    items,
+    condiciones: {
+      validez_dias:   parseInt(document.getElementById('cot-f-validez').value) || 15,
+      plazo_entrega:  document.getElementById('cot-f-plazo').value.trim(),
+      forma_pago:     document.getElementById('cot-f-pago').value.trim()
+    },
+    incluye_iva: document.getElementById('cot-f-iva').checked,
+    notas:       document.getElementById('cot-f-obs').value.trim()
+  };
+}
+
+async function saveCot(estado) {
+  const data = getCotFormData();
+  if (!data.datos_destinatario.nombre) { toastErr('El nombre del destinatario es requerido'); return null; }
+  if (!data.items.length) { toastErr('Agrega al menos un ítem'); return null; }
+  const body = { ...data, ...(estado && { estado }), ...(_cotId && { id: _cotId }) };
+  try {
+    const r   = await fetch('/api/usuarios-admin?action=cot-guardar', { method:'POST', headers:_cotH(), body:JSON.stringify(body) });
+    const res = await r.json();
+    if (!r.ok) { toastErr(res.error || 'Error al guardar'); return null; }
+    // Actualizar lista local
+    if (_cotId) {
+      const idx = _cotData.findIndex(c => c.id === _cotId);
+      if (idx >= 0) _cotData[idx] = { ..._cotData[idx], ...res };
+    } else {
+      _cotData.unshift(res);
+      _cotId = res.id;
+    }
+    renderCotizaciones();
+    if (estado === 'borrador') { toastOk('Borrador guardado'); closeCotModal(); }
+    return res;
+  } catch(e) { toastErr('Error de red'); return null; }
+}
+
+async function saveCotYEnviar() {
+  const saved = await saveCot(null);
+  if (!saved) return;
+  closeCotModal();
+  abrirEnviarCotDirecto(saved.id);
+}
+
+// ── Modal enviar ─────────────────────────────────────────────
+function abrirEnviarCotDirecto(id) {
+  _cotPendingId = id;
+  const cot = _cotData.find(c => c.id === id);
+  document.getElementById('cot-env-email-val').textContent = cot?.datos_destinatario?.email || '(sin email)';
+  document.getElementById('cot-env-wa-val').textContent    = cot?.datos_destinatario?.telefono || '(sin teléfono)';
+  document.getElementById('cot-env-ov').style.display = 'flex';
+}
+function closeCotEnviarModal() { document.getElementById('cot-env-ov').style.display = 'none'; }
+
+async function enviarCot() {
+  const canales = [];
+  if (document.getElementById('cot-env-email').checked) canales.push('email');
+  if (document.getElementById('cot-env-wa').checked)    canales.push('whatsapp');
+  if (!canales.length) { toastErr('Selecciona al menos un canal'); return; }
+  const btn = document.getElementById('cot-env-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const r = await fetch('/api/usuarios-admin?action=cot-enviar', {
+      method: 'POST', headers: _cotH(), body: JSON.stringify({ id: _cotPendingId, canales })
+    });
+    const res = await r.json();
+    if (!r.ok) { toastErr(res.error || 'Error al enviar'); return; }
+    const idx = _cotData.findIndex(c => c.id === _cotPendingId);
+    if (idx >= 0) _cotData[idx].estado = 'enviada';
+    renderCotizaciones(); actualizarCotKPIs();
+    closeCotEnviarModal();
+    toastOk('Cotización enviada');
+  } catch(e) { toastErr('Error de red'); }
+  finally { btn.disabled = false; btn.textContent = 'Enviar'; }
+}
+
+async function deleteCot(id) {
+  if (!confirm('¿Eliminar este borrador?')) return;
+  await fetch(`/api/usuarios-admin?action=cot-eliminar&id=${id}`, { method:'DELETE', headers:_cotH() });
+  _cotData = _cotData.filter(c => c.id !== id);
+  renderCotizaciones(); actualizarCotKPIs();
+  toastOk('Borrador eliminado');
+}
+
+// ── Ver (solo lectura) ───────────────────────────────────────
+function verCot(id) {
+  const c = _cotData.find(x => x.id === id);
+  if (!c) return;
+  openCotModal(id);
+  // deshabilitar edición
+  document.querySelectorAll('#cot-ov input, #cot-ov textarea').forEach(el => el.disabled = true);
+  document.querySelectorAll('#cot-ov .btn-a, #cot-ov .btn-sm').forEach(el => {
+    if (el.textContent !== 'Vista previa PDF' && !el.textContent.includes('PDF')) el.style.display = 'none';
+  });
+}
+
+// ── Vista previa PDF ─────────────────────────────────────────
+async function previewCotPDF() {
+  const data    = getCotFormData();
+  const r       = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
+  const negocio = await r.json();
+  const items   = data.items;
+  const neto    = items.reduce((s,it) => s + it.precio_unitario*it.cantidad*(1-it.descuento/100), 0);
+  const iva     = data.incluye_iva ? Math.round(neto*0.19) : 0;
+  const total   = Math.round(neto) + iva;
+  const fmt     = n => '$' + Math.round(n).toLocaleString('es-CL');
+  const hoy     = new Date().toLocaleDateString('es-CL');
+  const logoHtml = negocio.logo_url ? `<img src="${negocio.logo_url}" style="max-height:60px;max-width:200px;object-fit:contain">` : '';
+  const rowsHtml = items.map(it => {
+    const tot = it.precio_unitario * it.cantidad * (1 - it.descuento/100);
+    return `<tr><td style="padding:8px 10px;border-bottom:1px solid #eee">${it.descripcion}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right">${it.cantidad}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right">${fmt(it.precio_unitario)}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right">${it.descuento||0}%</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:600">${fmt(tot)}</td></tr>`;
+  }).join('');
+  const cotNum = _cotId ? (_cotData.find(c=>c.id===_cotId)?.numero || '—') : '(nuevo)';
+  const dest   = data.datos_destinatario;
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Cotización</title>
+<style>*{box-sizing:border-box}body{margin:0;padding:32px;font-family:Arial,sans-serif;color:#1a1a1a;font-size:13px}@media print{body{padding:16px}}</style></head><body>
+<table width="100%" style="margin-bottom:24px"><tr>
+<td>${logoHtml}<div style="font-size:18px;font-weight:700;margin-top:4px">${negocio.nombre_negocio||''}</div><div style="color:#666;font-size:12px">${negocio.direccion||''}</div><div style="color:#666;font-size:12px">${negocio.email||''} ${negocio.telefono?'· '+negocio.telefono:''}</div></td>
+<td style="text-align:right;vertical-align:top"><div style="border:2px solid #1a1a1a;padding:10px 16px;display:inline-block"><div style="font-size:11px;font-weight:600;letter-spacing:.1em;color:#555">COTIZACIÓN</div><div style="font-size:22px;font-weight:700">N° ${cotNum}</div></div><div style="margin-top:8px;font-size:12px;color:#555">Fecha: ${hoy}</div><div style="font-size:12px;color:#555">Vence en: ${data.condiciones.validez_dias} días</div></td>
+</tr></table>
+<table width="100%" style="margin-bottom:24px;border-top:1px solid #ddd;padding-top:16px"><tr>
+<td><div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Destinatario</div><div style="font-weight:600;font-size:14px">${dest.nombre||''}</div>${dest.rut?`<div style="color:#555">RUT: ${dest.rut}</div>`:''}<div style="color:#555">${dest.giro||''}</div><div style="color:#555">${dest.direccion||''}</div><div style="color:#555">${dest.email||''} ${dest.telefono?'· '+dest.telefono:''}</div></td>
+${data.condiciones.forma_pago?`<td style="text-align:right;vertical-align:top"><div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Condiciones</div><div style="color:#555">${data.condiciones.plazo_entrega?'Entrega: '+data.condiciones.plazo_entrega+'<br>':''}</div><div style="color:#555">Pago: ${data.condiciones.forma_pago}</div></td>`:``}
+</tr></table>
+<table width="100%" style="border-collapse:collapse;margin-bottom:24px"><thead><tr style="background:#f0f0f0"><th style="padding:8px 10px;text-align:left">Descripción</th><th style="padding:8px 10px;text-align:right">Cant.</th><th style="padding:8px 10px;text-align:right">Precio unit.</th><th style="padding:8px 10px;text-align:right">Dto.</th><th style="padding:8px 10px;text-align:right">Total</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+<div style="display:flex;justify-content:flex-end"><table style="min-width:240px;border-collapse:collapse"><tr><td style="padding:6px 12px;color:#555">Neto</td><td style="padding:6px 12px;text-align:right">${fmt(neto)}</td></tr>${data.incluye_iva?`<tr><td style="padding:6px 12px;color:#555">IVA 19%</td><td style="padding:6px 12px;text-align:right">${fmt(iva)}</td></tr>`:''}<tr style="border-top:2px solid #1a1a1a"><td style="padding:8px 12px;font-weight:700;font-size:15px">Total</td><td style="padding:8px 12px;text-align:right;font-weight:700;font-size:15px">${fmt(total)}</td></tr></table></div>
+${data.notas?`<div style="margin-top:20px;padding:12px 14px;background:#fafafa;border:1px solid #eee;border-radius:6px"><div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Observaciones</div><div style="color:#444">${data.notas}</div></div>`:''}
+<div style="margin-top:32px;text-align:center;color:#aaa;font-size:11px">Cotización generada vía attempo · attempo.cl</div>
+<script>window.onload=function(){window.print()}<\/script></body></html>`;
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+// ── Subir PDF externo ────────────────────────────────────────
+function openSubirCotPDF() {
+  document.getElementById('cot-subir-ov').style.display = 'flex';
+  document.getElementById('csub-nombre').value  = '';
+  document.getElementById('csub-email').value   = '';
+  document.getElementById('csub-tel').value     = '';
+  document.getElementById('csub-file').value    = '';
+  document.getElementById('csub-progress').style.display = 'none';
+}
+function closeCotSubirModal() { document.getElementById('cot-subir-ov').style.display = 'none'; }
+
+async function subirCotPDF() {
+  const nombre = document.getElementById('csub-nombre').value.trim();
+  const email  = document.getElementById('csub-email').value.trim();
+  const tel    = document.getElementById('csub-tel').value.trim();
+  const file   = document.getElementById('csub-file').files[0];
+  if (!nombre) { toastErr('Nombre del destinatario requerido'); return; }
+  if (!file)   { toastErr('Selecciona un archivo PDF'); return; }
+  const btn  = document.getElementById('csub-btn');
+  const prog = document.getElementById('csub-progress');
+  btn.disabled = true; prog.style.display = 'block'; prog.textContent = 'Subiendo PDF...';
+  try {
+    const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    const ext = file.name.split('.').pop();
+    const path = `pdf_externos/${u.cliente_id || Date.now()}_${Date.now()}.${ext}`;
+    const uploadR = await fetch(`${_SURL}/storage/v1/object/cotizaciones/${path}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${_SKEY}`, 'Content-Type': file.type, 'x-upsert': 'true' },
+      body: file
+    });
+    if (!uploadR.ok) { const t = await uploadR.text(); throw new Error('Upload: ' + t.slice(0,80)); }
+    const fileUrl = `${_SURL}/storage/v1/object/public/cotizaciones/${path}`;
+    prog.textContent = 'Guardando registro...';
+    const body = {
+      datos_destinatario: { nombre, email, telefono: tel },
+      items: [], condiciones: {}, incluye_iva: false, notas: '',
+      archivo_externo_url: fileUrl, estado: 'borrador'
+    };
+    const r = await fetch('/api/usuarios-admin?action=cot-guardar', { method:'POST', headers:_cotH(), body:JSON.stringify(body) });
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.error || 'Error al guardar');
+    _cotData.unshift(res);
+    renderCotizaciones(); actualizarCotKPIs();
+    closeCotSubirModal();
+    toastOk('PDF registrado correctamente');
+    // Ofrecer enviar
+    setTimeout(() => { if (confirm('¿Deseas enviar la cotización ahora?')) abrirEnviarCotDirecto(res.id); }, 300);
+  } catch(e) { toastErr(e.message || 'Error al subir'); }
+  finally { btn.disabled = false; prog.style.display = 'none'; }
+}
+
+// ── Logo del negocio ─────────────────────────────────────────
+async function openCotLogoModal() {
+  const r   = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
+  const cfg = await r.json();
+  document.getElementById('cot-logo-url').value = cfg.logo_url || '';
+  if (cfg.logo_url) {
+    document.getElementById('cot-logo-img').src = cfg.logo_url;
+    document.getElementById('cot-logo-preview').style.display = 'block';
+  } else {
+    document.getElementById('cot-logo-preview').style.display = 'none';
+  }
+  document.getElementById('cot-logo-ov').style.display = 'flex';
+}
+function closeCotLogoModal() { document.getElementById('cot-logo-ov').style.display = 'none'; }
+
+function previewLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const url  = URL.createObjectURL(file);
+  document.getElementById('cot-logo-img').src = url;
+  document.getElementById('cot-logo-preview').style.display = 'block';
+  document.getElementById('cot-logo-url').value = '';
+}
+function previewLogoUrl(url) {
+  if (!url) { document.getElementById('cot-logo-preview').style.display = 'none'; return; }
+  document.getElementById('cot-logo-img').src = url;
+  document.getElementById('cot-logo-preview').style.display = 'block';
+}
+
+async function saveCotLogo() {
+  const btn   = document.getElementById('cot-logo-btn');
+  const file  = document.getElementById('cot-logo-file').files[0];
+  let logo_url = document.getElementById('cot-logo-url').value.trim();
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    if (file) {
+      const u    = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+      const ext  = file.name.split('.').pop();
+      const path = `logos/${u.cliente_id || Date.now()}.${ext}`;
+      const up   = await fetch(`${_SURL}/storage/v1/object/cotizaciones/${path}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${_SKEY}`, 'Content-Type': file.type, 'x-upsert': 'true' },
+        body: file
+      });
+      if (!up.ok) throw new Error('Error subiendo logo');
+      logo_url = `${_SURL}/storage/v1/object/public/cotizaciones/${path}`;
+    }
+    const r = await fetch('/api/usuarios-admin?action=cot-logo', {
+      method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url })
+    });
+    if (!r.ok) throw new Error('Error guardando');
+    closeCotLogoModal();
+    toastOk('Logo guardado');
+  } catch(e) { toastErr(e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Guardar'; }
+}
+</script>
 
 </body>
 </html>
