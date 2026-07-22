@@ -13817,7 +13817,8 @@ async function actualizarComision(especialistaId, pct, inputEl) {
     <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
       <p style="margin:0;color:var(--t2);font-size:13px">El logo y los datos de tu negocio aparecerán en todas las cotizaciones que envíes.</p>
       <div id="cot-logo-preview" style="display:none;text-align:center;padding:12px;background:var(--surface-hi);border-radius:var(--r);border:1px solid var(--b1)">
-        <img id="cot-logo-img" src="" alt="Logo" style="max-height:60px;max-width:200px">
+        <img id="cot-logo-img" src="" alt="" style="max-height:60px;max-width:200px" onerror="document.getElementById('cot-logo-preview').style.display='none';document.getElementById('cot-logo-url').value=''">
+        <div style="margin-top:8px"><button class="btn-sm" style="font-size:11px;color:var(--t3)" onclick="quitarLogoActual()">Quitar logo</button></div>
       </div>
       <div class="fg">
         <label>Subir logo (imagen)</label>
@@ -14256,18 +14257,38 @@ async function subirCotPDF() {
 // ── Logo del negocio ─────────────────────────────────────────
 async function openCotLogoModal() {
   document.getElementById('cot-logo-ov').classList.add('open');
+  document.getElementById('cot-logo-file').value = '';
+  document.getElementById('cot-logo-url').value = '';
+  document.getElementById('cot-logo-preview').style.display = 'none';
   try {
     const r   = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
     if (!r.ok) return;
     const cfg = await r.json();
-    document.getElementById('cot-logo-url').value = cfg.logo_url || '';
-    if (cfg.logo_url) {
-      document.getElementById('cot-logo-img').src = cfg.logo_url;
-      document.getElementById('cot-logo-preview').style.display = 'block';
-    } else {
-      document.getElementById('cot-logo-preview').style.display = 'none';
+    const url = cfg.logo_url || '';
+    if (url) {
+      const img = document.getElementById('cot-logo-img');
+      img.onload = () => {
+        document.getElementById('cot-logo-preview').style.display = 'block';
+        if (!url.startsWith('data:')) document.getElementById('cot-logo-url').value = url;
+      };
+      img.onerror = () => {
+        document.getElementById('cot-logo-preview').style.display = 'none';
+      };
+      img.src = url;
     }
   } catch(_) {}
+}
+
+async function quitarLogoActual() {
+  if (!confirm('¿Quitar el logo actual?')) return;
+  const r = await fetch('/api/usuarios-admin?action=cot-logo', {
+    method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url: null })
+  });
+  if (r.ok) {
+    document.getElementById('cot-logo-preview').style.display = 'none';
+    document.getElementById('cot-logo-url').value = '';
+    toastOk('Logo eliminado');
+  }
 }
 function closeCotLogoModal() { document.getElementById('cot-logo-ov').classList.remove('open'); }
 

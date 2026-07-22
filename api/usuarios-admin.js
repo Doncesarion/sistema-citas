@@ -857,9 +857,13 @@ export default async function handler(req, res) {
       const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { logo_url } = req.body || {};
-      await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
-        method: 'PATCH', headers: _csh, body: JSON.stringify({ logo_url })
+      const rUp = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+        method: 'PATCH', headers: { ..._csh, Prefer: 'return=minimal' }, body: JSON.stringify({ logo_url })
       });
+      if (!rUp.ok) {
+        const err = await rUp.text().catch(() => '');
+        return res.status(500).json({ error: 'Error al guardar logo: ' + err.slice(0, 120) });
+      }
       return res.status(200).json({ ok: true });
     }
     } catch(e) { return res.status(500).json({ error: e.message }); }
