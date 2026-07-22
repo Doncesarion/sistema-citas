@@ -14274,7 +14274,7 @@ function closeCotLogoModal() { document.getElementById('cot-logo-ov').classList.
 function previewLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  const url  = URL.createObjectURL(file);
+  const url = URL.createObjectURL(file);
   document.getElementById('cot-logo-img').src = url;
   document.getElementById('cot-logo-preview').style.display = 'block';
   document.getElementById('cot-logo-url').value = '';
@@ -14285,28 +14285,44 @@ function previewLogoUrl(url) {
   document.getElementById('cot-logo-preview').style.display = 'block';
 }
 
+function _comprimirImagen(file, maxPx) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function saveCotLogo() {
-  const btn   = document.getElementById('cot-logo-btn');
-  const file  = document.getElementById('cot-logo-file').files[0];
+  const btn = document.getElementById('cot-logo-btn');
+  const file = document.getElementById('cot-logo-file').files[0];
   let logo_url = document.getElementById('cot-logo-url').value.trim();
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
     if (file) {
-      const u    = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-      const ext  = file.name.split('.').pop();
-      const path = `logos/${u.cliente_id || Date.now()}.${ext}`;
-      const up   = await fetch(`${_SURL}/storage/v1/object/cotizaciones/${path}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${_SKEY}`, 'Content-Type': file.type, 'x-upsert': 'true' },
-        body: file
-      });
-      if (!up.ok) throw new Error('Error subiendo logo');
-      logo_url = `${_SURL}/storage/v1/object/public/cotizaciones/${path}`;
+      logo_url = await _comprimirImagen(file, 600);
     }
+    if (!logo_url) { toastErr('Selecciona una imagen o ingresa una URL'); return; }
     const r = await fetch('/api/usuarios-admin?action=cot-logo', {
       method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url })
     });
     if (!r.ok) throw new Error('Error guardando');
+    document.getElementById('cot-logo-img').src = logo_url;
+    document.getElementById('cot-logo-preview').style.display = 'block';
     closeCotLogoModal();
     toastOk('Logo guardado');
   } catch(e) { toastErr(e.message); }
