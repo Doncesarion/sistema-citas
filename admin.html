@@ -9822,6 +9822,8 @@ function routeFromURL() {
     sv('bandeja', null, true);
     var banSubs = ['conversaciones','chatbot','canales','recordatorios','widget'];
     showBandejaTab(banSubs.includes(sub) ? sub : 'conversaciones', null, true);
+  } else if (section === 'cotizaciones') {
+    sv('cotizaciones', null, true);
   } else if (section === 'liquidaciones') {
     sv('liquidaciones', null, true);
   } else if (section === 'configuracion') {
@@ -13001,9 +13003,7 @@ window.escH = escH;
 
 })();
 
-// Iniciar routing — ocultar body hasta que la vista correcta esté lista
-routeFromURL();
-(function(){ const s = document.getElementById('pre-route-style'); if (s) s.remove(); })();
+// El routing se inicia después de cargar todos los módulos (ver final de cotizaciones.js)
 
 // ── Soporte widget (cliente → César) ─────────────────────────────────────────
 let _hSoportePoll = null;
@@ -13887,7 +13887,7 @@ let _cotPendingId = null; // id pendiente de enviar tras guardar
 
 function _cotH() {
   const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  const h = { 'Content-Type': 'application/json', 'x-session-token': sesToken() };
+  const h = { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' };
   if (u._impersonando && u.cliente_id) {
     h['x-override-cliente-id'] = u.cliente_id;
     const sa = localStorage.getItem('attempo_sa_impersona');
@@ -13901,13 +13901,20 @@ async function initCotizaciones() {
   document.getElementById('cot-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>';
   try {
     const r = await fetch('/api/usuarios-admin?action=cot-lista', { headers: _cotH() });
-    _cotData = await r.json();
-    if (!Array.isArray(_cotData)) _cotData = [];
+    const body = await r.json();
+    if (!r.ok) {
+      const msg = r.status === 401
+        ? `Auth fallo: ${JSON.stringify(body._d || body)}`
+        : `Error ${r.status}: ${body.error || JSON.stringify(body)}`;
+      document.getElementById('cot-tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--danger);font-size:13px">${msg}</td></tr>`;
+      return;
+    }
+    _cotData = Array.isArray(body) ? body : [];
     renderCotizaciones();
     actualizarCotKPIs();
     checkCotVencidas();
   } catch(e) {
-    document.getElementById('cot-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3)">Error al cargar</td></tr>';
+    document.getElementById('cot-tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--danger);font-size:13px">Error de red: ${e.message}</td></tr>`;
   }
 }
 
@@ -14248,16 +14255,19 @@ async function subirCotPDF() {
 
 // ── Logo del negocio ─────────────────────────────────────────
 async function openCotLogoModal() {
-  const r   = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
-  const cfg = await r.json();
-  document.getElementById('cot-logo-url').value = cfg.logo_url || '';
-  if (cfg.logo_url) {
-    document.getElementById('cot-logo-img').src = cfg.logo_url;
-    document.getElementById('cot-logo-preview').style.display = 'block';
-  } else {
-    document.getElementById('cot-logo-preview').style.display = 'none';
-  }
   document.getElementById('cot-logo-ov').style.display = 'flex';
+  try {
+    const r   = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
+    if (!r.ok) return;
+    const cfg = await r.json();
+    document.getElementById('cot-logo-url').value = cfg.logo_url || '';
+    if (cfg.logo_url) {
+      document.getElementById('cot-logo-img').src = cfg.logo_url;
+      document.getElementById('cot-logo-preview').style.display = 'block';
+    } else {
+      document.getElementById('cot-logo-preview').style.display = 'none';
+    }
+  } catch(_) {}
 }
 function closeCotLogoModal() { document.getElementById('cot-logo-ov').style.display = 'none'; }
 
@@ -14302,6 +14312,10 @@ async function saveCotLogo() {
   } catch(e) { toastErr(e.message); }
   finally { btn.disabled = false; btn.textContent = 'Guardar'; }
 }
+
+// Iniciar routing — aquí todas las funciones ya están definidas
+try { routeFromURL(); } catch(e) { console.error('routeFromURL error:', e); }
+(function(){ const s = document.getElementById('pre-route-style'); if (s) s.remove(); })();
 </script>
 
 </body>
