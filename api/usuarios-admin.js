@@ -528,8 +528,8 @@ export default async function handler(req, res) {
     } catch(e) { return res.status(500).json({ error: e.message }); }
   }
 
-  // ── Todas las demás rutas requieren token válido ───────────────────────────
-  if (!verifyToken(req.headers['x-sa-token'])) {
+  // ── Todas las demás rutas requieren token válido (excepto cotizaciones que tienen su propia auth) ──
+  if (!req.query.action?.startsWith('cot-') && !verifyToken(req.headers['x-sa-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
@@ -699,26 +699,32 @@ export default async function handler(req, res) {
   }
 
   // ══════════════════════════════════════════════════════════════════
-  // ── COTIZACIONES ──────────────────────────────────────────────────
+  // ── COTIZACIONES ──────────────────────────────────────════════════
   // ══════════════════════════════════════════════════════════════════
   if (req.query.action && req.query.action.startsWith('cot-')) {
+    const _cotClienteId = () => {
+      const override = req.headers['x-override-cliente-id'];
+      if (override && verifyToken(req.headers['x-sa-impersona'])) return override;
+      return getClienteIdFromToken(req.headers['x-session-token']);
+    };
+    try {
     const _CKEY = process.env.SUPABASE_SERVICE_KEY;
     const _CURL = 'https://xztqawulvrtjvtfixofy.supabase.co';
     const _csh  = { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': 'application/json' };
     const _cshG = { apikey: _CKEY, Authorization: `Bearer ${_CKEY}` };
     const action = req.query.action;
 
-    // Helper: obtiene cliente_id respetando impersonación superadmin
-    function _cotClienteId() {
-      const override = req.headers['x-override-cliente-id'];
-      if (override && verifyToken(req.headers['x-sa-impersona'])) return override;
-      return getClienteIdFromToken(req.headers['x-session-token']);
-    }
-
     // GET cot-lista — listar cotizaciones del cliente autenticado
     if (req.method === 'GET' && action === 'cot-lista') {
       const cid = _cotClienteId();
-      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      if (!cid) {
+        const tok = req.headers['x-session-token'] || '';
+        const hasSecret = !!process.env.SESSION_SECRET;
+        const dot = tok.lastIndexOf('.');
+        const payload = dot > -1 ? tok.slice(0, dot) : '';
+        const parts = payload.split(':');
+        return res.status(401).json({ error: 'No autorizado', _d: { hasToken: tok.length > 0, hasSecret, parts: parts.length, override: !!req.headers['x-override-cliente-id'], impersona: !!req.headers['x-sa-impersona'] } });
+      }
       const r = await fetch(`${_CURL}/rest/v1/cotizaciones?cliente_id=eq.${cid}&order=created_at.desc&limit=100`, { headers: _cshG });
       return res.status(200).json(await r.json());
     }
@@ -740,10 +746,12 @@ export default async function handler(req, res) {
         const mx = await rMax.json();
         const numero = ((mx[0]?.numero) || 0) + 1;
         const dias = parseInt(condiciones?.validez_dias || 15);
+        const fHoy = new Date().toISOString().split('T')[0];
         const fVenc = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
+        const tokenRespuesta = crypto.randomBytes(32).toString('hex');
         const r = await fetch(`${_CURL}/rest/v1/cotizaciones`, {
           method: 'POST', headers: { ..._csh, Prefer: 'return=representation' },
-          body: JSON.stringify({ cliente_id: cid, numero, datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url, fecha_vencimiento: fVenc })
+          body: JSON.stringify({ cliente_id: cid, numero, datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url, fecha_emision: fHoy, fecha_vencimiento: fVenc, token_respuesta: tokenRespuesta, estado: 'borrador' })
         });
         const d = await r.json();
         return res.status(201).json(d[0] || {});
@@ -854,6 +862,20 @@ export default async function handler(req, res) {
       });
       return res.status(200).json({ ok: true });
     }
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // ── SA: generar session token para cliente impersonado ────────────────────
+  if (req.method === 'POST' && req.query.action === 'gen-impersona-token') {
+    if (!verifyToken(req.headers['x-sa-token'])) return res.status(401).json({ error: 'No autorizado' });
+    const { cliente_id } = req.body || {};
+    if (!cliente_id) return res.status(400).json({ error: 'cliente_id requerido' });
+    const SESSION_SECRET = process.env.SESSION_SECRET;
+    if (!SESSION_SECRET) return res.status(500).json({ error: 'SESSION_SECRET no configurado' });
+    const expires = Date.now() + 24 * 60 * 60 * 1000;
+    const payload = `${cliente_id}:admin:${expires}`;
+    const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+    return res.status(200).json({ session_token: `${payload}.${sig}` });
   }
 
   // ── Gestión de usuarios y negocios ────────────────────────────────────────
