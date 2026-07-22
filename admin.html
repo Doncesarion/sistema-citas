@@ -13677,7 +13677,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 </div>
 
 <!-- ═══ MODAL COTIZACIÓN — CREAR / EDITAR ═══ -->
-<div class="overlay" id="cot-ov" onclick="if(event.target===this)closeCotModal()" style="display:none">
+<div class="overlay" id="cot-ov" onclick="if(event.target===this)closeCotModal()">
   <div class="modal" style="max-width:820px;max-height:93vh;overflow-y:auto;width:96%">
     <div class="modal-head">
       <span id="cot-modal-title">Nueva cotización</span>
@@ -13764,7 +13764,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 </div>
 
 <!-- ═══ MODAL COTIZACIÓN — ENVIAR ═══ -->
-<div class="overlay" id="cot-env-ov" onclick="if(event.target===this)closeCotEnviarModal()" style="display:none">
+<div class="overlay" id="cot-env-ov" onclick="if(event.target===this)closeCotEnviarModal()">
   <div class="modal" style="max-width:400px">
     <div class="modal-head"><span>Enviar cotización</span><button class="mclose" onclick="closeCotEnviarModal()">×</button></div>
     <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
@@ -13792,7 +13792,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 </div>
 
 <!-- ═══ MODAL COTIZACIÓN — SUBIR PDF ═══ -->
-<div class="overlay" id="cot-subir-ov" onclick="if(event.target===this)closeCotSubirModal()" style="display:none">
+<div class="overlay" id="cot-subir-ov" onclick="if(event.target===this)closeCotSubirModal()">
   <div class="modal" style="max-width:440px">
     <div class="modal-head"><span>Subir cotización en PDF</span><button class="mclose" onclick="closeCotSubirModal()">×</button></div>
     <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
@@ -13811,7 +13811,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 </div>
 
 <!-- ═══ MODAL COTIZACIÓN — LOGO ═══ -->
-<div class="overlay" id="cot-logo-ov" onclick="if(event.target===this)closeCotLogoModal()" style="display:none">
+<div class="overlay" id="cot-logo-ov" onclick="if(event.target===this)closeCotLogoModal()">
   <div class="modal" style="max-width:460px">
     <div class="modal-head"><span>Logo y datos del negocio</span><button class="mclose" onclick="closeCotLogoModal()">×</button></div>
     <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
@@ -14018,10 +14018,10 @@ function openCotModal(id) {
     addCotItem();
   }
   recalcCotTotales();
-  document.getElementById('cot-ov').style.display = 'flex';
+  document.getElementById('cot-ov').classList.add('open');
 }
 
-function closeCotModal() { document.getElementById('cot-ov').style.display = 'none'; }
+function closeCotModal() { document.getElementById('cot-ov').classList.remove('open'); }
 
 function addCotItem(it = {}) {
   const tr = document.createElement('tr');
@@ -14118,9 +14118,9 @@ function abrirEnviarCotDirecto(id) {
   const cot = _cotData.find(c => c.id === id);
   document.getElementById('cot-env-email-val').textContent = cot?.datos_destinatario?.email || '(sin email)';
   document.getElementById('cot-env-wa-val').textContent    = cot?.datos_destinatario?.telefono || '(sin teléfono)';
-  document.getElementById('cot-env-ov').style.display = 'flex';
+  document.getElementById('cot-env-ov').classList.add('open');
 }
-function closeCotEnviarModal() { document.getElementById('cot-env-ov').style.display = 'none'; }
+function closeCotEnviarModal() { document.getElementById('cot-env-ov').classList.remove('open'); }
 
 async function enviarCot() {
   const canales = [];
@@ -14204,14 +14204,14 @@ ${data.notas?`<div style="margin-top:20px;padding:12px 14px;background:#fafafa;b
 
 // ── Subir PDF externo ────────────────────────────────────────
 function openSubirCotPDF() {
-  document.getElementById('cot-subir-ov').style.display = 'flex';
+  document.getElementById('cot-subir-ov').classList.add('open');
   document.getElementById('csub-nombre').value  = '';
   document.getElementById('csub-email').value   = '';
   document.getElementById('csub-tel').value     = '';
   document.getElementById('csub-file').value    = '';
   document.getElementById('csub-progress').style.display = 'none';
 }
-function closeCotSubirModal() { document.getElementById('cot-subir-ov').style.display = 'none'; }
+function closeCotSubirModal() { document.getElementById('cot-subir-ov').classList.remove('open'); }
 
 async function subirCotPDF() {
   const nombre = document.getElementById('csub-nombre').value.trim();
@@ -14255,7 +14255,7 @@ async function subirCotPDF() {
 
 // ── Logo del negocio ─────────────────────────────────────────
 async function openCotLogoModal() {
-  document.getElementById('cot-logo-ov').style.display = 'flex';
+  document.getElementById('cot-logo-ov').classList.add('open');
   try {
     const r   = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
     if (!r.ok) return;
@@ -14269,7 +14269,7 @@ async function openCotLogoModal() {
     }
   } catch(_) {}
 }
-function closeCotLogoModal() { document.getElementById('cot-logo-ov').style.display = 'none'; }
+function closeCotLogoModal() { document.getElementById('cot-logo-ov').classList.remove('open'); }
 
 function previewLogoUpload(input) {
   const file = input.files[0];
