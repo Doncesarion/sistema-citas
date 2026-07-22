@@ -2,6 +2,8 @@ import crypto from 'crypto';
 import { promisify } from 'util';
 const scryptAsync = promisify(crypto.scrypt);
 
+export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
+
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
 function verifySessionToken(token, expectedClienteId) {
@@ -867,6 +869,38 @@ export default async function handler(req, res) {
       const rows = await rUp.json();
       if (!rows.length) return res.status(404).json({ error: 'No se encontró la cuenta. ID: ' + cid });
       return res.status(200).json({ ok: true, logo_url: rows[0].logo_url });
+    }
+
+    // POST cot-pdf-upload — sube PDF a Supabase Storage con service role key
+    if (req.method === 'POST' && action === 'cot-pdf-upload') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { fileBase64, mimeType, filename } = req.body || {};
+      if (!fileBase64) return res.status(400).json({ error: 'fileBase64 requerido' });
+      const ext  = (filename || 'archivo.pdf').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'pdf';
+      const path = `pdf_externos/${cid}_${Date.now()}.${ext}`;
+      const bucket = 'cotizaciones';
+      // Crear bucket si no existe
+      const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
+      if (bucketR.status === 404) {
+        await fetch(`${_CURL}/storage/v1/bucket`, {
+          method: 'POST', headers: _csh,
+          body: JSON.stringify({ id: bucket, name: bucket, public: true })
+        });
+      }
+      // Subir archivo
+      const buf = Buffer.from(fileBase64, 'base64');
+      const storageR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
+        method: 'POST',
+        headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'application/pdf', 'x-upsert': 'true' },
+        body: buf
+      });
+      if (!storageR.ok) {
+        const err = await storageR.text().catch(() => '');
+        return res.status(500).json({ error: 'Error al subir archivo: ' + err.slice(0, 120) });
+      }
+      const publicUrl = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
+      return res.status(200).json({ ok: true, publicUrl });
     }
     } catch(e) { return res.status(500).json({ error: e.message }); }
   }

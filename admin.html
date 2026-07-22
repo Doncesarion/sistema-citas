@@ -14233,25 +14233,30 @@ async function subirCotPDF() {
   const file   = document.getElementById('csub-file').files[0];
   if (!nombre) { toastErr('Nombre del destinatario requerido'); return; }
   if (!file)   { toastErr('Selecciona un archivo PDF'); return; }
+  if (file.size > 8 * 1024 * 1024) { toastErr('El PDF no puede superar 8 MB'); return; }
   const btn  = document.getElementById('csub-btn');
   const prog = document.getElementById('csub-progress');
-  btn.disabled = true; prog.style.display = 'block'; prog.textContent = 'Subiendo PDF...';
+  btn.disabled = true; prog.style.display = 'block'; prog.textContent = 'Leyendo archivo...';
   try {
-    const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-    const ext = file.name.split('.').pop();
-    const path = `pdf_externos/${u.cliente_id || Date.now()}_${Date.now()}.${ext}`;
-    const uploadR = await fetch(`${_SURL}/storage/v1/object/cotizaciones/${path}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${_SKEY}`, 'Content-Type': file.type, 'x-upsert': 'true' },
-      body: file
+    const fileBase64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
     });
-    if (!uploadR.ok) { const t = await uploadR.text(); throw new Error('Upload: ' + t.slice(0,80)); }
-    const fileUrl = `${_SURL}/storage/v1/object/public/cotizaciones/${path}`;
+    prog.textContent = 'Subiendo PDF...';
+    const uploadR = await fetch('/api/usuarios-admin?action=cot-pdf-upload', {
+      method: 'POST',
+      headers: { ..._cotH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileBase64, mimeType: file.type, filename: file.name })
+    });
+    const uploadRes = await uploadR.json();
+    if (!uploadR.ok) throw new Error(uploadRes.error || 'Error al subir PDF');
     prog.textContent = 'Guardando registro...';
     const body = {
       datos_destinatario: { nombre, email, telefono: tel },
       items: [], condiciones: {}, incluye_iva: false, notas: '',
-      archivo_externo_url: fileUrl, estado: 'borrador'
+      archivo_externo_url: uploadRes.publicUrl, estado: 'borrador'
     };
     const r = await fetch('/api/usuarios-admin?action=cot-guardar', { method:'POST', headers:_cotH(), body:JSON.stringify(body) });
     const res = await r.json();
@@ -14260,7 +14265,6 @@ async function subirCotPDF() {
     renderCotizaciones(); actualizarCotKPIs();
     closeCotSubirModal();
     toast('PDF registrado correctamente');
-    // Ofrecer enviar
     setTimeout(() => { if (confirm('¿Deseas enviar la cotización ahora?')) abrirEnviarCotDirecto(res.id); }, 300);
   } catch(e) { toastErr(e.message || 'Error al subir'); }
   finally { btn.disabled = false; prog.style.display = 'none'; }
@@ -14325,7 +14329,9 @@ function previewLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
   _cotLogoNuevo = file;
-  _mostrarLogoPreview(URL.createObjectURL(file));
+  const reader = new FileReader();
+  reader.onload = e => _mostrarLogoPreview(e.target.result);
+  reader.readAsDataURL(file);
 }
 
 function _comprimirImagen(file, maxPx) {
