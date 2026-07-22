@@ -14267,14 +14267,10 @@ async function openCotLogoModal() {
     const url = cfg.logo_url || '';
     if (url) {
       const img = document.getElementById('cot-logo-img');
-      img.onload = () => {
-        document.getElementById('cot-logo-preview').style.display = 'block';
-        if (!url.startsWith('data:')) document.getElementById('cot-logo-url').value = url;
-      };
-      img.onerror = () => {
-        document.getElementById('cot-logo-preview').style.display = 'none';
-      };
+      img.onerror = () => { document.getElementById('cot-logo-preview').style.display = 'none'; };
       img.src = url;
+      document.getElementById('cot-logo-preview').style.display = 'block';
+      if (!url.startsWith('data:')) document.getElementById('cot-logo-url').value = url;
     }
   } catch(_) {}
 }
@@ -14341,8 +14337,10 @@ async function saveCotLogo() {
     const r = await fetch('/api/usuarios-admin?action=cot-logo', {
       method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url })
     });
-    if (!r.ok) throw new Error('Error guardando');
-    document.getElementById('cot-logo-img').src = logo_url;
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.error || 'Error guardando');
+    const savedUrl = res.logo_url || logo_url;
+    document.getElementById('cot-logo-img').src = savedUrl;
     document.getElementById('cot-logo-preview').style.display = 'block';
     closeCotLogoModal();
     toast('Logo guardado');
