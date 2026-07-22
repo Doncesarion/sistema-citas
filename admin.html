@@ -13819,7 +13819,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
       <!-- Logo actual + subir -->
       <div style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--surface-hi);border-radius:var(--r);border:1px solid var(--b1)">
         <div id="cot-logo-preview" style="width:72px;height:72px;border:1.5px dashed var(--b1);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;background:var(--bg)">
-          <img id="cot-logo-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none" onerror="this.style.display='none'">
+          <img id="cot-logo-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none" onerror="this.style.display='none';document.getElementById('cot-logo-placeholder').style.display=''">
           <span id="cot-logo-placeholder" style="font-size:22px;color:var(--t4)">🖼</span>
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:8px">
@@ -14367,9 +14367,10 @@ async function saveCotLogo() {
       method: 'PATCH', headers: _cotH(), body: JSON.stringify({ fileBase64, mimeType: 'image/jpeg' })
     });
     const res = await r.json();
-    if (!r.ok) throw new Error(res.error || 'Error guardando');
+    if (!r.ok) throw new Error(res.error || 'Error al guardar el logo');
+    if (!res.logo_url) throw new Error('El logo se subió pero no quedó guardado. Contacta soporte.');
     _cotLogoNuevo = null;
-    if (res.logo_url) _mostrarLogoPreview(res.logo_url);
+    _mostrarLogoPreview(res.logo_url);
     closeCotLogoModal();
     toast('Logo guardado');
   } catch(e) { toastErr(e.message); }

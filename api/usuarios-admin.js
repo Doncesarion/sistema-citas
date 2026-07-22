@@ -859,16 +859,26 @@ export default async function handler(req, res) {
       const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { fileBase64, mimeType, logo_url: directUrl } = req.body || {};
-      let logo_url = directUrl ?? null;
+      let logo_url = directUrl !== undefined ? directUrl : null;
       if (fileBase64) {
-        // Subir imagen a Supabase Storage con service role key
         const bucket = 'cotizaciones';
+        // Garantizar que el bucket exista y sea público
         const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
         if (bucketR.status === 404) {
-          await fetch(`${_CURL}/storage/v1/bucket`, {
+          const cR = await fetch(`${_CURL}/storage/v1/bucket`, {
             method: 'POST', headers: _csh,
             body: JSON.stringify({ id: bucket, name: bucket, public: true })
           });
+          if (!cR.ok) {
+            const err = await cR.text().catch(() => '');
+            return res.status(500).json({ error: 'Error creando bucket: ' + err.slice(0, 160) });
+          }
+        } else {
+          // Asegurar que sea público aunque ya existiera como privado
+          await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, {
+            method: 'PUT', headers: _csh,
+            body: JSON.stringify({ public: true })
+          }).catch(() => {});
         }
         const ext  = mimeType === 'image/png' ? 'png' : 'jpg';
         const path = `logos/${cid}_${Date.now()}.${ext}`;
@@ -880,7 +890,7 @@ export default async function handler(req, res) {
         });
         if (!storageR.ok) {
           const err = await storageR.text().catch(() => '');
-          return res.status(500).json({ error: 'Error subiendo logo: ' + err.slice(0, 160) });
+          return res.status(500).json({ error: 'Error subiendo logo a Storage: ' + err.slice(0, 200) });
         }
         logo_url = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
       }
@@ -889,11 +899,13 @@ export default async function handler(req, res) {
       });
       if (!rUp.ok) {
         const err = await rUp.text().catch(() => '');
-        return res.status(500).json({ error: 'Error al guardar logo: ' + err.slice(0, 160) });
+        return res.status(500).json({ error: 'Error guardando en BD: ' + err.slice(0, 200) });
       }
       const rows = await rUp.json();
-      if (!rows.length) return res.status(404).json({ error: 'No se encontró la cuenta. ID: ' + cid });
-      return res.status(200).json({ ok: true, logo_url: rows[0].logo_url });
+      if (!rows.length) return res.status(404).json({ error: 'Cuenta no encontrada (id=' + cid + ')' });
+      const saved = rows[0].logo_url;
+      if (logo_url && !saved) return res.status(500).json({ error: 'El logo se subió pero no se guardó en BD. Columna logo_url podría no existir.' });
+      return res.status(200).json({ ok: true, logo_url: saved });
     }
 
     // POST cot-pdf-upload — sube PDF a Supabase Storage con service role key
