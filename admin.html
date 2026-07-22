@@ -14101,7 +14101,7 @@ async function saveCot(estado) {
       _cotId = res.id;
     }
     renderCotizaciones();
-    if (estado === 'borrador') { toastOk('Borrador guardado'); closeCotModal(); }
+    if (estado === 'borrador') { toast('Borrador guardado'); closeCotModal(); }
     return res;
   } catch(e) { toastErr('Error de red'); return null; }
 }
@@ -14140,7 +14140,7 @@ async function enviarCot() {
     if (idx >= 0) _cotData[idx].estado = 'enviada';
     renderCotizaciones(); actualizarCotKPIs();
     closeCotEnviarModal();
-    toastOk('Cotización enviada');
+    toast('Cotización enviada');
   } catch(e) { toastErr('Error de red'); }
   finally { btn.disabled = false; btn.textContent = 'Enviar'; }
 }
@@ -14150,7 +14150,7 @@ async function deleteCot(id) {
   await fetch(`/api/usuarios-admin?action=cot-eliminar&id=${id}`, { method:'DELETE', headers:_cotH() });
   _cotData = _cotData.filter(c => c.id !== id);
   renderCotizaciones(); actualizarCotKPIs();
-  toastOk('Borrador eliminado');
+  toast('Borrador eliminado');
 }
 
 // ── Ver (solo lectura) ───────────────────────────────────────
@@ -14247,7 +14247,7 @@ async function subirCotPDF() {
     _cotData.unshift(res);
     renderCotizaciones(); actualizarCotKPIs();
     closeCotSubirModal();
-    toastOk('PDF registrado correctamente');
+    toast('PDF registrado correctamente');
     // Ofrecer enviar
     setTimeout(() => { if (confirm('¿Deseas enviar la cotización ahora?')) abrirEnviarCotDirecto(res.id); }, 300);
   } catch(e) { toastErr(e.message || 'Error al subir'); }
@@ -14287,7 +14287,7 @@ async function quitarLogoActual() {
   if (r.ok) {
     document.getElementById('cot-logo-preview').style.display = 'none';
     document.getElementById('cot-logo-url').value = '';
-    toastOk('Logo eliminado');
+    toast('Logo eliminado');
   }
 }
 function closeCotLogoModal() { document.getElementById('cot-logo-ov').classList.remove('open'); }
@@ -14345,7 +14345,7 @@ async function saveCotLogo() {
     document.getElementById('cot-logo-img').src = logo_url;
     document.getElementById('cot-logo-preview').style.display = 'block';
     closeCotLogoModal();
-    toastOk('Logo guardado');
+    toast('Logo guardado');
   } catch(e) { toastErr(e.message); }
   finally { btn.disabled = false; btn.textContent = 'Guardar'; }
 }
