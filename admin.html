@@ -14372,7 +14372,14 @@ async function saveCotLogo() {
     _cotLogoNuevo = null;
     _mostrarLogoPreview(res.logo_url);
     closeCotLogoModal();
-    toast('Logo guardado');
+    // Verificar que cot-config devuelve la URL recién guardada
+    const chk = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
+    const chkCfg = await chk.json();
+    if (chkCfg.logo_url === res.logo_url) {
+      toast('Logo guardado');
+    } else {
+      toastErr('Logo subido a Storage pero BD no lo reflejó (BD=' + (chkCfg.logo_url ? 'otra_url' : 'null') + '). ¿Falta columna logo_url?');
+    }
   } catch(e) { toastErr(e.message); }
   finally { btn.disabled = false; btn.textContent = 'Guardar logo'; }
 }
