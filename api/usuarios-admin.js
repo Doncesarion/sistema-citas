@@ -854,17 +854,42 @@ export default async function handler(req, res) {
       return res.status(200).json((await r.json())[0] || {});
     }
 
-    // PATCH cot-logo — guardar logo_url
+    // PATCH cot-logo — guardar logo del negocio
     if (req.method === 'PATCH' && action === 'cot-logo') {
       const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
-      const { logo_url } = req.body || {};
+      const { fileBase64, mimeType, logo_url: directUrl } = req.body || {};
+      let logo_url = directUrl ?? null;
+      if (fileBase64) {
+        // Subir imagen a Supabase Storage con service role key
+        const bucket = 'cotizaciones';
+        const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
+        if (bucketR.status === 404) {
+          await fetch(`${_CURL}/storage/v1/bucket`, {
+            method: 'POST', headers: _csh,
+            body: JSON.stringify({ id: bucket, name: bucket, public: true })
+          });
+        }
+        const ext  = mimeType === 'image/png' ? 'png' : 'jpg';
+        const path = `logos/${cid}_${Date.now()}.${ext}`;
+        const buf  = Buffer.from(fileBase64, 'base64');
+        const storageR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
+          method: 'POST',
+          headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'image/jpeg', 'x-upsert': 'true' },
+          body: buf
+        });
+        if (!storageR.ok) {
+          const err = await storageR.text().catch(() => '');
+          return res.status(500).json({ error: 'Error subiendo logo: ' + err.slice(0, 160) });
+        }
+        logo_url = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
+      }
       const rUp = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
         method: 'PATCH', headers: { ..._csh, Prefer: 'return=representation' }, body: JSON.stringify({ logo_url })
       });
       if (!rUp.ok) {
         const err = await rUp.text().catch(() => '');
-        return res.status(500).json({ error: 'Error al guardar logo: ' + err.slice(0, 120) });
+        return res.status(500).json({ error: 'Error al guardar logo: ' + err.slice(0, 160) });
       }
       const rows = await rUp.json();
       if (!rows.length) return res.status(404).json({ error: 'No se encontró la cuenta. ID: ' + cid });

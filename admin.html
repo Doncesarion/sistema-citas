@@ -14361,13 +14361,15 @@ async function saveCotLogo() {
   const btn = document.getElementById('cot-logo-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    const logo_url = await _comprimirImagen(_cotLogoNuevo, 600);
+    const dataUrl  = await _comprimirImagen(_cotLogoNuevo, 600);
+    const fileBase64 = dataUrl.split(',')[1];
     const r = await fetch('/api/usuarios-admin?action=cot-logo', {
-      method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url })
+      method: 'PATCH', headers: _cotH(), body: JSON.stringify({ fileBase64, mimeType: 'image/jpeg' })
     });
     const res = await r.json();
     if (!r.ok) throw new Error(res.error || 'Error guardando');
     _cotLogoNuevo = null;
+    if (res.logo_url) _mostrarLogoPreview(res.logo_url);
     closeCotLogoModal();
     toast('Logo guardado');
   } catch(e) { toastErr(e.message); }
