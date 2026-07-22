@@ -13812,27 +13812,39 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 
 <!-- ═══ MODAL COTIZACIÓN — LOGO ═══ -->
 <div class="overlay" id="cot-logo-ov" onclick="if(event.target===this)closeCotLogoModal()">
-  <div class="modal" style="max-width:460px">
+  <div class="modal" style="max-width:480px">
     <div class="modal-head"><span>Logo y datos del negocio</span><button class="mclose" onclick="closeCotLogoModal()">×</button></div>
-    <div class="mbody" style="display:flex;flex-direction:column;gap:14px">
-      <p style="margin:0;color:var(--t2);font-size:13px">El logo y los datos de tu negocio aparecerán en todas las cotizaciones que envíes.</p>
-      <div id="cot-logo-preview" style="display:none;text-align:center;padding:12px;background:var(--surface-hi);border-radius:var(--r);border:1px solid var(--b1)">
-        <img id="cot-logo-img" src="" alt="" style="max-height:60px;max-width:200px" onerror="document.getElementById('cot-logo-preview').style.display='none';document.getElementById('cot-logo-url').value=''">
-        <div style="margin-top:8px"><button class="btn-sm" style="font-size:11px;color:var(--t3)" onclick="quitarLogoActual()">Quitar logo</button></div>
+    <div class="mbody" style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Logo actual + subir -->
+      <div style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--surface-hi);border-radius:var(--r);border:1px solid var(--b1)">
+        <div id="cot-logo-preview" style="width:72px;height:72px;border:1.5px dashed var(--b1);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;background:var(--bg)">
+          <img id="cot-logo-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none" onerror="this.style.display='none'">
+          <span id="cot-logo-placeholder" style="font-size:22px;color:var(--t4)">🖼</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <label class="btn-sm" style="cursor:pointer;display:inline-block;margin:0">
+            Seleccionar imagen
+            <input type="file" id="cot-logo-file" accept="image/*" onchange="previewLogoUpload(this)" style="display:none">
+          </label>
+          <button id="cot-logo-quitar" class="btn-sm" style="display:none;color:var(--t3);font-size:11px" onclick="quitarLogoActual()">Quitar logo</button>
+          <span style="font-size:11px;color:var(--t3)">PNG, JPG o SVG. Se mostrará en la cotización.</span>
+        </div>
       </div>
-      <div class="fg">
-        <label>Subir logo (imagen)</label>
-        <input type="file" id="cot-logo-file" accept="image/*" onchange="previewLogoUpload(this)" style="padding:6px 0">
+
+      <!-- Datos del negocio (solo lectura) -->
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:8px">Datos del negocio en cotizaciones</div>
+        <div id="cot-neg-preview" style="background:var(--surface-hi);border-radius:var(--r);border:1px solid var(--b1);padding:12px 14px;font-size:13px;color:var(--t2);line-height:1.7">
+          <span style="color:var(--t4)">Cargando...</span>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:6px">Para editar ve a <button onclick="closeCotLogoModal();sv('config');showCfg('general')" style="background:none;border:none;color:var(--a);font-size:11px;cursor:pointer;padding:0;text-decoration:underline">Configuración → General</button></div>
       </div>
-      <div class="fg">
-        <label>O pegar URL del logo</label>
-        <input id="cot-logo-url" placeholder="https://..." oninput="previewLogoUrl(this.value)">
-      </div>
-      <div style="font-size:11px;color:var(--t3)">Datos del negocio (nombre, dirección, teléfono) se toman del perfil de Configuración → General.</div>
+
     </div>
     <div class="mfoot">
       <button class="btn-g" onclick="closeCotLogoModal()">Cancelar</button>
-      <button class="btn-a" id="cot-logo-btn" onclick="saveCotLogo()">Guardar</button>
+      <button class="btn-a" id="cot-logo-btn" onclick="saveCotLogo()">Guardar logo</button>
     </div>
   </div>
 </div>
@@ -14258,20 +14270,28 @@ async function subirCotPDF() {
 async function openCotLogoModal() {
   document.getElementById('cot-logo-ov').classList.add('open');
   document.getElementById('cot-logo-file').value = '';
-  document.getElementById('cot-logo-url').value = '';
-  document.getElementById('cot-logo-preview').style.display = 'none';
+  _cotLogoNuevo = null;
+  const img = document.getElementById('cot-logo-img');
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('cot-logo-placeholder').style.display = '';
+  document.getElementById('cot-logo-quitar').style.display = 'none';
+  document.getElementById('cot-neg-preview').innerHTML = '<span style="color:var(--t4)">Cargando...</span>';
   try {
     const r   = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
     if (!r.ok) return;
     const cfg = await r.json();
-    const url = cfg.logo_url || '';
-    if (url) {
-      const img = document.getElementById('cot-logo-img');
-      img.onerror = () => { document.getElementById('cot-logo-preview').style.display = 'none'; };
-      img.src = url;
-      document.getElementById('cot-logo-preview').style.display = 'block';
-      if (!url.startsWith('data:')) document.getElementById('cot-logo-url').value = url;
-    }
+    // Mostrar logo guardado
+    if (cfg.logo_url) _mostrarLogoPreview(cfg.logo_url);
+    // Mostrar datos del negocio
+    const partes = [
+      cfg.nombre_negocio ? `<strong>${cfg.nombre_negocio}</strong>` : null,
+      cfg.direccion || null,
+      cfg.email     || null,
+      cfg.telefono  || null
+    ].filter(Boolean);
+    document.getElementById('cot-neg-preview').innerHTML = partes.length
+      ? partes.join('<br>')
+      : '<span style="color:var(--t4)">Sin datos — completa tu perfil en Configuración → General</span>';
   } catch(_) {}
 }
 
@@ -14281,25 +14301,31 @@ async function quitarLogoActual() {
     method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url: null })
   });
   if (r.ok) {
-    document.getElementById('cot-logo-preview').style.display = 'none';
-    document.getElementById('cot-logo-url').value = '';
+    const img = document.getElementById('cot-logo-img');
+    img.src = ''; img.style.display = 'none';
+    document.getElementById('cot-logo-placeholder').style.display = '';
+    document.getElementById('cot-logo-quitar').style.display = 'none';
+    _cotLogoNuevo = null;
     toast('Logo eliminado');
   }
 }
 function closeCotLogoModal() { document.getElementById('cot-logo-ov').classList.remove('open'); }
 
+let _cotLogoNuevo = null;
+
+function _mostrarLogoPreview(url) {
+  const img = document.getElementById('cot-logo-img');
+  img.src = url;
+  img.style.display = 'block';
+  document.getElementById('cot-logo-placeholder').style.display = 'none';
+  document.getElementById('cot-logo-quitar').style.display = '';
+}
+
 function previewLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  const url = URL.createObjectURL(file);
-  document.getElementById('cot-logo-img').src = url;
-  document.getElementById('cot-logo-preview').style.display = 'block';
-  document.getElementById('cot-logo-url').value = '';
-}
-function previewLogoUrl(url) {
-  if (!url) { document.getElementById('cot-logo-preview').style.display = 'none'; return; }
-  document.getElementById('cot-logo-img').src = url;
-  document.getElementById('cot-logo-preview').style.display = 'block';
+  _cotLogoNuevo = file;
+  _mostrarLogoPreview(URL.createObjectURL(file));
 }
 
 function _comprimirImagen(file, maxPx) {
@@ -14325,27 +14351,21 @@ function _comprimirImagen(file, maxPx) {
 }
 
 async function saveCotLogo() {
+  if (!_cotLogoNuevo) { closeCotLogoModal(); return; }
   const btn = document.getElementById('cot-logo-btn');
-  const file = document.getElementById('cot-logo-file').files[0];
-  let logo_url = document.getElementById('cot-logo-url').value.trim();
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    if (file) {
-      logo_url = await _comprimirImagen(file, 600);
-    }
-    if (!logo_url) { toastErr('Selecciona una imagen o ingresa una URL'); return; }
+    const logo_url = await _comprimirImagen(_cotLogoNuevo, 600);
     const r = await fetch('/api/usuarios-admin?action=cot-logo', {
       method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url })
     });
     const res = await r.json();
     if (!r.ok) throw new Error(res.error || 'Error guardando');
-    const savedUrl = res.logo_url || logo_url;
-    document.getElementById('cot-logo-img').src = savedUrl;
-    document.getElementById('cot-logo-preview').style.display = 'block';
+    _cotLogoNuevo = null;
     closeCotLogoModal();
     toast('Logo guardado');
   } catch(e) { toastErr(e.message); }
-  finally { btn.disabled = false; btn.textContent = 'Guardar'; }
+  finally { btn.disabled = false; btn.textContent = 'Guardar logo'; }
 }
 
 // Iniciar routing — aquí todas las funciones ya están definidas
