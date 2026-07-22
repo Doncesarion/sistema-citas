@@ -14301,8 +14301,13 @@ async function openCotLogoModal() {
 
 async function quitarLogoActual() {
   if (!confirm('¿Quitar el logo actual?')) return;
-  const r = await fetch('/api/usuarios-admin?action=cot-logo', {
-    method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url: null })
+  const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+  const cid = u.cliente_id;
+  if (!cid) { toastErr('No se pudo identificar la cuenta'); return; }
+  const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+    method: 'PATCH',
+    headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ logo_url: null })
   });
   if (r.ok) {
     const img = document.getElementById('cot-logo-img');
@@ -14311,6 +14316,8 @@ async function quitarLogoActual() {
     document.getElementById('cot-logo-quitar').style.display = 'none';
     _cotLogoNuevo = null;
     toast('Logo eliminado');
+  } else {
+    toastErr('Error al eliminar logo');
   }
 }
 function closeCotLogoModal() { document.getElementById('cot-logo-ov').classList.remove('open'); }
@@ -14361,25 +14368,32 @@ async function saveCotLogo() {
   const btn = document.getElementById('cot-logo-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    const dataUrl  = await _comprimirImagen(_cotLogoNuevo, 600);
+    const dataUrl    = await _comprimirImagen(_cotLogoNuevo, 600);
     const fileBase64 = dataUrl.split(',')[1];
-    const r = await fetch('/api/usuarios-admin?action=cot-logo', {
-      method: 'PATCH', headers: _cotH(), body: JSON.stringify({ fileBase64, mimeType: 'image/jpeg' })
+    // 1. Subir archivo a Storage vía API (necesita service key)
+    const upR = await fetch('/api/usuarios-admin?action=cot-logo-upload', {
+      method: 'POST', headers: _cotH(), body: JSON.stringify({ fileBase64, mimeType: 'image/jpeg' })
     });
-    const res = await r.json();
-    if (!r.ok) throw new Error(res.error || 'Error al guardar el logo');
-    if (!res.logo_url) throw new Error('El logo se subió pero no quedó guardado. Contacta soporte.');
-    _cotLogoNuevo = null;
-    _mostrarLogoPreview(res.logo_url);
-    closeCotLogoModal();
-    // Verificar que cot-config devuelve la URL recién guardada
-    const chk = await fetch('/api/usuarios-admin?action=cot-config', { headers: _cotH() });
-    const chkCfg = await chk.json();
-    if (chkCfg.logo_url === res.logo_url) {
-      toast('Logo guardado');
-    } else {
-      toastErr('Logo subido a Storage pero BD no lo reflejó (BD=' + (chkCfg.logo_url ? 'otra_url' : 'null') + '). ¿Falta columna logo_url?');
+    const upRes = await upR.json();
+    if (!upR.ok) throw new Error(upRes.error || 'Error subiendo imagen');
+    const publicUrl = upRes.publicUrl;
+    // 2. Guardar URL en clientes_sistema directo desde frontend (mismo método que saveNegocio)
+    const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    const cid = u.cliente_id;
+    if (!cid) throw new Error('No se pudo identificar la cuenta');
+    const pR = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ logo_url: publicUrl })
+    });
+    if (!pR.ok) {
+      const errTxt = await pR.text().catch(() => '');
+      throw new Error('Error guardando en BD: ' + errTxt.slice(0, 120));
     }
+    _cotLogoNuevo = null;
+    _mostrarLogoPreview(publicUrl);
+    closeCotLogoModal();
+    toast('Logo guardado');
   } catch(e) { toastErr(e.message); }
   finally { btn.disabled = false; btn.textContent = 'Guardar logo'; }
 }

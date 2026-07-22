@@ -854,58 +854,53 @@ export default async function handler(req, res) {
       return res.status(200).json((await r.json())[0] || {});
     }
 
-    // PATCH cot-logo — guardar logo del negocio
+    // POST cot-logo-upload — sube logo a Storage y devuelve URL pública (el PATCH a BD lo hace el frontend)
+    if (req.method === 'POST' && action === 'cot-logo-upload') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { fileBase64, mimeType } = req.body || {};
+      if (!fileBase64) return res.status(400).json({ error: 'fileBase64 requerido' });
+      const bucket = 'cotizaciones';
+      const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
+      if (bucketR.status === 404) {
+        const cR = await fetch(`${_CURL}/storage/v1/bucket`, {
+          method: 'POST', headers: _csh,
+          body: JSON.stringify({ id: bucket, name: bucket, public: true })
+        });
+        if (!cR.ok) {
+          const err = await cR.text().catch(() => '');
+          return res.status(500).json({ error: 'Error creando bucket: ' + err.slice(0, 160) });
+        }
+      } else {
+        await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, {
+          method: 'PUT', headers: _csh, body: JSON.stringify({ public: true })
+        }).catch(() => {});
+      }
+      const ext  = mimeType === 'image/png' ? 'png' : 'jpg';
+      const path = `logos/${cid}_${Date.now()}.${ext}`;
+      const buf  = Buffer.from(fileBase64, 'base64');
+      const storageR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
+        method: 'POST',
+        headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'image/jpeg', 'x-upsert': 'true' },
+        body: buf
+      });
+      if (!storageR.ok) {
+        const err = await storageR.text().catch(() => '');
+        return res.status(500).json({ error: 'Error subiendo logo a Storage: ' + err.slice(0, 200) });
+      }
+      const publicUrl = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
+      return res.status(200).json({ ok: true, publicUrl });
+    }
+
+    // PATCH cot-logo — mantener para limpiar logo (logo_url: null desde quitarLogoActual)
     if (req.method === 'PATCH' && action === 'cot-logo') {
       const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
-      const { fileBase64, mimeType, logo_url: directUrl } = req.body || {};
-      let logo_url = directUrl !== undefined ? directUrl : null;
-      if (fileBase64) {
-        const bucket = 'cotizaciones';
-        // Garantizar que el bucket exista y sea público
-        const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
-        if (bucketR.status === 404) {
-          const cR = await fetch(`${_CURL}/storage/v1/bucket`, {
-            method: 'POST', headers: _csh,
-            body: JSON.stringify({ id: bucket, name: bucket, public: true })
-          });
-          if (!cR.ok) {
-            const err = await cR.text().catch(() => '');
-            return res.status(500).json({ error: 'Error creando bucket: ' + err.slice(0, 160) });
-          }
-        } else {
-          // Asegurar que sea público aunque ya existiera como privado
-          await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, {
-            method: 'PUT', headers: _csh,
-            body: JSON.stringify({ public: true })
-          }).catch(() => {});
-        }
-        const ext  = mimeType === 'image/png' ? 'png' : 'jpg';
-        const path = `logos/${cid}_${Date.now()}.${ext}`;
-        const buf  = Buffer.from(fileBase64, 'base64');
-        const storageR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
-          method: 'POST',
-          headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'image/jpeg', 'x-upsert': 'true' },
-          body: buf
-        });
-        if (!storageR.ok) {
-          const err = await storageR.text().catch(() => '');
-          return res.status(500).json({ error: 'Error subiendo logo a Storage: ' + err.slice(0, 200) });
-        }
-        logo_url = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
-      }
+      const { logo_url } = req.body || {};
       const rUp = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
-        method: 'PATCH', headers: { ..._csh, Prefer: 'return=representation' }, body: JSON.stringify({ logo_url })
+        method: 'PATCH', headers: { ..._csh, Prefer: 'return=minimal' }, body: JSON.stringify({ logo_url: logo_url ?? null })
       });
-      if (!rUp.ok) {
-        const err = await rUp.text().catch(() => '');
-        return res.status(500).json({ error: 'Error guardando en BD: ' + err.slice(0, 200) });
-      }
-      const rows = await rUp.json();
-      if (!rows.length) return res.status(404).json({ error: 'Cuenta no encontrada (id=' + cid + ')' });
-      const saved = rows[0].logo_url;
-      if (logo_url && !saved) return res.status(500).json({ error: 'El logo se subió pero no se guardó en BD. Columna logo_url podría no existir.' });
-      return res.status(200).json({ ok: true, logo_url: saved });
+      return res.status(rUp.ok ? 200 : 500).json(rUp.ok ? { ok: true } : { error: 'Error limpiando logo' });
     }
 
     // POST cot-pdf-upload — sube PDF a Supabase Storage con service role key
