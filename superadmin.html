@@ -1304,8 +1304,19 @@ async function verCuentaCliente(clienteId, nombreNegocio) {
       destino: '/admin'
     };
     const tipo_plan = dataCli[0]?.tipo_plan || 'inicio';
+    // Generar session token para el cliente impersonado (válido 24h)
+    let session_token = null;
+    try {
+      const rTok = await fetch('/api/usuarios-admin?action=gen-impersona-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-sa-token': localStorage.getItem('sa_token') || '' },
+        body: JSON.stringify({ cliente_id: clienteId })
+      });
+      if (rTok.ok) session_token = (await rTok.json()).session_token;
+    } catch(_) {}
     localStorage.setItem('attempo_original_user', JSON.stringify({ _superadmin: true }));
     localStorage.setItem('attempo_sa_impersona', localStorage.getItem('sa_token') || '');
+    if (session_token) localStorage.setItem('attempo_session_token', session_token);
     localStorage.setItem('attempo_user', JSON.stringify({
       ...u,
       nombre_negocio: nombreNegocio,

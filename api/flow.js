@@ -274,7 +274,6 @@ const REC_MENSUAL = { A: { cant: 200, monto: 1990 }, B: { cant: 500, monto: 3990
 async function handleRecPayment(req, res, cliente_id) {
   try {
     const { subtipo, codigo, monto } = req.body || {};
-    console.log('flow rec: body=', JSON.stringify({ subtipo, codigo, monto }), 'cliente_id=', cliente_id);
 
     const mapaValido = subtipo === 'topup' ? REC_TOPUP : subtipo === 'mensual' ? REC_MENSUAL : null;
     if (!mapaValido || !mapaValido[codigo]) return res.status(400).json({ error: 'Opción inválida' });
@@ -286,7 +285,8 @@ async function handleRecPayment(req, res, cliente_id) {
     const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
     const cr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}&select=id,email,nombre_negocio&limit=1`, { headers: sh });
-    const [cliente] = await cr.json();
+    const cliRaw = await cr.json();
+    const cliente = Array.isArray(cliRaw) ? cliRaw[0] : null;
     if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
     if (!cliente.email) return res.status(400).json({ error: 'Sin email registrado' });
 
@@ -307,24 +307,22 @@ async function handleRecPayment(req, res, cliente_id) {
       urlReturn:       `${BASE_URL}/api/flow?ret=1&tipo=rec`
     };
     params.s = flowSign(params);
-    console.log('flow rec: commerceOrder=', commerceOrder, 'amount=', monto, 'email=', cliente.email);
+
+    const qs = new URLSearchParams(params).toString();
 
     const flowResp = await fetch(`${FLOW_API_URL}/payment/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(params)
+      body: qs
     });
     const flowData = await flowResp.json();
 
     if (!flowResp.ok || flowData.code) {
-      console.error('flow rec: Flow error:', JSON.stringify(flowData));
       return res.status(502).json({ error: flowData.message || `Error Flow [${flowData.code}]` });
     }
 
-    console.log('flow rec: orden creada OK, token=', flowData.token);
     return res.json({ ok: true, payment_url: `${flowData.url}?token=${flowData.token}` });
   } catch(e) {
-    console.error('flow rec: excepción no capturada:', e.message, e.stack);
     return res.status(500).json({ error: 'Error interno: ' + e.message });
   }
 }

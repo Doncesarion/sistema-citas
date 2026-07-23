@@ -30,19 +30,36 @@ function verifySessionToken(token) {
   return { cliente_id, rol };
 }
 
+function verifySaToken(token) {
+  if (!token) return false;
+  const SA_SECRET = process.env.SA_SECRET;
+  if (!SA_SECRET) return false;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return false;
+  const payload = token.slice(0, dot);
+  const sig     = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
+  try {
+    const sigBuf = Buffer.from(sig, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return false;
+  } catch { return false; }
+  return Date.now() <= parseInt(payload);
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://app.attempo.cl');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-session-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-session-token,x-sa-impersona,x-override-cliente-id');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const session = verifySessionToken(req.headers['x-session-token']);
   if (!session) return res.status(401).json({ error: 'No autorizado' });
 
   let { cliente_id } = session;
-  if (session.rol === 'superadmin') {
-    const override = req.headers['x-override-cliente-id'];
-    if (override) cliente_id = override;
+  const override = req.headers['x-override-cliente-id'];
+  if (override && (session.rol === 'superadmin' || verifySaToken(req.headers['x-sa-impersona']))) {
+    cliente_id = override;
   }
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
@@ -50,16 +67,16 @@ export default async function handler(req, res) {
 
   // ── GET ?action=stats — contadores IA + recordatorios del mes ────────────
   if (req.method === 'GET' && req.query.action === 'stats') {
-    const now  = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const mesKey = now.toISOString().slice(0, 7); // 'YYYY-MM'
+    const mesKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
-    const [rMsg, rCli] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/mensajes?cliente_id=eq.${cliente_id}&rol=eq.bot&created_at=gte.${from}&select=id`, { headers: sh }),
+    const [rUso, rCli] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/uso_mensual?cliente_id=eq.${cliente_id}&mes=eq.${mesKey}&select=mensajes_ia&limit=1`, { headers: sh }),
       fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual`, { headers: sh })
     ]);
-    const msgData = await rMsg.json();
-    const [cli]   = await rCli.json();
+    const usoData = await rUso.json();
+    const cliData = await rCli.json();
+    const uso = Array.isArray(usoData) ? usoData[0] : null;
+    const cli = Array.isArray(cliData) ? cliData[0] : null;
 
     const rec_mes_count          = (cli?.rec_mes_key === mesKey ? cli.rec_mes_count : 0) || 0;
     const rec_mes_limit_extra    = (cli?.rec_mes_key === mesKey ? cli.rec_mes_limit_extra : 0) || 0;
@@ -67,7 +84,7 @@ export default async function handler(req, res) {
     const tipo_plan              = cli?.tipo_plan || 'inicio';
 
     return res.status(200).json({
-      msg_ia_mes: Array.isArray(msgData) ? msgData.length : 0,
+      msg_ia_mes: uso?.mensajes_ia || 0,
       rec_mes_count,
       rec_mes_limit_extra,
       rec_limite_extra_mensual,

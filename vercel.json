@@ -62,6 +62,7 @@
     { "source": "/gestionar-cita",                 "destination": "/gestionar-cita.html" },
     { "source": "/accesos",                        "destination": "/accesos.html" },
     { "source": "/cotizacion",                     "destination": "/cotizacion.html" },
+    { "source": "/cotizaciones",                   "destination": "/admin.html" },
     { "source": "/reservar/:slug",                 "destination": "/attempo-booking.html" },
     { "source": "/:slug",                          "destination": "/attempo-booking.html" }
   ]
