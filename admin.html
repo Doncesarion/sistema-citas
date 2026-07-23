@@ -14152,7 +14152,8 @@ async function enviarCot() {
     if (idx >= 0) _cotData[idx].estado = 'enviada';
     renderCotizaciones(); actualizarCotKPIs();
     closeCotEnviarModal();
-    toast('Cotización enviada');
+    if (res.errors?.length) toastErr('Enviada con errores: ' + res.errors.join(' | '));
+    else toast('Cotización enviada');
   } catch(e) { toastErr('Error de red'); }
   finally { btn.disabled = false; btn.textContent = 'Enviar'; }
 }

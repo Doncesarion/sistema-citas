@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { promisify } from 'util';
+import PDFDocument from 'pdfkit';
 const scryptAsync = promisify(crypto.scrypt);
 
 export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
@@ -760,7 +761,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // POST cot-enviar — enviar cotización por email y/o WhatsApp
+    // POST cot-enviar — enviar cotización por email y/o WhatsApp (con PDF adjunto)
     if (req.method === 'POST' && action === 'cot-enviar') {
       const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
@@ -774,35 +775,76 @@ export default async function handler(req, res) {
       const cli = (await rCli.json())[0];
       if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
       const publicUrl = `${BASE_URL}/cotizacion?token=${cot.token_respuesta}`;
-      const errors = [];
       const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0) * (parseFloat(it.cantidad)||1) * (1 - (parseFloat(it.descuento)||0)/100), 0);
       const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
       const totalFmt = '$' + total.toLocaleString('es-CL');
+      const errors = [];
+
+      // Generar PDF una sola vez si algún canal lo necesita
+      let pdfBuf = null;
+      const needPdf = canales?.includes('email') || canales?.includes('whatsapp');
+      if (needPdf) {
+        try { pdfBuf = await buildCotizacionPDF({ cot, cli }); } catch(e) { errors.push('pdf-gen: ' + e.message); }
+      }
+
+      // EMAIL con PDF adjunto
       if (canales?.includes('email') && cot.datos_destinatario?.email) {
         try {
-          await fetch('https://api.resend.com/emails', {
+          const emailBody = {
+            from: 'attempo <contacto@attempo.cl>',
+            to: [cot.datos_destinatario.email],
+            subject: `Cotización N° ${cot.numero} — ${cli?.nombre_negocio || 'attempo'}`,
+            html: buildCotizacionEmail({ cot, cli, publicUrl, totalFmt })
+          };
+          if (pdfBuf) {
+            emailBody.attachments = [{ filename: `Cotizacion-${cot.numero || 'nueva'}.pdf`, content: pdfBuf.toString('base64') }];
+          }
+          const eR = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              from: 'Attempo <contacto@attempo.cl>',
-              to: [cot.datos_destinatario.email],
-              subject: `Cotización N° ${cot.numero} — ${cli?.nombre_negocio || 'Cotización'}`,
-              html: buildCotizacionEmail({ cot, cli, publicUrl, totalFmt })
-            })
+            body: JSON.stringify(emailBody)
           });
+          if (!eR.ok) {
+            const eErr = await eR.json().catch(() => ({}));
+            errors.push('email: ' + (eErr.message || eErr.name || eR.status));
+          }
         } catch(e) { errors.push('email: ' + e.message); }
       }
+
+      // WHATSAPP — sube PDF a Storage y lo envía como documento
       if (canales?.includes('whatsapp') && cot.datos_destinatario?.telefono && cli?.canales_meta?.wa_phone_number_id && cli?.canales_meta?.wa_token) {
         let phone = String(cot.datos_destinatario.telefono).replace(/\D/g,'');
         if (!phone.startsWith('56') && phone.length === 9) phone = '56' + phone;
         try {
-          await fetch(`https://graph.facebook.com/v20.0/${cli.canales_meta.wa_phone_number_id}/messages`, {
+          let waBody;
+          if (pdfBuf) {
+            // Subir PDF a Storage para obtener URL pública
+            const pdfPath = `cotizaciones-pdf/${cid}_${cot.numero || Date.now()}.pdf`;
+            const upR = await fetch(`${_CURL}/storage/v1/object/cotizaciones/${pdfPath}`, {
+              method: 'POST',
+              headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+              body: pdfBuf
+            });
+            if (upR.ok) {
+              const pdfUrl = `${_CURL}/storage/v1/object/public/cotizaciones/${pdfPath}`;
+              waBody = { messaging_product: 'whatsapp', to: phone, type: 'document', document: { link: pdfUrl, filename: `Cotizacion-${cot.numero || 'nueva'}.pdf`, caption: `Cotización N° ${cot.numero} por ${totalFmt}. Revísala y respóndela aquí: ${publicUrl}` } };
+            }
+          }
+          if (!waBody) {
+            waBody = { messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: `Hola, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nRevísala y respóndela aquí:\n${publicUrl}` } };
+          }
+          const wR = await fetch(`https://graph.facebook.com/v20.0/${cli.canales_meta.wa_phone_number_id}/messages`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${cli.canales_meta.wa_token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: `Hola, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nPuedes revisarla y responderla aquí:\n${publicUrl}` } })
+            body: JSON.stringify(waBody)
           });
+          if (!wR.ok) {
+            const wErr = await wR.json().catch(() => ({}));
+            errors.push('whatsapp: ' + (wErr.error?.message || wR.status));
+          }
         } catch(e) { errors.push('whatsapp: ' + e.message); }
       }
+
       await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
         method: 'PATCH', headers: _csh, body: JSON.stringify({ estado: 'enviada' })
       });
@@ -1277,6 +1319,103 @@ export default async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: 'Error interno' });
   }
+}
+
+function buildCotizacionPDF({ cot, cli }) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
+    const negNombre = cli?.nombre_negocio || '';
+    const negDir    = cli?.direccion || '';
+    const negEmail  = cli?.email || '';
+    const negTel    = cli?.contacto_tel || '';
+    const dest      = cot.datos_destinatario || {};
+    const items     = cot.items || [];
+    const conds     = cot.condiciones || {};
+
+    // Encabezado
+    doc.fontSize(18).font('Helvetica-Bold').text(negNombre, 40, 40);
+    let y = 62;
+    if (negDir)   { doc.fontSize(9).font('Helvetica').fillColor('#666').text(negDir, 40, y);   y += 13; }
+    if (negEmail) { doc.text([negEmail, negTel].filter(Boolean).join(' · '), 40, y); y += 13; }
+
+    // N° cotización
+    doc.rect(380, 40, 175, 50).stroke('#1a1a1a');
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#555').text('COTIZACIÓN', 388, 48);
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a1a1a').text(`N° ${cot.numero || '—'}`, 388, 58);
+    const hoy = new Date().toLocaleDateString('es-CL');
+    doc.fontSize(8).font('Helvetica').fillColor('#555').text(`Fecha: ${hoy}`, 380, 96);
+    if (conds.validez_dias) doc.text(`Vence en: ${conds.validez_dias} días`, 380, 107);
+
+    y = Math.max(y, 110) + 12;
+    doc.moveTo(40, y).lineTo(555, y).stroke('#ddd'); y += 12;
+
+    // Destinatario
+    doc.fontSize(7).font('Helvetica-Bold').fillColor('#888').text('DESTINATARIO', 40, y); y += 12;
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1a1a1a').text(dest.nombre || '', 40, y); y += 14;
+    const destLines = [dest.rut ? `RUT: ${dest.rut}` : null, dest.giro, dest.direccion, [dest.email, dest.telefono].filter(Boolean).join(' · ')].filter(Boolean);
+    destLines.forEach(l => { doc.fontSize(9).font('Helvetica').fillColor('#555').text(l, 40, y); y += 12; });
+
+    if (conds.plazo_entrega || conds.forma_pago) {
+      let cy = y - destLines.length * 12 - 14;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#888').text('CONDICIONES', 350, cy); cy += 12;
+      if (conds.plazo_entrega) { doc.fontSize(9).font('Helvetica').fillColor('#555').text(`Entrega: ${conds.plazo_entrega}`, 350, cy); cy += 12; }
+      if (conds.forma_pago)   { doc.fontSize(9).font('Helvetica').fillColor('#555').text(`Pago: ${conds.forma_pago}`, 350, cy); }
+    }
+
+    y += 16;
+    doc.moveTo(40, y).lineTo(555, y).stroke('#ddd'); y += 8;
+
+    // Tabla
+    const cols = { desc: 40, cant: 330, precio: 390, dto: 460, total: 500 };
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#555');
+    doc.text('Descripción', cols.desc, y);
+    doc.text('Cant.', cols.cant, y, { width: 55, align: 'right' });
+    doc.text('Precio unit.', cols.precio, y, { width: 65, align: 'right' });
+    doc.text('Dto.', cols.dto, y, { width: 35, align: 'right' });
+    doc.text('Total', cols.total, y, { width: 55, align: 'right' });
+    y += 14;
+    doc.moveTo(40, y).lineTo(555, y).stroke('#eee'); y += 6;
+
+    let neto = 0;
+    items.forEach(it => {
+      const tot = (it.precio_unitario||0) * (it.cantidad||1) * (1 - (it.descuento||0)/100);
+      neto += tot;
+      doc.fontSize(9).font('Helvetica').fillColor('#1a1a1a').text(it.descripcion || '', cols.desc, y, { width: 280 });
+      doc.text(String(it.cantidad||1), cols.cant, y, { width: 55, align: 'right' });
+      doc.text(fmt(it.precio_unitario||0), cols.precio, y, { width: 65, align: 'right' });
+      doc.text(`${it.descuento||0}%`, cols.dto, y, { width: 35, align: 'right' });
+      doc.font('Helvetica-Bold').text(fmt(tot), cols.total, y, { width: 55, align: 'right' });
+      y += 16;
+      doc.moveTo(40, y - 4).lineTo(555, y - 4).stroke('#f0f0f0');
+    });
+
+    // Totales
+    y += 8;
+    const iva   = cot.incluye_iva ? Math.round(neto * 0.19) : 0;
+    const total = Math.round(neto) + iva;
+    doc.fontSize(9).font('Helvetica').fillColor('#555').text('Neto', 380, y); doc.text(fmt(neto), 460, y, { width: 95, align: 'right' }); y += 14;
+    if (cot.incluye_iva) { doc.text('IVA 19%', 380, y); doc.text(fmt(iva), 460, y, { width: 95, align: 'right' }); y += 14; }
+    doc.moveTo(380, y).lineTo(555, y).stroke('#1a1a1a'); y += 6;
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1a1a1a').text('Total', 380, y);
+    doc.text(fmt(total), 460, y, { width: 95, align: 'right' }); y += 20;
+
+    // Observaciones
+    if (cot.notas) {
+      y += 8;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#888').text('OBSERVACIONES', 40, y); y += 12;
+      doc.fontSize(9).font('Helvetica').fillColor('#444').text(cot.notas, 40, y, { width: 515 }); y += 20;
+    }
+
+    // Footer
+    doc.fontSize(8).fillColor('#aaa').text('Cotización generada vía attempo · attempo.cl', 40, 780, { align: 'center', width: 515 });
+    doc.end();
+  });
 }
 
 function buildCotizacionEmail({ cot, cli, publicUrl, totalFmt }) {

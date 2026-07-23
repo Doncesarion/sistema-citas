@@ -1,5 +1,8 @@
 {
   "name": "sistema-citas",
   "version": "1.0.0",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "pdfkit": "^0.19.1"
+  }
 }
