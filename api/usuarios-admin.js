@@ -892,7 +892,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, publicUrl });
     }
 
-    // PATCH cot-logo — mantener para limpiar logo (logo_url: null desde quitarLogoActual)
+    // PATCH cot-logo — guardar/quitar logo_url en clientes_sistema con service key
     if (req.method === 'PATCH' && action === 'cot-logo') {
       const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
@@ -900,7 +900,11 @@ export default async function handler(req, res) {
       const rUp = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
         method: 'PATCH', headers: { ..._csh, Prefer: 'return=minimal' }, body: JSON.stringify({ logo_url: logo_url ?? null })
       });
-      return res.status(rUp.ok ? 200 : 500).json(rUp.ok ? { ok: true } : { error: 'Error limpiando logo' });
+      if (!rUp.ok) {
+        const errTxt = await rUp.text().catch(() => '');
+        return res.status(500).json({ error: 'Error guardando logo en BD: ' + errTxt.slice(0, 200) });
+      }
+      return res.status(200).json({ ok: true });
     }
 
     // POST cot-pdf-upload — sube PDF a Supabase Storage con service role key
