@@ -14188,7 +14188,7 @@ async function previewCotPDF() {
   const total   = Math.round(neto) + iva;
   const fmt     = n => '$' + Math.round(n).toLocaleString('es-CL');
   const hoy     = new Date().toLocaleDateString('es-CL');
-  const logoHtml = negocio.logo_url ? `<img src="${negocio.logo_url}" style="max-height:60px;max-width:200px;object-fit:contain">` : '';
+  const logoHtml = negocio.logo_url ? `<img src="${negocio.logo_url}" style="height:56px;width:auto;max-width:180px;display:block;margin-bottom:4px">` : '';
   const rowsHtml = items.map(it => {
     const tot = it.precio_unitario * it.cantidad * (1 - it.descuento/100);
     return `<tr><td style="padding:8px 10px;border-bottom:1px solid #eee">${it.descripcion}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right">${it.cantidad}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right">${fmt(it.precio_unitario)}</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right">${it.descuento||0}%</td><td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:600">${fmt(tot)}</td></tr>`;

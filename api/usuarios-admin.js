@@ -1284,7 +1284,7 @@ function buildCotizacionEmail({ cot, cli, publicUrl, totalFmt }) {
   const negocio = cli?.nombre_negocio || 'Tu proveedor';
   const logo    = cli?.logo_url;
   const logoHtml = logo
-    ? `<img src="${logo}" alt="${negocio}" style="max-height:48px;max-width:160px;display:block;margin:0 0 4px">`
+    ? `<img src="${logo}" alt="${negocio}" style="height:48px;width:auto;max-width:160px;display:block;margin:0 0 4px">`
     : `<div style="font-size:20px;font-weight:700;color:#fff">${negocio}</div>`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif">
