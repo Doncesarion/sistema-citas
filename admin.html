@@ -14195,8 +14195,11 @@ async function previewCotPDF() {
   }).join('');
   const cotNum = _cotId ? (_cotData.find(c=>c.id===_cotId)?.numero || '—') : '(nuevo)';
   const dest   = data.datos_destinatario;
-  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Cotización</title>
-<style>*{box-sizing:border-box}body{margin:0;padding:32px;font-family:Arial,sans-serif;color:#1a1a1a;font-size:13px}@media print{body{padding:16px}}</style></head><body>
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Cotización N° ${cotNum} — ${negocio.nombre_negocio||'attempo'}</title>
+<style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#1a1a1a;font-size:13px}
+@media screen{body{background:#6b7280;min-height:100vh;padding:32px 20px;display:flex;justify-content:center;align-items:flex-start}.doc{background:#fff;width:100%;max-width:760px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.35)}}
+@media print{body{background:none}.doc{padding:16px}}</style></head><body>
+<div class="doc">
 <table width="100%" style="margin-bottom:24px"><tr>
 <td>${logoHtml}<div style="font-size:18px;font-weight:700;margin-top:4px">${negocio.nombre_negocio||''}</div><div style="color:#666;font-size:12px">${negocio.direccion||''}</div><div style="color:#666;font-size:12px">${negocio.email||''} ${negocio.telefono?'· '+negocio.telefono:''}</div></td>
 <td style="text-align:right;vertical-align:top"><div style="border:2px solid #1a1a1a;padding:10px 16px;display:inline-block"><div style="font-size:11px;font-weight:600;letter-spacing:.1em;color:#555">COTIZACIÓN</div><div style="font-size:22px;font-weight:700">N° ${cotNum}</div></div><div style="margin-top:8px;font-size:12px;color:#555">Fecha: ${hoy}</div><div style="font-size:12px;color:#555">Vence en: ${data.condiciones.validez_dias} días</div></td>
@@ -14209,7 +14212,8 @@ ${data.condiciones.forma_pago?`<td style="text-align:right;vertical-align:top"><
 <div style="display:flex;justify-content:flex-end"><table style="min-width:240px;border-collapse:collapse"><tr><td style="padding:6px 12px;color:#555">Neto</td><td style="padding:6px 12px;text-align:right">${fmt(neto)}</td></tr>${data.incluye_iva?`<tr><td style="padding:6px 12px;color:#555">IVA 19%</td><td style="padding:6px 12px;text-align:right">${fmt(iva)}</td></tr>`:''}<tr style="border-top:2px solid #1a1a1a"><td style="padding:8px 12px;font-weight:700;font-size:15px">Total</td><td style="padding:8px 12px;text-align:right;font-weight:700;font-size:15px">${fmt(total)}</td></tr></table></div>
 ${data.notas?`<div style="margin-top:20px;padding:12px 14px;background:#fafafa;border:1px solid #eee;border-radius:6px"><div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Observaciones</div><div style="color:#444">${data.notas}</div></div>`:''}
 <div style="margin-top:32px;text-align:center;color:#aaa;font-size:11px">Cotización generada vía attempo · attempo.cl</div>
-<script>window.onload=function(){window.print()}<\/script></body></html>`;
+</div>
+<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}<\/script></body></html>`;
   const w = window.open('','_blank');
   w.document.write(html);
   w.document.close();
