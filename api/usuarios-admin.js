@@ -768,7 +768,7 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ error: 'id requerido' });
       const [rCot, rCli] = await Promise.all([
         fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}&limit=1`, { headers: _cshG }),
-        fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,telefono,direccion,logo_url,canales_meta&limit=1`, { headers: _cshG })
+        fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,contacto_tel,direccion,logo_url,canales_meta&limit=1`, { headers: _cshG })
       ]);
       const cot = (await rCot.json())[0];
       const cli = (await rCli.json())[0];
@@ -828,9 +828,9 @@ export default async function handler(req, res) {
       const r = await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}&limit=1`, { headers: _cshG });
       const cot = (await r.json())[0];
       if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
-      const rCli = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}&select=nombre_negocio,email,telefono,direccion,logo_url&limit=1`, { headers: _cshG });
+      const rCli = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}&select=nombre_negocio,email,contacto_tel,direccion,logo_url&limit=1`, { headers: _cshG });
       const cli = (await rCli.json())[0] || {};
-      return res.status(200).json({ cotizacion: cot, negocio: cli });
+      return res.status(200).json({ cotizacion: cot, negocio: { ...cli, telefono: cli.contacto_tel } });
     }
 
     // POST cot-responder — cliente acepta o rechaza (sin auth)
@@ -850,8 +850,9 @@ export default async function handler(req, res) {
     if (req.method === 'GET' && action === 'cot-config') {
       const cid = _cotClienteId();
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
-      const r = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,telefono,direccion,logo_url&limit=1`, { headers: _cshG });
-      return res.status(200).json((await r.json())[0] || {});
+      const r = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,contacto_tel,direccion,logo_url&limit=1`, { headers: _cshG });
+      const row = (await r.json())[0] || {};
+      return res.status(200).json({ ...row, telefono: row.contacto_tel });
     }
 
     // POST cot-logo-upload — sube logo a Storage y devuelve URL pública (el PATCH a BD lo hace el frontend)
