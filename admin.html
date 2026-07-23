@@ -14301,13 +14301,8 @@ async function openCotLogoModal() {
 
 async function quitarLogoActual() {
   if (!confirm('¿Quitar el logo actual?')) return;
-  const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-  const cid = u.cliente_id;
-  if (!cid) { toastErr('No se pudo identificar la cuenta'); return; }
-  const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
-    method: 'PATCH',
-    headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-    body: JSON.stringify({ logo_url: null })
+  const r = await fetch('/api/usuarios-admin?action=cot-logo', {
+    method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url: null })
   });
   if (r.ok) {
     const img = document.getElementById('cot-logo-img');
@@ -14369,18 +14364,11 @@ async function saveCotLogo() {
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
     const dataUrl = await _comprimirImagen(_cotLogoNuevo, 400);
-    const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
-    const cid = u.cliente_id;
-    if (!cid) throw new Error('No se pudo identificar la cuenta');
-    const pR = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
-      method: 'PATCH',
-      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ logo_url: dataUrl })
+    const pR = await fetch('/api/usuarios-admin?action=cot-logo', {
+      method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url: dataUrl })
     });
-    if (!pR.ok) {
-      const errTxt = await pR.text().catch(() => '');
-      throw new Error('Error guardando logo: ' + errTxt.slice(0, 120));
-    }
+    const pRes = await pR.json().catch(() => ({}));
+    if (!pR.ok) throw new Error(pRes.error || 'Error guardando logo');
     _cotLogoNuevo = null;
     _mostrarLogoPreview(dataUrl);
     closeCotLogoModal();
