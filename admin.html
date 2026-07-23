@@ -14368,30 +14368,21 @@ async function saveCotLogo() {
   const btn = document.getElementById('cot-logo-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    const dataUrl    = await _comprimirImagen(_cotLogoNuevo, 600);
-    const fileBase64 = dataUrl.split(',')[1];
-    // 1. Subir archivo a Storage vía API (necesita service key)
-    const upR = await fetch('/api/usuarios-admin?action=cot-logo-upload', {
-      method: 'POST', headers: _cotH(), body: JSON.stringify({ fileBase64, mimeType: 'image/jpeg' })
-    });
-    const upRes = await upR.json();
-    if (!upR.ok) throw new Error(upRes.error || 'Error subiendo imagen');
-    const publicUrl = upRes.publicUrl;
-    // 2. Guardar URL en clientes_sistema directo desde frontend (mismo método que saveNegocio)
+    const dataUrl = await _comprimirImagen(_cotLogoNuevo, 400);
     const u   = JSON.parse(localStorage.getItem('attempo_user') || '{}');
     const cid = u.cliente_id;
     if (!cid) throw new Error('No se pudo identificar la cuenta');
     const pR = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
       method: 'PATCH',
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ logo_url: publicUrl })
+      body: JSON.stringify({ logo_url: dataUrl })
     });
     if (!pR.ok) {
       const errTxt = await pR.text().catch(() => '');
-      throw new Error('Error guardando en BD: ' + errTxt.slice(0, 120));
+      throw new Error('Error guardando logo: ' + errTxt.slice(0, 120));
     }
     _cotLogoNuevo = null;
-    _mostrarLogoPreview(publicUrl);
+    _mostrarLogoPreview(dataUrl);
     closeCotLogoModal();
     toast('Logo guardado');
   } catch(e) { toastErr(e.message); }
