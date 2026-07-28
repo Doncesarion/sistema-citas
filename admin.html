@@ -1231,6 +1231,16 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .tut-spot-counter{font-size:11px;color:var(--t4)}
 .tut-spot-next{background:var(--a);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .12s}
 .tut-spot-next:hover{background:var(--a3)}
+/* ─────────────────────────────────────
+   BANNER PRIMEROS PASOS
+───────────────────────────────────── */
+#onb-banner{background:linear-gradient(135deg,rgba(108,92,228,0.06),rgba(79,62,224,0.03));border-bottom:1px solid rgba(108,92,228,0.12);transition:opacity .3s;flex-shrink:0}
+.onb-step{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:12px;white-space:nowrap;transition:all .15s;user-select:none}
+.onb-step.done{color:var(--green);background:rgba(22,163,74,0.07)}
+.onb-step.next{color:#fff;background:linear-gradient(135deg,var(--a),var(--a3));cursor:pointer;box-shadow:0 2px 8px rgba(108,92,228,0.3)}
+.onb-step.next:hover{box-shadow:0 4px 14px rgba(108,92,228,0.42);transform:translateY(-1px)}
+.onb-step.pending{color:var(--t4);background:rgba(108,92,228,0.04)}
+.onb-check{font-size:11px;font-weight:700;flex-shrink:0}
 </style>
 </head>
 <style id="pre-route-style">body{opacity:0}</style>
@@ -1278,6 +1288,26 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <div class="nav-av" id="nav-av" title="cesar salinas" onclick="openProfile()" style="cursor:pointer">CS</div>
   </div>
 </nav>
+
+<!-- ═══ BANNER PRIMEROS PASOS ═══ -->
+<div id="onb-banner" style="display:none">
+  <div style="max-width:1400px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+      <span style="font-size:15px">🚀</span>
+      <span style="font-size:12px;font-weight:600;color:var(--a)">Primeros pasos</span>
+    </div>
+    <div id="onb-steps" style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap;min-width:0"></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:80px;height:4px;background:rgba(108,92,228,0.1);border-radius:2px;overflow:hidden">
+          <div id="onb-fill" style="height:100%;background:linear-gradient(90deg,var(--a2),var(--a3));border-radius:2px;transition:width .4s ease;width:0%"></div>
+        </div>
+        <span id="onb-count" style="font-size:11px;font-family:var(--mono);color:var(--t3)"></span>
+      </div>
+      <button onclick="dismissOnboarding()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:17px;line-height:1;padding:0 2px;transition:color .12s" title="Cerrar" onmouseenter="this.style.color='var(--t1)'" onmouseleave="this.style.color='var(--t3)'">×</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ LAYOUT ═══ -->
 <!-- Overlay para cerrar sidebar en móvil -->
@@ -1414,6 +1444,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <button class="sbi"    id="csb-borrador"  onclick="filterCotizaciones('borrador',this)"><span class="sbi-dot" style="background:#9ca3af"></span>Borrador</button>
     <button class="sbi"    id="csb-enviada"   onclick="filterCotizaciones('enviada',this)"><span class="sbi-dot" style="background:var(--amber)"></span>Enviadas</button>
     <button class="sbi"    id="csb-aceptada"  onclick="filterCotizaciones('aceptada',this)"><span class="sbi-dot" style="background:var(--green)"></span>Aceptadas</button>
+    <button class="sbi"    id="csb-pagada"    onclick="filterCotizaciones('pagada',this)"><span class="sbi-dot" style="background:#059669"></span>Pagadas</button>
     <button class="sbi"    id="csb-rechazada" onclick="filterCotizaciones('rechazada',this)"><span class="sbi-dot" style="background:var(--red,#dc2626)"></span>Rechazadas</button>
     <button class="sbi"    id="csb-vencida"   onclick="filterCotizaciones('vencida',this)"><span class="sbi-dot" style="background:#6b7280"></span>Vencidas</button>
   </div>
@@ -1862,6 +1893,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <div class="sg">
       <div class="sc"><div class="sc-lbl">Enviadas</div><div class="sc-val"><span class="hi" id="cot-kpi-env">—</span></div><div class="sc-delta" id="cot-kpi-env-sub">este mes</div></div>
       <div class="sc"><div class="sc-lbl">Aceptadas</div><div class="sc-val"><span class="hi" id="cot-kpi-acep" style="color:var(--green)">—</span></div><div class="sc-delta" id="cot-kpi-acep-sub"></div></div>
+      <div class="sc"><div class="sc-lbl">Pagadas</div><div class="sc-val"><span class="hi" id="cot-kpi-pag" style="color:#059669">—</span></div><div class="sc-delta" id="cot-kpi-pag-sub"></div></div>
       <div class="sc"><div class="sc-lbl">Rechazadas</div><div class="sc-val"><span class="hi" id="cot-kpi-rech" style="color:#dc2626">—</span></div><div class="sc-delta" id="cot-kpi-rech-sub"></div></div>
       <div class="sc"><div class="sc-lbl">Pendientes respuesta</div><div class="sc-val"><span class="hi" id="cot-kpi-pend" style="color:var(--amber)">—</span></div><div class="sc-delta" id="cot-kpi-pend-sub"></div></div>
     </div>
@@ -1870,10 +1902,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="thb"><span class="tt">Cotizaciones</span></div>
       <table>
         <thead><tr>
-          <th>N°</th><th>Destinatario</th><th>Emisión</th><th>Vence</th><th>Total</th><th>Estado</th><th style="min-width:140px">Acciones</th>
+          <th>N°</th><th>Destinatario</th><th>Emisión</th><th>Vence</th><th>Total</th><th>Estado</th><th>Pago</th><th style="min-width:140px">Acciones</th>
         </tr></thead>
         <tbody id="cot-tbody">
-          <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>
+          <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>
         </tbody>
       </table>
     </div>
@@ -3440,6 +3472,23 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
 
+      <!-- DTemite -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Integración DTemite <span style="font-size:11px;font-weight:400;color:var(--t3)">(boleta electrónica SII)</span></div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Conecta tu cuenta <a href="https://dtemite.cl" target="_blank" style="color:var(--a);text-decoration:none">DTemite</a> para emitir documentos tributarios electrónicos válidos ante el SII.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Sistema DTemite</label>
+              <input id="fact-dte-sistema" type="text" placeholder="Ej: webbasico" class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Usuario integración</label>
+              <input id="fact-dte-usuario" type="text" placeholder="Ej: integrado_webbasico" class="fi" style="width:100%"></div>
+          </div>
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Contraseña integración</label>
+            <input id="fact-dte-clave" type="password" placeholder="Contraseña de tu cuenta DTemite" class="fi" style="width:100%" autocomplete="new-password"></div>
+        </div>
+        <div id="fact-dte-estado" style="margin-top:10px;font-size:12px;color:var(--t3)"></div>
+      </div>
+
       <!-- Numeración -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -3452,6 +3501,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <input id="fact-folio-ini" type="number" min="1" value="1" class="fi" style="width:72px;text-align:center">
           </div>
         </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:8px">Este folio aplica solo para boletas internas generadas en attempo. Los DTE emitidos con DTemite usan numeración SII automática.</div>
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:4px">
@@ -3863,9 +3913,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
         <div><div class="fp-info-lbl">Ciudad</div><div class="fp-info-val" id="fpi-ciudad">—</div></div>
         <div><div class="fp-info-lbl">Región</div><div class="fp-info-val" id="fpi-region">—</div></div>
+        <div>
+          <div class="fp-info-lbl">Estado reserva</div>
+          <div id="fpi-estado-reserva" onclick="openEstadoModal()" title="Cambiar estado" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:1px">
+            <span id="fpi-estado-dot" style="width:7px;height:7px;border-radius:50%;background:var(--t3);flex-shrink:0"></span>
+            <span id="fpi-estado-lbl" class="fp-info-val" style="margin:0">—</span>
+            <span style="font-size:10px;color:var(--t3)">▾</span>
+          </div>
+        </div>
         <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
         <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
         <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
+        <div><div class="fp-info-lbl">Servicio reservado</div><div class="fp-info-val" id="fpi-servicio-prox">—</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
       </div>
       <div style="height:1px;background:var(--b1)"></div>
@@ -3882,8 +3941,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="fp-actions">
         <button class="btn-a" style="flex:1" onclick="closeFicha();openModal()">+ Nueva cita</button>
         <button class="btn-g" style="flex:1" onclick="reagendarProxCita()" title="Reagendar la próxima cita">↺ Reagendar</button>
-        <button class="btn-g" onclick="toast('Abriendo WhatsApp con ' + document.getElementById('fp-name').textContent + '...')">WhatsApp</button>
-        <button class="btn-g" onclick="openEstadoModal()" title="Cambiar el estado de la próxima cita: confirmada, completada, inasistencia…">Cambiar estado ▾</button>
       </div>
       <div style="margin-top:8px">
         <button class="btn-r" onclick="cancelarProxCita()">✕ Cancelar próxima cita</button>
@@ -3977,7 +4034,7 @@ function openModal() {
   // Fecha de hoy por defecto y bloquear fechas pasadas
   const _hoy = new Date().toISOString().split('T')[0];
   document.getElementById('ms-fecha').value = _hoy;
-  document.getElementById('ms-fecha').min   = _hoy;
+  document.getElementById('ms-fecha').min   = '';
   // Resetear paciente
   removePt();
   document.getElementById('pt-nuevo-wrap').style.display = 'none';
@@ -4078,8 +4135,6 @@ function closeModal() {
 let _modalPresetTime = null;
 
 function openModalWithTime(fecha, hora) {
-  const hoy = new Date().toISOString().split('T')[0];
-  if (fecha < hoy) return;
   _modalPresetTime = { fecha, hora: hora || null };
   openModal();
 }
@@ -4694,8 +4749,36 @@ async function loadFichaData(nombre) {
     // Próxima cita
     const prox = citas.filter(c => c.fecha >= hoy && !['cancelada','canceled','cancelled'].includes(c.estado)).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''))[0];
     window._fichaProxCitaId = prox ? prox.id : null;
+    // Estado reserva
+    const _dbToEstado = { pending:'reservada', confirmed:'confirmada', pending_payment:'pendiente', done:'completada', canceled:'cancelada', 'no-show':'inasistencia' };
+    const estadoKey = prox ? (_dbToEstado[prox.estado] || 'reservada') : null;
+    if (estadoKey) { currentEstado = estadoKey; }
+    const edot = document.getElementById('fpi-estado-dot'), elbl = document.getElementById('fpi-estado-lbl');
+    if (edot && elbl) {
+      if (estadoKey && estadoConfig[estadoKey]) {
+        edot.style.background = estadoConfig[estadoKey].color;
+        elbl.textContent = estadoConfig[estadoKey].lbl;
+        elbl.style.color = estadoConfig[estadoKey].color;
+      } else {
+        edot.style.background = 'var(--t3)'; elbl.textContent = '—'; elbl.style.color = 'var(--t3)';
+      }
+    }
     window._fichaProxFecha  = prox ? prox.fecha : null;
     window._fichaProxHora   = prox ? (prox.hora||'').slice(0,5) : null;
+    const srvProxEl = document.getElementById('fpi-servicio-prox');
+    if (srvProxEl) srvProxEl.textContent = prox?.servicio || '—';
+    // Botones de pago y estado pago para la próxima cita
+    _currentBoletaCita = prox || null;
+    const _esPendFlow = prox?.estado === 'pending_payment';
+    const _boletaRow = document.getElementById('fp-boleta-row');
+    const _flowRow   = document.getElementById('fp-flow-row');
+    if (_boletaRow) _boletaRow.style.display = prox?.precio ? 'block' : 'none';
+    if (_flowRow)   _flowRow.style.display   = (prox?.precio && !_esPendFlow && prox?.estado_pago !== 'pagado') || _esPendFlow ? 'block' : 'none';
+    const _epEl = document.getElementById('fpi-estado-pago');
+    const _mpEl = document.getElementById('fpi-metodo-pago');
+    const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
+    if (_epEl) { _epEl.textContent = _esPendFlow ? 'Esperando pago Flow' : prox?.estado_pago === 'pagado' ? 'Pagado ✓' : '—'; _epEl.style.color = _esPendFlow ? 'var(--a)' : prox?.estado_pago === 'pagado' ? 'var(--green)' : 'var(--t3)'; }
+    if (_mpEl) _mpEl.textContent = _METODO[prox?.metodo_pago] || (_esPendFlow ? 'Flow' : '—');
     const proximaEl = document.getElementById('fpi-proxima');
     if (proximaEl) {
       const proximaLblEl = document.getElementById('fpi-proxima-lbl');
@@ -5163,6 +5246,7 @@ async function guardarServicios(btn) {
     if (!r.ok) throw new Error('Error al guardar');
     if (btn) { btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar catálogo'; }, 1500); }
     toast('✓ Catálogo guardado');
+    onbCheckStep('servicio');
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar catálogo'; }
     toast('Error al guardar: ' + e.message);
@@ -5215,7 +5299,15 @@ async function guardarPagos(btn) {
   if (!cid) return;
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
   const el = id => document.getElementById(id);
+  // Fetch existing metodos_pago to preserve aplica_iva (managed in Facturación)
+  let _mpExist = {};
+  try {
+    const _re = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago&limit=1`, { headers: _SH });
+    const [_row] = await _re.json();
+    _mpExist = _row?.metodos_pago || {};
+  } catch(_) {}
   const metodos_pago = {
+    ..._mpExist,
     webpay:         el('pago-webpay')?.checked        || false,
     transferencia:  el('pago-transferencia')?.checked || false,
     efectivo:       el('pago-efectivo')?.checked      || false,
@@ -7081,6 +7173,7 @@ async function saveEditProf() {
       }
     } else {
       toast('✓ ' + nombre + ' guardado correctamente');
+      onbCheckStep('especialista');
     }
     cargarProfesionales();
   } catch(e) { toast('Error al guardar profesional'); }
@@ -7317,6 +7410,7 @@ async function saveHorario(btn) {
     _calHoras = null;
     if (btn) { btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar horario'; }, 1500); }
     toast('✓ Horario guardado');
+    onbCheckStep('horario');
   } catch(e) {
     console.error('saveHorario error', e);
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar horario'; }
@@ -7374,6 +7468,9 @@ function setEstadoReserva(estado) {
     if (row) row.style.background = k === estado ? 'var(--adim)' : '';
   });
 
+  // Actualiza campo Estado reserva en la ficha
+  const edot = document.getElementById('fpi-estado-dot'), elbl = document.getElementById('fpi-estado-lbl');
+  if (edot && elbl && cfg) { edot.style.background = cfg.color; elbl.textContent = cfg.lbl; elbl.style.color = cfg.color; }
   // Actualiza tag activo en la ficha si está abierta
   const activeTlTag = document.querySelector('#ficha-ov .tl-item:first-child .tag[onclick]');
   if (activeTlTag) {
@@ -7391,20 +7488,8 @@ function setEstadoReserva(estado) {
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado })
     }).then(async r => {
-      if (!r.ok) { toastErr('No se pudo guardar el estado'); return; }
+      if (!r.ok) { const d = await r.json().catch(()=>({})); toastErr(d.error || 'No se pudo guardar el estado'); return; }
       toast('✓ Estado → ' + cfg.lbl);
-      // Si el nuevo estado es confirmada y el paciente tiene email, enviar confirmación
-      if (estado === 'confirmada') {
-        const h = { ..._citasH(), 'Content-Type': 'application/json' };
-        fetch('/api/send-email', {
-          method: 'POST',
-          headers: h,
-          body: JSON.stringify({ type: 'confirmar_desde_admin', cita_id: existingCitaId })
-        }).then(async er => {
-          const d = await er.json().catch(() => ({}));
-          if (er.ok && !d.skipped) toast('✓ Email de confirmación enviado');
-        }).catch(() => {});
-      }
     }).catch(() => toastErr('Error al guardar estado'));
   } else {
     toast('Estado → ' + cfg.lbl);
@@ -7581,18 +7666,20 @@ function renderDiaView(date) {
       if (diaIsToday && slotH === _dNowH) {
         evHtml += `<div class="now-line" style="top:${nowLineTop}px"><div class="now-dot"></div><div class="now-track"></div></div>`;
       }
-      evHtml += slotEvs.map(ev => {
+      evHtml += slotEvs.map((ev, idx) => {
+        const n = slotEvs.length;
         const abrev = ev.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
         const full  = ev.nombre || evNombreFull(abrev);
         const ini   = evIniciales(full);
         const hEnd  = `${String(slotH+1).padStart(2,'0')}:00`;
-        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openFicha('${full}','${ini}','')">Ver opciones →</button></div>`;
+        const posStyle = n === 1 ? 'left:3px;right:3px' : `left:calc(${idx*100/n}% + 2px);right:calc(${(n-idx-1)*100/n}% + 2px)`;
+        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;${posStyle};height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openFicha('${full}','${ini}','')">Ver opciones →</button></div>`;
       }).join('');
       if (slotEvs.length > 0 && !slotIsPast) {
         evHtml += `<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime('${diaFecha}','${slotTime}')" title="Agregar sobrecupo a las ${slotTime}">+</button>`;
       }
-      const slotClick = !slotIsPast ? ` onclick="openModalWithTime('${diaFecha}','${slotTime}')" title="+ Nueva reserva a las ${slotTime}" style="cursor:pointer"` : '';
-      html += `<div class="slot"${slotClick}>${evHtml}</div>`;
+      const slotClick = ` onclick="openModalWithTime('${diaFecha}','${slotTime}')" title="+ Nueva reserva a las ${slotTime}" style="cursor:pointer"`;
+      html += `<div class="slot"${slotIsPast ? ' style="opacity:.45"' : ''}${slotClick}>${evHtml}</div>`;
     });
     dcol.innerHTML = html;
     dcol.className = 'dcol' + (isToday ? ' today-col' : '');
@@ -7689,13 +7776,15 @@ function renderWeekBody() {
       if (isToday && slotH === nowH) {
         evHtml += '<div class="now-line" style="top:' + Math.round((nowM/60)*52) + 'px"><div class="now-dot"></div><div class="now-track"></div></div>';
       }
-      for (var ev = 0; ev < slotEvs.length; ev++) {
+      var nEvs = slotEvs.length;
+      for (var ev = 0; ev < nEvs; ev++) {
         var cur   = slotEvs[ev];
         var abrev = cur.lbl.replace(/\s*\d{2}:\d{2}/, '').trim();
         var full  = cur.nombre || evNombreFull(abrev);
         var ini   = evIniciales(full);
         var hEnd  = (slotH + 1 < 10 ? '0' : '') + (slotH + 1) + ':00';
-        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;left:3px;right:3px;height:44px" onclick="event.stopPropagation();openFicha(\'' +
+        var posStyle = nEvs === 1 ? 'left:3px;right:3px' : 'left:calc(' + (ev * 100 / nEvs) + '% + 2px);right:calc(' + ((nEvs - ev - 1) * 100 / nEvs) + '% + 2px)';
+        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;' + posStyle + ';height:44px" onclick="event.stopPropagation();openFicha(\'' +
                   full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
@@ -7706,9 +7795,8 @@ function renderWeekBody() {
       if (slotEvs.length > 0 && !slotIsPast) {
         evHtml += '<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="Agregar sobrecupo a las ' + HOURS[s] + '">+</button>';
       }
-      var slotClick  = !slotIsPast ? ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"' : '';
-      var slotCursor = !slotIsPast ? 'cursor:pointer' : '';
-      html += '<div class="slot"' + slotClick + (slotCursor ? ' style="' + slotCursor + '"' : '') + '>' + evHtml + '</div>';
+      var slotClick  = ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"';
+      html += '<div class="slot"' + slotClick + ' style="cursor:pointer' + (slotIsPast ? ';opacity:.45' : '') + '">' + evHtml + '</div>';
     }
     html += '</div>';
   }
@@ -8494,6 +8582,7 @@ async function saveNegocio() {
   }
   closeCfgModal('negocio');
   toast('✓ Datos del negocio guardados');
+  onbCheckStep('link');
 }
 
 /* ════ GUARDAR SITIO ════ */
@@ -9084,7 +9173,11 @@ async function enviarLinkFlowPago(cita_id, nombre) {
     });
     const d = await r.json();
     if (!r.ok) { toast('Error: ' + (d.error || 'No se pudo crear el pago')); return; }
-    toast('Link de pago enviado al paciente ✓');
+    if (d.email_error) {
+      toast('Link creado, pero el email falló: ' + d.email_error);
+    } else {
+      toast('Link de pago enviado al paciente ✓');
+    }
     cargarVentas();
   } catch(e) {
     toast('Error de conexión con Flow');
@@ -9853,7 +9946,110 @@ window.addEventListener('popstate', routeFromURL);
     }
   } catch(e) { console.error('Error cargando slug', e); }
   tutInit();
+  initOnboarding();
 })();
+
+/* ══════════════════════════════════════════════════
+   PRIMEROS PASOS — Onboarding checklist
+══════════════════════════════════════════════════ */
+let _onbSteps = [];
+
+async function initOnboarding() {
+  try {
+    if (localStorage.getItem('attempo_onb_done')) return;
+    const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    if (u.rol === 'staff') return;
+    const cid = await getClienteId();
+    if (!cid) return;
+
+    const [rEsp, rCli] = await Promise.all([
+      fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id&limit=1`, { headers: _SH }),
+      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios,horario_negocio,booking_slug&limit=1`, { headers: _SH }),
+    ]);
+    const esps = await rEsp.json().catch(() => []);
+    const clis = await rCli.json().catch(() => []);
+    const cli  = Array.isArray(clis) ? (clis[0] || {}) : {};
+
+    const tieneEsp     = Array.isArray(esps) && esps.length > 0;
+    const tieneHorario = !!cli.horario_negocio && Object.keys(cli.horario_negocio).some(d => cli.horario_negocio[d]?.activo);
+    const tieneServ    = Array.isArray(cli.servicios) && cli.servicios.length > 0;
+    const tieneSlug    = !!cli.booking_slug;
+
+    _onbSteps = [
+      { id: 'cuenta',       label: 'Cuenta creada',          done: true,         action: null },
+      { id: 'especialista', label: 'Agrega un especialista', done: tieneEsp,     action: () => _onbIr('profesionales') },
+      { id: 'horario',      label: 'Configura horarios',     done: tieneHorario, action: () => _onbIr('horarios') },
+      { id: 'servicio',     label: 'Crea un servicio',       done: tieneServ,    action: () => _onbIr('servicios') },
+      { id: 'link',         label: 'Comparte tu link',       done: tieneSlug,    action: () => _onbLink(cli.booking_slug) },
+    ];
+
+    if (_onbSteps.every(s => s.done)) { localStorage.setItem('attempo_onb_done', '1'); return; }
+    _renderOnboarding();
+  } catch(e) {}
+}
+
+function _onbIr(section) {
+  sv('config', document.getElementById('ntab-config'));
+  setTimeout(() => showCfg(section, document.getElementById('ctab-' + section)), 150);
+}
+
+function _onbLink(slug) {
+  if (slug) {
+    navigator.clipboard?.writeText('https://app.attempo.cl/' + slug)
+      .then(() => toast('✓ Link copiado al portapapeles'))
+      .catch(() => toast('Link: app.attempo.cl/' + slug));
+  } else {
+    _onbIr('general');
+  }
+}
+
+function _renderOnboarding() {
+  const doneSinCuenta = _onbSteps.filter(s => s.id !== 'cuenta' && s.done).length;
+  const total = _onbSteps.length - 1;
+  const pct   = Math.round((doneSinCuenta / total) * 100);
+
+  const fill    = document.getElementById('onb-fill');
+  const count   = document.getElementById('onb-count');
+  const stepsEl = document.getElementById('onb-steps');
+  if (fill)  fill.style.width  = pct + '%';
+  if (count) count.textContent = doneSinCuenta + ' de ' + total;
+
+  if (stepsEl) {
+    stepsEl.innerHTML = _onbSteps.map((s, i) => {
+      const isNext = !s.done && _onbSteps.slice(0, i).every(p => p.done);
+      const cls    = s.done ? 'done' : isNext ? 'next' : 'pending';
+      const icon   = s.done ? '✓' : isNext ? '→' : '○';
+      const click  = s.action ? `onclick="_onbStepClick(${i})"` : '';
+      const sep    = i < _onbSteps.length - 1 ? '<span class="onb-check" style="color:var(--t4);background:none;padding:0 1px">·</span>' : '';
+      return `<div class="onb-step ${cls}" ${click}><span class="onb-check">${icon}</span><span>${s.label}</span></div>${sep}`;
+    }).join('');
+  }
+
+  const banner = document.getElementById('onb-banner');
+  if (banner) banner.style.display = '';
+}
+
+function _onbStepClick(i) {
+  if (_onbSteps[i]?.action) _onbSteps[i].action();
+}
+
+function dismissOnboarding() {
+  const banner = document.getElementById('onb-banner');
+  if (banner) { banner.style.opacity = '0'; setTimeout(() => { banner.style.display = 'none'; }, 300); }
+  localStorage.setItem('attempo_onb_done', '1');
+}
+
+function onbCheckStep(stepId) {
+  const step = _onbSteps.find(s => s.id === stepId);
+  if (!step || step.done) return;
+  step.done = true;
+  if (_onbSteps.every(s => s.done)) {
+    dismissOnboarding();
+    toast('🎉 ¡Todo listo! Ya puedes recibir reservas');
+  } else {
+    _renderOnboarding();
+  }
+}
 
 /* ══════════════════════════════════════════════════
    FACTURACIÓN — Boletas internas
@@ -9933,8 +10129,24 @@ function _factKey(k) {
   return `${k}_${cid}`;
 }
 
-function cargarFacturacion() {
+async function cargarFacturacion() {
   try { _factConfig = JSON.parse(localStorage.getItem(_factKey('attempo_facturacion')) || '{}'); } catch(e) { _factConfig = {}; }
+  // Supabase is the source of truth for aplica_iva
+  try {
+    const cid = await getClienteId();
+    if (cid) {
+      const _r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago&limit=1`, { headers: _SH });
+      const [_row] = await _r.json();
+      const _mp = _row?.metodos_pago || {};
+      if (_mp.aplica_iva !== undefined) {
+        _factConfig.tipo = _mp.aplica_iva ? 'venta' : 'honorarios';
+      }
+      if (_mp.dtemite_sistema !== undefined) _factConfig.dtemite_sistema = _mp.dtemite_sistema;
+      if (_mp.dtemite_usuario !== undefined) _factConfig.dtemite_usuario = _mp.dtemite_usuario;
+      if (_mp.dtemite_clave   !== undefined) _factConfig.dtemite_clave   = _mp.dtemite_clave;
+      localStorage.setItem(_factKey('attempo_facturacion'), JSON.stringify(_factConfig));
+    }
+  } catch(_) {}
   const g  = id => document.getElementById(id);
   const fc = _factConfig;
   if (g('fact-honorarios')) g('fact-honorarios').checked = (fc.tipo || 'honorarios') === 'honorarios';
@@ -9943,24 +10155,60 @@ function cargarFacturacion() {
   if (g('fact-razon'))      g('fact-razon').value  = fc.razon || '';
   if (g('fact-giro'))       g('fact-giro').value   = fc.giro  || '';
   if (g('fact-dir'))        g('fact-dir').value    = fc.dir   || '';
+  if (g('fact-dte-sistema')) g('fact-dte-sistema').value = fc.dtemite_sistema || '';
+  if (g('fact-dte-usuario')) g('fact-dte-usuario').value = fc.dtemite_usuario || '';
+  if (g('fact-dte-clave'))   g('fact-dte-clave').value   = fc.dtemite_clave   ? '••••••••' : '';
   const folio = Number(localStorage.getItem(_factKey('attempo_folio')) || fc.folio_ini || 1);
   if (g('fact-folio-display')) g('fact-folio-display').textContent = folio;
   if (g('fact-folio-ini'))     g('fact-folio-ini').value = fc.folio_ini || 1;
+  const estadoEl = g('fact-dte-estado');
+  if (estadoEl) {
+    if (fc.dtemite_usuario) estadoEl.innerHTML = '<span style="color:#059669">✓ DTemite configurado — las boletas se emitirán como DTE válido ante el SII</span>';
+    else estadoEl.textContent = 'Sin configurar — las boletas se generarán como documentos internos';
+  }
 }
 
-function guardarFacturacion(btn) {
+async function guardarFacturacion(btn) {
   const g = id => document.getElementById(id);
+  const _dteSistema = g('fact-dte-sistema')?.value.trim() || '';
+  const _dteUsuario = g('fact-dte-usuario')?.value.trim() || '';
+  const _dteClave   = g('fact-dte-clave')?.value || '';
+  // Don't overwrite saved password if the placeholder is shown
+  const _dteClaveGuardar = (_dteClave && _dteClave !== '••••••••') ? _dteClave : (_factConfig.dtemite_clave || '');
   _factConfig = {
-    tipo:      g('fact-honorarios')?.checked ? 'honorarios' : 'venta',
-    rut:       g('fact-rut')?.value.trim()   || '',
-    razon:     g('fact-razon')?.value.trim()  || '',
-    giro:      g('fact-giro')?.value.trim()   || '',
-    dir:       g('fact-dir')?.value.trim()    || '',
-    folio_ini: parseInt(g('fact-folio-ini')?.value || '1')
+    tipo:            g('fact-honorarios')?.checked ? 'honorarios' : 'venta',
+    rut:             g('fact-rut')?.value.trim()   || '',
+    razon:           g('fact-razon')?.value.trim()  || '',
+    giro:            g('fact-giro')?.value.trim()   || '',
+    dir:             g('fact-dir')?.value.trim()    || '',
+    folio_ini:       parseInt(g('fact-folio-ini')?.value || '1'),
+    dtemite_sistema: _dteSistema,
+    dtemite_usuario: _dteUsuario,
+    dtemite_clave:   _dteClaveGuardar
   };
   localStorage.setItem(_factKey('attempo_facturacion'), JSON.stringify(_factConfig));
   const folioActual = Number(localStorage.getItem(_factKey('attempo_folio')) || 0);
   if (folioActual < _factConfig.folio_ini) localStorage.setItem(_factKey('attempo_folio'), _factConfig.folio_ini);
+  // Persist to Supabase: aplica_iva + DTemite credentials
+  try {
+    const cid = await getClienteId();
+    if (cid) {
+      const _re = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago&limit=1`, { headers: _SH });
+      const [_row] = await _re.json();
+      const _mp = {
+        ...(_row?.metodos_pago || {}),
+        aplica_iva:       _factConfig.tipo === 'venta',
+        dtemite_sistema:  _dteSistema,
+        dtemite_usuario:  _dteUsuario,
+        dtemite_clave:    _dteClaveGuardar
+      };
+      await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+        method: 'PATCH',
+        headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ metodos_pago: _mp })
+      });
+    }
+  } catch(_) {}
   if (btn) { btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar configuración'; }, 1500); }
   else toast('✓ Configuración de facturación guardada');
   cargarFacturacion();
@@ -9997,7 +10245,14 @@ function openBoletaModal(cita) {
   document.getElementById('bol-receptor-rut').value    = '';
   renderBoletaItems();
   const emailBtn = document.getElementById('bol-btn-email');
-  if (emailBtn) emailBtn.style.display = 'inline-flex';
+  if (emailBtn) {
+    emailBtn.style.display = 'inline-flex';
+    const hasDte = !!((_factConfig || {}).dtemite_usuario);
+    emailBtn.textContent = hasDte ? 'Emitir DTE + enviar' : 'Enviar por email';
+    emailBtn.title = hasDte ? 'Emite boleta electrónica SII y envía al cliente' : 'Envía boleta interna por email';
+  }
+  const tituloEl = document.querySelector('#boleta-ov .modal-title');
+  if (tituloEl) tituloEl.textContent = ((_factConfig || {}).dtemite_usuario) ? 'Emitir boleta electrónica' : 'Emitir boleta';
   updateBoletaPreview();
   document.getElementById('boleta-ov').classList.add('open');
 }
@@ -10082,52 +10337,61 @@ function updateBoletaPreview() {
   const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
   const rrut    = document.getElementById('bol-receptor-rut')?.value.trim()    || '66.666.666-6';
 
-  // Filas de detalle
+  // Filas de detalle (formato <tr> para tabla)
   const precio  = Number(cita.precio || 0);
-  let detalleHtml = `<div style="display:flex;justify-content:space-between;color:var(--t1)"><span>${cita.servicio||'Servicio'}</span><span>$${precio.toLocaleString('es-CL')}</span></div>`;
-  if (cita.especialistas?.nombre) detalleHtml += `<div style="font-size:11px;color:var(--t3)">Profesional: ${cita.especialistas.nombre}</div>`;
+  const _td = 'padding:8px 16px;font-size:12px;border-bottom:1px solid var(--b1)';
+  let detalleHtml = `<tr><td style="${_td}">${cita.servicio||'Servicio'}${cita.especialistas?.nombre?`<div style="font-size:10px;color:var(--t3)">Profesional: ${cita.especialistas.nombre}</div>`:''}</td><td style="${_td};text-align:right;font-family:var(--mono)">$${precio.toLocaleString('es-CL')}</td></tr>`;
   _boletaExtraItems.forEach(it => {
-    if (it.desc || it.monto) detalleHtml += `<div style="display:flex;justify-content:space-between;color:var(--t1);margin-top:4px"><span>${it.desc||'—'}</span><span>$${Number(it.monto||0).toLocaleString('es-CL')}</span></div>`;
+    if (it.desc || it.monto) detalleHtml += `<tr><td style="${_td}">${it.desc||'—'}</td><td style="${_td};text-align:right;font-family:var(--mono)">$${Number(it.monto||0).toLocaleString('es-CL')}</td></tr>`;
   });
 
+  const _tdT = 'padding:4px 6px;font-size:12px';
   let montoHtml = '';
   if (tipo === 'venta') {
-    const neto = Math.round(total / 1.19);
-    const iva  = total - neto;
-    montoHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)">
-      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>Neto</span><span>$${neto.toLocaleString('es-CL')}</span></div>
-      <div style="display:flex;justify-content:space-between;color:var(--t2)"><span>IVA 19%</span><span>$${iva.toLocaleString('es-CL')}</span></div>
-      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-top:4px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${total.toLocaleString('es-CL')}</span></div></div>`;
+    const iva  = Math.round(total * 0.19);
+    const totalConIva = total + iva;
+    montoHtml = `<tr><td style="${_tdT};color:var(--t2)">Neto</td><td style="${_tdT};text-align:right;color:var(--t2);font-family:var(--mono)">$${total.toLocaleString('es-CL')}</td></tr>
+<tr><td style="${_tdT};color:var(--t2)">IVA 19%</td><td style="${_tdT};text-align:right;color:var(--t2);font-family:var(--mono)">$${iva.toLocaleString('es-CL')}</td></tr>
+<tr style="border-top:2px solid var(--t1)"><td style="${_tdT};padding-top:8px;font-weight:800;font-size:14px">TOTAL</td><td style="${_tdT};padding-top:8px;text-align:right;font-weight:800;font-size:14px;color:var(--a);font-family:var(--mono)">$${totalConIva.toLocaleString('es-CL')}</td></tr>`;
   } else {
-    montoHtml = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--b1)">
-      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;color:var(--t1)"><span>TOTAL</span><span style="color:var(--a)">$${total.toLocaleString('es-CL')}</span></div></div>`;
+    montoHtml = `<tr style="border-top:2px solid var(--t1)"><td style="${_tdT};padding-top:8px;font-weight:800;font-size:14px">TOTAL</td><td style="${_tdT};padding-top:8px;text-align:right;font-weight:800;font-size:14px;color:var(--a);font-family:var(--mono)">$${total.toLocaleString('es-CL')}</td></tr>`;
   }
 
   document.getElementById('bol-preview').innerHTML = `
-<div style="text-align:center;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--b1)">
-  <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px">${tipo==='venta'?'Boleta electrónica de venta':'Boleta de servicios'}</div>
-  <div style="font-size:11px;color:var(--t3)">Folio N° <strong style="color:var(--t1)">${folio}</strong></div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-  <div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Emisor</div>
-    <div style="font-weight:600;color:var(--t1)">${cfg.razon||'—'}</div>
-    <div style="color:var(--t2)">RUT: ${cfg.rut||'—'}</div>
-    ${cfg.giro?`<div style="color:var(--t3);font-size:11px">${cfg.giro}</div>`:''}
-    ${cfg.dir ?`<div style="color:var(--t3);font-size:11px">${cfg.dir}</div>` :''}
-    <div style="color:var(--t3);font-size:11px">${fecha}</div>
+<div style="border:1px solid var(--b1);border-radius:10px;overflow:hidden;font-size:12px">
+  <!-- Header DTE -->
+  <div style="display:grid;grid-template-columns:1fr auto;border-bottom:2px solid var(--t1)">
+    <div style="padding:14px 16px">
+      <div style="font-size:15px;font-weight:800;color:var(--t1);margin-bottom:4px">${cfg.razon||'—'}</div>
+      <div style="color:var(--t2);line-height:1.6;font-size:11px">RUT: ${cfg.rut||'—'}${cfg.giro?'<br>'+cfg.giro:''}${cfg.dir?'<br>'+cfg.dir:''}</div>
+    </div>
+    <div style="border-left:2px solid var(--t1);min-width:160px;padding:14px 16px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:2px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--a)">${tipo==='venta'?'Boleta electrónica de venta':'Boleta de honorarios'}</div>
+      <div style="font-size:9px;color:var(--t3);margin-top:4px">Nº FOLIO</div>
+      <div style="font-size:26px;font-weight:900;color:var(--t1);line-height:1">${folio}</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:4px">${fecha}</div>
+    </div>
   </div>
-  <div style="background:var(--adim);border-radius:8px;padding:10px 12px">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Receptor</div>
-    <div style="font-weight:500;color:var(--t1)">${rnombre}</div>
-    <div style="color:var(--t2)">RUT: ${rrut}</div>
+  <!-- Receptor -->
+  <div style="background:var(--adim);padding:8px 16px;border-bottom:1px solid var(--b1);display:grid;grid-template-columns:1fr 1fr;gap:4px 20px">
+    <div style="display:flex;gap:6px;align-items:baseline"><span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3);white-space:nowrap">Señor(es):</span><span style="font-weight:500;color:var(--t1)">${rnombre}</span></div>
+    <div style="display:flex;gap:6px;align-items:baseline"><span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3)">RUT:</span><span style="color:var(--t2)">${rrut}</span></div>
   </div>
-</div>
-<div>
-  <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-bottom:6px">Detalle</div>
-  ${detalleHtml}
-</div>
-${montoHtml}`;
+  <!-- Tabla ítems -->
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--t1);color:#fff"><td style="padding:6px 16px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Descripción</td><td style="padding:6px 16px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;text-align:right">Precio</td></tr></thead>
+    <tbody>${detalleHtml}</tbody>
+  </table>
+  <!-- Totales -->
+  <div style="display:flex;justify-content:flex-end;padding:10px 16px 14px">
+    <table style="min-width:180px;border-collapse:collapse">${montoHtml}</table>
+  </div>
+  <!-- Footer -->
+  <div style="border-top:1px dashed var(--b1);padding:8px 16px;text-align:center;font-size:9px;color:var(--t3);line-height:1.7">
+    Documento de carácter interno · No válido como boleta tributaria electrónica SII<br>
+    Generado por attempo · attempo.cl
+  </div>
+</div>`;
 }
 
 function _buildBoletaHtml(folio) {
@@ -10141,74 +10405,133 @@ function _buildBoletaHtml(folio) {
   const rrut    = document.getElementById('bol-receptor-rut')?.value.trim()    || '66.666.666-6';
 
   const precio  = Number(cita?.precio || 0);
-  let itemRows  = `<tr><td>${cita?.servicio||'Servicio'}</td><td style="text-align:right">$${precio.toLocaleString('es-CL')}</td></tr>`;
-  if (cita?.especialistas?.nombre) itemRows += `<tr><td colspan="2" style="font-size:11px;color:#666">Profesional: ${cita.especialistas.nombre}</td></tr>`;
+  const _fmt = n => '$ ' + Number(n).toLocaleString('es-CL');
+  let itemRows = `<tr>
+    <td class="i-desc">${cita?.servicio||'Servicio'}${cita?.especialistas?.nombre?`<div class="i-sub">Profesional: ${cita.especialistas.nombre}</div>`:''}</td>
+    <td class="i-r">1</td>
+    <td class="i-r">${_fmt(precio)}</td>
+    <td class="i-r">${_fmt(precio)}</td>
+  </tr>`;
   _boletaExtraItems.forEach(it => {
-    if (it.desc || it.monto) itemRows += `<tr><td>${it.desc||'—'}</td><td style="text-align:right">$${Number(it.monto||0).toLocaleString('es-CL')}</td></tr>`;
+    if (it.desc || it.monto) {
+      const m = Number(it.monto||0);
+      itemRows += `<tr><td class="i-desc">${it.desc||'—'}</td><td class="i-r">1</td><td class="i-r">${_fmt(m)}</td><td class="i-r">${_fmt(m)}</td></tr>`;
+    }
   });
 
   let montoRows = '';
   if (tipo === 'venta') {
-    const neto = Math.round(total / 1.19);
-    const iva  = total - neto;
-    montoRows = `<tr><td style="color:#666;padding:3px 0">Neto</td><td style="text-align:right;padding:3px 0">$${neto.toLocaleString('es-CL')}</td></tr>
-<tr><td style="color:#666;padding:3px 0">IVA 19%</td><td style="text-align:right;padding:3px 0">$${iva.toLocaleString('es-CL')}</td></tr>
-<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${total.toLocaleString('es-CL')}</td></tr>`;
+    const iva = Math.round(total * 0.19);
+    const totalConIva = total + iva;
+    montoRows = `
+<tr><td class="tt-l">SUBTOTAL</td><td class="tt-v">${_fmt(total)}</td></tr>
+<tr><td class="tt-l">NETO</td><td class="tt-v">${_fmt(total)}</td></tr>
+<tr><td class="tt-l">IVA (19%)</td><td class="tt-v">${iva.toLocaleString('es-CL')}</td></tr>
+<tr class="tt-tot"><td class="tt-l">TOTAL</td><td class="tt-v">${_fmt(totalConIva)}</td></tr>`;
   } else {
-    montoRows = `<tr style="font-size:15px;font-weight:700;border-top:1px solid #ddd"><td style="padding:6px 0 0">TOTAL</td><td style="text-align:right;padding:6px 0 0;color:#6c5ce4">$${total.toLocaleString('es-CL')}</td></tr>`;
+    montoRows = `
+<tr><td class="tt-l">SUBTOTAL</td><td class="tt-v">${_fmt(total)}</td></tr>
+<tr class="tt-tot"><td class="tt-l">TOTAL</td><td class="tt-v">${_fmt(total)}</td></tr>`;
   }
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Boleta N° ${folio} · ${cfg.razon||''}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Helvetica Neue',Arial,sans-serif;color:#111;font-size:13px;line-height:1.6}
-.page{max-width:420px;margin:40px auto;padding:32px;border:1px solid #e5e5e5;border-radius:12px}
-.header{text-align:center;padding-bottom:18px;margin-bottom:20px;border-bottom:2px solid #6c5ce4}
-.tipo{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6c5ce4;margin-bottom:6px}
-.folio{font-size:24px;font-weight:800;color:#111}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
-.lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:4px}
-.receptor{background:#f5f3ff;border-radius:8px;padding:12px 14px}
-h3{font-size:13px;font-weight:600;margin:0 0 2px}
-.sub{font-size:12px;color:#555}
-.detalle{margin-bottom:16px}
-.detalle-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:8px}
-table{width:100%;border-collapse:collapse}
-td{vertical-align:top;padding:2px 0}
-.footer{margin-top:20px;padding-top:14px;border-top:1px dashed #ddd;text-align:center;font-size:10px;color:#999;line-height:1.8}
-@media print{.page{border:none;padding:24px;margin:0 auto}}
+body{font-family:Arial,'Helvetica Neue',sans-serif;color:#000;font-size:11px;line-height:1.45;background:#fff}
+.page{max-width:700px;margin:20px auto;padding:28px 32px}
+/* ── HEADER ── */
+.hdr{display:grid;grid-template-columns:1fr 210px;gap:24px;align-items:start;margin-bottom:14px}
+.co-name{font-size:19px;font-weight:900;text-transform:uppercase;letter-spacing:-.3px;margin-bottom:6px}
+.co-meta{font-size:10px;line-height:1.8}
+.co-meta b{font-weight:700;margin-right:4px}
+.doc-box{border:2px solid #000;padding:16px 18px;text-align:center}
+.doc-rut{font-size:12px;font-weight:700;margin-bottom:10px}
+.doc-tipo{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.02em;margin-bottom:10px}
+.doc-num{font-size:22px;font-weight:900;letter-spacing:-.5px}
+/* ── FECHA ── */
+.fecha-line{text-align:right;font-size:12px;font-weight:600;margin-bottom:12px}
+/* ── CLIENTE ── */
+.cli-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px}
+.cli-table td{border:1px solid #000;padding:4px 8px;vertical-align:middle}
+.cli-lbl{font-weight:700;text-transform:uppercase;font-size:9px;background:#f2f2f2;width:100px;white-space:nowrap}
+.cli-val{font-size:11px}
+/* ── ÍTEMS ── */
+.it-table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:10px}
+.it-table thead td{background:#000;color:#fff;padding:5px 8px;font-weight:700;text-transform:uppercase;font-size:9px}
+.it-table thead td.r{text-align:right}
+.it-table tbody tr{border-bottom:1px solid #ccc}
+.it-table tbody tr:last-child{border-bottom:1px solid #000}
+.i-desc{padding:7px 8px;vertical-align:top}
+.i-sub{font-size:9px;color:#555;margin-top:2px}
+.i-r{padding:7px 8px;text-align:right;white-space:nowrap;font-family:'Courier New',monospace;vertical-align:top}
+/* ── BOTTOM ── */
+.bottom{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end}
+.timbre{font-size:9px;color:#777;line-height:1.9}
+.tt-table{border-collapse:collapse;min-width:200px}
+.tt-table td{border:1px solid #000;padding:4px 10px}
+.tt-l{font-weight:700;text-transform:uppercase;font-size:10px;background:#f2f2f2;width:120px}
+.tt-v{text-align:right;font-family:'Courier New',monospace;font-size:11px;min-width:90px}
+.tt-tot td{font-size:14px;font-weight:900}
+@media print{body{margin:0}.page{padding:18px;margin:0;max-width:100%}}
 </style></head><body>
 <div class="page">
-  <div class="header">
-    <div class="tipo">${tipo==='venta'?'Boleta electrónica de venta':'Boleta de servicios'}</div>
-    <div style="font-size:11px;color:#888;margin-bottom:4px">${fecha}</div>
-  </div>
-  <div class="grid">
+  <!-- CABECERA -->
+  <div class="hdr">
     <div>
-      <div class="lbl">Emisor</div>
-      <h3>${cfg.razon||'—'}</h3>
-      <div class="sub">RUT: ${cfg.rut||'—'}</div>
-      ${cfg.giro?`<div class="sub">${cfg.giro}</div>`:''}
-      ${cfg.dir ?`<div class="sub">${cfg.dir}</div>` :''}
+      <div class="co-name">${cfg.razon||'—'}</div>
+      <div class="co-meta">
+        ${cfg.giro?`<b>GIRO</b>${cfg.giro}<br>`:''}
+        ${cfg.dir?`<b>DIRECCIÓN</b>${cfg.dir}<br>`:''}
+        <b>R.U.T.:</b>${cfg.rut||'—'}
+      </div>
     </div>
-    <div class="receptor">
-      <div class="lbl">Receptor</div>
-      <h3>${rnombre}</h3>
-      <div class="sub">RUT: ${rrut}</div>
+    <div class="doc-box">
+      <div class="doc-rut">R.U.T.: ${cfg.rut||'—'}</div>
+      <div class="doc-tipo">${tipo==='venta'?'Boleta Electrónica':'Boleta de Honorarios'}</div>
+      <div class="doc-num">N°${folio}</div>
     </div>
   </div>
-  <div class="detalle">
-    <div class="detalle-lbl">Detalle</div>
-    <table>
-      ${itemRows}
-      <tr><td colspan="2"><hr style="border:none;border-top:1px dashed #ddd;margin:8px 0"></td></tr>
-      ${montoRows}
-    </table>
-  </div>
-  <div class="footer">
-    Documento de carácter interno · No válido como boleta tributaria electrónica SII<br>
-    Generado por Attempo · attempo.cl
+
+  <!-- FECHA -->
+  <div class="fecha-line">Fecha: ${fecha}</div>
+
+  <!-- CLIENTE -->
+  <table class="cli-table">
+    <tr>
+      <td class="cli-lbl">Cliente</td>
+      <td class="cli-val" colspan="3">${rnombre}</td>
+    </tr>
+    <tr>
+      <td class="cli-lbl">RUT</td>
+      <td class="cli-val">${rrut}</td>
+      <td class="cli-lbl">Forma de pago</td>
+      <td class="cli-val">Contado</td>
+    </tr>
+  </table>
+
+  <!-- ÍTEMS -->
+  <table class="it-table">
+    <thead>
+      <tr>
+        <td>Descripción</td>
+        <td class="r" style="width:50px">Cant.</td>
+        <td class="r" style="width:110px">P. Unitario</td>
+        <td class="r" style="width:110px">Subtotal</td>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <!-- BOTTOM: timbre + totales -->
+  <div class="bottom">
+    <div class="timbre">
+      Timbre Electrónico SII<br>
+      Documento de carácter interno<br>
+      No válido como boleta tributaria electrónica SII<br>
+      Generado por attempo · attempo.cl
+    </div>
+    <table class="tt-table">${montoRows}</table>
   </div>
 </div>
 </body></html>`;
@@ -10228,19 +10551,19 @@ async function saveAsignarMetodo() {
   const metodo = document.getElementById('asignar-metodo-sel').value;
   if (!metodo || !_asignarMetodoCitaId) { toast('Selecciona un método'); return; }
   try {
-    const cid = await getClienteId();
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_asignarMetodoCitaId}&cliente_id=eq.${cid}`, {
+    const r = await fetch(`/api/slots?id=${_asignarMetodoCitaId}`, {
       method: 'PATCH',
-      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ metodo_pago: metodo })
     });
-    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error al guardar');
     const idx = _allVentas.findIndex(c => c.id === _asignarMetodoCitaId);
     if (idx >= 0) _allVentas[idx].metodo_pago = metodo;
     renderVentasTable();
     closeAsignarMetodo();
     toast('✓ Método de pago guardado');
-  } catch(_) { toast('Error al guardar'); }
+  } catch(e) { toast(e.message || 'Error al guardar'); }
 }
 
 async function eliminarVenta(citaId) {
@@ -10276,20 +10599,20 @@ async function saveEditarMonto() {
   const precio = parseInt(document.getElementById('editar-monto-input').value) || 0;
   if (!_editarMontoCitaId) return;
   try {
-    const cid = await getClienteId();
-    const r = await fetch(`${_SURL}/rest/v1/citas?id=eq.${_editarMontoCitaId}&cliente_id=eq.${cid}`, {
+    const r = await fetch(`/api/slots?id=${_editarMontoCitaId}`, {
       method: 'PATCH',
-      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ precio: precio || null })
     });
-    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error al guardar');
     const idx = _allVentas.findIndex(c => c.id === _editarMontoCitaId);
     if (idx >= 0) _allVentas[idx].precio = precio || null;
     renderVentasTable();
     renderVentasKPIs();
     closeEditarMonto();
     toast('✓ Monto actualizado');
-  } catch(_) { toast('Error al guardar'); }
+  } catch(e) { toast(e.message || 'Error al guardar'); }
 }
 
 let _asignarProfCitaId = null;
@@ -10375,36 +10698,60 @@ async function enviarBoletaEmail() {
   btn.disabled = true;
 
   const folio = _nextFolio();
-  const html  = _buildBoletaHtml(folio);
   _syncBoletaPrecio();
   const cfg   = _factConfig;
   const total = _boletaTotal();
   const rnombre = document.getElementById('bol-receptor-nombre')?.value.trim() || 'Consumidor Final';
+  const rrut    = document.getElementById('bol-receptor-rut')?.value.trim()    || '66.666.666-6';
+
+  const precioBase = Number(_currentBoletaCita?.precio || 0);
+  const items = [{
+    desc: (_currentBoletaCita?.servicio || 'Servicio') + (_currentBoletaCita?.especialistas?.nombre ? ` — ${_currentBoletaCita.especialistas.nombre}` : ''),
+    qty: 1, precio: precioBase
+  }];
+  _boletaExtraItems.forEach(it => {
+    if (it.desc || it.monto) items.push({ desc: it.desc || '—', qty: 1, precio: Number(it.monto || 0) });
+  });
+
+  const hasDte = !!(cfg.dtemite_usuario);
+  const type   = hasDte ? 'boleta-dte' : 'boleta';
 
   try {
     const r = await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': localStorage.getItem('attempo_session_token') || '',
+        'x-override-cliente-id': (JSON.parse(localStorage.getItem('attempo_user')||'{}').superadmin_viewing) || ''
+      },
       body: JSON.stringify({
-        type:     'boleta',
-        to:       email,
-        nombre:   rnombre,
-        negocio:  cfg.razon || 'tu negocio',
+        type,
+        to:             email,
+        cliente_nombre: rnombre,
+        cliente_rut:    rrut,
+        negocio:        cfg.razon || 'tu negocio',
+        negocio_rut:    cfg.rut   || '',
+        negocio_giro:   cfg.giro  || '',
+        negocio_dir:    cfg.dir   || '',
         folio,
-        total:    '$' + total.toLocaleString('es-CL'),
-        html_boleta: html
+        total,
+        tipo:  cfg.tipo || 'honorarios',
+        fecha: _currentBoletaCita?.fecha || new Date().toISOString().slice(0,10),
+        items
       })
     });
     if (r.ok) {
-      toast('✓ Boleta enviada a ' + email);
+      const d = await r.json().catch(() => ({}));
+      const label = hasDte ? 'DTE emitido y enviado a ' : 'Boleta enviada a ';
+      toast('✓ ' + label + email);
       closeBoleta();
     } else {
-      _nextFolio() - 1; // devolver folio (aproximación)
-      localStorage.setItem('attempo_folio', folio); // revertir
-      toast('Error al enviar el email');
+      localStorage.setItem(_factKey('attempo_folio'), folio);
+      const errData = await r.json().catch(() => ({}));
+      toast(errData.error || 'Error al enviar');
     }
   } catch(e) {
-    localStorage.setItem('attempo_folio', folio);
+    localStorage.setItem(_factKey('attempo_folio'), folio);
     toast('Error de conexión');
   } finally {
     btn.textContent = orig;
@@ -13677,13 +14024,25 @@ async function actualizarComision(especialistaId, pct, inputEl) {
 </div>
 
 <!-- ═══ MODAL COTIZACIÓN — CREAR / EDITAR ═══ -->
-<div class="overlay" id="cot-ov" onclick="if(event.target===this)closeCotModal()">
+<div class="overlay" id="cot-ov" onclick="if(event.target===event.currentTarget)closeCotModal()">
   <div class="modal" style="max-width:820px;max-height:93vh;overflow-y:auto;width:96%">
     <div class="modal-head">
       <span id="cot-modal-title">Nueva cotización</span>
       <button class="mclose" onclick="closeCotModal()">×</button>
     </div>
     <div class="mbody" style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- Sección: Emisor -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Emisor (tu negocio)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="fg"><label>Nombre / Razón social</label><input id="cot-e-nombre" placeholder="Tu negocio" readonly style="background:var(--surface-hi);color:var(--t2)"></div>
+          <div class="fg"><label>RUT emisor</label><input id="cot-e-rut" placeholder="12.345.678-9" readonly style="background:var(--surface-hi);color:var(--t2)"></div>
+          <div class="fg"><label>Giro / Actividad</label><input id="cot-e-giro" placeholder="Actividad económica" readonly style="background:var(--surface-hi);color:var(--t2)"></div>
+          <div class="fg"><label>Dirección</label><input id="cot-e-dir" placeholder="Dirección del negocio" readonly style="background:var(--surface-hi);color:var(--t2)"></div>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:6px">Edita estos datos en <button onclick="closeCotModal();sv('config');showCfg('facturacion',document.getElementById('ctab-facturacion'))" style="background:none;border:none;color:var(--a);font-size:11px;cursor:pointer;padding:0;text-decoration:underline">Configuración → Facturación</button></div>
+      </div>
 
       <!-- Sección: Destinatario -->
       <div>
@@ -13693,7 +14052,11 @@ async function actualizarComision(especialistaId, pct, inputEl) {
           <div class="fg"><label>RUT</label><input id="cot-f-rut" placeholder="12.345.678-9"></div>
           <div class="fg"><label>Giro / Actividad</label><input id="cot-f-giro" placeholder="Ej: Servicios médicos"></div>
           <div class="fg"><label>Dirección</label><input id="cot-f-dir" placeholder="Calle 123, Ciudad"></div>
-          <div class="fg"><label>Email *</label><input type="email" id="cot-f-email" placeholder="cliente@empresa.cl"></div>
+          <div class="fg" style="position:relative">
+            <label>Email *</label>
+            <input type="email" id="cot-f-email" placeholder="cliente@empresa.cl" autocomplete="off" oninput="_cotEmailInput(this)" onfocus="_cotEmailInput(this)">
+            <div id="cot-email-dd" style="display:none;position:absolute;z-index:300;top:100%;left:0;right:0;background:var(--bg);border:1px solid var(--b1);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;margin-top:2px"></div>
+          </div>
           <div class="fg"><label>Teléfono</label><input id="cot-f-tel" placeholder="+56 9 1234 5678"></div>
         </div>
       </div>
@@ -13756,8 +14119,8 @@ async function actualizarComision(especialistaId, pct, inputEl) {
       <button class="btn-g" onclick="closeCotModal()">Cancelar</button>
       <div style="display:flex;gap:8px">
         <button class="btn-sm" onclick="previewCotPDF()">Vista previa PDF</button>
-        <button class="btn-a" onclick="saveCot('borrador')">Guardar borrador</button>
-        <button class="btn-a" style="background:var(--green,#16a34a)" onclick="saveCotYEnviar()">Guardar y enviar →</button>
+        <button class="btn-a" id="cot-btn-guardar" onclick="saveCot('borrador')">Guardar borrador</button>
+        <button class="btn-a" id="cot-btn-enviar" style="background:var(--green,#16a34a)" onclick="saveCotYEnviar()">Guardar y enviar →</button>
       </div>
     </div>
   </div>
@@ -13911,7 +14274,7 @@ function _cotH() {
 
 // ── Inicializar vista ────────────────────────────────────────
 async function initCotizaciones() {
-  document.getElementById('cot-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>';
+  document.getElementById('cot-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>';
   try {
     const r = await fetch('/api/usuarios-admin?action=cot-lista', { headers: _cotH() });
     const body = await r.json();
@@ -13919,7 +14282,7 @@ async function initCotizaciones() {
       const msg = r.status === 401
         ? `Auth fallo: ${JSON.stringify(body._d || body)}`
         : `Error ${r.status}: ${body.error || JSON.stringify(body)}`;
-      document.getElementById('cot-tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--danger);font-size:13px">${msg}</td></tr>`;
+      document.getElementById('cot-tbody').innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--danger);font-size:13px">${msg}</td></tr>`;
       return;
     }
     _cotData = Array.isArray(body) ? body : [];
@@ -13927,21 +14290,24 @@ async function initCotizaciones() {
     actualizarCotKPIs();
     checkCotVencidas();
   } catch(e) {
-    document.getElementById('cot-tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--danger);font-size:13px">Error de red: ${e.message}</td></tr>`;
+    document.getElementById('cot-tbody').innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--danger);font-size:13px">Error de red: ${e.message}</td></tr>`;
   }
 }
 
 function actualizarCotKPIs() {
   const env  = _cotData.filter(c => c.estado === 'enviada').length;
   const acep = _cotData.filter(c => c.estado === 'aceptada').length;
+  const pag  = _cotData.filter(c => c.estado === 'pagada').length;
   const rech = _cotData.filter(c => c.estado === 'rechazada').length;
   const pend = _cotData.filter(c => c.estado === 'enviada').length;
   document.getElementById('cot-kpi-env').textContent  = env;
   document.getElementById('cot-kpi-acep').textContent = acep;
+  document.getElementById('cot-kpi-pag').textContent  = pag;
   document.getElementById('cot-kpi-rech').textContent = rech;
   document.getElementById('cot-kpi-pend').textContent = pend;
   const tot = _cotData.filter(c => c.estado !== 'borrador').length;
-  document.getElementById('cot-kpi-acep-sub').textContent = tot ? Math.round(acep/tot*100)+'% tasa' : '';
+  document.getElementById('cot-kpi-acep-sub').textContent = tot ? Math.round((acep+pag)/tot*100)+'% tasa conv.' : '';
+  document.getElementById('cot-kpi-pag-sub').textContent  = (acep+pag) ? Math.round(pag/(acep+pag)*100)+'% cobradas' : '';
 }
 
 function checkCotVencidas() {
@@ -13965,7 +14331,7 @@ function renderCotizaciones() {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--t3);font-size:13px">${_cotFiltro ? 'Sin cotizaciones en este estado' : 'Aún no hay cotizaciones — crea la primera con el botón "+"'}</td></tr>`;
     return;
   }
-  const estadoInfo = { borrador:{lbl:'Borrador',bg:'#9ca3af'}, enviada:{lbl:'Enviada',bg:'#f59e0b'}, aceptada:{lbl:'Aceptada',bg:'#16a34a'}, rechazada:{lbl:'Rechazada',bg:'#dc2626'}, vencida:{lbl:'Vencida',bg:'#6b7280'} };
+  const estadoInfo = { borrador:{lbl:'Borrador',bg:'#9ca3af'}, enviada:{lbl:'Enviada',bg:'#f59e0b'}, aceptada:{lbl:'Aceptada',bg:'#16a34a'}, rechazada:{lbl:'Rechazada',bg:'#dc2626'}, vencida:{lbl:'Vencida',bg:'#6b7280'}, pagada:{lbl:'Pagada',bg:'#059669'} };
   tbody.innerHTML = lista.map(c => {
     const info  = estadoInfo[c.estado] || {lbl:c.estado,bg:'#9ca3af'};
     const neto  = (c.items||[]).reduce((s,it) => s+(parseFloat(it.precio_unitario)||0)*(parseFloat(it.cantidad)||1)*(1-(parseFloat(it.descuento)||0)/100),0);
@@ -13977,13 +14343,27 @@ function renderCotizaciones() {
       acciones.push(`<button class="btn-sm" onclick="openCotModal('${c.id}')">Editar</button>`);
       acciones.push(`<button class="btn-sm" style="background:var(--green,#16a34a);color:#fff" onclick="abrirEnviarCotDirecto('${c.id}')">Enviar</button>`);
       acciones.push(`<button class="btn-sm" onclick="deleteCot('${c.id}')" style="color:#dc2626">Eliminar</button>`);
-    } else if (c.estado === 'enviada') {
-      acciones.push(`<button class="btn-sm" onclick="verCot('${c.id}')">Ver</button>`);
-      acciones.push(`<button class="btn-sm" onclick="abrirEnviarCotDirecto('${c.id}')">Reenviar</button>`);
     } else {
-      acciones.push(`<button class="btn-sm" onclick="verCot('${c.id}')">Ver</button>`);
+      acciones.push(`<button class="btn-sm" onclick="openCotModal('${c.id}')">Editar</button>`);
+      if (c.estado === 'enviada' || c.estado === 'aceptada') acciones.push(`<button class="btn-sm" onclick="abrirEnviarCotDirecto('${c.id}')">Reenviar</button>`);
+      acciones.push(`<button class="btn-sm" onclick="deleteCot('${c.id}')" style="color:#dc2626">Eliminar</button>`);
     }
     if (c.archivo_externo_url) acciones.push(`<a class="btn-sm" href="${c.archivo_externo_url}" target="_blank">PDF ↗</a>`);
+    // Columna pago/voucher
+    let pagoCell = '<span style="color:var(--t4)">—</span>';
+    const mp = c.respuesta?.metodo_pago;
+    const voucherUrl = c.respuesta?.voucher_url;
+    if (c.estado === 'pagada') {
+      if (mp === 'flow') {
+        pagoCell = '<span style="color:#059669;font-size:12px;font-weight:600">Flow ✓</span>';
+      } else if (mp === 'transferencia') {
+        pagoCell = `<span style="color:#059669;font-size:12px;font-weight:600">Transferencia ✓</span>${voucherUrl ? `<br><a href="${voucherUrl}" target="_blank" style="font-size:11px;color:var(--a)">Ver comprobante ↗</a>` : ''}`;
+      } else {
+        pagoCell = '<span style="color:#059669;font-size:12px;font-weight:600">Pagada ✓</span>';
+      }
+    } else if (c.estado === 'aceptada') {
+      pagoCell = `<button class="btn-sm" onclick="subirVoucher('${c.id}')">Subir comprobante</button>`;
+    }
     return `<tr>
       <td style="font-family:var(--mono);font-size:13px;color:var(--t3)">#${c.numero}</td>
       <td style="font-weight:500">${c.datos_destinatario?.nombre || '—'}</td>
@@ -13991,6 +14371,7 @@ function renderCotizaciones() {
       <td style="font-size:12px;${vencStyle}">${venc}</td>
       <td style="font-family:var(--mono);font-size:13px">$${total.toLocaleString('es-CL')}</td>
       <td><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;background:${info.bg}">${info.lbl}</span></td>
+      <td style="font-size:12px">${pagoCell}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">${acciones.join('')}</td>
     </tr>`;
   }).join('');
@@ -13999,6 +14380,8 @@ function renderCotizaciones() {
 // ── Modal crear/editar ───────────────────────────────────────
 function openCotModal(id) {
   _cotId = id || null;
+  // Fix 2: Pre-load services so dropdown is available
+  _ensureServicios().catch(() => {});
   document.getElementById('cot-modal-title').textContent = id ? 'Editar cotización' : 'Nueva cotización';
   document.getElementById('cot-items-tbody').innerHTML = '';
   if (id) {
@@ -14023,7 +14406,7 @@ function openCotModal(id) {
     document.getElementById('cot-f-dir').value     = '';
     document.getElementById('cot-f-email').value   = '';
     document.getElementById('cot-f-tel').value     = '';
-    document.getElementById('cot-f-iva').checked   = true;
+    document.getElementById('cot-f-iva').checked   = (_factConfig?.tipo === 'venta');
     document.getElementById('cot-f-validez').value = 15;
     document.getElementById('cot-f-plazo').value   = '';
     document.getElementById('cot-f-pago').value    = '';
@@ -14031,6 +14414,20 @@ function openCotModal(id) {
     addCotItem();
   }
   recalcCotTotales();
+  // Adaptar botones según estado
+  const esBorrador = !id || (_cotData.find(x => x.id === id)?.estado === 'borrador');
+  const btnGuardar = document.getElementById('cot-btn-guardar');
+  const btnEnviar  = document.getElementById('cot-btn-enviar');
+  btnGuardar.textContent = esBorrador ? 'Guardar borrador' : 'Guardar cambios';
+  btnEnviar.textContent  = esBorrador ? 'Guardar y enviar →' : 'Guardar y reenviar →';
+  // Fix 1: Auto-fill emisor fields from _factConfig
+  try {
+    const fc = _factConfig || {};
+    document.getElementById('cot-e-nombre').value = fc.razon || fc.nombre_negocio || '';
+    document.getElementById('cot-e-rut').value    = fc.rut   || '';
+    document.getElementById('cot-e-giro').value   = fc.giro  || '';
+    document.getElementById('cot-e-dir').value    = fc.dir   || '';
+  } catch(_) {}
   document.getElementById('cot-ov').classList.add('open');
 }
 
@@ -14038,14 +14435,36 @@ function closeCotModal() { document.getElementById('cot-ov').classList.remove('o
 
 function addCotItem(it = {}) {
   const tr = document.createElement('tr');
+  // Fix 2: Build service dropdown options from _serviciosCache
+  const srvs = Array.isArray(_serviciosCache) ? _serviciosCache : [];
+  const srvOpts = srvs.map(s =>
+    `<option value="${(s.nombre||'').replace(/"/g,'&quot;')}" data-precio="${parseFloat(s.precio)||0}">${s.nombre}${s.precio ? ' — $'+Math.round(parseFloat(s.precio)).toLocaleString('es-CL') : ''}</option>`
+  ).join('');
+  const hasSrvs = srvs.length > 0;
+  const descVal = (it.descripcion||'').replace(/"/g,'&quot;');
   tr.innerHTML = `
-    <td style="padding:4px 4px"><input class="ci-desc" value="${(it.descripcion||'').replace(/"/g,'&quot;')}" oninput="recalcCotTotales()" placeholder="Descripción del servicio o producto" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--font);box-sizing:border-box"></td>
+    <td style="padding:4px 4px;min-width:160px">
+      ${hasSrvs ? `<select class="ci-srv-sel" onchange="_cotSrvSel(this)" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t2);font-size:12px;font-family:var(--font);box-sizing:border-box;margin-bottom:4px"><option value="">Seleccionar servicio...</option>${srvOpts}</select>` : ''}
+      <input class="ci-desc" value="${descVal}" oninput="recalcCotTotales()" placeholder="Descripción del servicio o producto" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--font);box-sizing:border-box">
+    </td>
     <td style="padding:4px 4px"><input class="ci-cant" type="number" min="0.01" step="any" value="${parseFloat(it.cantidad)||1}" oninput="recalcCotTotales()" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
     <td style="padding:4px 4px"><input class="ci-precio" type="number" min="0" step="any" value="${parseFloat(it.precio_unitario)||''}" oninput="recalcCotTotales()" placeholder="0" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
     <td style="padding:4px 4px"><input class="ci-dto" type="number" min="0" max="100" step="any" value="${parseFloat(it.descuento)||0}" oninput="recalcCotTotales()" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
     <td style="padding:4px 8px;text-align:right;font-size:13px;font-family:var(--mono);color:var(--a);white-space:nowrap" class="ci-row-total">$0</td>
     <td style="padding:4px 2px;text-align:center"><button onclick="this.closest('tr').remove();recalcCotTotales()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px" title="Eliminar">×</button></td>`;
   document.getElementById('cot-items-tbody').appendChild(tr);
+  recalcCotTotales();
+}
+
+// Fix 2: Handler when a service is selected from the dropdown
+function _cotSrvSel(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return;
+  const tr = sel.closest('tr');
+  const descInput  = tr.querySelector('.ci-desc');
+  const precioInput = tr.querySelector('.ci-precio');
+  if (descInput)  descInput.value  = opt.value;
+  if (precioInput) precioInput.value = opt.dataset.precio || '';
   recalcCotTotales();
 }
 
@@ -14159,11 +14578,41 @@ async function enviarCot() {
 }
 
 async function deleteCot(id) {
-  if (!confirm('¿Eliminar este borrador?')) return;
+  if (!confirm('¿Eliminar esta cotización?')) return;
   await fetch(`/api/usuarios-admin?action=cot-eliminar&id=${id}`, { method:'DELETE', headers:_cotH() });
   _cotData = _cotData.filter(c => c.id !== id);
   renderCotizaciones(); actualizarCotKPIs();
   toast('Borrador eliminado');
+}
+
+function subirVoucher(id) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*,.pdf';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result.split(',')[1];
+      toast('Subiendo comprobante...');
+      const r = await fetch('/api/usuarios-admin?action=cot-voucher-upload', {
+        method: 'POST', headers: _cotH(),
+        body: JSON.stringify({ id, fileBase64: base64, mimeType: file.type, filename: file.name })
+      });
+      const d = await r.json();
+      if (!r.ok) { toastErr(d.error || 'Error al subir'); return; }
+      const idx = _cotData.findIndex(c => c.id === id);
+      if (idx >= 0) {
+        _cotData[idx].estado = 'pagada';
+        _cotData[idx].respuesta = { ...(_cotData[idx].respuesta || {}), metodo_pago: 'transferencia', voucher_url: d.voucher_url };
+      }
+      renderCotizaciones(); actualizarCotKPIs();
+      toast('Comprobante subido — cotización marcada como pagada ✓');
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 }
 
 // ── Ver (solo lectura) ───────────────────────────────────────
@@ -14198,8 +14647,9 @@ async function previewCotPDF() {
   const dest   = data.datos_destinatario;
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Cotización N° ${cotNum} — ${negocio.nombre_negocio||'attempo'}</title>
 <style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#1a1a1a;font-size:13px}
-@media screen{body{background:#6b7280;min-height:100vh;padding:32px 20px;display:flex;justify-content:center;align-items:flex-start}.doc{background:#fff;width:100%;max-width:760px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.35)}}
-@media print{body{background:none}.doc{padding:16px}}</style></head><body>
+@media screen{body{background:#6b7280;min-height:100vh;padding:20px 20px 40px;display:flex;flex-direction:column;align-items:center}.toolbar{width:100%;max-width:760px;display:flex;justify-content:flex-end;gap:10px;margin-bottom:12px}.doc{background:#fff;width:100%;max-width:760px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.35)}.btn-print{padding:9px 22px;background:#6C5CE4;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}.btn-close{padding:9px 16px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}}
+@media print{.toolbar{display:none!important}body{background:none}.doc{padding:16px}@page{margin:1.5cm}}</style></head><body>
+<div class="toolbar"><button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button><button class="btn-close" onclick="window.close()">Cerrar</button></div>
 <div class="doc">
 <table width="100%" style="margin-bottom:24px"><tr>
 <td>${logoHtml}<div style="font-size:18px;font-weight:700;margin-top:4px">${negocio.nombre_negocio||''}</div><div style="color:#666;font-size:12px">${negocio.direccion||''}</div><div style="color:#666;font-size:12px">${negocio.email||''} ${negocio.telefono?'· '+negocio.telefono:''}</div></td>
@@ -14214,10 +14664,10 @@ ${data.condiciones.forma_pago?`<td style="text-align:right;vertical-align:top"><
 ${data.notas?`<div style="margin-top:20px;padding:12px 14px;background:#fafafa;border:1px solid #eee;border-radius:6px"><div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Observaciones</div><div style="color:#444">${data.notas}</div></div>`:''}
 <div style="margin-top:32px;text-align:center;color:#aaa;font-size:11px">Cotización generada vía attempo · attempo.cl</div>
 </div>
-<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}<\/script></body></html>`;
-  const w = window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
+</body></html>`;
+  const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, '_blank');
 }
 
 // ── Subir PDF externo ────────────────────────────────────────
@@ -14260,7 +14710,7 @@ async function subirCotPDF() {
     prog.textContent = 'Guardando registro...';
     const body = {
       datos_destinatario: { nombre, email, telefono: tel },
-      items: [], condiciones: {}, incluye_iva: false, notas: '',
+      items: [], condiciones: {}, incluye_iva: (_factConfig?.tipo === 'venta'), notas: '',
       archivo_externo_url: uploadRes.publicUrl, estado: 'borrador'
     };
     const r = await fetch('/api/usuarios-admin?action=cot-guardar', { method:'POST', headers:_cotH(), body:JSON.stringify(body) });
@@ -14274,6 +14724,51 @@ async function subirCotPDF() {
   } catch(e) { toastErr(e.message || 'Error al subir'); }
   finally { btn.disabled = false; prog.style.display = 'none'; }
 }
+
+// ── Autocompletado de contactos en cotización ────────────────
+function _cotContactos() {
+  const seen = new Set();
+  const out  = [];
+  _cotData.forEach(c => {
+    const d = c.datos_destinatario;
+    if (d?.email && !seen.has(d.email.toLowerCase())) {
+      seen.add(d.email.toLowerCase());
+      out.push({ nombre: d.nombre || '', rut: d.rut || '', giro: d.giro || '', direccion: d.direccion || '', email: d.email, telefono: d.telefono || '' });
+    }
+  });
+  return out;
+}
+
+function _cotEmailInput(el) {
+  const q  = el.value.toLowerCase();
+  const all = _cotContactos();
+  const matches = q ? all.filter(c => c.email.toLowerCase().includes(q) || c.nombre.toLowerCase().includes(q)) : all;
+  const dd = document.getElementById('cot-email-dd');
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.slice(0, 8).map(c => `<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--b1)" onmousedown="event.preventDefault();_cotSelContact(this)" data-c='${JSON.stringify(c).replace(/'/g,"&#39;")}'>
+    <div style="font-weight:600;color:var(--t1)">${c.nombre}</div>
+    <div style="color:var(--t3);font-size:12px">${c.email}</div>
+  </div>`).join('');
+  dd.style.display = 'block';
+}
+
+function _cotSelContact(el) {
+  const c = JSON.parse(el.dataset.c);
+  document.getElementById('cot-f-nombre').value = c.nombre;
+  document.getElementById('cot-f-rut').value     = c.rut;
+  document.getElementById('cot-f-giro').value    = c.giro;
+  document.getElementById('cot-f-dir').value     = c.direccion;
+  document.getElementById('cot-f-email').value   = c.email;
+  document.getElementById('cot-f-tel').value     = c.telefono;
+  document.getElementById('cot-email-dd').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#cot-email-dd') && e.target.id !== 'cot-f-email') {
+    const dd = document.getElementById('cot-email-dd');
+    if (dd) dd.style.display = 'none';
+  }
+});
 
 // ── Logo del negocio ─────────────────────────────────────────
 async function openCotLogoModal() {
@@ -14366,16 +14861,27 @@ function _comprimirImagen(file, maxPx) {
 async function saveCotLogo() {
   if (!_cotLogoNuevo) { closeCotLogoModal(); return; }
   const btn = document.getElementById('cot-logo-btn');
-  btn.disabled = true; btn.textContent = 'Guardando...';
+  btn.disabled = true; btn.textContent = 'Subiendo...';
   try {
-    const dataUrl = await _comprimirImagen(_cotLogoNuevo, 400);
+    const dataUrl = await _comprimirImagen(_cotLogoNuevo, 600);
+    const commaIdx  = dataUrl.indexOf(',');
+    const mimeType  = dataUrl.slice(5, commaIdx).split(';')[0];
+    const fileBase64 = dataUrl.slice(commaIdx + 1);
+    // Subir a Supabase Storage y obtener URL pública
+    const upR = await fetch('/api/usuarios-admin?action=cot-logo-upload', {
+      method: 'POST', headers: _cotH(), body: JSON.stringify({ fileBase64, mimeType })
+    });
+    const upRes = await upR.json().catch(() => ({}));
+    if (!upR.ok) throw new Error(upRes.error || 'Error subiendo logo');
+    const publicUrl = upRes.publicUrl;
+    // Guardar URL pública en la BD
     const pR = await fetch('/api/usuarios-admin?action=cot-logo', {
-      method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url: dataUrl })
+      method: 'PATCH', headers: _cotH(), body: JSON.stringify({ logo_url: publicUrl })
     });
     const pRes = await pR.json().catch(() => ({}));
     if (!pR.ok) throw new Error(pRes.error || 'Error guardando logo');
     _cotLogoNuevo = null;
-    _mostrarLogoPreview(dataUrl);
+    _mostrarLogoPreview(publicUrl);
     closeCotLogoModal();
     toast('Logo guardado');
   } catch(e) { toastErr(e.message); }
