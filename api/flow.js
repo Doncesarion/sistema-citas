@@ -173,7 +173,7 @@ async function handleSubWebhook(commerceOrder, statusData, res) {
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
-  const monto = statusData.amount ? Math.round(Number(statusData.amount)) : (plan === 'anual' ? 239900 : 24990);
+  const monto = statusData.amount ? Math.round(Number(statusData.amount)) : (plan === 'anual' ? 285481 : 29738);
   const dias  = plan === 'anual' ? 365 : 30;
   const fecha_expiracion = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
 
@@ -217,7 +217,7 @@ async function handleSubPayment(req, res, clienteIdOverride = null) {
   if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
   if (!cliente.email) return res.status(400).json({ error: 'El cliente no tiene email registrado' });
 
-  const montoDefault = plan === 'anual' ? 239900 : 24990;
+  const montoDefault = plan === 'anual' ? 285481 : 29738;
   const montoReq = req.body.monto ? parseInt(req.body.monto) : null;
   const monto = (montoReq && montoReq > 0) ? montoReq : montoDefault;
   const planCode  = plan === 'anual' ? 'a' : 'm';
@@ -422,7 +422,51 @@ async function handleFlowWebhook(req, res) {
     return handleRecWebhook(commerceOrder, res, sh);
   }
 
+  // Pago de cotización (orden empieza con 'CT')
+  if (commerceOrder.startsWith('CT')) {
+    const uuidClean = commerceOrder.slice(2);
+    const cot_id = [uuidClean.slice(0,8), uuidClean.slice(8,12), uuidClean.slice(12,16), uuidClean.slice(16,20), uuidClean.slice(20)].join('-');
+    try {
+      const rCot = await fetch(`${SUPABASE_URL}/rest/v1/cotizaciones?id=eq.${encodeURIComponent(cot_id)}&limit=1`, { headers: sh });
+      const [cot] = await rCot.json();
+      if (!cot) { console.error('flow webhook CT: cotizacion no encontrada', cot_id); return res.status(200).send('ok'); }
+      if (cot.estado === 'pagada') return res.status(200).send('ok');
+      const respMerged = { ...(cot.respuesta || {}), metodo_pago: 'flow' };
+      await fetch(`${SUPABASE_URL}/rest/v1/cotizaciones?id=eq.${encodeURIComponent(cot_id)}`, {
+        method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ estado: 'pagada', respuesta: respMerged })
+      });
+      // Email al negocio
+      if (process.env.RESEND_API_KEY) {
+        const rCli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cot.cliente_id)}&select=nombre_negocio,email&limit=1`, { headers: sh });
+        const [cli] = await rCli.json();
+        if (cli?.email) {
+          const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0)*(parseFloat(it.cantidad)||1)*(1-(parseFloat(it.descuento)||0)/100), 0);
+          const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
+          const totalFmt = '$' + total.toLocaleString('es-CL');
+          const cliente = cot.datos_destinatario?.nombre || 'el cliente';
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'attempo <contacto@attempo.cl>',
+              to: [cli.email],
+              subject: `Cotización N° ${cot.numero} — pago recibido ✓`,
+              html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px"><img src="https://app.attempo.cl/attempo-logo.png" alt="attempo" style="height:32px;margin-bottom:24px"><h2 style="margin:0 0 8px;color:#1e1b3a">Pago recibido</h2><p style="color:#555;font-size:15px;margin:0 0 20px"><strong>${htmlEscape(cliente)}</strong> pagó la Cotización N° <strong>${cot.numero}</strong> por <strong style="color:#6C5CE4">${htmlEscape(totalFmt)}</strong> vía Flow.</p><p style="color:#888;font-size:13px">Ingresa a tu panel para ver los detalles.</p><a href="https://app.attempo.cl" style="display:inline-block;margin-top:16px;padding:11px 24px;background:#6C5CE4;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">Ver panel →</a><p style="margin-top:32px;color:#bbb;font-size:11px">attempo · contacto@attempo.cl</p></div>`
+            })
+          }).catch(e => console.error('flow webhook CT: email error:', e.message));
+        }
+      }
+    } catch(e) { console.error('flow webhook CT: error:', e.message); }
+    console.log('flow webhook CT: cotizacion pagada id=', cot_id);
+    return res.status(200).send('ok');
+  }
+
   const cita_id = commerceOrder;
+
+  const rCheck = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=estado_pago&limit=1`, { headers: sh });
+  const [citaCheck] = await rCheck.json().catch(() => []);
+  if (citaCheck?.estado_pago === 'pagado') return res.status(200).send('ok');
 
   await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, {
     method: 'PATCH',
@@ -498,7 +542,8 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
-  if (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY) {
+  // Claves de plataforma requeridas solo para suscripciones/recordatorios/webhooks (no para pagos de citas)
+  if (!req.body?.cita_id && (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY)) {
     return res.status(503).json({ error: 'Pagos con Flow no están configurados' });
   }
 
@@ -554,13 +599,23 @@ export default async function handler(req, res) {
   const precio = Math.round(Number(String(cita.precio).replace(/\./g, '').replace(',', '.')));
   if (!precio || precio <= 0) return res.status(400).json({ error: 'Precio inválido' });
 
-  // Obtener nombre negocio y especialista
-  let negocio_nombre = null, nombre_especialista = null;
+  // Obtener credenciales Flow del cliente y datos adicionales
+  let negocio_nombre = null, nombre_especialista = null, clientFlowApiKey = null, clientFlowSecretKey = null, clientFlowApiUrl = FLOW_API_URL, bookingSlug = null, precioFlow = precio;
   try {
-    const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio&limit=1`, { headers: sh });
+    const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,metodos_pago,booking_slug&limit=1`, { headers: sh });
     const [cli] = await rcli.json();
     negocio_nombre = cli?.nombre_negocio || null;
+    bookingSlug    = cli?.booking_slug   || null;
+    const mp = cli?.metodos_pago || {};
+    clientFlowApiKey    = mp.flow_api_key    || null;
+    clientFlowSecretKey = mp.flow_secret_key || null;
+    if (mp.flow_sandbox) clientFlowApiUrl = 'https://sandbox.flow.cl/api';
+    if (mp.aplica_iva) precioFlow = Math.round(precio * 1.19);
   } catch(e) { console.error('flow: clientes_sistema error:', e.message); }
+
+  if (!clientFlowApiKey || !clientFlowSecretKey) {
+    return res.status(400).json({ error: 'Este negocio no tiene Flow configurado. Agrega las credenciales en Configuración → Pagos.' });
+  }
 
   if (cita.especialista_id) {
     try {
@@ -570,22 +625,22 @@ export default async function handler(req, res) {
     } catch(e) { console.error('flow: especialista error:', e.message); }
   }
 
-  // Crear orden en Flow
+  // Crear orden en Flow usando credenciales del cliente
   const params = {
-    apiKey:          process.env.FLOW_API_KEY,
+    apiKey:          clientFlowApiKey,
     commerceOrder:   String(cita.id),
     subject:         `Cita ${cita.servicio || 'médica'}${negocio_nombre ? ' — ' + negocio_nombre : ''}`.slice(0, 255),
     currency:        'CLP',
-    amount:          String(precio),
+    amount:          String(precioFlow),
     email:           cita.email_paciente,
-    urlConfirmation: `${BASE_URL}/api/flow-confirm`,
-    urlReturn:       `${BASE_URL}/gestionar-cita?id=${cita.id}&token=${generateManageToken(cita.id)}&pago=ok`
+    urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cita.cliente_id}`,
+    urlReturn:       `${BASE_URL}/api/flow-return?tipo=cita${bookingSlug ? '&slug=' + encodeURIComponent(bookingSlug) : ''}`
   };
-  params.s = flowSign(params);
+  params.s = flowSign(params, clientFlowSecretKey);
 
   let flowResp, flowData;
   try {
-    flowResp = await fetch(`${FLOW_API_URL}/payment/create`, {
+    flowResp = await fetch(`${clientFlowApiUrl}/payment/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(params)
@@ -611,35 +666,53 @@ export default async function handler(req, res) {
   }).catch(e => console.error('flow: patch estado error:', e.message));
 
   // Enviar email de pago pendiente
-  if (enviar_email && process.env.RESEND_API_KEY) {
+  let email_ok = false;
+  let email_error = null;
+  if (enviar_email && process.env.RESEND_API_KEY && cita.email_paciente) {
     const fechaFmt = new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
-    fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'Attempo <contacto@attempo.cl>',
-        to: [cita.email_paciente],
-        subject: `Pago pendiente — tu cita en ${negocio_nombre || 'la clínica'}`,
-        headers: {
-          'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-        },
-        html: emailPendientePagoHtml({
-          nombre_paciente: cita.nombre_paciente,
-          nombre_especialista,
-          fechaFmt,
-          hora: cita.hora,
-          servicio: cita.servicio,
-          negocio_nombre,
-          precio: cita.precio,
-          payment_url,
-          cita_id: cita.id
+    try {
+      const emailResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [cita.email_paciente],
+          subject: `Pago pendiente — tu cita en ${negocio_nombre || 'la clínica'}`,
+          headers: {
+            'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+          },
+          html: emailPendientePagoHtml({
+            nombre_paciente: cita.nombre_paciente,
+            nombre_especialista,
+            fechaFmt,
+            hora: cita.hora,
+            servicio: cita.servicio,
+            negocio_nombre,
+            precio: cita.precio,
+            payment_url,
+            cita_id: cita.id
+          })
         })
-      })
-    }).catch(e => console.error('flow: email error:', e.message));
+      });
+      if (emailResp.ok) {
+        email_ok = true;
+      } else {
+        const errBody = await emailResp.text().catch(() => '');
+        email_error = `Resend ${emailResp.status}: ${errBody}`;
+        console.error('flow: email error:', email_error);
+      }
+    } catch(e) {
+      email_error = e.message;
+      console.error('flow: email error:', e.message);
+    }
+  } else if (enviar_email && !cita.email_paciente) {
+    email_error = 'La cita no tiene email del paciente';
+  } else if (enviar_email && !process.env.RESEND_API_KEY) {
+    email_error = 'RESEND_API_KEY no configurado';
   }
 
-  return res.json({ ok: true, payment_url });
+  return res.json({ ok: true, payment_url, email_ok, email_error });
 }

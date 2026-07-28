@@ -1,6 +1,13 @@
 import crypto from 'crypto';
 
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
+function flowSign(params, secret) {
+  const keys = Object.keys(params).sort();
+  const str = keys.map(k => k + params[k]).join('');
+  return crypto.createHmac('sha256', secret).update(str).digest('hex');
+}
 
 function verifySessionToken(token) {
   if (!token) return null;
@@ -21,6 +28,55 @@ function verifySessionToken(token) {
   const [cliente_id, rol, expires] = parts;
   if (Date.now() > parseInt(expires)) return null;
   return { cliente_id, rol };
+}
+
+function decryptToken(encrypted) {
+  if (!encrypted?.startsWith('enc:')) return encrypted;
+  const parts = encrypted.split(':');
+  if (parts.length !== 4) return encrypted;
+  const [, ivHex, tagHex, dataHex] = parts;
+  const key = Buffer.from(process.env.GOOGLE_TOKEN_KEY, 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+  return decipher.update(Buffer.from(dataHex, 'hex')) + decipher.final('utf8');
+}
+
+async function gcGetAccessToken(refresh_token) {
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      refresh_token,
+      client_id:     process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      grant_type:    'refresh_token'
+    })
+  });
+  const data = await r.json();
+  if (!r.ok) {
+    const err = new Error('Token refresh failed: ' + data.error);
+    err.invalid = data.error === 'invalid_grant';
+    throw err;
+  }
+  return data.access_token;
+}
+
+async function gcCancelarEvento({ supabaseUrl, sh, cliente_id, google_event_id, refresh_token }) {
+  try {
+    const access_token = await gcGetAccessToken(refresh_token);
+    await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${google_event_id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+  } catch(e) {
+    console.error('gcCancelarEvento error:', e.message);
+    if (e.invalid && supabaseUrl && sh && cliente_id) {
+      await fetch(`${supabaseUrl}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+        method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ google_refresh_token: null })
+      }).catch(() => {});
+    }
+  }
 }
 
 async function logAudit(KEY, action, actorRole, actorClienteId, targetClienteId, details = {}) {
@@ -235,23 +291,126 @@ export default async function handler(req, res) {
 
     // — PATCH estado de la cita —
     if (typeof body.estado !== 'undefined') {
-      const ESTADOS_VALIDOS = ['confirmada','reservada','pendiente','completada','cancelada','inasistencia'];
+      const ESTADO_MAP = { confirmada:'confirmed', reservada:'pending', pendiente:'pending', completada:'done', cancelada:'canceled', inasistencia:'no-show' };
       const nuevoEstado = String(body.estado).trim();
-      if (!ESTADOS_VALIDOS.includes(nuevoEstado)) return res.status(400).json({ error: 'Estado inválido' });
+      const estadoDB = ESTADO_MAP[nuevoEstado];
+      if (!estadoDB) return res.status(400).json({ error: 'Estado inválido' });
       try {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
           method: 'PATCH',
           headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-          body: JSON.stringify({ estado: nuevoEstado })
+          body: JSON.stringify({ estado: estadoDB })
         });
         if (!r.ok) {
           const err = await r.json().catch(() => ({}));
           console.error('slots PATCH estado error:', r.status, JSON.stringify(err));
-          return res.status(500).json({ error: 'Error al actualizar estado' });
+          return res.status(500).json({ error: `DB error ${r.status}: ${err?.message || err?.code || JSON.stringify(err).slice(0,120)}` });
+        }
+        // Email de confirmación al paciente cuando el admin confirma manualmente
+        if (estadoDB === 'confirmed' && process.env.RESEND_API_KEY) {
+          try {
+            const [rCita, rCli] = await Promise.all([
+              fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}&select=nombre_paciente,email_paciente,fecha,hora,servicio,precio,especialistas(nombre)&limit=1`, { headers: sh }),
+              fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,metodos_pago,datos_banco,booking_slug,servicios&limit=1`, { headers: sh })
+            ]);
+            const [cita] = await rCita.json().catch(() => []);
+            const [cli]  = await rCli.json().catch(() => []);
+            if (cita?.email_paciente) {
+              const fechaFmt = new Date(`${cita.fecha}T12:00:00`).toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+              const mp = cli?.metodos_pago || {};
+              const he = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+              // Generar link Flow si está configurado y hay precio
+              let flow_url = null;
+              // Si la cita no tiene precio, buscarlo en el catálogo de servicios del negocio
+              let precioFinal = cita.precio || 0;
+              if (!precioFinal && cita.servicio && Array.isArray(cli?.servicios)) {
+                const srv = cli.servicios.find(s => s.nombre === cita.servicio);
+                if (srv?.precio) precioFinal = srv.precio;
+              }
+              const precioNum = precioFinal ? Math.round(Number(String(precioFinal).replace(/\./g,'').replace(',','.'))) : 0;
+              const precioFlow = mp.aplica_iva ? Math.round(precioNum * 1.19) : precioNum;
+              if (mp.flow && mp.flow_api_key && mp.flow_secret_key && precioNum > 0) {
+                try {
+                  const flowApiUrl = mp.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
+                  const fp = {
+                    apiKey: mp.flow_api_key,
+                    commerceOrder: String(id),
+                    subject: `Cita ${cita.servicio || 'médica'}${cli?.nombre_negocio ? ' — ' + cli.nombre_negocio : ''}`.slice(0, 255),
+                    currency: 'CLP', amount: String(precioFlow),
+                    email: cita.email_paciente,
+                    urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cliente_id}`,
+                    urlReturn: `${BASE_URL}/api/flow-return?tipo=cita${cli?.booking_slug ? '&slug=' + encodeURIComponent(cli.booking_slug) : ''}`,
+                  };
+                  fp.s = flowSign(fp, mp.flow_secret_key);
+                  const fr = await fetch(`${flowApiUrl}/payment/create`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(fp), signal: AbortSignal.timeout(10000)
+                  });
+                  const fd = await fr.json();
+                  if (fd.url && fd.token) flow_url = `${fd.url}?token=${fd.token}`;
+                  else console.error('slots flow error:', JSON.stringify(fd));
+                } catch(fe) { console.error('slots flow exception:', fe.message); }
+              }
+
+              const activos = [];
+              if (mp.flow)          activos.push('Flow');
+              if (mp.webpay)        activos.push('Webpay / Transbank');
+              if (mp.transferencia) activos.push('Transferencia bancaria');
+              if (mp.efectivo)      activos.push('Efectivo en el local');
+              const pagoHtml = activos.length ? `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>` : '';
+              const flowBtn = flow_url ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr><td style="text-align:center;"><p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Paga online para confirmar tu reserva</p><a href="${he(flow_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Pagar ahora con Flow →</a><p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este link es de uso único y expira en 24 horas</p></td></tr></table>` : '';
+              const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);"><tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;"><img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p></td></tr><tr><td style="padding:28px 24px;text-align:center;"><h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">¡Cita confirmada! ✓</h2><p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(cita.nombre_paciente)}</strong>, tu hora está reservada.</p><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">${cita.especialistas?.nombre?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${he(cita.especialistas.nombre)}</span></td></tr>`:''}<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${he(fechaFmt)}</span></td></tr><tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hora</span><br><span style="color:#2d2d2d;font-size:15px;">${he((cita.hora||'').slice(0,5))}</span></td></tr>${cita.servicio?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Motivo</span><br><span style="color:#2d2d2d;font-size:15px;">${he(cita.servicio)}</span></td></tr>`:''}${pagoHtml}</table>${flowBtn}</td></tr><tr><td style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;"><p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a> — Todo a tu tiempo</p></td></tr></table></td></tr></table></body></html>`;
+              fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  from: 'Attempo <contacto@attempo.cl>',
+                  to: [cita.email_paciente],
+                  subject: `Tu cita en ${cli?.nombre_negocio || 'la clínica'} está confirmada ✓`,
+                  html
+                })
+              }).catch(e => console.error('slots confirmar email error:', e.message));
+            }
+          } catch(e) { console.error('slots confirmar fetch error:', e.message); }
         }
         return res.json({ ok: true });
       } catch(e) {
         console.error('slots PATCH estado exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — PATCH metodo_pago / precio / estado_pago —
+    if (typeof body.metodo_pago !== 'undefined' || typeof body.precio !== 'undefined' || typeof body.estado_pago !== 'undefined') {
+      const VALID_METODOS = ['efectivo', 'transferencia', 'tarjeta', 'flow', 'webpay', ''];
+      const patch = {};
+      if (typeof body.metodo_pago !== 'undefined') {
+        const m = String(body.metodo_pago || '');
+        if (!VALID_METODOS.includes(m)) return res.status(400).json({ error: 'Método de pago inválido' });
+        patch.metodo_pago = m || null;
+      }
+      if (typeof body.precio !== 'undefined') {
+        patch.precio = parseInt(body.precio) || null;
+      }
+      if (typeof body.estado_pago !== 'undefined') {
+        const VALID_EP = ['pagado', 'pendiente', ''];
+        const ep = String(body.estado_pago || '');
+        if (!VALID_EP.includes(ep)) return res.status(400).json({ error: 'Estado de pago inválido' });
+        patch.estado_pago = ep || null;
+      }
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify(patch)
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          return res.status(500).json({ error: `Error al guardar: ${err?.message || err?.code || r.status}` });
+        }
+        return res.json({ ok: true });
+      } catch(e) {
         return res.status(500).json({ error: 'Error interno' });
       }
     }
@@ -289,6 +448,13 @@ export default async function handler(req, res) {
     const { id } = req.query;
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID inválido' });
     try {
+      const [rCita, rCli] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}&select=google_event_id,nombre_paciente,email_paciente,fecha,hora,servicio&limit=1`, { headers: sh }),
+        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=google_refresh_token,nombre_negocio&limit=1`, { headers: sh })
+      ]);
+      const [cita] = await rCita.json().catch(() => []);
+      const [cli]  = await rCli.json().catch(() => []);
+
       const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
         method: 'PATCH',
         headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
@@ -299,6 +465,27 @@ export default async function handler(req, res) {
         console.error('slots DELETE error:', r.status, JSON.stringify(err));
         return res.status(500).json({ error: 'No se pudo cancelar la cita' });
       }
+
+      // Remove Google Calendar event if integration is active
+      if (cita?.google_event_id && cli?.google_refresh_token) {
+        const refreshToken = decryptToken(cli.google_refresh_token);
+        gcCancelarEvento({ supabaseUrl: SUPABASE_URL, sh, cliente_id, google_event_id: cita.google_event_id, refresh_token: refreshToken })
+          .catch(e => console.error('gcCancelarEvento fire-and-forget error:', e.message));
+      }
+
+      // Email de cancelación al paciente (fire-and-forget)
+      if (cita?.email_paciente && process.env.RESEND_API_KEY) {
+        const he = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        const fechaFmt = cita.fecha ? new Date(`${cita.fecha}T12:00:00`).toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : '';
+        const negocio = cli?.nombre_negocio || 'attempo';
+        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);"><tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;"><img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p></td></tr><tr><td style="padding:28px 24px;text-align:center;"><h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Tu cita fue cancelada</h2><p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(cita.nombre_paciente)}</strong>, te informamos que tu cita en <strong>${he(negocio)}</strong> ha sido cancelada.</p><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">${fechaFmt?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${he(fechaFmt)}</span></td></tr>`:''}<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hora</span><br><span style="color:#2d2d2d;font-size:15px;">${he((cita.hora||'').slice(0,5))}</span></td></tr>${cita.servicio?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Servicio</span><br><span style="color:#2d2d2d;font-size:15px;">${he(cita.servicio)}</span></td></tr>`:''}</table><p style="margin:20px 0 0;color:#9ca3af;font-size:13px;">Si tienes consultas, comunícate directamente con ${he(negocio)}.</p></td></tr><tr><td style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;"><p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a> — Todo a tu tiempo</p></td></tr></table></td></tr></table></body></html>`;
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: 'Attempo <contacto@attempo.cl>', to: [cita.email_paciente], subject: `Tu cita en ${negocio} fue cancelada`, html })
+        }).catch(e => console.error('slots DELETE email error:', e.message));
+      }
+
       return res.json({ ok: true });
     } catch(e) {
       console.error('slots DELETE exception:', e.message);

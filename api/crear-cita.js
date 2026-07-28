@@ -169,7 +169,7 @@ export default async function handler(req, res) {
               nombre_especialista = esp?.nombre || null;
             }
 
-            const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,direccion,email,metodos_pago,datos_banco,google_refresh_token&limit=1`, { headers: sh });
+            const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,direccion,email,metodos_pago,datos_banco,google_refresh_token,logo_url&limit=1`, { headers: sh });
             const [cliente] = await rcli.json();
 
             const fechaFmt = new Date(nueva_fecha + 'T12:00:00').toLocaleDateString('es-CL', {
@@ -198,7 +198,8 @@ export default async function handler(req, res) {
                   email_negocio:      cliente?.email || null,
                   metodos_pago:       cliente?.metodos_pago || null,
                   datos_banco:        cliente?.datos_banco  || null,
-                  cita_id:            id
+                  cita_id:            id,
+                  logo_negocio:       (cliente?.logo_url && !cliente.logo_url.startsWith('data:')) ? cliente.logo_url : null
                 })
               })
             }).catch(e => console.error('email reagendar error:', e.message));
@@ -243,7 +244,7 @@ export default async function handler(req, res) {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const especialista_id = UUID_RE.test(req.body?.especialista_id || '') ? req.body.especialista_id : null;
 
-  const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'completed', cancelada:'canceled', inasistencia:'no-show' };
+  const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'done', cancelada:'canceled', inasistencia:'no-show' };
   // INSERT siempre con 'pending' (constraint DB); se parchea a 'confirmed' después si aplica
   const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending';
   const confirmarDespues = !from_admin;
@@ -319,12 +320,25 @@ export default async function handler(req, res) {
         return res.status(isDup ? 409 : 500).json({ error: msg });
       }
       cita = data[0];
+
+      // Conflict check: si otro request creó el mismo slot en paralelo, rechazar el duplicado
+      if (especialista_id) {
+        const rConflict = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&especialista_id=eq.${especialista_id}&fecha=eq.${encodeURIComponent(fecha)}&hora=eq.${encodeURIComponent(hora)}&estado=neq.canceled&select=id&limit=2`,
+          { headers: sh }
+        );
+        const conflictos = await rConflict.json().catch(() => []);
+        if (Array.isArray(conflictos) && conflictos.length > 1) {
+          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, { method: 'DELETE', headers: sh }).catch(() => {});
+          return res.status(409).json({ error: 'Este horario ya fue reservado. Por favor elige otro.' });
+        }
+      }
     }
 
-    let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null;
+    let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null, logo_negocio = null;
     try {
       const rc = await fetch(
-        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token,google_calendar_id&limit=1`,
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token,google_calendar_id,logo_url&limit=1`,
         { headers: sh }
       );
       const rcBody = await rc.json();
@@ -336,6 +350,7 @@ export default async function handler(req, res) {
       datos_banco          = cli?.datos_banco          || null;
       google_refresh_token = cli?.google_refresh_token || null;
       google_calendar_id   = cli?.google_calendar_id   || null;
+      logo_negocio         = (cli?.logo_url && !cli.logo_url.startsWith('data:')) ? cli.logo_url : null;
     } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
 
     let gc_debug = { token: !!google_refresh_token, client_id: !!process.env.GOOGLE_CLIENT_ID };
@@ -355,9 +370,10 @@ export default async function handler(req, res) {
     const flowSecretKey = metodos_pago?.flow_secret_key;
     const flowSandbox   = metodos_pago?.flow_sandbox;
     const precioNum     = precio ? Math.round(Number(String(precio).replace(/\./g, '').replace(',', '.'))) : 0;
+    const precioFlow    = metodos_pago?.aplica_iva ? Math.round(precioNum * 1.19) : precioNum;
 
     let flow_error = null;
-    if (metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0 && !from_admin) {
+    if (metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0) {
       const flowApiUrl = flowSandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
       try {
         const fp = {
@@ -365,7 +381,7 @@ export default async function handler(req, res) {
           commerceOrder:   String(cita.id),
           subject:         `Cita ${servicio || 'médica'}${negocio_nombre ? ' — ' + negocio_nombre : ''}`.slice(0, 255),
           currency:        'CLP',
-          amount:          String(precioNum),
+          amount:          String(precioFlow),
           email:           email_paciente,
           urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cliente_id}`,
           urlReturn:       `${BASE_URL}/api/flow-return?tipo=cita${slug ? '&slug=' + encodeURIComponent(slug) : ''}`,
@@ -419,7 +435,7 @@ export default async function handler(req, res) {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
             },
-            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url })
+            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, logo_negocio })
           })
         });
         if (!emailRes.ok) {
@@ -602,7 +618,7 @@ function buildPagoHtml(metodos_pago, datos_banco) {
   return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
 }
 
-function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url }) {
+function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, logo_negocio }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
@@ -612,14 +628,16 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
   const precioStr = precio
     ? htmlEscape(typeof precio === 'number' ? '$' + precio.toLocaleString('es-CL') : precio)
     : '';
+  const logoHdr = logo_negocio
+    ? `<img src="${htmlEscape(logo_negocio)}" alt="${htmlEscape(negocio_nombre||'')}" height="48" style="display:block;margin:0 auto 6px;max-width:180px"><div style="font-size:15px;font-weight:700;color:#fff">${htmlEscape(negocio_nombre||'')}</div>`
+    : `<img src="${BASE_URL}/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
-  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
-  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+<tr><td style="background:#1E1B3A;padding:28px 32px;text-align:center;">
+  ${logoHdr}
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">¡Cita confirmada! 🎉</h2>
@@ -665,20 +683,22 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
 </body></html>`;
 }
 
-function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, metodos_pago, datos_banco, cita_id }) {
+function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, metodos_pago, datos_banco, cita_id, logo_negocio }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
   const dir = htmlEscape(direccion);
   const en  = htmlEscape(email_negocio);
+  const logoHdr = logo_negocio
+    ? `<img src="${htmlEscape(logo_negocio)}" alt="${htmlEscape(negocio_nombre||'')}" height="48" style="display:block;margin:0 auto 6px;max-width:180px"><div style="font-size:15px;font-weight:700;color:#fff">${htmlEscape(negocio_nombre||'')}</div>`
+    : `<img src="${BASE_URL}/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
-  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
-  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+<tr><td style="background:#1E1B3A;padding:28px 32px;text-align:center;">
+  ${logoHdr}
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
   <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Cita reagendada ✓</h2>

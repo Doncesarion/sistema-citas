@@ -38,7 +38,6 @@ export default async function handler(req, res) {
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
   const body = req.body || {};
-  console.log('meta-webhook object:', body.object);
 
   // ── Parsear mensaje según canal ───────────────────────────────────────────
   let canal, canal_user_id, canal_user_name, mensaje, channelKey, channelValue;
@@ -222,8 +221,7 @@ export default async function handler(req, res) {
     }).catch(e => console.error('meta-webhook: error guardando mensaje bot:', e.message));
   }
 
-  console.log('meta-webhook: respuesta generada:', !!respuesta, '| accessToken:', !!accessToken, '| canal:', canal);
-  if (!respuesta || !accessToken) { console.log('meta-webhook: abortando envío — respuesta:', !!respuesta, 'token:', !!accessToken); return res.status(200).end(); }
+  if (!respuesta || !accessToken) return res.status(200).end();
 
   // ── Enviar respuesta al canal ─────────────────────────────────────────────
   try {
