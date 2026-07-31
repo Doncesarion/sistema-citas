@@ -735,9 +735,10 @@ async function handleWebpayCreate(req, res) {
 }
 
 async function handleWebpayReturn(req, res) {
-  const cid      = req.query?.cid || null;
-  const token_ws = req.body?.token_ws   || null;
-  const TBK_TOKEN = req.body?.TBK_TOKEN || null;
+  const cid       = req.query?.cid || null;
+  const token_ws  = req.body?.token_ws  || req.query?.token_ws  || null;
+  const TBK_TOKEN = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN || null;
+  console.log('webpay_return: method=', req.method, 'token_ws=', token_ws ? 'present' : 'absent', 'TBK_TOKEN=', TBK_TOKEN ? 'present' : 'absent', 'cid=', cid ? 'present' : 'absent');
 
   const redir = (resultado) => {
     const dest = `${BASE_URL}/pago-exitoso.html?tipo=webpay&resultado=${resultado}`;
