@@ -773,22 +773,22 @@ async function handleWebpayReturn(req, res) {
   const baseUrl = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
   const wbHeaders = webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret);
 
+  // GET: obtener session_id (= cita_id) y estado previo
   let txData;
   try {
-    const statusResp = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
-      method: 'GET',
-      headers: wbHeaders
+    const getResp = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
+      method: 'GET', headers: wbHeaders
     });
-    txData = await statusResp.json();
-    console.log(`WP_TX http=${statusResp.status} rc=${txData.response_code} st=${txData.status} sid=${txData.session_id?'Y':'N'} err=${txData.error_message||'none'} keys=${Object.keys(txData).join(',')}`);
+    txData = await getResp.json();
+    console.log(`WP_GET st=${txData.status||'?'} sid=${txData.session_id?'Y':'N'} rc=${txData.response_code??'absent'}`);
   } catch(e) {
-    console.error('webpay_return: status error:', e.message);
+    console.error('webpay_return: GET error:', e.message);
     return redir('error');
   }
 
   const cita_id = txData.session_id;
   if (!cita_id) {
-    console.error('webpay_return: no session_id in txData:', JSON.stringify(txData));
+    console.error('webpay_return: no session_id:', JSON.stringify(txData));
     return redir('error');
   }
 
@@ -799,20 +799,23 @@ async function handleWebpayReturn(req, res) {
     if (citaCheck?.estado_pago === 'pagado') return redir('ok');
   } catch(e) { console.error('webpay_return: idempotency check error:', e.message); }
 
-  const rc = Number(txData.response_code);
-  console.log(`WP_TX http=${txData.status||'?'} rc=${rc} sid=${txData.session_id?'Y':'N'} err=${txData.error_message||'-'}`);
-  if (isNaN(rc) || rc !== 0) {
-    return redir('rechazado');
+  // PUT (commit): la respuesta del commit tiene el response_code definitivo
+  let commitData;
+  try {
+    const commitResp = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
+      method: 'PUT', headers: wbHeaders
+    });
+    commitData = await commitResp.json();
+    console.log(`WP_PUT rc=${commitData.response_code??'absent'} st=${commitData.status||'?'} auth=${commitData.authorization_code||'-'}`);
+  } catch(e) {
+    console.error('webpay_return: PUT error:', e.message);
+    return redir('error');
   }
 
-  // Commit transaction
-  try {
-    await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
-      method: 'PUT',
-      headers: wbHeaders
-    });
-  } catch(e) {
-    console.error('webpay_return: commit error:', e.message);
+  const rc = Number(commitData.response_code);
+  if (isNaN(rc) || rc !== 0) {
+    console.log('webpay_return: rechazado rc=', commitData.response_code);
+    return redir('rechazado');
   }
 
   // Update cita
