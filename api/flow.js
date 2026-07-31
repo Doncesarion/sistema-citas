@@ -739,7 +739,7 @@ async function handleWebpayReturn(req, res) {
   const cid       = req.query?.cid || null;
   const token_ws  = req.body?.token_ws  || req.query?.token_ws  || null;
   const TBK_TOKEN = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN || null;
-  console.log('webpay_return: method=', req.method, 'token_ws=', token_ws ? 'present' : 'absent', 'TBK_TOKEN=', TBK_TOKEN ? 'present' : 'absent', 'cid=', cid ? 'present' : 'absent');
+  console.log(`WP_RET m=${req.method} tk=${token_ws?'Y':'N'} tbk=${TBK_TOKEN?'Y':'N'} cid=${cid?'Y':'N'}`);
 
   const redir = (resultado) => {
     const dest = `${BASE_URL}/pago-exitoso.html?tipo=webpay&resultado=${resultado}`;
@@ -780,10 +780,7 @@ async function handleWebpayReturn(req, res) {
       headers: wbHeaders
     });
     txData = await statusResp.json();
-    console.log('webpay_return: HTTP=', statusResp.status);
-    console.log('webpay_return: response_code=', txData.response_code, 'status=', txData.status);
-    console.log('webpay_return: session_id=', txData.session_id ? 'present' : 'MISSING');
-    if (txData.error_message) console.log('webpay_return: error_message=', txData.error_message);
+    console.log(`WP_TX http=${statusResp.status} rc=${txData.response_code} st=${txData.status} sid=${txData.session_id?'Y':'N'} err=${txData.error_message||'none'} keys=${Object.keys(txData).join(',')}`);
   } catch(e) {
     console.error('webpay_return: status error:', e.message);
     return redir('error');
