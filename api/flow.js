@@ -780,7 +780,10 @@ async function handleWebpayReturn(req, res) {
       headers: wbHeaders
     });
     txData = await statusResp.json();
-    console.log('webpay_return: GET status HTTP=', statusResp.status, 'body=', JSON.stringify(txData));
+    console.log('webpay_return: HTTP=', statusResp.status);
+    console.log('webpay_return: response_code=', txData.response_code, 'status=', txData.status);
+    console.log('webpay_return: session_id=', txData.session_id ? 'present' : 'MISSING');
+    if (txData.error_message) console.log('webpay_return: error_message=', txData.error_message);
   } catch(e) {
     console.error('webpay_return: status error:', e.message);
     return redir('error');
