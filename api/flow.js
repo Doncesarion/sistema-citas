@@ -706,7 +706,8 @@ async function handleWebpayCreate(req, res) {
 
   const baseUrl = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
   const precio = Math.round(Number(String(cita.precio).replace(/\./g, '').replace(',', '.')));
-  const buy_order = cita_id.replace(/-/g, '').slice(0, 24);
+  const suffix    = String(Date.now() % 100000).padStart(5, '0');
+  const buy_order = cita_id.replace(/-/g, '').slice(0, 19) + suffix;
   const return_url = `${BASE_URL}/api/flow?tipo=webpay_return&cid=${encodeURIComponent(cita.cliente_id)}`;
 
   let initData;
