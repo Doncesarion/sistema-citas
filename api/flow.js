@@ -741,8 +741,10 @@ async function handleWebpayReturn(req, res) {
   const TBK_TOKEN = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN || null;
   console.log(`WP_RET m=${req.method} tk=${token_ws?'Y':'N'} tbk=${TBK_TOKEN?'Y':'N'} cid=${cid?'Y':'N'}`);
 
+  let clienteSlug = null;
   const redir = (resultado) => {
-    const dest = `${BASE_URL}/pago-exitoso.html?tipo=webpay&resultado=${resultado}`;
+    let dest = `${BASE_URL}/pago-exitoso.html?tipo=webpay&resultado=${resultado}`;
+    if (resultado === 'ok' && clienteSlug) dest += `&slug=${encodeURIComponent(clienteSlug)}`;
     res.setHeader('Content-Type', 'text/html;charset=utf-8');
     return res.status(200).send(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${dest}"></head><body></body></html>`);
   };
@@ -757,9 +759,10 @@ async function handleWebpayReturn(req, res) {
 
   let mp = {};
   try {
-    const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago&limit=1`, { headers: sh });
+    const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago,slug&limit=1`, { headers: sh });
     const [cli] = await rcli.json();
     mp = cli?.metodos_pago || {};
+    clienteSlug = cli?.slug || null;
   } catch(e) {
     console.error('webpay_return: error fetching creds:', e.message);
     return redir('error');

@@ -116,11 +116,12 @@
       const btn       = document.querySelector('.btn');
 
       if (resultado === 'ok') {
+        const slug = params.get('slug');
         h1.textContent   = '¡Pago confirmado!';
         p.textContent    = 'Tu cita está reservada. Recibirás un correo con los detalles.';
         pill.textContent = 'Cita confirmada con Webpay ✓';
-        btn.href         = 'https://app.attempo.cl';
-        btn.textContent  = 'Volver al inicio';
+        btn.href         = slug ? `https://app.attempo.cl/${slug}` : 'https://attempo.cl';
+        btn.textContent  = slug ? 'Volver al negocio' : 'Volver al inicio';
       } else {
         // Replace green check with red X
         iconWrap.style.background = '#fef2f2';
