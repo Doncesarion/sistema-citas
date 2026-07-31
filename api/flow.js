@@ -780,6 +780,7 @@ async function handleWebpayReturn(req, res) {
       headers: wbHeaders
     });
     txData = await statusResp.json();
+    console.log('webpay_return: GET status HTTP=', statusResp.status, 'body=', JSON.stringify(txData));
   } catch(e) {
     console.error('webpay_return: status error:', e.message);
     return redir('error');
