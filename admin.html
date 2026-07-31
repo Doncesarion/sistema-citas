@@ -4797,8 +4797,8 @@ async function loadFichaData(nombre) {
     const _flowRow   = document.getElementById('fp-flow-row');
     const _webpayRow = document.getElementById('fp-webpay-row');
     if (_boletaRow) _boletaRow.style.display = prox?.precio ? 'block' : 'none';
-    if (_flowRow)   _flowRow.style.display   = (prox?.precio && !_esPendFlow && !_esPendWebpay && prox?.estado_pago !== 'pagado') || _esPendFlow ? 'block' : 'none';
-    if (_webpayRow) _webpayRow.style.display = (prox?.precio && !_esPendFlow && !_esPendWebpay && prox?.estado_pago !== 'pagado') || _esPendWebpay ? 'block' : 'none';
+    if (_flowRow)   _flowRow.style.display   = (prox?.precio && prox?.estado_pago !== 'pagado') ? 'block' : 'none';
+    if (_webpayRow) _webpayRow.style.display = (prox?.precio && prox?.estado_pago !== 'pagado') ? 'block' : 'none';
     const _epEl = document.getElementById('fpi-estado-pago');
     const _mpEl = document.getElementById('fpi-metodo-pago');
     const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay' };
@@ -9187,9 +9187,9 @@ function openVentaDetalle(jsonStr) {
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
   const flowRow = document.getElementById('fp-flow-row');
-  if (flowRow) flowRow.style.display = (c.precio && !esPendienteFlow && !esPendienteWebpay && c.estado_pago !== 'pagado') || esPendienteFlow ? 'block' : 'none';
+  if (flowRow) flowRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   const webpayRow = document.getElementById('fp-webpay-row');
-  if (webpayRow) webpayRow.style.display = (c.precio && !esPendienteFlow && !esPendienteWebpay && c.estado_pago !== 'pagado') || esPendienteWebpay ? 'block' : 'none';
+  if (webpayRow) webpayRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   _fichaCurrentNombre = c.nombre_paciente || '';
   const hw = document.getElementById('ft-hist-wrap');
   if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
