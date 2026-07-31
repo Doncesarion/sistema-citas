@@ -799,8 +799,9 @@ async function handleWebpayReturn(req, res) {
     if (citaCheck?.estado_pago === 'pagado') return redir('ok');
   } catch(e) { console.error('webpay_return: idempotency check error:', e.message); }
 
-  if (txData.response_code !== 0) {
-    console.log('webpay_return: rejected, response_code:', txData.response_code);
+  const rc = Number(txData.response_code);
+  console.log(`WP_TX http=${txData.status||'?'} rc=${rc} sid=${txData.session_id?'Y':'N'} err=${txData.error_message||'-'}`);
+  if (isNaN(rc) || rc !== 0) {
     return redir('rechazado');
   }
 
