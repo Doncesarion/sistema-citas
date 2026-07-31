@@ -3332,7 +3332,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <div style="font-size:13px;font-weight:500;color:var(--t1)">Webpay / Transbank</div>
               <div style="font-size:12px;color:var(--t3)">Pago online con tarjeta de crédito o débito</div>
             </div>
-            <input type="checkbox" id="pago-webpay" style="accent-color:var(--a);width:16px;height:16px">
+            <input type="checkbox" id="pago-webpay" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleWebpayDatos()">
           </label>
           <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)" onclick="toggleBancoDatos()">
             <div>
@@ -3371,6 +3371,25 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <div>
                 <div style="font-size:12px;font-weight:500;color:var(--t2)">Modo sandbox (pruebas)</div>
                 <div style="font-size:11px;color:var(--t3)">Actívalo para probar sin cobros reales. Desactívalo en producción.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Credenciales Webpay (se muestra si Webpay activo) -->
+      <div id="webpay-datos" style="display:none">
+        <div class="card" style="padding:20px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Credenciales de Webpay</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Obtén tu <strong>Código de Comercio</strong> y <strong>Llave Secreta</strong> desde <strong>Transbank Developers → Ambiente de Producción</strong>. El dinero va directo a tu cuenta bancaria.</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Código de Comercio (Tbk-Api-Key-Id)</label><input id="webpay-commerce-code" type="text" placeholder="597055555532" class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Llave Secreta (Tbk-Api-Key-Secret)</label><div class="input-rel"><input id="webpay-api-key-secret" type="password" placeholder="••••••••••••••••••••••••••••••••" class="fi" style="width:100%"><button class="fi-eye" type="button" onclick="var i=document.getElementById('webpay-api-key-secret');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 0;border-top:1px solid var(--b1);margin-top:4px">
+              <input type="checkbox" id="webpay-sandbox" style="accent-color:var(--a);width:15px;height:15px">
+              <div>
+                <div style="font-size:12px;font-weight:500;color:var(--t2)">Modo sandbox (pruebas)</div>
+                <div style="font-size:11px;color:var(--t3)">Actívalo para probar con credenciales de integración. Desactívalo en producción.</div>
               </div>
             </label>
           </div>
@@ -3950,6 +3969,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <div id="fp-flow-row" style="display:none;margin-top:8px">
         <button class="btn-a" style="width:100%;background:var(--a)" onclick="enviarLinkFlowPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Flow</button>
+      </div>
+      <div id="fp-webpay-row" style="display:none;margin-top:8px">
+        <button class="btn-a" style="width:100%;background:#005BBB" onclick="enviarLinkWebpayPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Webpay</button>
       </div>
     </div>
 
@@ -4769,16 +4791,19 @@ async function loadFichaData(nombre) {
     if (srvProxEl) srvProxEl.textContent = prox?.servicio || '—';
     // Botones de pago y estado pago para la próxima cita
     _currentBoletaCita = prox || null;
-    const _esPendFlow = prox?.estado === 'pending_payment';
+    const _esPendFlow    = prox?.estado === 'pending_payment' && prox?.metodo_pago !== 'webpay';
+    const _esPendWebpay  = prox?.estado === 'pending_payment' && prox?.metodo_pago === 'webpay';
     const _boletaRow = document.getElementById('fp-boleta-row');
     const _flowRow   = document.getElementById('fp-flow-row');
+    const _webpayRow = document.getElementById('fp-webpay-row');
     if (_boletaRow) _boletaRow.style.display = prox?.precio ? 'block' : 'none';
-    if (_flowRow)   _flowRow.style.display   = (prox?.precio && !_esPendFlow && prox?.estado_pago !== 'pagado') || _esPendFlow ? 'block' : 'none';
+    if (_flowRow)   _flowRow.style.display   = (prox?.precio && !_esPendFlow && !_esPendWebpay && prox?.estado_pago !== 'pagado') || _esPendFlow ? 'block' : 'none';
+    if (_webpayRow) _webpayRow.style.display = (prox?.precio && !_esPendFlow && !_esPendWebpay && prox?.estado_pago !== 'pagado') || _esPendWebpay ? 'block' : 'none';
     const _epEl = document.getElementById('fpi-estado-pago');
     const _mpEl = document.getElementById('fpi-metodo-pago');
-    const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
-    if (_epEl) { _epEl.textContent = _esPendFlow ? 'Esperando pago Flow' : prox?.estado_pago === 'pagado' ? 'Pagado ✓' : '—'; _epEl.style.color = _esPendFlow ? 'var(--a)' : prox?.estado_pago === 'pagado' ? 'var(--green)' : 'var(--t3)'; }
-    if (_mpEl) _mpEl.textContent = _METODO[prox?.metodo_pago] || (_esPendFlow ? 'Flow' : '—');
+    const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay' };
+    if (_epEl) { _epEl.textContent = _esPendFlow ? 'Esperando pago Flow' : _esPendWebpay ? 'Esperando pago Webpay' : prox?.estado_pago === 'pagado' ? 'Pagado ✓' : '—'; _epEl.style.color = (_esPendFlow || _esPendWebpay) ? 'var(--a)' : prox?.estado_pago === 'pagado' ? 'var(--green)' : 'var(--t3)'; }
+    if (_mpEl) _mpEl.textContent = _METODO[prox?.metodo_pago] || (_esPendFlow ? 'Flow' : _esPendWebpay ? 'Webpay' : '—');
     const proximaEl = document.getElementById('fpi-proxima');
     if (proximaEl) {
       const proximaLblEl = document.getElementById('fpi-proxima-lbl');
@@ -5270,6 +5295,9 @@ async function cargarPagos() {
     if (el('flow-api-key'))    el('flow-api-key').value    = mp.flow_api_key    || '';
     if (el('flow-secret-key')) el('flow-secret-key').value = mp.flow_secret_key || '';
     if (el('flow-sandbox'))    el('flow-sandbox').checked  = !!mp.flow_sandbox;
+    if (el('webpay-commerce-code'))  el('webpay-commerce-code').value  = mp.webpay_commerce_code  || '';
+    if (el('webpay-api-key-secret')) el('webpay-api-key-secret').value = mp.webpay_api_key_secret || '';
+    if (el('webpay-sandbox'))        el('webpay-sandbox').checked      = !!mp.webpay_sandbox;
     if (el('banco-banco'))  el('banco-banco').value  = db.banco  || '';
     if (el('banco-tipo'))   el('banco-tipo').value   = db.tipo   || '';
     if (el('banco-cuenta')) el('banco-cuenta').value = db.cuenta || '';
@@ -5279,6 +5307,7 @@ async function cargarPagos() {
     if (el('banco-tel'))    el('banco-tel').value    = db.telefono  || '';
     toggleBancoDatos();
     toggleFlowDatos();
+    toggleWebpayDatos();
   } catch(e) { console.error('cargarPagos:', e); }
 }
 
@@ -5292,6 +5321,12 @@ function toggleFlowDatos() {
   const checked = document.getElementById('pago-flow')?.checked;
   const fd = document.getElementById('flow-datos');
   if (fd) fd.style.display = checked ? 'block' : 'none';
+}
+
+function toggleWebpayDatos() {
+  const checked = document.getElementById('pago-webpay')?.checked;
+  const wd = document.getElementById('webpay-datos');
+  if (wd) wd.style.display = checked ? 'block' : 'none';
 }
 
 async function guardarPagos(btn) {
@@ -5308,13 +5343,16 @@ async function guardarPagos(btn) {
   } catch(_) {}
   const metodos_pago = {
     ..._mpExist,
-    webpay:         el('pago-webpay')?.checked        || false,
-    transferencia:  el('pago-transferencia')?.checked || false,
-    efectivo:       el('pago-efectivo')?.checked      || false,
-    flow:           el('pago-flow')?.checked          || false,
-    flow_api_key:   el('flow-api-key')?.value.trim()  || '',
-    flow_secret_key:el('flow-secret-key')?.value.trim()|| '',
-    flow_sandbox:   el('flow-sandbox')?.checked       || false
+    webpay:                el('pago-webpay')?.checked        || false,
+    transferencia:         el('pago-transferencia')?.checked || false,
+    efectivo:              el('pago-efectivo')?.checked      || false,
+    flow:                  el('pago-flow')?.checked          || false,
+    flow_api_key:          el('flow-api-key')?.value.trim()  || '',
+    flow_secret_key:       el('flow-secret-key')?.value.trim()|| '',
+    flow_sandbox:          el('flow-sandbox')?.checked       || false,
+    webpay_commerce_code:  el('webpay-commerce-code')?.value.trim()  || '',
+    webpay_api_key_secret: el('webpay-api-key-secret')?.value.trim() || '',
+    webpay_sandbox:        el('webpay-sandbox')?.checked              || false
   };
   const datos_banco = {
     banco:  el('banco-banco')?.value.trim()  || '',
@@ -8823,12 +8861,15 @@ function renderVentasTable() {
     const metodo = c.metodo_pago && METODO_TAG[c.metodo_pago]
       ? `<span style="cursor:pointer" title="Cambiar método" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','${c.metodo_pago}')">${METODO_TAG[c.metodo_pago]}</span>`
       : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','')">+ Asignar</button>`;
-    const esPendienteFlow = c.estado === 'pending_payment';
+    const esPendienteFlow   = c.estado === 'pending_payment' && c.metodo_pago !== 'webpay';
+    const esPendienteWebpay = c.estado === 'pending_payment' && c.metodo_pago === 'webpay';
     const estado = esPendienteFlow
-      ? `<span class="tag" style="background:#f5f3ff;color:var(--a);border:1px solid rgba(108,92,228,.3);cursor:pointer" title="Reenviar link de pago" onclick="event.stopPropagation();enviarLinkFlowPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')" >Pago Flow</span>`
-      : c.estado_pago === 'pagado'
-        ? '<span class="tag tg">Pagado</span>'
-        : '<span class="tag ta">Pendiente</span>';
+      ? `<span class="tag" style="background:#f5f3ff;color:var(--a);border:1px solid rgba(108,92,228,.3);cursor:pointer" title="Reenviar link de pago" onclick="event.stopPropagation();enviarLinkFlowPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')">Pago Flow</span>`
+      : esPendienteWebpay
+        ? `<span class="tag" style="background:#eff6ff;color:#005BBB;border:1px solid rgba(0,91,187,.3);cursor:pointer" title="Reenviar link de pago Webpay" onclick="event.stopPropagation();enviarLinkWebpayPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')">Pago Webpay</span>`
+        : c.estado_pago === 'pagado'
+          ? '<span class="tag tg">Pagado</span>'
+          : '<span class="tag ta">Pendiente</span>';
     const montoVal = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
     const monto = `<span style="cursor:pointer" title="Editar monto" onclick="event.stopPropagation();openEditarMonto('${c.id}',${c.precio||0})">${montoVal} <span style="font-size:10px;opacity:.4">✎</span></span>`;
     const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado:c.estado,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente}));
@@ -9132,20 +9173,23 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
   document.getElementById('fpi-rut').textContent   = '—';
-  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
-  const esPendienteFlow = c.estado === 'pending_payment';
+  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay' };
+  const esPendienteFlow   = c.estado === 'pending_payment' && c.metodo_pago !== 'webpay';
+  const esPendienteWebpay = c.estado === 'pending_payment' && c.metodo_pago === 'webpay';
   const epEl = document.getElementById('fpi-estado-pago');
   if (epEl) {
-    epEl.textContent  = esPendienteFlow ? 'Esperando pago Flow' : c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente';
-    epEl.style.color  = esPendienteFlow ? 'var(--a)' : c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
+    epEl.textContent  = esPendienteFlow ? 'Esperando pago Flow' : esPendienteWebpay ? 'Esperando pago Webpay' : c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente';
+    epEl.style.color  = (esPendienteFlow || esPendienteWebpay) ? 'var(--a)' : c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
   }
   const mpEl = document.getElementById('fpi-metodo-pago');
-  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || (esPendienteFlow ? 'Flow' : '—');
+  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || (esPendienteFlow ? 'Flow' : esPendienteWebpay ? 'Webpay' : '—');
   // Guardar cita para boleta y mostrar botones
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
   const flowRow = document.getElementById('fp-flow-row');
-  if (flowRow) flowRow.style.display = c.precio && !esPendienteFlow && c.estado_pago !== 'pagado' ? 'block' : esPendienteFlow ? 'block' : 'none';
+  if (flowRow) flowRow.style.display = (c.precio && !esPendienteFlow && !esPendienteWebpay && c.estado_pago !== 'pagado') || esPendienteFlow ? 'block' : 'none';
+  const webpayRow = document.getElementById('fp-webpay-row');
+  if (webpayRow) webpayRow.style.display = (c.precio && !esPendienteFlow && !esPendienteWebpay && c.estado_pago !== 'pagado') || esPendienteWebpay ? 'block' : 'none';
   _fichaCurrentNombre = c.nombre_paciente || '';
   const hw = document.getElementById('ft-hist-wrap');
   if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
@@ -9181,6 +9225,29 @@ async function enviarLinkFlowPago(cita_id, nombre) {
     cargarVentas();
   } catch(e) {
     toast('Error de conexión con Flow');
+  }
+}
+
+/* ════ WEBPAY PAGO ════ */
+async function enviarLinkWebpayPago(cita_id, nombre) {
+  if (!cita_id) return;
+  if (!confirm('¿Enviar link de pago Webpay a ' + (nombre || 'el paciente') + '?\n\nEl paciente recibirá un email con el botón de pago Webpay.')) return;
+  try {
+    const r = await fetch('/api/flow', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cita_id, tipo: 'webpay_init', enviar_email: true })
+    });
+    const d = await r.json();
+    if (!r.ok) { toast('Error: ' + (d.error || 'No se pudo crear el pago')); return; }
+    if (d.email_error) {
+      toast('Link creado, pero el email falló: ' + d.email_error);
+    } else {
+      toast('Link de pago Webpay enviado al paciente ✓');
+    }
+    cargarVentas();
+  } catch(e) {
+    toast('Error de conexión');
   }
 }
 

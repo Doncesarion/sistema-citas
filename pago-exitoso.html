@@ -107,7 +107,65 @@
     const tipo = params.get('tipo');
     const plan = params.get('plan');
 
-    if (tipo === 'cita') {
+    if (tipo === 'webpay') {
+      const resultado = params.get('resultado') || 'error';
+      const iconWrap  = document.querySelector('.check-circle');
+      const h1        = document.querySelector('h1');
+      const p         = document.querySelector('p');
+      const pill      = document.getElementById('plan-pill');
+      const btn       = document.querySelector('.btn');
+
+      if (resultado === 'ok') {
+        h1.textContent   = '¡Pago confirmado!';
+        p.textContent    = 'Tu cita está reservada. Recibirás un correo con los detalles.';
+        pill.textContent = 'Cita confirmada con Webpay ✓';
+        btn.href         = 'https://app.attempo.cl';
+        btn.textContent  = 'Volver al inicio';
+      } else {
+        // Replace green check with red X
+        iconWrap.style.background = '#fef2f2';
+        iconWrap.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+        if (resultado === 'cancelado') {
+          h1.textContent   = 'Pago cancelado';
+          p.textContent    = 'Cancelaste el pago en Webpay. Tu cita NO fue reservada.';
+          pill.textContent = 'Pago cancelado';
+          pill.style.background = '#fef2f2';
+          pill.style.color      = '#ef4444';
+        } else if (resultado === 'rechazado') {
+          h1.textContent   = 'Pago rechazado';
+          p.textContent    = 'Tu tarjeta fue rechazada. Intenta con otra tarjeta o método de pago.';
+          pill.textContent = 'Tarjeta rechazada';
+          pill.style.background = '#fef2f2';
+          pill.style.color      = '#ef4444';
+        } else if (resultado === 'timeout') {
+          h1.textContent   = 'Se agotó el tiempo para pagar';
+          p.textContent    = 'La sesión de pago expiró. Por favor genera un nuevo enlace de pago.';
+          pill.textContent = 'Tiempo agotado';
+          pill.style.background = '#fff7ed';
+          pill.style.color      = '#f59e0b';
+        } else {
+          h1.textContent   = 'Error en el pago';
+          p.textContent    = 'Ocurrió un error al procesar el pago. Por favor intenta nuevamente.';
+          pill.textContent = 'Error de pago';
+          pill.style.background = '#fef2f2';
+          pill.style.color      = '#ef4444';
+        }
+
+        btn.href        = document.referrer || 'https://app.attempo.cl';
+        btn.textContent = 'Volver';
+        btn.style.background = '#6b7280';
+
+        // Add secondary "Volver a intentar" button using history.back
+        const retryBtn = document.createElement('a');
+        retryBtn.href    = 'javascript:history.back()';
+        retryBtn.className = 'btn';
+        retryBtn.textContent = 'Volver a intentar';
+        retryBtn.style.cssText = 'display:inline-block;margin-top:12px;background:#005BBB;';
+        btn.parentNode.insertBefore(retryBtn, btn.nextSibling);
+      }
+
+    } else if (tipo === 'cita') {
       document.querySelector('h1').textContent = '¡Pago recibido!';
       document.querySelector('p').textContent = 'Tu cita está confirmada. Recibirás un correo con los detalles de tu reserva.';
       document.getElementById('plan-pill').textContent = 'Cita confirmada ✓';

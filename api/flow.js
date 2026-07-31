@@ -1,8 +1,10 @@
 import crypto from 'crypto';
 
-const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
-const FLOW_API_URL = (process.env.FLOW_API_URL || 'https://www.flow.cl/api').trim().replace(/\/$/, '');
-const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+const SUPABASE_URL    = 'https://xztqawulvrtjvtfixofy.supabase.co';
+const FLOW_API_URL    = (process.env.FLOW_API_URL || 'https://www.flow.cl/api').trim().replace(/\/$/, '');
+const BASE_URL        = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+const WEBPAY_INT_URL  = 'https://webpay3gint.transbank.cl/rswebpaytransaction/api/webpay/v1.2';
+const WEBPAY_PROD_URL = 'https://webpay3g.transbank.cl/rswebpaytransaction/api/webpay/v1.2';
 
 function verifySessionToken(token) {
   if (!token) return null;
@@ -55,6 +57,10 @@ function generateManageToken(cita_id) {
   return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
 }
 
+function webpayHeaders(code, secret) {
+  return { 'Tbk-Api-Key-Id': code, 'Tbk-Api-Key-Secret': secret, 'Content-Type': 'application/json' };
+}
+
 function htmlEscape(str) {
   if (!str && str !== 0) return '';
   return String(str)
@@ -96,6 +102,51 @@ function emailPendientePagoHtml({ nombre_paciente, nombre_especialista, fechaFmt
   </a>
   <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
     Este enlace es válido por 72 horas. Si no puedes pagar, <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}&token=${generateManageToken(cita_id)}" style="color:#6C5CE4;text-decoration:none;">cancela tu cita aquí</a>.
+  </p>
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
+  <p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">Attempo</a> — Todo a tu tiempo</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+function emailWebpayPendienteHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, precio, payment_url, cita_id }) {
+  const np  = htmlEscape(nombre_paciente);
+  const ne  = htmlEscape(nombre_especialista || 'Profesional');
+  const sv  = htmlEscape(servicio || 'Consulta');
+  const nn  = htmlEscape(negocio_nombre || 'la clínica');
+  const precioStr = precio
+    ? '$' + Number(precio).toLocaleString('es-CL')
+    : '';
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
+  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+</td></tr>
+<tr><td style="padding:32px;text-align:center;">
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Completa el pago de tu cita</h2>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, tu hora está reservada. Solo falta el pago para confirmarla.</p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;margin-bottom:24px;">
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Centro</span><br><span style="color:#2d2d2d;font-size:15px;">${nn}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${ne}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${htmlEscape(fechaFmt)}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hora</span><br><span style="color:#2d2d2d;font-size:15px;">${htmlEscape(hora)}</span></td></tr>
+    <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Motivo</span><br><span style="color:#2d2d2d;font-size:15px;">${sv}</span></td></tr>
+    ${precioStr ? `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total a pagar</span><br><span style="color:#6C5CE4;font-size:22px;font-weight:700;">${htmlEscape(precioStr)}</span></td></tr>` : ''}
+  </table>
+  <a href="${htmlEscape(payment_url)}" target="_blank"
+     style="display:inline-block;padding:14px 36px;background:#005BBB;color:#fff;text-decoration:none;border-radius:10px;font-size:16px;font-weight:700;letter-spacing:0.3px;">
+    Pagar con Webpay
+  </a>
+  <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
+    Si no puedes pagar, <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}&token=${generateManageToken(cita_id)}" style="color:#6C5CE4;text-decoration:none;">cancela tu cita aquí</a>.
   </p>
 </td></tr>
 <tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
@@ -526,6 +577,299 @@ async function handleFlowWebhook(req, res) {
   return res.status(200).send('ok');
 }
 
+async function handleWebpayInit(req, res, session) {
+  const { cita_id } = req.body || {};
+  if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=*&limit=1`, { headers: sh });
+  const [cita] = await cr.json();
+  if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
+
+  if (session.rol !== 'superadmin' && cita.cliente_id !== session.cliente_id) {
+    return res.status(403).json({ error: 'Sin permiso para esta cita' });
+  }
+
+  if (!cita.email_paciente) return res.status(400).json({ error: 'La cita no tiene email del paciente' });
+  if (!cita.precio) return res.status(400).json({ error: 'La cita no tiene precio asignado' });
+
+  const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,metodos_pago&limit=1`, { headers: sh });
+  const [cli] = await rcli.json();
+  const mp = cli?.metodos_pago || {};
+
+  if (!mp.webpay_commerce_code || !mp.webpay_api_key_secret) {
+    return res.status(400).json({ error: 'Este negocio no tiene Webpay configurado. Agrega las credenciales en Configuración → Pagos.' });
+  }
+
+  let nombre_especialista = null;
+  if (cita.especialista_id) {
+    try {
+      const re = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${cita.especialista_id}&select=nombre&limit=1`, { headers: sh });
+      const [esp] = await re.json();
+      nombre_especialista = esp?.nombre || null;
+    } catch(e) { console.error('webpay_init: especialista error:', e.message); }
+  }
+
+  // Update cita to pending_payment with metodo_pago=webpay
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, {
+    method: 'PATCH',
+    headers: { ...sh, Prefer: 'return=minimal' },
+    body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'webpay' })
+  }).catch(e => console.error('webpay_init: patch error:', e.message));
+
+  const pago_url = `${BASE_URL}/webpay-pagar.html?cita=${encodeURIComponent(cita_id)}&t=${generateManageToken(cita_id)}`;
+
+  let email_ok = false;
+  let email_error = null;
+  if (process.env.RESEND_API_KEY && cita.email_paciente) {
+    const fechaFmt = new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+    try {
+      const emailResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [cita.email_paciente],
+          subject: `Pago pendiente — tu cita en ${cli?.nombre_negocio || 'la clínica'}`,
+          headers: {
+            'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+          },
+          html: emailWebpayPendienteHtml({
+            nombre_paciente:    cita.nombre_paciente,
+            nombre_especialista,
+            fechaFmt,
+            hora:               cita.hora,
+            servicio:           cita.servicio,
+            negocio_nombre:     cli?.nombre_negocio || null,
+            precio:             cita.precio,
+            payment_url:        pago_url,
+            cita_id:            cita.id
+          })
+        })
+      });
+      if (emailResp.ok) {
+        email_ok = true;
+      } else {
+        const errBody = await emailResp.text().catch(() => '');
+        email_error = `Resend ${emailResp.status}: ${errBody}`;
+        console.error('webpay_init: email error:', email_error);
+      }
+    } catch(e) {
+      email_error = e.message;
+      console.error('webpay_init: email error:', e.message);
+    }
+  }
+
+  return res.json({ ok: true, pago_url, email_ok, email_error });
+}
+
+async function handleWebpayCreate(req, res) {
+  const { cita_id, t } = req.body || {};
+  if (!cita_id || !t) {
+    res.setHeader('Content-Type', 'text/html;charset=utf-8');
+    return res.status(400).send('<!DOCTYPE html><html><body><p>Parámetros inválidos.</p></body></html>');
+  }
+
+  if (t !== generateManageToken(cita_id)) {
+    res.setHeader('Content-Type', 'text/html;charset=utf-8');
+    return res.status(403).send('<!DOCTYPE html><html><body><p>Token inválido.</p></body></html>');
+  }
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=*&limit=1`, { headers: sh });
+  const [cita] = await cr.json();
+  if (!cita) {
+    res.setHeader('Content-Type', 'text/html;charset=utf-8');
+    return res.status(404).send('<!DOCTYPE html><html><body><p>Cita no encontrada.</p></body></html>');
+  }
+
+  if (cita.estado_pago === 'pagado') {
+    res.setHeader('Content-Type', 'text/html;charset=utf-8');
+    return res.status(400).send('<!DOCTYPE html><html><body><p>Esta cita ya fue pagada.</p></body></html>');
+  }
+
+  const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=metodos_pago&limit=1`, { headers: sh });
+  const [cli] = await rcli.json();
+  const mp = cli?.metodos_pago || {};
+
+  if (!mp.webpay_commerce_code || !mp.webpay_api_key_secret) {
+    res.setHeader('Content-Type', 'text/html;charset=utf-8');
+    return res.status(400).send('<!DOCTYPE html><html><body><p>Webpay no configurado para este negocio.</p></body></html>');
+  }
+
+  const baseUrl = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
+  const precio = Math.round(Number(String(cita.precio).replace(/\./g, '').replace(',', '.')));
+  const buy_order = cita_id.replace(/-/g, '').slice(0, 24);
+  const return_url = `${BASE_URL}/api/flow?tipo=webpay_return&cid=${encodeURIComponent(cita.cliente_id)}`;
+
+  let initData;
+  try {
+    const initResp = await fetch(`${baseUrl}/transactions`, {
+      method: 'POST',
+      headers: webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret),
+      body: JSON.stringify({ buy_order, session_id: cita_id, amount: precio, return_url })
+    });
+    initData = await initResp.json();
+    if (!initResp.ok || !initData.token || !initData.url) {
+      console.error('webpay_create: init error:', JSON.stringify(initData));
+      res.setHeader('Content-Type', 'text/html;charset=utf-8');
+      return res.status(502).send(`<!DOCTYPE html><html><body><p>Error al iniciar pago Webpay: ${htmlEscape(JSON.stringify(initData))}</p></body></html>`);
+    }
+  } catch(e) {
+    console.error('webpay_create: fetch error:', e.message);
+    res.setHeader('Content-Type', 'text/html;charset=utf-8');
+    return res.status(502).send('<!DOCTYPE html><html><body><p>No se pudo conectar con Webpay. Intenta nuevamente.</p></body></html>');
+  }
+
+  const url = htmlEscape(initData.url);
+  const tkn = htmlEscape(initData.token);
+  res.setHeader('Content-Type', 'text/html;charset=utf-8');
+  return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Redirigiendo a Webpay...</title></head><body><form id="f" method="POST" action="${url}"><input type="hidden" name="token_ws" value="${tkn}"></form><script>document.getElementById('f').submit();</script></body></html>`);
+}
+
+async function handleWebpayReturn(req, res) {
+  const cid      = req.query?.cid || null;
+  const token_ws = req.body?.token_ws   || null;
+  const TBK_TOKEN = req.body?.TBK_TOKEN || null;
+
+  const redir = (resultado) => {
+    const dest = `${BASE_URL}/pago-exitoso.html?tipo=webpay&resultado=${resultado}`;
+    res.setHeader('Content-Type', 'text/html;charset=utf-8');
+    return res.status(200).send(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${dest}"></head><body></body></html>`);
+  };
+
+  if (TBK_TOKEN && !token_ws) return redir('cancelado');
+  if (TBK_TOKEN && token_ws)  return redir('timeout');
+  if (!token_ws)               return redir('error');
+  if (!cid)                    return redir('error');
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  let mp = {};
+  try {
+    const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago&limit=1`, { headers: sh });
+    const [cli] = await rcli.json();
+    mp = cli?.metodos_pago || {};
+  } catch(e) {
+    console.error('webpay_return: error fetching creds:', e.message);
+    return redir('error');
+  }
+
+  if (!mp.webpay_commerce_code || !mp.webpay_api_key_secret) {
+    console.error('webpay_return: missing credentials for cid:', cid);
+    return redir('error');
+  }
+
+  const baseUrl = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
+  const wbHeaders = webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret);
+
+  let txData;
+  try {
+    const statusResp = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
+      method: 'GET',
+      headers: wbHeaders
+    });
+    txData = await statusResp.json();
+  } catch(e) {
+    console.error('webpay_return: status error:', e.message);
+    return redir('error');
+  }
+
+  const cita_id = txData.session_id;
+  if (!cita_id) {
+    console.error('webpay_return: no session_id in txData:', JSON.stringify(txData));
+    return redir('error');
+  }
+
+  // Idempotency check
+  try {
+    const rCheck = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=estado_pago&limit=1`, { headers: sh });
+    const [citaCheck] = await rCheck.json();
+    if (citaCheck?.estado_pago === 'pagado') return redir('ok');
+  } catch(e) { console.error('webpay_return: idempotency check error:', e.message); }
+
+  if (txData.response_code !== 0) {
+    console.log('webpay_return: rejected, response_code:', txData.response_code);
+    return redir('rechazado');
+  }
+
+  // Commit transaction
+  try {
+    await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
+      method: 'PUT',
+      headers: wbHeaders
+    });
+  } catch(e) {
+    console.error('webpay_return: commit error:', e.message);
+  }
+
+  // Update cita
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, {
+    method: 'PATCH',
+    headers: { ...sh, Prefer: 'return=minimal' },
+    body: JSON.stringify({ estado: 'confirmed', estado_pago: 'pagado', metodo_pago: 'webpay' })
+  }).catch(e => console.error('webpay_return: patch cita error:', e.message));
+
+  // Fire-and-forget: send confirmation email
+  (async () => {
+    try {
+      const cr2 = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=*&limit=1`, { headers: sh });
+      const [cita] = await cr2.json();
+      if (!cita?.email_paciente || !process.env.RESEND_API_KEY) return;
+
+      let nombre_especialista = null;
+      if (cita.especialista_id) {
+        const re = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${cita.especialista_id}&select=nombre&limit=1`, { headers: sh });
+        const [esp] = await re.json();
+        nombre_especialista = esp?.nombre || null;
+      }
+
+      const rcli2 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,direccion,email&limit=1`, { headers: sh });
+      const [cliente] = await rcli2.json();
+
+      const fechaFmt = new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [cita.email_paciente],
+          subject: `Pago confirmado — tu cita en ${cliente?.nombre_negocio || 'la clínica'} está reservada ✓`,
+          headers: {
+            'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+          },
+          html: emailConfirmadoHtml({
+            nombre_paciente:    cita.nombre_paciente,
+            nombre_especialista,
+            fechaFmt,
+            hora:               cita.hora,
+            servicio:           cita.servicio,
+            negocio_nombre:     cliente?.nombre_negocio || null,
+            precio:             cita.precio,
+            direccion:          cliente?.direccion || null,
+            email_negocio:      cliente?.email || null,
+            cita_id:            cita.id
+          })
+        })
+      }).catch(e => console.error('webpay_return: email error:', e.message));
+    } catch(e) { console.error('webpay_return: post-payment email error:', e.message); }
+  })();
+
+  return redir('ok');
+}
+
 export default async function handler(req, res) {
   // Flow redirige el browser aquí después del pago (puede ser iframe o navegación directa)
   if (req.query?.ret === '1') {
@@ -540,7 +884,11 @@ export default async function handler(req, res) {
     return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=${dest}"><script>try{window.top.location.replace(${JSON.stringify(dest)})}catch(e){window.location.replace(${JSON.stringify(dest)})}</script></head><body></body></html>`);
   }
 
+  if (req.query?.tipo === 'webpay_return') return handleWebpayReturn(req, res);
+
   if (req.method !== 'POST') return res.status(405).end();
+
+  if (req.query?.tipo === 'webpay_create') return handleWebpayCreate(req, res);
 
   // Claves de plataforma requeridas solo para suscripciones/recordatorios/webhooks (no para pagos de citas)
   if (!req.body?.cita_id && (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY)) {
@@ -576,6 +924,8 @@ export default async function handler(req, res) {
 
   const session = verifySessionToken(req.headers['x-session-token']);
   if (!session) return res.status(401).json({ error: 'No autorizado' });
+
+  if (req.body?.tipo === 'webpay_init') return handleWebpayInit(req, res, session);
 
   const { cita_id, enviar_email = true } = req.body || {};
   if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });
