@@ -4518,7 +4518,14 @@ async function saveReservation() {
     const r = await fetch('/api/crear-cita', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, estado_admin: currentEstado, enviar_email: document.getElementById('email-check')?.checked !== false, metodo_pago_admin: document.getElementById('pay-ef')?.classList.contains('on') ? 'efectivo' : document.getElementById('pay-td')?.classList.contains('on') ? 'tarjeta' : _payProvider === 'webpay' ? 'link_webpay' : 'link_flow' })
+      body: JSON.stringify((() => {
+        const mp = document.getElementById('pay-ef')?.classList.contains('on') ? 'efectivo'
+          : document.getElementById('pay-td')?.classList.contains('on') ? 'tarjeta'
+          : _payProvider === 'webpay' ? 'link_webpay' : 'link_flow';
+        // link_webpay: no enviar email de confirmación desde crear-cita (webpay_init envía el suyo propio con el botón de pago)
+        const envEmail = mp === 'link_webpay' ? false : document.getElementById('email-check')?.checked !== false;
+        return { cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, estado_admin: currentEstado, enviar_email: envEmail, metodo_pago_admin: mp };
+      })())
     });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || 'Error al crear la cita');
