@@ -8553,8 +8553,9 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     const _u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
     if ((_u.plan || '') === 'demo' && _u.fecha_expiracion) {
-      const _exp = new Date(_u.fecha_expiracion + 'T23:59:59');
-      const _dias = Math.ceil((_exp - Date.now()) / 86400000);
+      const _hoy  = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00');
+      const _exp  = new Date(_u.fecha_expiracion + 'T00:00:00');
+      const _dias = Math.round((_exp - _hoy) / 86400000);
       if (_dias > 0) {
         const bannerEl = document.getElementById('trial-banner');
         const textEl   = document.getElementById('trial-banner-text');
@@ -11996,8 +11997,9 @@ async function cargarMiPlan() {
       diasEl.textContent = 'Activo';
       diasEl.style.cssText = 'background:rgba(16,185,129,0.1);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#10b981';
     } else if (d.fecha_expiracion) {
-      const exp  = new Date(d.fecha_expiracion + 'T12:00:00');
-      const dias = Math.ceil((exp - new Date()) / 86400000);
+      const hoy  = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00');
+      const exp  = new Date(d.fecha_expiracion + 'T00:00:00');
+      const dias = Math.round((exp - hoy) / 86400000);
       const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
       const [y,m,day] = d.fecha_expiracion.split('-');
       fechaEl.textContent = `Vence el ${parseInt(day)} de ${meses[parseInt(m)-1]} de ${y}`;
