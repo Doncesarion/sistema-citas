@@ -6840,8 +6840,9 @@ function closeProfile() { document.getElementById('profile-ov').classList.remove
 let _gpTipo    = 'inicio';
 let _gpPeriodo = 'anual';
 const _GP_PRECIOS = {
-  inicio: { mensual: 24990, anual: 239900, ahorro: 59980, mensualEfectivo: 19992 },
-  pro:    { mensual: 44990, anual: 431900, ahorro: 107980, mensualEfectivo: 35992 },
+  inicio:     { mensual: 24990,  anual: 239900,  ahorro: 59980,  mensualEfectivo: 19992 },
+  pro:        { mensual: 44990,  anual: 431900,  ahorro: 107980, mensualEfectivo: 35992 },
+  clinica_ia: { mensual: 119990, anual: 1151900, ahorro: 287980, mensualEfectivo: 95992 },
 };
 
 function _gpUpdateBtn() {
@@ -6856,10 +6857,13 @@ function gpSelectTipo(tipo) {
   const p = _GP_PRECIOS[tipo] || _GP_PRECIOS.inicio;
   const sel = { borderColor:'var(--a)', background:'rgba(108,92,228,.05)' };
   const def = { borderColor:'var(--b1)', background:'' };
+  const selPrem = { borderColor:'var(--a)', background:'linear-gradient(135deg,rgba(108,92,228,.07),rgba(79,62,224,.04))' };
   const ci = document.getElementById('gp-card-inicio');
   const cp = document.getElementById('gp-card-pro');
-  if (ci) Object.assign(ci.style, tipo === 'inicio' ? sel : def);
-  if (cp) Object.assign(cp.style, tipo === 'pro' ? sel : def);
+  const cc = document.getElementById('gp-card-clinica');
+  if (ci) Object.assign(ci.style, tipo === 'inicio'     ? sel     : def);
+  if (cp) Object.assign(cp.style, tipo === 'pro'        ? sel     : def);
+  if (cc) Object.assign(cc.style, tipo === 'clinica_ia' ? selPrem : { ...def, background:'' });
   const fmt = n => '$' + n.toLocaleString('es-CL');
   const pm = document.getElementById('gp-precio-mensual');
   const pa = document.getElementById('gp-precio-anual');
@@ -9397,6 +9401,19 @@ function salirImpersonacion() {
             <div style="font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4">Chatbot IA + reportes avanzados</div>
             <div style="font-size:14px;font-weight:700;color:var(--a);margin-top:6px">$44.990<span style="font-size:10px;font-weight:400;color:var(--t3)">/mes</span></div>
           </div>
+          <div id="gp-card-clinica" onclick="gpSelectTipo('clinica_ia')" style="grid-column:1/-1;padding:12px 14px;border-radius:var(--r);border:2px solid var(--b1);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:600;color:var(--t1)">Clínica IA</span>
+                <span style="font-size:9px;font-weight:700;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;padding:1px 6px;border-radius:99px">Automatización total</span>
+              </div>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4">Chatbot agenda, cobra y recupera citas 24/7</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:14px;font-weight:700;color:var(--a)">$119.990<span style="font-size:10px;font-weight:400;color:var(--t3)">/mes</span></div>
+              <div style="font-size:10px;color:var(--t3);margin-top:1px">o $95.992/mes anual</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -9429,7 +9446,7 @@ function salirImpersonacion() {
         Ir a pagar · <span id="gp-btn-monto">$239.900</span>
       </button>
 
-      <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:-6px">Pago seguro con Flow · ¿Otro plan? <a href="mailto:hola@attempo.cl" style="color:var(--a);text-decoration:none">Contáctanos</a></div>
+      <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:-6px">Pago seguro con Flow · ¿Dudas? <a href="https://wa.me/56957285407" target="_blank" style="color:var(--a);text-decoration:none">Escríbenos por WhatsApp</a></div>
     </div>
   </div>
 </div>
