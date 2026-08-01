@@ -237,12 +237,19 @@ export default async function handler(req, res) {
     const emailNorm = email.trim().toLowerCase();
 
     const rCheck = await fetch(
-      `${SUPA_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=id&limit=1`,
+      `${SUPA_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=id,cliente_id&limit=1`,
       { headers: sh }
     );
     const existing = await rCheck.json();
     if (Array.isArray(existing) && existing.length > 0) {
-      return res.status(409).json({ error: 'Este email ya está registrado' });
+      const existingUser = existing[0];
+      // Si el usuario ya tiene un cliente asignado, es una cuenta real → bloquear
+      if (existingUser.cliente_id) {
+        return res.status(409).json({ error: 'Este email ya está registrado' });
+      }
+      // Si el usuario existe pero sin cliente (registro incompleto), limpiar el orfanado
+      await fetch(`${SUPA_URL}/rest/v1/usuarios?id=eq.${existingUser.id}`,
+        { method: 'DELETE', headers: sh }).catch(() => {});
     }
 
     const slugBase = negocio.trim().toLowerCase()
