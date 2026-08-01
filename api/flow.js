@@ -708,7 +708,7 @@ async function handleWebpayCreate(req, res) {
   const precio = Math.round(Number(String(cita.precio).replace(/\./g, '').replace(',', '.')));
   const suffix    = String(Date.now() % 100000).padStart(5, '0');
   const buy_order = cita_id.replace(/-/g, '').slice(0, 19) + suffix;
-  const return_url = `${BASE_URL}/api/flow?tipo=webpay_return&cid=${encodeURIComponent(cita.cliente_id)}`;
+  const return_url = `${BASE_URL}/api/flow?tipo=webpay_return&cid=${encodeURIComponent(cita.cliente_id)}&cita=${encodeURIComponent(cita_id)}`;
 
   let initData;
   try {
@@ -736,10 +736,11 @@ async function handleWebpayCreate(req, res) {
 }
 
 async function handleWebpayReturn(req, res) {
-  const cid       = req.query?.cid || null;
+  const cid       = req.query?.cid  || null;
+  const cita_id   = req.query?.cita || null;
   const token_ws  = req.body?.token_ws  || req.query?.token_ws  || null;
   const TBK_TOKEN = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN || null;
-  console.log(`WP_RET m=${req.method} tk=${token_ws?'Y':'N'} tbk=${TBK_TOKEN?'Y':'N'} cid=${cid?'Y':'N'}`);
+  console.log(`WP_RET m=${req.method} tk=${token_ws?'Y':'N'} tbk=${TBK_TOKEN?'Y':'N'} cid=${cid?'Y':'N'} cita=${cita_id?'Y':'N'}`);
 
   let clienteSlug = null;
   const redir = (resultado) => {
@@ -752,61 +753,43 @@ async function handleWebpayReturn(req, res) {
   if (TBK_TOKEN && !token_ws) return redir('cancelado');
   if (TBK_TOKEN && token_ws)  return redir('timeout');
   if (!token_ws)               return redir('error');
-  if (!cid)                    return redir('error');
+  if (!cid || !cita_id)        return redir('error');
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
-  let mp = {};
+  // Fetch credenciales y slug en paralelo con idempotency check
+  let mp = {}, alreadyPaid = false;
   try {
-    const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago,slug&limit=1`, { headers: sh });
-    const [cli] = await rcli.json();
+    const [rcli, rCheck] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago,booking_slug&limit=1`, { headers: sh, signal: AbortSignal.timeout(8000) }),
+      fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=estado_pago&limit=1`, { headers: sh, signal: AbortSignal.timeout(8000) })
+    ]);
+    const [cli]       = await rcli.json();
+    const [citaCheck] = await rCheck.json();
     mp = cli?.metodos_pago || {};
-    clienteSlug = cli?.slug || null;
+    clienteSlug = cli?.booking_slug || null;
+    if (citaCheck?.estado_pago === 'pagado') alreadyPaid = true;
   } catch(e) {
-    console.error('webpay_return: error fetching creds:', e.message);
+    console.error('webpay_return: error fetching data:', e.message);
     return redir('error');
   }
+
+  if (alreadyPaid) return redir('ok');
 
   if (!mp.webpay_commerce_code || !mp.webpay_api_key_secret) {
     console.error('webpay_return: missing credentials for cid:', cid);
     return redir('error');
   }
 
-  const baseUrl = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
+  const baseUrl   = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
   const wbHeaders = webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret);
 
-  // GET: obtener session_id (= cita_id) y estado previo
-  let txData;
-  try {
-    const getResp = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
-      method: 'GET', headers: wbHeaders
-    });
-    txData = await getResp.json();
-    console.log(`WP_GET st=${txData.status||'?'} sid=${txData.session_id?'Y':'N'} rc=${txData.response_code??'absent'}`);
-  } catch(e) {
-    console.error('webpay_return: GET error:', e.message);
-    return redir('error');
-  }
-
-  const cita_id = txData.session_id;
-  if (!cita_id) {
-    console.error('webpay_return: no session_id:', JSON.stringify(txData));
-    return redir('error');
-  }
-
-  // Idempotency check
-  try {
-    const rCheck = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=estado_pago&limit=1`, { headers: sh });
-    const [citaCheck] = await rCheck.json();
-    if (citaCheck?.estado_pago === 'pagado') return redir('ok');
-  } catch(e) { console.error('webpay_return: idempotency check error:', e.message); }
-
-  // PUT (commit): la respuesta del commit tiene el response_code definitivo
+  // PUT (commit): confirmar la transacción con Transbank
   let commitData;
   try {
     const commitResp = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, {
-      method: 'PUT', headers: wbHeaders
+      method: 'PUT', headers: wbHeaders, signal: AbortSignal.timeout(15000)
     });
     commitData = await commitResp.json();
     console.log(`WP_PUT rc=${commitData.response_code??'absent'} st=${commitData.status||'?'} auth=${commitData.authorization_code||'-'}`);
