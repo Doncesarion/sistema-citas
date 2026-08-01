@@ -739,9 +739,10 @@ async function handleWebpayCreate(req, res) {
 async function handleWebpayReturn(req, res) {
   const cid       = req.query?.cid  || null;
   const cita_id   = req.query?.cita || null;
-  const token_ws  = req.body?.token_ws  || req.query?.token_ws  || null;
-  const TBK_TOKEN = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN || null;
-  console.log(`WP_RET m=${req.method} tk=${token_ws?'Y':'N'} tbk=${TBK_TOKEN?'Y':'N'} cid=${cid?'Y':'N'} cita=${cita_id?'Y':'N'}`);
+  const token_ws      = req.body?.token_ws      || req.query?.token_ws      || null;
+  const TBK_TOKEN     = req.body?.TBK_TOKEN     || req.query?.TBK_TOKEN     || null;
+  const TBK_ID_SESION = req.body?.TBK_ID_SESION || req.query?.TBK_ID_SESION || null;
+  console.log(`WP_RET m=${req.method} tk=${token_ws?'Y':'N'} tbk=${TBK_TOKEN?'Y':'N'} ses=${TBK_ID_SESION?'Y':'N'} cid=${cid?'Y':'N'} cita=${cita_id?'Y':'N'}`);
 
   let clienteSlug = null;
   const redir = (resultado) => {
@@ -752,7 +753,8 @@ async function handleWebpayReturn(req, res) {
   };
 
   if (TBK_TOKEN && !token_ws) return redir('cancelado');
-  if (TBK_TOKEN && token_ws)  return redir('timeout');
+  if (TBK_TOKEN && token_ws)  return redir('timeout');  // cerró tab y recuperó
+  if (!token_ws && TBK_ID_SESION) return redir('timeout'); // expiró 5 min sin token
   if (!token_ws)               return redir('error');
   if (!cid || !cita_id)        return redir('error');
 
