@@ -237,17 +237,24 @@ export default async function handler(req, res) {
     cliente_id, nombre_especialista,
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
-    from_admin, enviar_email, estado_admin, slug
+    from_admin, enviar_email, estado_admin, slug,
+    metodo_pago_admin
   } = req.body || {};
 
   // Sanitizar especialista_id: solo aceptar UUIDs válidos, cualquier otro valor (como 'any') → null
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const especialista_id = UUID_RE.test(req.body?.especialista_id || '') ? req.body.especialista_id : null;
 
+  // metodo_pago_admin: 'efectivo' | 'tarjeta' | 'link_flow' | 'link_webpay' | null (booking público)
+  const esPagoPresencial = from_admin && (metodo_pago_admin === 'efectivo' || metodo_pago_admin === 'tarjeta');
+  const esLinkWebpay     = from_admin && metodo_pago_admin === 'link_webpay';
+  const esLinkFlow       = from_admin && metodo_pago_admin === 'link_flow';
+
   const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'done', cancelada:'canceled', inasistencia:'no-show' };
-  // INSERT siempre con 'pending' (constraint DB); se parchea a 'confirmed' después si aplica
-  const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending';
-  const confirmarDespues = !from_admin;
+  // Pago presencial desde admin → confirmar directamente; link de pago → pending_payment lo asigna el handler de pago
+  const estadoFinal = esPagoPresencial ? 'confirmed'
+    : (from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending');
+  const confirmarDespues = !from_admin && !esPagoPresencial;
 
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
   if (!citaIdYaCreada) {
@@ -299,7 +306,8 @@ export default async function handler(req, res) {
           hora,
           duracion:       duracion ? (parseInt(duracion) || null) : null,
           precio:         precio         || null,
-          estado: estadoFinal
+          estado: estadoFinal,
+          ...(esPagoPresencial ? { metodo_pago: metodo_pago_admin } : {})
         })
       });
 
@@ -373,7 +381,9 @@ export default async function handler(req, res) {
     const precioFlow    = metodos_pago?.aplica_iva ? Math.round(precioNum * 1.19) : precioNum;
 
     let flow_error = null;
-    if (metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0) {
+    // Pago presencial desde admin o link Webpay → no generar link Flow
+    const generarFlow = !esPagoPresencial && !esLinkWebpay && metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0;
+    if (generarFlow) {
       const flowApiUrl = flowSandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
       try {
         const fp = {
@@ -396,12 +406,13 @@ export default async function handler(req, res) {
         const fd = await fr.json();
         if (fd.url && fd.token) {
           flow_url = `${fd.url}?token=${fd.token}`;
-          const soloFlow = !metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo;
+          // pending_payment: si es solo Flow configurado (booking público) O el admin eligió explícitamente link Flow
+          const soloFlow = esLinkFlow || (!metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo);
           if (soloFlow) {
             await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
               method: 'PATCH',
               headers: { ...sh, Prefer: 'return=minimal' },
-              body: JSON.stringify({ estado: 'pending_payment' })
+              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'flow' })
             });
           }
           console.log('crear-cita: flow_url generado OK, soloFlow:', soloFlow);
@@ -415,7 +426,16 @@ export default async function handler(req, res) {
       }
     }
 
-    const soloFlow = !!(flow_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+    const soloFlow = !!(flow_url && (esLinkFlow || (!metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo)));
+
+    // Link Webpay desde admin → marcar pending_payment con metodo_pago='webpay'
+    if (esLinkWebpay) {
+      await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'webpay' })
+      }).catch(() => {});
+    }
 
     // Enviar email de confirmación (después de generar flow_url para incluirlo)
     if (email_paciente && process.env.RESEND_API_KEY && enviar_email !== false) {

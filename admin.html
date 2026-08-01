@@ -3857,7 +3857,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           </div>
         </div>
         <div id="pay-link-info" style="display:none;font-size:11px;color:var(--t3);margin-top:6px;padding:7px 10px;background:rgba(108,92,228,0.05);border-radius:6px;line-height:1.5">
-          Se enviará un link al paciente por email o WhatsApp para que pague en línea antes de su cita. El monto corresponde al servicio seleccionado.
+          <div style="margin-bottom:6px">Elige el método de pago en línea:</div>
+          <div style="display:flex;gap:6px">
+            <button id="pay-prov-flow" onclick="setPayProvider('flow')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--a);background:var(--adim);color:var(--a);font-size:11px;font-weight:600;cursor:pointer">Flow</button>
+            <button id="pay-prov-webpay" onclick="setPayProvider('webpay')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer">Webpay</button>
+          </div>
         </div>
       </div>
       <!-- Summary -->
@@ -4323,6 +4327,22 @@ function setDur(d) {
 }
 
 /* Payment */
+let _payProvider = 'flow';
+
+function setPayProvider(p) {
+  _payProvider = p;
+  const btnFlow   = document.getElementById('pay-prov-flow');
+  const btnWebpay = document.getElementById('pay-prov-webpay');
+  if (!btnFlow || !btnWebpay) return;
+  if (p === 'flow') {
+    btnFlow.style.cssText   = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--a);background:var(--adim);color:var(--a);font-size:11px;font-weight:600;cursor:pointer';
+    btnWebpay.style.cssText = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer';
+  } else {
+    btnWebpay.style.cssText = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid #005BBB;background:#eff6ff;color:#005BBB;font-size:11px;font-weight:600;cursor:pointer';
+    btnFlow.style.cssText   = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer';
+  }
+}
+
 function setPay(el) {
   document.querySelectorAll('.pay-opt').forEach(o => {
     o.classList.remove('on');
@@ -4332,6 +4352,7 @@ function setPay(el) {
   el.classList.add('on');
   const info = document.getElementById('pay-link-info');
   if (info) info.style.display = el.id === 'pay-on' ? 'block' : 'none';
+  if (el.id !== 'pay-on') _payProvider = 'flow'; // reset al salir de link
 }
 
 /* Price update */
@@ -4497,18 +4518,33 @@ async function saveReservation() {
     const r = await fetch('/api/crear-cita', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, estado_admin: currentEstado, enviar_email: document.getElementById('email-check')?.checked !== false })
+      body: JSON.stringify({ cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, estado_admin: currentEstado, enviar_email: document.getElementById('email-check')?.checked !== false, metodo_pago_admin: document.getElementById('pay-ef')?.classList.contains('on') ? 'efectivo' : document.getElementById('pay-td')?.classList.contains('on') ? 'tarjeta' : _payProvider === 'webpay' ? 'link_webpay' : 'link_flow' })
     });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d.error || 'Error al crear la cita');
 
+    const _metodoElegido = document.getElementById('pay-ef')?.classList.contains('on') ? 'efectivo'
+      : document.getElementById('pay-td')?.classList.contains('on') ? 'tarjeta'
+      : _payProvider === 'webpay' ? 'link_webpay' : 'link_flow';
+
     // Capturar ID antes de closeModal() que lo limpia
     const _cancelarId = _reagendarCancelId;
+    const _citaId = d.cita?.id;
     closeModal();
     toast('✓ Reserva confirmada');
     // Si es reagendar, cancelar la cita original
     if (_cancelarId) {
       fetch(`/api/slots?id=${_cancelarId}`, { method: 'DELETE', headers: _citasH() }).catch(() => {});
+    }
+    // Link Webpay: enviar link automáticamente sin confirm dialog
+    if (_metodoElegido === 'link_webpay' && _citaId) {
+      fetch('/api/flow', {
+        method: 'POST',
+        headers: { ..._citasH(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cita_id: _citaId, tipo: 'webpay_init', enviar_email: true })
+      }).then(r => r.json()).then(d => {
+        toast(d.email_error ? 'Cita creada — link Webpay enviado (email con aviso)' : '✓ Link de pago Webpay enviado al paciente');
+      }).catch(() => toast('Cita creada — revisa el link Webpay en el detalle de la cita'));
     }
     // Recargar agenda
     if (typeof cargarCitasSupabase === 'function') cargarCitasSupabase();
