@@ -246,6 +246,7 @@ export default async function handler(req, res) {
   const especialista_id = UUID_RE.test(req.body?.especialista_id || '') ? req.body.especialista_id : null;
 
   // metodo_pago_admin: 'efectivo' | 'tarjeta' | 'link_flow' | 'link_webpay' | null (booking público)
+  console.log('crear-cita: from_admin=', from_admin, 'metodo_pago_admin=', metodo_pago_admin);
   const esPagoPresencial = from_admin && (metodo_pago_admin === 'efectivo' || metodo_pago_admin === 'tarjeta');
   const esLinkWebpay     = from_admin && metodo_pago_admin === 'link_webpay';
   const esLinkFlow       = from_admin && metodo_pago_admin === 'link_flow';
