@@ -723,7 +723,6 @@ async function handleWebpayCreate(req, res) {
       res.setHeader('Content-Type', 'text/html;charset=utf-8');
       return res.status(502).send(`<!DOCTYPE html><html><body><p>Error al iniciar pago Webpay: ${htmlEscape(JSON.stringify(initData))}</p></body></html>`);
     }
-    console.log('WP_CREATE token:', initData.token);
   } catch(e) {
     console.error('webpay_create: fetch error:', e.message);
     res.setHeader('Content-Type', 'text/html;charset=utf-8');

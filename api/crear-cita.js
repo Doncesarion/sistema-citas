@@ -246,7 +246,6 @@ export default async function handler(req, res) {
   const especialista_id = UUID_RE.test(req.body?.especialista_id || '') ? req.body.especialista_id : null;
 
   // metodo_pago_admin: 'efectivo' | 'tarjeta' | 'link_flow' | 'link_webpay' | null (booking público)
-  console.log('crear-cita: from_admin=', from_admin, 'metodo_pago_admin=', metodo_pago_admin);
   const esPagoPresencial = from_admin && (metodo_pago_admin === 'efectivo' || metodo_pago_admin === 'tarjeta');
   const esLinkWebpay     = from_admin && metodo_pago_admin === 'link_webpay';
   const esLinkFlow       = from_admin && metodo_pago_admin === 'link_flow';
@@ -431,11 +430,13 @@ export default async function handler(req, res) {
 
     // Link Webpay desde admin → marcar pending_payment con metodo_pago='webpay'
     if (esLinkWebpay) {
-      await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+      const patchR = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
         method: 'PATCH',
         headers: { ...sh, Prefer: 'return=minimal' },
         body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'webpay' })
-      }).catch(() => {});
+      }).catch(e => ({ ok: false, _err: e.message }));
+      if (!patchR.ok) console.error('crear-cita: patch pending_payment error', patchR.status, await patchR.text?.().catch(()=>''));
+      else console.log('crear-cita: cita marcada pending_payment webpay');
     }
 
     // Enviar email de confirmación (después de generar flow_url para incluirlo)
