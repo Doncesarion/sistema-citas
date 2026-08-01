@@ -347,7 +347,7 @@ export default async function handler(req, res) {
       session_token = `${payload}.${sig}`;
     }
 
-    return res.status(200).json({ ok: true, nombre: nombre.trim(), rol: 'admin', cliente_id, session_token });
+    return res.status(200).json({ ok: true, nombre: nombre.trim(), rol: 'admin', cliente_id, session_token, plan: 'demo', fecha_expiracion: expStr });
   }
 
   const { usuario, password } = req.body || {};
@@ -423,14 +423,24 @@ export default async function handler(req, res) {
       session_token = `${payload}.${sig}`;
     }
 
-    // Obtener tipo_plan del negocio para feature gating en el panel
-    let tipo_plan = null;
+    // Obtener plan info para feature gating y control de trial
+    let tipo_plan = null, plan = null, fecha_expiracion = null;
     if (u.cliente_id) {
       try {
-        const rp = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${u.cliente_id}&select=tipo_plan&limit=1`, { headers: sh });
+        const rp = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${u.cliente_id}&select=tipo_plan,plan,fecha_expiracion&limit=1`, { headers: sh });
         const [cli] = await rp.json();
         tipo_plan = cli?.tipo_plan || null;
+        plan = cli?.plan || null;
+        fecha_expiracion = cli?.fecha_expiracion || null;
       } catch(_) {}
+    }
+
+    // Bloquear acceso si el período de prueba demo expiró
+    if (plan === 'demo' && fecha_expiracion) {
+      const today = new Date().toISOString().split('T')[0];
+      if (fecha_expiracion < today) {
+        return res.status(403).json({ ok: false, trial_expired: true, error: 'Tu período de prueba de 12 días ha terminado.' });
+      }
     }
 
     return res.status(200).json({
@@ -442,6 +452,8 @@ export default async function handler(req, res) {
       cliente_id: u.cliente_id,
       session_token,
       tipo_plan,
+      plan,
+      fecha_expiracion,
       debe_cambiar: first || false,
     });
 

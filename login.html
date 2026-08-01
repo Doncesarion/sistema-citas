@@ -408,11 +408,21 @@ function loginSubmit() {
       document.getElementById('mfa-otp').focus();
       return;
     }
+    if (data.trial_expired) {
+      document.getElementById('btn-text').style.display = 'block';
+      document.getElementById('spinner').style.display  = 'none';
+      document.getElementById('btn-login').disabled = false;
+      mostrarError('Tu período de prueba de 12 días ha terminado. Escríbenos a hola@attempo.cl para continuar.');
+      return;
+    }
     if (data.ok) {
       localStorage.setItem('attempo_user', JSON.stringify({
         nombre: data.nombre, rol: data.rol,
         email: data.usuario, cliente_id: data.cliente_id || null,
-        tipo_plan: data.tipo_plan || null, ts: Date.now()
+        tipo_plan: data.tipo_plan || null,
+        plan: data.plan || null,
+        fecha_expiracion: data.fecha_expiracion || null,
+        ts: Date.now()
       }));
       if (data.session_token) localStorage.setItem('attempo_session_token', data.session_token);
       document.getElementById('btn-text').style.display = 'block';

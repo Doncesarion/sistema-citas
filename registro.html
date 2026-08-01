@@ -329,7 +329,9 @@
         if (data.ok && data.session_token) {
           localStorage.setItem('attempo_session_token', data.session_token);
           localStorage.setItem('attempo_user', JSON.stringify({
-            nombre: data.nombre, rol: data.rol, cliente_id: data.cliente_id
+            nombre: data.nombre, rol: data.rol, cliente_id: data.cliente_id,
+            plan: data.plan || 'demo', fecha_expiracion: data.fecha_expiracion || null,
+            tipo_plan: null, ts: Date.now()
           }));
           window.location.href = '/admin';
         } else {

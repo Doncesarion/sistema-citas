@@ -21,6 +21,18 @@
       window.location.replace('/login?expired=1');
     }
   } catch(_) {}
+  // Verificar si el período de prueba demo expiró
+  try {
+    var _u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    if ((_u.plan || '') === 'demo' && _u.fecha_expiracion) {
+      var _today = new Date().toISOString().split('T')[0];
+      if (_u.fecha_expiracion < _today) {
+        localStorage.removeItem('attempo_session_token');
+        localStorage.removeItem('attempo_user');
+        window.location.replace('/trial-expirada');
+      }
+    }
+  } catch(_e) {}
 }());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1306,6 +1318,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <button onclick="dismissOnboarding()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:17px;line-height:1;padding:0 2px;transition:color .12s" title="Cerrar" onmouseenter="this.style.color='var(--t1)'" onmouseleave="this.style.color='var(--t3)'">×</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ BANNER TRIAL ═══ -->
+<div id="trial-banner" style="display:none;background:linear-gradient(135deg,#5B4BD5 0%,#4F3EE0 100%);border-bottom:1px solid rgba(79,62,224,0.4)">
+  <div style="max-width:1400px;margin:0 auto;padding:8px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center">
+    <span id="trial-banner-text" style="font-size:13px;font-weight:600;color:#fff"></span>
+    <a href="mailto:hola@attempo.cl" style="font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);border-radius:6px;padding:4px 13px;text-decoration:none;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.18)'">Contratar plan →</a>
   </div>
 </div>
 
@@ -8429,9 +8449,9 @@ const PLAN_PERMISOS = {
     defaultView: 'agenda', nuevaReserva: true
   },
   demo: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-cotizaciones','ntab-bandeja','ntab-config'],
-    cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
-    bsecTabs: _BSEC_BASIC, soloWA: true,
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
+    bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
   },
   chatbot_2k: {
@@ -8528,6 +8548,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const saved = localStorage.getItem(_logoKey) || localStorage.getItem('attempo_logo');
     if (saved) applyLogo(saved);
   } catch(e) {}
+
+  // Banner cuenta regresiva de prueba
+  try {
+    const _u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    if ((_u.plan || '') === 'demo' && _u.fecha_expiracion) {
+      const _exp = new Date(_u.fecha_expiracion + 'T23:59:59');
+      const _dias = Math.ceil((_exp - Date.now()) / 86400000);
+      if (_dias > 0) {
+        const bannerEl = document.getElementById('trial-banner');
+        const textEl   = document.getElementById('trial-banner-text');
+        if (bannerEl && textEl) {
+          textEl.textContent = _dias === 1
+            ? '⏱ Último día de tu prueba gratuita — activa tu plan para no perder el acceso'
+            : `⏱ Te quedan ${_dias} día${_dias > 1 ? 's' : ''} de prueba gratuita`;
+          bannerEl.style.display = '';
+        }
+      }
+    }
+  } catch(_e) {}
 
   aplicarRestriccionesChatbot();
 

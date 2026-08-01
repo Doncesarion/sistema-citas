@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import PDFDocument from 'pdfkit';
 
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
@@ -359,6 +360,72 @@ async function procesarRecordatorios(sh, shJson) {
   return { enviados, errores };
 }
 
+// ── Email de aviso 2 días antes de que expire el trial demo ──────────────────
+async function procesarTrialReminder(sh, shJson) {
+  const enviados = [];
+  try {
+    const en2dias = new Date();
+    en2dias.setDate(en2dias.getDate() + 2);
+    const fecha2d = en2dias.toISOString().split('T')[0];
+
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?plan=eq.demo&fecha_expiracion=eq.${fecha2d}&activo=eq.true&select=id,email,contacto_nombre`,
+      { headers: sh }
+    );
+    const clientes = await r.json();
+    if (!Array.isArray(clientes) || !clientes.length) return { enviados };
+
+    for (const cli of clientes) {
+      if (!cli.email) continue;
+      const nombre = cli.contacto_nombre ? cli.contacto_nombre.split(' ')[0] : 'Usuario';
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'attempo <contacto@attempo.cl>',
+            to: [cli.email],
+            subject: `${nombre}, tu prueba de attempo vence en 2 días`,
+            html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10)">
+<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center">
+  <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px">
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px">Todo a tu tiempo</p>
+</td></tr>
+<tr><td style="padding:32px;text-align:center">
+  <h2 style="margin:0 0 12px;color:#2d2d2d;font-size:22px">¡Hola, ${he(nombre)}! ⏱</h2>
+  <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6">
+    Tu período de prueba gratuita de attempo <strong style="color:#DC2626">vence en 2 días</strong>.<br>
+    Contrata un plan ahora para seguir gestionando tus citas sin interrupciones.
+  </p>
+  <a href="https://wa.me/56957285407?text=Hola%2C%20quiero%20contratar%20un%20plan%20de%20attempo" style="display:inline-block;padding:14px 32px;background:#25D366;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:10px">Contratar por WhatsApp →</a>
+  <br>
+  <a href="mailto:hola@attempo.cl" style="display:inline-block;padding:11px 28px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600">Escribir a hola@attempo.cl →</a>
+  <p style="margin:20px 0 0;color:#9ca3af;font-size:12px">Si ya coordinaste tu plan, ignora este mensaje.</p>
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe">
+  <p style="margin:0;color:#9ca3af;font-size:12px">attempo — Todo a tu tiempo</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+          })
+        });
+        enviados.push(cli.email);
+      } catch(e) {
+        console.error('trial_reminder email error:', cli.email, e.message);
+      }
+    }
+  } catch(e) {
+    console.error('procesarTrialReminder error:', e.message);
+  }
+  return { enviados };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -385,7 +452,9 @@ export default async function handler(req, res) {
     console.log('send-email: cron recordatorios iniciado');
     const result = await procesarRecordatorios(sh, shJson);
     console.log('send-email: cron finalizado —', result.enviados, 'enviados,', result.errores.length, 'errores');
-    return res.status(200).json(result);
+    const trialResult = await procesarTrialReminder(sh, shJson);
+    if (trialResult.enviados.length) console.log('send-email: trial reminders —', trialResult.enviados.length, 'enviados');
+    return res.status(200).json({ ...result, trial_reminders: trialResult.enviados });
   }
 
   if (req.method !== 'POST') return res.status(405).end();
@@ -687,19 +756,331 @@ export default async function handler(req, res) {
     return res.status(200).json({ total: seen.size });
   }
 
-  // — Envío de boleta —
-  if (body.type === 'boleta') {
-    const { to, negocio, folio, html_boleta } = body;
-    if (!to || !html_boleta) return res.status(400).json({ error: 'Faltan datos' });
+  // — Boleta electrónica DTE vía DTemite —
+  if (body.type === 'boleta-dte') {
+    const { to, cliente_nombre, cliente_rut, negocio, negocio_rut, negocio_giro, negocio_dir, folio, total, tipo, fecha, items } = body;
+    if (!to) return res.status(400).json({ error: 'Falta email destino' });
+
+    const token = req.headers['x-session-token'];
+    const dot = token.lastIndexOf('.');
+    const tparts = token.slice(0, dot).split(':');
+    const cliente_id = tparts[0];
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+
+    const rCli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago&limit=1`, { headers: sh });
+    const [cliDte] = await rCli.json().catch(() => []);
+    const mp = cliDte?.metodos_pago || {};
+
+    const dtemiteSistema = mp.dtemite_sistema || '';
+    const dtemiteUsuario = mp.dtemite_usuario || '';
+    const dtemiteClave   = mp.dtemite_clave   || '';
+
+    if (!dtemiteUsuario || !dtemiteClave) {
+      return res.status(400).json({ error: 'No hay credenciales DTemite. Configúralas en Configuración → Facturación.' });
+    }
+
+    let dteUrl = null;
+    const fechaDTE = fecha || new Date().toISOString().slice(0, 10);
+
+    try {
+      if (tipo === 'honorarios') {
+        // BHE tipo 61 — persona natural
+        const loginR = await fetch('https://pro.dtemite.cl/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario: dtemiteUsuario, clave: dtemiteClave })
+        });
+        if (!loginR.ok) {
+          const err = await loginR.text().catch(() => '');
+          console.error('dtemite bhe login error:', loginR.status, err.slice(0, 200));
+          return res.status(502).json({ error: 'DTemite: error de autenticación — verifica usuario y contraseña' });
+        }
+        const { token: bheToken } = await loginR.json();
+        const montobruto = Math.round(Number(total || 0));
+        const retencion  = Math.round(montobruto * 0.10);
+        const glosa = (items || []).map(it => it.desc).filter(Boolean).join(', ') || 'Servicios profesionales';
+        const emitR = await fetch('https://pro.dtemite.cl/api/librohonorarios/emision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${bheToken}` },
+          body: JSON.stringify({
+            fecha:           fechaDTE,
+            rut_receptor:    (cliente_rut || '66666666-6').replace(/\./g, ''),
+            nombre_receptor: cliente_nombre || 'Consumidor Final',
+            monto_bruto:     montobruto,
+            monto_retencion: retencion,
+            monto_liquido:   montobruto - retencion,
+            glosa
+          })
+        });
+        if (!emitR.ok) {
+          const err = await emitR.text().catch(() => '');
+          console.error('dtemite bhe emit error:', emitR.status, err.slice(0, 200));
+          return res.status(502).json({ error: 'DTemite: error al emitir BHE — ' + err.slice(0, 100) });
+        }
+        const emitData = await emitR.json();
+        dteUrl = emitData.ruta_pdf || emitData.url_pdf || null;
+
+      } else {
+        // Boleta Electrónica tipo 39 — empresa
+        const claveB64 = Buffer.from(dtemiteClave).toString('base64');
+        const rutLimpio = (negocio_rut || '').replace(/\./g, '');
+        const detalle = (items || []).map(it => ({
+          NmbItem:   it.desc || 'Servicio',
+          QtyItem:   it.qty || 1,
+          PrcItem:   Math.round(Number(it.precio || 0)),
+          MontoItem: Math.round((it.qty || 1) * Number(it.precio || 0))
+        }));
+        if (!detalle.length) detalle.push({ NmbItem: 'Servicio', QtyItem: 1, PrcItem: Math.round(Number(total || 0)), MontoItem: Math.round(Number(total || 0)) });
+
+        const dteBody = {
+          Sistema: {
+            nombre:  dtemiteSistema || dtemiteUsuario,
+            rut:     rutLimpio,
+            usuario: dtemiteUsuario,
+            clave:   claveB64
+          },
+          Documento: {
+            Encabezado: {
+              IdDoc: { TipoDTE: '39', FchEmis: fechaDTE, TermPagoCdg: '0' },
+              Emisor: {
+                RUTEmisor:    rutLimpio,
+                RznSocEmisor: (negocio || '').toUpperCase(),
+                GiroEmisor:   negocio_giro || 'Servicios',
+                DirOrigen:    negocio_dir  || 'Sin dirección',
+                CmnaOrigen:   'Santiago',
+                CiudadOrigen: 'Santiago'
+              },
+              Receptor: {
+                RUTRecep:    (cliente_rut || '66666666-6').replace(/\./g, ''),
+                RznSocRecep: cliente_nombre || 'Consumidor Final',
+                DirRecep:    'Sin dirección',
+                CmnaRecep:   'Santiago',
+                CiudadRecep: 'Santiago'
+              }
+            },
+            Detalle: detalle
+          }
+        };
+
+        const dteR = await fetch('https://sistema.dtemite.cl/sistema/Backend/WsMaster/ApiIntegracionController.php/Api/Documento', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dteBody)
+        });
+        if (!dteR.ok) {
+          const err = await dteR.text().catch(() => '');
+          console.error('dtemite boleta emit error:', dteR.status, err.slice(0, 200));
+          return res.status(502).json({ error: 'DTemite: error al emitir boleta — ' + err.slice(0, 100) });
+        }
+        const dteData = await dteR.json();
+        dteUrl = dteData.ruta_pdf || dteData.url_pdf || dteData.pdf_url || null;
+      }
+    } catch(e) {
+      console.error('dtemite exception:', e.message);
+      return res.status(502).json({ error: 'Error conectando con DTemite: ' + e.message });
+    }
+
+    // Enviar email al cliente
+    const fmtCLP = n => '$ ' + Number(n).toLocaleString('es-CL');
+    const rawFechaDte = fecha || new Date().toISOString().slice(0, 10);
+    const fechaLargaDte = new Date(rawFechaDte + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+    const tipDocDte = tipo === 'venta' ? 'Boleta Electrónica SII' : 'Boleta de Honorarios Electrónica SII';
+    const totalNum = Number(total || 0);
+    const pdfBlock = dteUrl
+      ? `<div style="text-align:center;margin:20px 0"><a href="${he(dteUrl)}" style="display:inline-block;padding:12px 28px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">Descargar ${tipDocDte}</a></div>`
+      : `<p style="font-size:13px;color:#6b7280;margin:16px 0;text-align:center">Tu documento fue emitido ante el SII. Recibirás una copia en tu correo registrado en SII.</p>`;
+
+    const emailHtmlDte = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f1fa;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0;background:#f4f1fa;"><tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;overflow:hidden;max-width:560px;width:100%;">
+<tr><td style="background:#5b21b6;padding:26px 36px;text-align:center;"><div style="color:#fff;font-size:24px;font-weight:900;letter-spacing:-.5px;">attempo</div></td></tr>
+<tr><td style="padding:32px 36px;">
+<p style="font-size:15px;font-weight:700;margin:0 0 12px;">Hola ${he(cliente_nombre || 'Cliente')},</p>
+<p style="font-size:14px;color:#444;margin:0 0 16px;">Te enviamos tu <strong>${he(tipDocDte)}</strong> emitida por <strong>${he(negocio || '')}</strong> el ${he(fechaLargaDte)}.</p>
+<p style="font-size:16px;font-weight:700;color:#5b21b6;margin:0 0 4px;">Total: ${he(fmtCLP(totalNum))}</p>
+${pdfBlock}
+</td></tr>
+<tr><td style="padding:16px 36px 24px;text-align:center;font-size:11px;color:#aaa;">attempo.cl — Todo a tu tiempo</td></tr>
+</table></td></tr></table>
+</body></html>`;
+
     try {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Attempo <contacto@attempo.cl>',
+          from: 'attempo <contacto@attempo.cl>',
+          to: [to],
+          subject: `Tu ${tipDocDte} de ${negocio || 'tu negocio'}`,
+          html: emailHtmlDte
+        })
+      });
+      if (!r.ok) { console.error('boleta-dte email error:', await r.text()); return res.status(500).json({ error: 'DTE emitido pero error al enviar email' }); }
+      return res.status(200).json({ ok: true, dte_url: dteUrl });
+    } catch(e) {
+      console.error('boleta-dte email exception:', e.message);
+      return res.status(500).json({ error: 'DTE emitido pero error al enviar email' });
+    }
+  }
+
+  // — Envío de boleta —
+  if (body.type === 'boleta') {
+    const { to, cliente_nombre, cliente_rut, negocio, negocio_rut, negocio_giro, negocio_dir, folio, total, tipo, fecha, items } = body;
+    if (!to || !folio) return res.status(400).json({ error: 'Faltan datos' });
+
+    const fmt = n => '$ ' + Number(n).toLocaleString('es-CL');
+    const rawFecha = fecha || new Date().toISOString().slice(0,10);
+    const fechaLarga = new Date(rawFecha + 'T12:00:00').toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
+    const tipDoc = tipo === 'venta' ? 'Boleta Electrónica' : 'Boleta de Honorarios';
+    const totalNum = Number(total || 0);
+
+    // ── Generar PDF con pdfkit ──
+    const pdfBuffer = await new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true });
+      const chunks = [];
+      doc.on('data', c => chunks.push(c));
+      doc.on('end',  () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const ml = 45, mt = 45, pw = 505;
+
+      // HEADER: emisor (izq) + caja folio (der)
+      const boxW = 190, boxX = ml + pw - boxW, boxY = mt, boxH = 82;
+      doc.rect(boxX, boxY, boxW, boxH).lineWidth(2).stroke('#000000');
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000')
+        .text(`R.U.T.: ${negocio_rut||'—'}`, boxX, boxY + 10, { width: boxW, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(11)
+        .text(tipDoc, boxX, boxY + 27, { width: boxW, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(20)
+        .text(`N°${folio}`, boxX, boxY + 50, { width: boxW, align: 'center' });
+
+      doc.font('Helvetica-Bold').fontSize(15).fillColor('#000')
+        .text((negocio||'').toUpperCase(), ml, mt, { width: boxX - ml - 16 });
+      let lY = mt + 20;
+      doc.font('Helvetica').fontSize(9).fillColor('#333');
+      if (negocio_giro) { doc.text(`GIRO: ${negocio_giro}`, ml, lY, { width: boxX - ml - 16 }); lY += 13; }
+      if (negocio_dir)  { doc.text(`DIRECCIÓN: ${negocio_dir}`, ml, lY, { width: boxX - ml - 16 }); lY += 13; }
+      if (negocio_rut)  { doc.text(`R.U.T.: ${negocio_rut}`, ml, lY, { width: boxX - ml - 16 }); }
+
+      // FECHA
+      let y = mt + boxH + 14;
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#000')
+        .text(`Fecha: ${fechaLarga}`, ml, y, { width: pw, align: 'right' });
+      y += 20;
+
+      // Línea separadora
+      doc.moveTo(ml, y).lineTo(ml + pw, y).lineWidth(1).strokeColor('#000').stroke();
+      y += 12;
+
+      // TABLA CLIENTE
+      const rowH = 18, lbW = 80;
+      const drawCell = (x, cy, w, h, text, bold, align) => {
+        doc.rect(x, cy, w, h).lineWidth(0.5).strokeColor('#000').stroke();
+        doc[bold ? 'font' : 'font'](bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9).fillColor('#000')
+          .text(text, x + 4, cy + 5, { width: w - 8, align: align || 'left', lineBreak: false });
+      };
+      drawCell(ml,             y, lbW,          rowH, 'Cliente',                    true);
+      drawCell(ml + lbW,       y, pw - lbW,     rowH, cliente_nombre||'Consumidor Final', false);
+      y += rowH;
+      const col2 = 115, col3 = 110;
+      drawCell(ml,                    y, lbW,   rowH, 'RUT',          true);
+      drawCell(ml + lbW,              y, col2,  rowH, cliente_rut||'66.666.666-6', false);
+      drawCell(ml + lbW + col2,       y, col3,  rowH, 'Forma de pago', true);
+      drawCell(ml + lbW + col2 + col3, y, pw - lbW - col2 - col3, rowH, 'Contado', false);
+      y += rowH + 14;
+
+      // TABLA ÍTEMS
+      const descW = pw - 45 - 95 - 95, qtyW = 45, unitW = 95, subW = 95;
+      // Header negro
+      doc.rect(ml, y, pw, 17).fillAndStroke('#000000', '#000000');
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#ffffff');
+      doc.text('DESCRIPCIÓN', ml + 5, y + 5, { width: descW - 5, lineBreak: false });
+      doc.text('CANT.',  ml + descW + 3, y + 5, { width: qtyW - 3, align: 'right', lineBreak: false });
+      doc.text('P. UNIT.', ml + descW + qtyW + 3, y + 5, { width: unitW - 3, align: 'right', lineBreak: false });
+      doc.text('SUBTOTAL', ml + descW + qtyW + unitW + 3, y + 5, { width: subW - 3, align: 'right', lineBreak: false });
+      doc.fillColor('#000000');
+      y += 17;
+      (items || []).forEach((it, idx) => {
+        const bg = idx % 2 === 1 ? '#f7f7f7' : '#ffffff';
+        doc.rect(ml, y, pw, rowH).fillAndStroke(bg, bg);
+        doc.moveTo(ml, y + rowH).lineTo(ml + pw, y + rowH).lineWidth(0.3).strokeColor('#cccccc').stroke();
+        doc.font('Helvetica').fontSize(9).fillColor('#000');
+        doc.text(it.desc||'Servicio', ml + 5, y + 5, { width: descW - 5, lineBreak: false, ellipsis: true });
+        doc.text(String(it.qty||1), ml + descW + 3, y + 5, { width: qtyW - 3, align: 'right', lineBreak: false });
+        doc.text(fmt(it.precio||0), ml + descW + qtyW + 3, y + 5, { width: unitW - 3, align: 'right', lineBreak: false });
+        doc.text(fmt((it.qty||1)*(it.precio||0)), ml + descW + qtyW + unitW + 3, y + 5, { width: subW - 3, align: 'right', lineBreak: false });
+        y += rowH;
+      });
+      doc.moveTo(ml, y).lineTo(ml + pw, y).lineWidth(1).strokeColor('#000').stroke();
+      y += 16;
+
+      // TABLA TOTALES (der)
+      const ttLW = 120, ttVW = 100, ttX = ml + pw - ttLW - ttVW;
+      const drawTotRow = (label, val, bold, thick) => {
+        const bw = thick ? 2 : 0.5, rh = bold ? 20 : rowH;
+        doc.rect(ttX, y, ttLW, rh).lineWidth(bw).strokeColor('#000').stroke();
+        doc.rect(ttX + ttLW, y, ttVW, rh).lineWidth(bw).strokeColor('#000').stroke();
+        doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 11 : 9).fillColor('#000');
+        doc.text(label, ttX + 5, y + (bold ? 5 : 4), { width: ttLW - 8, lineBreak: false });
+        doc.text(val,   ttX + ttLW + 3, y + (bold ? 5 : 4), { width: ttVW - 5, align: 'right', lineBreak: false });
+        y += rh;
+      };
+      if (tipo === 'venta') {
+        const iva = Math.round(totalNum * 0.19);
+        drawTotRow('SUBTOTAL', fmt(totalNum));
+        drawTotRow('NETO',     fmt(totalNum));
+        drawTotRow('IVA (19%)', fmt(iva));
+        drawTotRow('TOTAL',    fmt(totalNum + iva), true, true);
+      } else {
+        drawTotRow('SUBTOTAL', fmt(totalNum));
+        drawTotRow('TOTAL',    fmt(totalNum), true, true);
+      }
+      y += 22;
+
+      // PIE
+      doc.moveTo(ml, y).lineTo(ml + pw, y).lineWidth(0.5).strokeColor('#aaaaaa').stroke();
+      y += 8;
+      doc.font('Helvetica').fontSize(8).fillColor('#999999')
+        .text('Timbre Electrónico SII · Documento de carácter interno · No válido como boleta tributaria electrónica SII', ml, y, { width: pw, align: 'center' })
+        .text('Generado por attempo · attempo.cl', ml, y + 12, { width: pw, align: 'center' });
+
+      doc.end();
+    });
+
+    // Email simple con PDF adjunto
+    const emailHtml = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f1fa;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0;background:#f4f1fa;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;overflow:hidden;max-width:560px;width:100%;">
+      <tr><td style="background:#5b21b6;padding:26px 36px;text-align:center;">
+        <div style="color:#fff;font-size:24px;font-weight:900;letter-spacing:-.5px;">attempo</div>
+      </td></tr>
+      <tr><td style="padding:32px 36px;">
+        <p style="font-size:15px;font-weight:700;margin:0 0 12px;">Hola ${cliente_nombre||''},</p>
+        <p style="font-size:14px;color:#444;margin:0 0 20px;">Te enviamos tu boleta <strong>N°${folio}</strong> de <strong>${negocio||'tu negocio'}</strong> correspondiente al ${fechaLarga}.</p>
+        <p style="font-size:14px;color:#444;margin:0;">Encuéntrala adjunta en este correo como PDF.</p>
+      </td></tr>
+      <tr><td style="padding:16px 36px 28px;text-align:center;font-size:11px;color:#aaa;">
+        attempo.cl — Todo a tu tiempo
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'attempo <contacto@attempo.cl>',
           to,
-          subject: `Tu boleta de ${negocio || 'tu negocio'}`,
-          html: html_boleta
+          subject: `Tu boleta de ${negocio || 'tu negocio'} · N°${folio}`,
+          html: emailHtml,
+          attachments: [{ filename: `boleta-N${folio}.pdf`, content: pdfBuffer.toString('base64') }]
         })
       });
       if (!r.ok) { console.error('send-boleta error:', await r.text()); return res.status(500).json({ error: 'Error al enviar' }); }
