@@ -57,6 +57,18 @@ function generateManageToken(cita_id) {
   return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
 }
 
+function generateSubToken(cid, plan, monto, tipo_plan = '') {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return '';
+  return crypto.createHmac('sha256', secret).update(`sub:${cid}:${plan}:${monto}:${tipo_plan}`).digest('hex').slice(0, 16);
+}
+
+function generateRecToken(cid, subtipo, codigo, monto) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return '';
+  return crypto.createHmac('sha256', secret).update(`rec:${cid}:${subtipo}:${codigo}:${monto}`).digest('hex').slice(0, 16);
+}
+
 function webpayHeaders(code, secret) {
   return { 'Tbk-Api-Key-Id': code, 'Tbk-Api-Key-Secret': secret, 'Content-Type': 'application/json' };
 }
@@ -260,61 +272,16 @@ async function handleSubPayment(req, res, clienteIdOverride = null) {
   if (!cliente_id || !plan) return res.status(400).json({ error: 'Falta cliente_id o plan' });
   if (!['mensual', 'anual'].includes(plan)) return res.status(400).json({ error: 'Plan inválido' });
 
-  const KEY = process.env.SUPABASE_SERVICE_KEY;
-  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
-
-  const cr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}&select=id,email,nombre_negocio&limit=1`, { headers: sh });
-  const [cliente] = await cr.json();
-  if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
-  if (!cliente.email) return res.status(400).json({ error: 'El cliente no tiene email registrado' });
-
   const montoDefault = plan === 'anual' ? 285481 : 29738;
   const montoReq = req.body.monto ? parseInt(req.body.monto) : null;
   const monto = (montoReq && montoReq > 0) ? montoReq : montoDefault;
-  const planCode  = plan === 'anual' ? 'a' : 'm';
-  const uuidClean = cliente_id.replace(/-/g, '');
-  const suffix    = String(Date.now() % 10000).padStart(4, '0');
-  // Si viene tipo_plan, usar formato nuevo AT{planCode}{tipoCode}{uuid32}{4d} = 40 chars
-  // Si no, formato legado AT{planCode}{uuid32}{4d} = 39 chars (ambos dentro del límite de 45)
-  const TIPO_CODES = { inicio:'i', pro:'p', clinica_ia:'c' };
-  const tipoCode = TIPO_CODES[req.body?.tipo_plan] || null;
-  const commerceOrder = tipoCode
-    ? `AT${planCode}${tipoCode}${uuidClean}${suffix}`
-    : `AT${planCode}${uuidClean}${suffix}`;
+  const tipo_plan = req.body?.tipo_plan || '';
 
-  const PLAN_LABELS = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Clínica IA' };
-  const tipoLabel = PLAN_LABELS[req.body?.tipo_plan] || '';
-  const params = {
-    apiKey:          process.env.FLOW_API_KEY,
-    commerceOrder,
-    subject:         `Suscripción attempo — ${tipoLabel ? tipoLabel + ' ' : ''}Plan ${plan === 'anual' ? 'Anual' : 'Mensual'}`,
-    currency:        'CLP',
-    amount:          String(monto),
-    email:           cliente.email,
-    urlConfirmation: `${BASE_URL}/api/flow-confirm`,
-    urlReturn:       `${BASE_URL}/api/flow-return?plan=${plan}`
-  };
-  params.s = flowSign(params);
+  const t = generateSubToken(cliente_id, plan, monto, tipo_plan);
+  const qs = new URLSearchParams({ cid: cliente_id, plan, monto: String(monto), t });
+  if (tipo_plan) qs.set('tipo_plan', tipo_plan);
 
-  let flowResp, flowData;
-  try {
-    flowResp = await fetch(`${FLOW_API_URL}/payment/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(params)
-    });
-    flowData = await flowResp.json();
-  } catch(e) {
-    console.error('flow sub: create error:', e.message);
-    return res.status(502).json({ error: 'No se pudo conectar con Flow' });
-  }
-
-  if (!flowResp.ok || flowData.code) {
-    console.error('flow sub: create error:', JSON.stringify(flowData));
-    return res.status(502).json({ error: flowData.message || `Error Flow [${flowData.code}]` });
-  }
-
-  const payment_url = `${flowData.url}?token=${flowData.token}`;
+  const payment_url = `${BASE_URL}/webpay-plan.html?${qs.toString()}`;
   return res.json({ ok: true, payment_url });
 }
 
@@ -332,47 +299,10 @@ async function handleRecPayment(req, res, cliente_id) {
     const esperado = mapaValido[codigo].monto;
     if (parseInt(monto) !== esperado) return res.status(400).json({ error: `Monto no coincide: recibido ${monto}, esperado ${esperado}` });
 
-    const KEY = process.env.SUPABASE_SERVICE_KEY;
-    const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
-
-    const cr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cliente_id)}&select=id,email,nombre_negocio&limit=1`, { headers: sh });
-    const cliRaw = await cr.json();
-    const cliente = Array.isArray(cliRaw) ? cliRaw[0] : null;
-    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
-    if (!cliente.email) return res.status(400).json({ error: 'Sin email registrado' });
-
-    const tipoCode    = subtipo === 'topup' ? 'T' : 'M';
-    const uuidClean   = cliente_id.replace(/-/g, '');
-    const suffix      = String(Date.now() % 10000).padStart(4, '0');
-    const commerceOrder = `RC${tipoCode}${codigo}${uuidClean}${suffix}`;
-
-    const labels = { topup: 'Top-up', mensual: 'Cupo mensual' };
-    const params = {
-      apiKey:          process.env.FLOW_API_KEY,
-      commerceOrder,
-      subject:         `attempo — ${labels[subtipo]} +${mapaValido[codigo].cant} recordatorios`,
-      currency:        'CLP',
-      amount:          String(monto),
-      email:           cliente.email,
-      urlConfirmation: `${BASE_URL}/api/flow-confirm`,
-      urlReturn:       `${BASE_URL}/api/flow?ret=1&tipo=rec`
-    };
-    params.s = flowSign(params);
-
-    const qs = new URLSearchParams(params).toString();
-
-    const flowResp = await fetch(`${FLOW_API_URL}/payment/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: qs
-    });
-    const flowData = await flowResp.json();
-
-    if (!flowResp.ok || flowData.code) {
-      return res.status(502).json({ error: flowData.message || `Error Flow [${flowData.code}]` });
-    }
-
-    return res.json({ ok: true, payment_url: `${flowData.url}?token=${flowData.token}` });
+    const t = generateRecToken(cliente_id, subtipo, codigo, monto);
+    const qs = new URLSearchParams({ cid: cliente_id, subtipo, codigo, monto: String(monto), t });
+    const payment_url = `${BASE_URL}/webpay-rec.html?${qs.toString()}`;
+    return res.json({ ok: true, payment_url });
   } catch(e) {
     return res.status(500).json({ error: 'Error interno: ' + e.message });
   }
@@ -810,7 +740,7 @@ async function handleWebpayReturn(req, res) {
   await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, {
     method: 'PATCH',
     headers: { ...sh, Prefer: 'return=minimal' },
-    body: JSON.stringify({ estado: 'confirmed', estado_pago: 'pagado', metodo_pago: 'webpay' })
+    body: JSON.stringify({ estado: 'confirmed', estado_pago: 'pagado', metodo_pago: 'webpay', webpay_voucher: commitData })
   }).catch(e => console.error('webpay_return: patch cita error:', e.message));
 
   // Fire-and-forget: send confirmation email
@@ -865,6 +795,433 @@ async function handleWebpayReturn(req, res) {
   return redir('ok');
 }
 
+/* ════════════════════════════════════════════
+   WEBPAY — Suscripciones y Recordatorios
+   ════════════════════════════════════════════ */
+
+async function getAttempoWebpayCredentials(sh) {
+  const atCid = process.env.ATTEMPO_VENTAS_CLIENT_ID;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(atCid)}&select=metodos_pago&limit=1`, { headers: sh });
+  const [cli] = await r.json();
+  return cli?.metodos_pago || {};
+}
+
+async function handleWebpaySubCreate(req, res) {
+  const { cid, plan, monto, tipo_plan = '', t } = req.body || {};
+  const errHtml = msg => { res.setHeader('Content-Type','text/html;charset=utf-8'); return res.status(400).send(`<!DOCTYPE html><html><body><p>${htmlEscape(msg)}</p></body></html>`); };
+  if (!cid || !plan || !monto || !t) return errHtml('Parámetros inválidos.');
+  if (t !== generateSubToken(cid, plan, monto, tipo_plan)) return errHtml('Token inválido.');
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const mp  = await getAttempoWebpayCredentials(sh);
+  if (!mp.webpay_commerce_code || !mp.webpay_api_key_secret) return errHtml('Webpay no está configurado en attempo.');
+
+  const baseUrl  = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
+  const montoInt = Math.round(Number(monto));
+  const TIPO_CODES = { inicio:'i', pro:'p', clinica_ia:'c' };
+  const tc       = TIPO_CODES[tipo_plan] || 'x';
+  const suffix   = String(Date.now() % 1000000).padStart(6, '0');
+  const buy_order = `SUB${plan[0]}${tc}${cid.replace(/-/g,'').slice(0,14)}${suffix}`.slice(0, 26);
+  const return_url = `${BASE_URL}/api/flow?tipo=webpay_sub_return&cid=${encodeURIComponent(cid)}&plan=${encodeURIComponent(plan)}&tipo_plan=${encodeURIComponent(tipo_plan)}`;
+
+  let initData;
+  try {
+    const r = await fetch(`${baseUrl}/transactions`, { method:'POST', headers:webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret), body:JSON.stringify({ buy_order, session_id:cid, amount:montoInt, return_url }) });
+    initData = await r.json();
+    if (!r.ok || !initData.token || !initData.url) { console.error('webpay_sub_create error:', JSON.stringify(initData)); return errHtml(`Error al iniciar pago: ${JSON.stringify(initData)}`); }
+  } catch(e) { console.error('webpay_sub_create fetch error:', e.message); return errHtml('No se pudo conectar con Webpay. Intenta nuevamente.'); }
+
+  const url = htmlEscape(initData.url); const tkn = htmlEscape(initData.token);
+  res.setHeader('Content-Type','text/html;charset=utf-8');
+  return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Redirigiendo...</title></head><body><form id="f" method="POST" action="${url}"><input type="hidden" name="token_ws" value="${tkn}"></form><script>document.getElementById('f').submit();</script></body></html>`);
+}
+
+async function handleWebpaySubReturn(req, res) {
+  const cid       = req.query?.cid || null;
+  const plan      = req.query?.plan || null;
+  const tipo_plan = req.query?.tipo_plan || null;
+  const token_ws  = req.body?.token_ws || req.query?.token_ws || null;
+  const TBK_TOKEN = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN || null;
+
+  const redir = r => { const dest = `${BASE_URL}/pago-exitoso.html?tipo=plan&resultado=${r}${plan?'&plan='+encodeURIComponent(plan):''}`;res.setHeader('Content-Type','text/html;charset=utf-8');return res.status(200).send(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${dest}"></head><body></body></html>`); };
+
+  if (TBK_TOKEN && !token_ws) return redir('cancelado');
+  if (!token_ws) return redir('error');
+  if (!cid || !plan) return redir('error');
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const mp  = await getAttempoWebpayCredentials(sh);
+  const baseUrl = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
+
+  let commitData;
+  try {
+    const r = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, { method:'PUT', headers:webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret), signal:AbortSignal.timeout(15000) });
+    commitData = await r.json();
+    console.log(`WP_SUB_RET rc=${commitData.response_code??'absent'} plan=${plan} cid=${cid}`);
+  } catch(e) { console.error('webpay_sub_return PUT error:', e.message); return redir('error'); }
+
+  if (Number(commitData.response_code) !== 0) return redir('rechazado');
+
+  const monto = Math.round(Number(commitData.amount || 0));
+  const dias  = plan === 'anual' ? 365 : 30;
+  const fecha_expiracion = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
+  const patchData = { activo:true, plan, fecha_expiracion };
+  if (tipo_plan) patchData.tipo_plan = tipo_plan;
+
+  await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}`, { method:'PATCH', headers:{...sh,Prefer:'return=minimal'}, body:JSON.stringify(patchData) }).catch(e => console.error('webpay_sub_return patch error:', e.message));
+  await fetch(`${SUPABASE_URL}/rest/v1/pagos`, { method:'POST', headers:{...sh,Prefer:'return=minimal'}, body:JSON.stringify({ cliente_id:cid, plan, monto, plataforma:'webpay', referencia:commitData.buy_order||token_ws }) }).catch(e => console.error('webpay_sub_return insert pagos error:', e.message));
+
+  // Notificación interna para emitir boleta manualmente en SII
+  (async () => {
+    try {
+      if (!process.env.RESEND_API_KEY) return;
+      const rc = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=nombre_negocio,email,rut&limit=1`, { headers: sh });
+      const [cli] = await rc.json();
+      const PLAN_LABELS = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Clínica IA' };
+      const planLabel = `${PLAN_LABELS[tipo_plan] ? PLAN_LABELS[tipo_plan] + ' ' : ''}${plan === 'anual' ? 'Anual' : 'Mensual'}`;
+      const fechaHoy  = new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+      const montoFmt  = `$${monto.toLocaleString('es-CL')}`;
+      const referencia = commitData.buy_order || token_ws || '—';
+
+      const html = `<div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;padding:32px 24px">
+        <img src="${BASE_URL}/logo_attempo.png" alt="attempo" style="height:32px;margin-bottom:24px">
+        <h2 style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 6px">💰 Nuevo pago de suscripción recibido</h2>
+        <p style="font-size:13px;color:#6b7280;margin:0 0 24px">${fechaHoy}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px">
+          <tr style="border-bottom:1px solid #e5e7eb"><td style="padding:10px 0;color:#6b7280;width:40%">Negocio</td><td style="padding:10px 0;font-weight:600;color:#1a1a2e">${cli?.nombre_negocio || '—'}</td></tr>
+          <tr style="border-bottom:1px solid #e5e7eb"><td style="padding:10px 0;color:#6b7280">Email cliente</td><td style="padding:10px 0;color:#1a1a2e">${cli?.email || '—'}</td></tr>
+          ${cli?.rut ? `<tr style="border-bottom:1px solid #e5e7eb"><td style="padding:10px 0;color:#6b7280">RUT</td><td style="padding:10px 0;color:#1a1a2e">${cli.rut}</td></tr>` : ''}
+          <tr style="border-bottom:1px solid #e5e7eb"><td style="padding:10px 0;color:#6b7280">Plan</td><td style="padding:10px 0;font-weight:600;color:#6C5CE4">${planLabel}</td></tr>
+          <tr style="border-bottom:1px solid #e5e7eb"><td style="padding:10px 0;color:#6b7280">Monto</td><td style="padding:10px 0;font-weight:700;font-size:18px;color:#1a1a2e">${montoFmt}</td></tr>
+          <tr style="border-bottom:1px solid #e5e7eb"><td style="padding:10px 0;color:#6b7280">Plataforma</td><td style="padding:10px 0;color:#1a1a2e">Webpay (Transbank)</td></tr>
+          <tr><td style="padding:10px 0;color:#6b7280">Referencia</td><td style="padding:10px 0;font-size:12px;color:#6b7280;font-family:monospace">${referencia}</td></tr>
+        </table>
+        <a href="https://www4.sii.cl/bolcvInternet/" target="_blank" style="display:inline-block;background:#6C5CE4;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Emitir boleta en SII →</a>
+        <p style="font-size:12px;color:#9ca3af;margin-top:20px">Recuerda emitir la boleta electrónica por ${montoFmt} a nombre de ${cli?.nombre_negocio || 'este cliente'}.</p>
+      </div>`;
+
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: 'attempo <noreply@attempo.cl>', to: ['contacto@attempo.cl'], subject: `💰 Nuevo pago — ${cli?.nombre_negocio || cid} (${planLabel} ${montoFmt})`, html })
+      });
+    } catch(e) { console.error('webpay_sub_return email notif error:', e.message); }
+  })();
+
+  console.log('webpay_sub_return: plan activado cliente_id=', cid, 'plan=', plan);
+  return redir('ok');
+}
+
+async function handleWebpayRecCreate(req, res) {
+  const { cid, subtipo, codigo, monto, t } = req.body || {};
+  const errHtml = msg => { res.setHeader('Content-Type','text/html;charset=utf-8'); return res.status(400).send(`<!DOCTYPE html><html><body><p>${htmlEscape(msg)}</p></body></html>`); };
+  if (!cid || !subtipo || !codigo || !monto || !t) return errHtml('Parámetros inválidos.');
+  if (t !== generateRecToken(cid, subtipo, codigo, monto)) return errHtml('Token inválido.');
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const mp  = await getAttempoWebpayCredentials(sh);
+  if (!mp.webpay_commerce_code || !mp.webpay_api_key_secret) return errHtml('Webpay no está configurado en attempo.');
+
+  const baseUrl  = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
+  const montoInt = Math.round(Number(monto));
+  const tc       = subtipo === 'topup' ? 'T' : 'M';
+  const suffix   = String(Date.now() % 1000000).padStart(6, '0');
+  const buy_order = `REC${tc}${codigo}${cid.replace(/-/g,'').slice(0,13)}${suffix}`.slice(0, 26);
+  const return_url = `${BASE_URL}/api/flow?tipo=webpay_rec_return&cid=${encodeURIComponent(cid)}&subtipo=${encodeURIComponent(subtipo)}&codigo=${encodeURIComponent(codigo)}`;
+
+  let initData;
+  try {
+    const r = await fetch(`${baseUrl}/transactions`, { method:'POST', headers:webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret), body:JSON.stringify({ buy_order, session_id:cid, amount:montoInt, return_url }) });
+    initData = await r.json();
+    if (!r.ok || !initData.token || !initData.url) { console.error('webpay_rec_create error:', JSON.stringify(initData)); return errHtml(`Error al iniciar pago: ${JSON.stringify(initData)}`); }
+  } catch(e) { console.error('webpay_rec_create fetch error:', e.message); return errHtml('No se pudo conectar con Webpay. Intenta nuevamente.'); }
+
+  const url = htmlEscape(initData.url); const tkn = htmlEscape(initData.token);
+  res.setHeader('Content-Type','text/html;charset=utf-8');
+  return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Redirigiendo...</title></head><body><form id="f" method="POST" action="${url}"><input type="hidden" name="token_ws" value="${tkn}"></form><script>document.getElementById('f').submit();</script></body></html>`);
+}
+
+async function handleWebpayRecReturn(req, res) {
+  const cid     = req.query?.cid || null;
+  const subtipo = req.query?.subtipo || null;
+  const codigo  = req.query?.codigo || null;
+  const token_ws  = req.body?.token_ws || req.query?.token_ws || null;
+  const TBK_TOKEN = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN || null;
+
+  const redir = r => { const dest = r === 'ok' ? `${BASE_URL}/admin.html?rec_ok=1` : `${BASE_URL}/admin.html?rec_error=${r}`;res.setHeader('Content-Type','text/html;charset=utf-8');return res.status(200).send(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${dest}"></head><body></body></html>`); };
+
+  if (TBK_TOKEN && !token_ws) return redir('cancelado');
+  if (!token_ws) return redir('error');
+  if (!cid || !subtipo || !codigo) return redir('error');
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const mp  = await getAttempoWebpayCredentials(sh);
+  const baseUrl = mp.webpay_sandbox ? WEBPAY_INT_URL : WEBPAY_PROD_URL;
+
+  let commitData;
+  try {
+    const r = await fetch(`${baseUrl}/transactions/${encodeURIComponent(token_ws)}`, { method:'PUT', headers:webpayHeaders(mp.webpay_commerce_code, mp.webpay_api_key_secret), signal:AbortSignal.timeout(15000) });
+    commitData = await r.json();
+  } catch(e) { console.error('webpay_rec_return PUT error:', e.message); return redir('error'); }
+
+  if (Number(commitData.response_code) !== 0) return redir('rechazado');
+
+  const mapa = subtipo === 'topup' ? REC_TOPUP : subtipo === 'mensual' ? REC_MENSUAL : null;
+  if (!mapa || !mapa[codigo]) return redir('error');
+  const cantidad = mapa[codigo].cant;
+
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=rec_mes_limit_extra,rec_limite_extra_mensual,rec_mes_key&limit=1`, { headers: sh });
+  const [cli] = await cr.json();
+  const mesActual = new Date().toISOString().slice(0, 7);
+  const patch = subtipo === 'topup'
+    ? { rec_mes_limit_extra: ((cli?.rec_mes_key === mesActual ? cli.rec_mes_limit_extra : 0) || 0) + cantidad, rec_mes_key: mesActual }
+    : { rec_limite_extra_mensual: (cli?.rec_limite_extra_mensual || 0) + cantidad };
+
+  await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}`, { method:'PATCH', headers:{...sh,Prefer:'return=minimal'}, body:JSON.stringify(patch) }).catch(e => console.error('webpay_rec_return patch error:', e.message));
+
+  console.log(`webpay_rec_return: +${cantidad} recordatorios (${subtipo}) cliente=${cid}`);
+  return redir('ok');
+}
+
+/* ════════════════════════════════════════════
+   MERCADO PAGO — OAuth + Pagos
+   ════════════════════════════════════════════ */
+
+async function refreshMPToken(cid, mp, sh) {
+  if (!mp.mp_refresh_token) return null;
+  try {
+    const tr = await fetch('https://api.mercadopago.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ grant_type: 'refresh_token', client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, refresh_token: mp.mp_refresh_token })
+    });
+    const td = await tr.json();
+    if (!td.access_token) { console.error('refreshMPToken: no access_token', JSON.stringify(td)); return null; }
+    mp.mp_access_token  = td.access_token;
+    mp.mp_refresh_token = td.refresh_token || mp.mp_refresh_token;
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}`, {
+      method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+      body: JSON.stringify({ metodos_pago: mp })
+    });
+    return td.access_token;
+  } catch(e) { console.error('refreshMPToken error:', e.message); return null; }
+}
+
+async function handleMPConnect(req, res) {
+  const cid = req.query.cid;
+  if (!cid) return res.status(400).send('Missing cid');
+  const state = Buffer.from(JSON.stringify({ cid })).toString('base64url');
+  const redirectUri = process.env.MP_REDIRECT_URI || `${BASE_URL}/api/flow?tipo=mp_callback`;
+  const url = `https://auth.mercadopago.com/authorization?client_id=${process.env.MP_CLIENT_ID}&response_type=code&platform_id=mp&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  return res.redirect(302, url);
+}
+
+async function handleMPCallback(req, res) {
+  const { code, state, error } = req.query;
+  if (error || !code) {
+    console.error('mp_callback error:', error || 'no code');
+    return res.redirect(302, '/admin.html?mp_error=1');
+  }
+  let cid;
+  try { cid = JSON.parse(Buffer.from(state, 'base64url').toString()).cid; }
+  catch(e) { return res.status(400).send('Invalid state'); }
+
+  const redirectUri = process.env.MP_REDIRECT_URI || `${BASE_URL}/api/flow?tipo=mp_callback`;
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  let tokenData;
+  try {
+    const tr = await fetch('https://api.mercadopago.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, grant_type: 'authorization_code', code, redirect_uri: redirectUri })
+    });
+    tokenData = await tr.json();
+  } catch(e) { console.error('mp_callback token exchange:', e.message); return res.redirect(302, '/admin.html?mp_error=1'); }
+
+  if (!tokenData.access_token) { console.error('mp_callback: no token', JSON.stringify(tokenData)); return res.redirect(302, '/admin.html?mp_error=1'); }
+
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago&limit=1`, { headers: sh });
+    const [cli] = await r.json();
+    const mp = cli?.metodos_pago || {};
+    mp.mp_connected    = true;
+    mp.mp_access_token = tokenData.access_token;
+    mp.mp_refresh_token= tokenData.refresh_token || null;
+    mp.mp_user_id      = String(tokenData.user_id || '');
+    mp.mp_public_key   = tokenData.public_key || null;
+    mp.mp_sandbox      = false;
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}`, { method:'PATCH', headers:{...sh,Prefer:'return=minimal'}, body:JSON.stringify({metodos_pago:mp}) });
+  } catch(e) { console.error('mp_callback: save token:', e.message); return res.redirect(302, '/admin.html?mp_error=1'); }
+
+  return res.redirect(302, '/admin.html?mp_connected=1');
+}
+
+async function handleMPDisconnect(req, res) {
+  const session = verifySessionToken(req.headers['x-session-token']);
+  if (!session) return res.status(401).json({ error: 'No autorizado' });
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const cid = session.cliente_id;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}&select=metodos_pago&limit=1`, { headers: sh });
+    const [cli] = await r.json();
+    const mp = cli?.metodos_pago || {};
+    delete mp.mp_connected; delete mp.mp_access_token; delete mp.mp_refresh_token; delete mp.mp_user_id; delete mp.mp_public_key;
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cid)}`, { method:'PATCH', headers:{...sh,Prefer:'return=minimal'}, body:JSON.stringify({metodos_pago:mp}) });
+    return res.json({ ok: true });
+  } catch(e) { return res.status(500).json({ error: e.message }); }
+}
+
+async function confirmMPPayment(paymentId, cita_id) {
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=*&limit=1`, { headers: sh });
+  const [cita] = await cr.json();
+  if (!cita || cita.estado_pago === 'pagado') return;
+
+  // Get seller token to fetch payment details
+  const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,metodos_pago&limit=1`, { headers: sh });
+  const [cli] = await rcli.json();
+  let sellerToken = cli?.metodos_pago?.mp_access_token || process.env.MP_ACCESS_TOKEN;
+
+  // Fetch payment details for voucher
+  let mp_voucher = { payment_id: String(paymentId) };
+  try {
+    let pr = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${sellerToken}`, Accept: 'application/json' }
+    });
+    if (pr.status === 401 && cli?.metodos_pago?.mp_refresh_token) {
+      const mp = cli.metodos_pago;
+      const newToken = await refreshMPToken(cita.cliente_id, mp, sh);
+      if (newToken) {
+        sellerToken = newToken;
+        pr = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+          headers: { Authorization: `Bearer ${sellerToken}`, Accept: 'application/json' }
+        });
+      }
+    }
+    const pd = await pr.json();
+    if (pd.status === 'approved') {
+      mp_voucher = {
+        payment_id:   String(pd.id),
+        amount:       pd.transaction_amount,
+        date:         pd.date_approved || pd.date_created,
+        card_last4:   pd.card?.last_four_digits || null,
+        card_brand:   pd.payment_method_id || null,
+        installments: pd.installments || 1,
+        payer_email:  pd.payer?.email || null,
+        status:       pd.status
+      };
+    }
+  } catch(e) { console.error('mp_confirm fetch payment:', e.message); }
+
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, {
+    method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+    body: JSON.stringify({ estado: 'confirmed', estado_pago: 'pagado', metodo_pago: 'mercadopago', mp_payment_id: String(paymentId), mp_voucher })
+  });
+
+  if (cita.email_paciente) {
+    try {
+      const fechaFmt = cita.fecha ? new Date(cita.fecha+'T12:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'}) : '';
+      const emailHtml = `<div style="font-family:Inter,sans-serif;max-width:520px;margin:auto;padding:32px 24px"><img src="${BASE_URL}/logo_attempo.png" alt="attempo" style="height:36px;margin-bottom:28px"><h2 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 8px">¡Pago confirmado!</h2><p style="font-size:14px;color:#6b7280;margin:0 0 24px">Hola ${cita.nombre_paciente||''}, tu pago fue procesado correctamente. Tu cita${fechaFmt?' del '+fechaFmt:''} en <strong>${cli?.nombre_negocio||'attempo'}</strong> está confirmada.</p><div style="background:#f0fdf4;border-radius:12px;padding:20px;margin-bottom:24px;border:1.5px solid #22c55e"><div style="font-size:13px;color:#15803d;margin-bottom:4px">Total pagado</div><div style="font-size:28px;font-weight:700;color:#1a1a2e">$${Number(cita.precio||0).toLocaleString('es-CL')}</div><div style="font-size:12px;color:#6b7280;margin-top:4px">N° operación: ${paymentId}</div></div><p style="font-size:12px;color:#9ca3af;text-align:center">Pago procesado por Mercado Pago</p></div>`;
+      await fetch('https://api.resend.com/emails', { method:'POST', headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ from:'attempo <noreply@attempo.cl>', to:[cita.email_paciente], subject:`Pago confirmado — ${cli?.nombre_negocio||'attempo'}`, html:emailHtml }) });
+    } catch(e) { console.error('mp_confirm email:', e.message); }
+  }
+}
+
+async function handleMPWebhook(req, res) {
+  const paymentId = req.query.id || req.query['data.id'] || req.body?.data?.id;
+  const topic = req.query.topic || req.query.type || req.body?.type;
+  res.status(200).end();
+  if ((topic !== 'payment' && topic !== 'payments') || !paymentId) return;
+  try {
+    const appToken = process.env.MP_ACCESS_TOKEN;
+    if (!appToken) return;
+    const pr = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${appToken}`, Accept: 'application/json' }
+    });
+    const payment = await pr.json();
+    if (payment.status !== 'approved' || !payment.external_reference) return;
+    await confirmMPPayment(paymentId, payment.external_reference);
+  } catch(e) { console.error('mp_webhook error:', e.message); }
+}
+
+async function handleMPConfirm(req, res) {
+  const { payment_id, cita_id, collection_status } = req.query;
+  if (!payment_id || !cita_id || collection_status !== 'approved') return res.status(400).json({ error: 'Datos inválidos' });
+  try {
+    await confirmMPPayment(payment_id, cita_id);
+    return res.json({ ok: true });
+  } catch(e) { return res.status(500).json({ error: e.message }); }
+}
+
+async function handleMPCreate(req, res, session) {
+  const { cita_id } = req.body || {};
+  if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const cr = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=*&limit=1`, { headers: sh });
+  const [cita] = await cr.json();
+  if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
+  if (session.rol !== 'superadmin' && cita.cliente_id !== session.cliente_id) return res.status(403).json({ error: 'Sin permiso' });
+  if (!cita.email_paciente) return res.status(400).json({ error: 'La cita no tiene email del paciente' });
+  if (!cita.precio)         return res.status(400).json({ error: 'La cita no tiene precio asignado' });
+
+  const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,metodos_pago&limit=1`, { headers: sh });
+  const [cli] = await rcli.json();
+  const mpToken = cli?.metodos_pago?.mp_access_token;
+  if (!mpToken) return res.status(400).json({ error: 'Mercado Pago no está conectado. Ve a Configuración → Pagos.' });
+
+  let nombre_especialista = null;
+  if (cita.especialista_id) { try { const re = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${cita.especialista_id}&select=nombre&limit=1`,{headers:sh}); const [e]=await re.json(); nombre_especialista=e?.nombre||null; } catch(_){} }
+
+  const fechaFmt = cita.fecha ? new Date(cita.fecha+'T12:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'}) : '';
+  const preference = {
+    items:[{ id:cita_id, title:`${cita.servicio||'Consulta'}${fechaFmt?' — '+fechaFmt:''}`, quantity:1, currency_id:'CLP', unit_price:Number(cita.precio) }],
+    payer:{ name:(cita.nombre_paciente||'').split(' ')[0]||'', email:cita.email_paciente },
+    back_urls:{ success:`${BASE_URL}/pago-mp.html?cita=${cita_id}&status=success`, failure:`${BASE_URL}/pago-mp.html?cita=${cita_id}&status=failure`, pending:`${BASE_URL}/pago-mp.html?cita=${cita_id}&status=pending` },
+    auto_return:'approved', external_reference:cita_id, marketplace:process.env.MP_CLIENT_ID, marketplace_fee:0,
+    notification_url:`${BASE_URL}/api/flow?tipo=mp_webhook`
+  };
+
+  let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+    method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:`Bearer ${mpToken}`}, body:JSON.stringify(preference)
+  });
+  let prefData = await prefResp.json();
+  if (prefResp.status === 401 || prefData?.error === 'invalid_token') {
+    const mp = cli?.metodos_pago || {};
+    const newToken = await refreshMPToken(cita.cliente_id, mp, sh);
+    if (!newToken) return res.status(400).json({ error: 'El token de Mercado Pago expiró. El profesional debe reconectar su cuenta en Configuración → Pagos.' });
+    prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:`Bearer ${newToken}`}, body:JSON.stringify(preference)
+    });
+    prefData = await prefResp.json();
+  }
+  if (!prefData.init_point) { console.error('mp_create error:', JSON.stringify(prefData)); return res.status(500).json({ error: prefData.message||'Error al crear preferencia MP' }); }
+
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`,{ method:'PATCH', headers:{...sh,Prefer:'return=minimal'}, body:JSON.stringify({estado:'pending_payment',metodo_pago:'mercadopago'}) }).catch(()=>{});
+
+  const isSandbox = !!cli?.metodos_pago?.mp_sandbox;
+  const pago_url = isSandbox ? prefData.sandbox_init_point : prefData.init_point;
+  const emailHtml = `<div style="font-family:Inter,sans-serif;max-width:520px;margin:auto;padding:32px 24px"><img src="${BASE_URL}/logo_attempo.png" alt="attempo" style="height:36px;margin-bottom:28px"><h2 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 8px">Tienes un pago pendiente</h2><p style="font-size:14px;color:#6b7280;margin:0 0 24px">Hola ${cita.nombre_paciente||''}, te enviamos el link de pago para tu cita${fechaFmt?' del '+fechaFmt:''} en <strong>${cli?.nombre_negocio||'attempo'}</strong>.</p><div style="background:#f5f3ff;border-radius:12px;padding:20px;margin-bottom:24px"><div style="font-size:13px;color:#6b7280;margin-bottom:4px">Total a pagar</div><div style="font-size:28px;font-weight:700;color:#1a1a2e">$${Number(cita.precio).toLocaleString('es-CL')}</div>${nombre_especialista?`<div style="font-size:12px;color:#6b7280;margin-top:4px">Con ${nombre_especialista}</div>`:''}</div><a href="${pago_url}" style="display:block;text-align:center;background:#009ee3;color:#fff;padding:14px 24px;border-radius:10px;text-decoration:none;font-size:15px;font-weight:700;margin-bottom:16px">Pagar con Mercado Pago →</a><p style="font-size:12px;color:#9ca3af;text-align:center">Pago seguro procesado por Mercado Pago</p></div>`;
+
+  let email_error = null;
+  try {
+    const er = await fetch('https://api.resend.com/emails',{ method:'POST', headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ from:'attempo <noreply@attempo.cl>', to:[cita.email_paciente], subject:`Pago de tu cita — ${cli?.nombre_negocio||'attempo'}`, html:emailHtml }) });
+    if (!er.ok) { const ed=await er.json(); email_error=ed?.message||'Error email'; console.error('mp_create email:',email_error); }
+  } catch(e) { email_error=e.message; }
+
+  return res.json({ ok:true, url:pago_url, email_error:email_error||null });
+}
+
 export default async function handler(req, res) {
   // Flow redirige el browser aquí después del pago (puede ser iframe o navegación directa)
   if (req.query?.ret === '1') {
@@ -879,16 +1236,21 @@ export default async function handler(req, res) {
     return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=${dest}"><script>try{window.top.location.replace(${JSON.stringify(dest)})}catch(e){window.location.replace(${JSON.stringify(dest)})}</script></head><body></body></html>`);
   }
 
-  if (req.query?.tipo === 'webpay_return') return handleWebpayReturn(req, res);
+  if (req.query?.tipo === 'webpay_return')     return handleWebpayReturn(req, res);
+  if (req.query?.tipo === 'webpay_sub_return') return handleWebpaySubReturn(req, res);
+  if (req.query?.tipo === 'webpay_rec_return') return handleWebpayRecReturn(req, res);
+
+  if (req.query?.tipo === 'mp_connect')   return handleMPConnect(req, res);
+  if (req.query?.tipo === 'mp_callback')  return handleMPCallback(req, res);
+  if (req.query?.tipo === 'mp_disconnect') return handleMPDisconnect(req, res);
+  if (req.query?.tipo === 'mp_webhook')   return handleMPWebhook(req, res);
+  if (req.query?.tipo === 'mp_confirm')   return handleMPConfirm(req, res);
 
   if (req.method !== 'POST') return res.status(405).end();
 
-  if (req.query?.tipo === 'webpay_create') return handleWebpayCreate(req, res);
-
-  // Claves de plataforma requeridas solo para suscripciones/recordatorios/webhooks (no para pagos de citas)
-  if (!req.body?.cita_id && (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY)) {
-    return res.status(503).json({ error: 'Pagos con Flow no están configurados' });
-  }
+  if (req.query?.tipo === 'webpay_create')     return handleWebpayCreate(req, res);
+  if (req.query?.tipo === 'webpay_sub_create') return handleWebpaySubCreate(req, res);
+  if (req.query?.tipo === 'webpay_rec_create') return handleWebpayRecCreate(req, res);
 
   // — Webhook de Flow: confirmación de pago (sin sesión, con token en body) —
   if (req.body?.token && !req.body.cita_id && !req.body.tipo) {
@@ -921,6 +1283,7 @@ export default async function handler(req, res) {
   if (!session) return res.status(401).json({ error: 'No autorizado' });
 
   if (req.body?.tipo === 'webpay_init') return handleWebpayInit(req, res, session);
+  if (req.body?.tipo === 'mp_create')   return handleMPCreate(req, res, session);
 
   const { cita_id, enviar_email = true } = req.body || {};
   if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });

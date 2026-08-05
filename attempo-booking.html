@@ -516,7 +516,8 @@ function renderServicios(servicios) {
   list.innerHTML = servicios.map(s => {
     const icon    = iconSvc(s.nombre);
     const durStr  = s.duracion ? `${s.duracion} min` : '';
-    const precioStr = s.precio ? `$${Number(s.precio).toLocaleString('es-CL')}` : '';
+    const precioBase = s.precio ? Number(s.precio) : 0;
+    const precioStr = precioBase ? `$${precioBase.toLocaleString('es-CL')}` : '';
     const dataStr = JSON.stringify({ nom: s.nombre, duracion: s.duracion || 60, precio: s.precio || 0, icon });
     return `<div class="svc-row" data-svc='${dataStr.replace(/'/g,"&#39;")}' onclick="selSvc(this)">
       <div class="svc-icon">${icon}</div>

@@ -782,7 +782,7 @@ export default async function handler(req, res) {
 
       // Generar PDF una sola vez si algún canal lo necesita
       let pdfBuf = null;
-      const needPdf = canales?.includes('email') || canales?.includes('whatsapp');
+      const needPdf = canales?.includes('email');
       if (needPdf) {
         try { pdfBuf = await buildCotizacionPDF({ cot, cli }); } catch(e) { errors.push('pdf-gen: ' + e.message); }
       }
@@ -811,38 +811,53 @@ export default async function handler(req, res) {
         } catch(e) { errors.push('email: ' + e.message); }
       }
 
-      // WHATSAPP — sube PDF a Storage y lo envía como documento
-      if (canales?.includes('whatsapp') && cot.datos_destinatario?.telefono && cli?.canales_meta?.wa_phone_number_id && cli?.canales_meta?.wa_token) {
-        let phone = String(cot.datos_destinatario.telefono).replace(/\D/g,'');
-        if (!phone.startsWith('56') && phone.length === 9) phone = '56' + phone;
-        try {
-          let waBody;
-          if (pdfBuf) {
-            // Subir PDF a Storage para obtener URL pública
-            const pdfPath = `cotizaciones-pdf/${cid}_${cot.numero || Date.now()}.pdf`;
-            const upR = await fetch(`${_CURL}/storage/v1/object/cotizaciones/${pdfPath}`, {
-              method: 'POST',
-              headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
-              body: pdfBuf
-            });
-            if (upR.ok) {
-              const pdfUrl = `${_CURL}/storage/v1/object/public/cotizaciones/${pdfPath}`;
-              waBody = { messaging_product: 'whatsapp', to: phone, type: 'document', document: { link: pdfUrl, filename: `Cotizacion-${cot.numero || 'nueva'}.pdf`, caption: `Cotización N° ${cot.numero} por ${totalFmt}. Revísala y respóndela aquí: ${publicUrl}` } };
+      // WHATSAPP — template primero (sin restricción 24h), fallback a texto libre
+      if (canales?.includes('whatsapp')) {
+        if (!cot.datos_destinatario?.telefono) {
+          errors.push('whatsapp: falta teléfono del destinatario');
+        } else if (!cli?.canales_meta?.wa_phone_number_id || !cli?.canales_meta?.wa_token) {
+          errors.push('whatsapp: canal no configurado (falta Phone Number ID o token)');
+        } else {
+          let phone = String(cot.datos_destinatario.telefono).replace(/\D/g,'');
+          if (!phone.startsWith('56') && phone.length === 9) phone = '56' + phone;
+          const firstName = cot.datos_destinatario?.nombre ? cot.datos_destinatario.nombre.split(' ')[0] : 'cliente';
+          const waUrl = `https://graph.facebook.com/v21.0/${cli.canales_meta.wa_phone_number_id}/messages`;
+          const waHeaders = { Authorization: `Bearer ${cli.canales_meta.wa_token}`, 'Content-Type': 'application/json' };
+          try {
+            // Intento 1: template aprobado (llega a cualquier número sin restricción de 24h)
+            const templateBody = {
+              messaging_product: 'whatsapp', to: phone, type: 'template',
+              template: {
+                name: 'cotizacion_nueva', language: { code: 'es' },
+                components: [{ type: 'body', parameters: [
+                  { type: 'text', text: firstName },
+                  { type: 'text', text: String(cot.numero || '') },
+                  { type: 'text', text: totalFmt },
+                  { type: 'text', text: publicUrl }
+                ]}]
+              }
+            };
+            const wR = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(templateBody) });
+            if (!wR.ok) {
+              const wErr = await wR.json().catch(() => ({}));
+              const errCode = wErr.error?.code;
+              // Template aún no aprobado o no existe → fallback a texto libre (funciona dentro de 24h)
+              if (errCode === 132001 || errCode === 132000 || errCode === 100 || String(wErr.error?.message || '').includes('template')) {
+                const textBody = {
+                  messaging_product: 'whatsapp', to: phone, type: 'text',
+                  text: { body: `Hola ${firstName}, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nRevísala y respóndela aquí:\n${publicUrl}` }
+                };
+                const wR2 = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(textBody) });
+                if (!wR2.ok) {
+                  const wErr2 = await wR2.json().catch(() => ({}));
+                  errors.push('whatsapp: ' + (wErr2.error?.message || wR2.status));
+                }
+              } else {
+                errors.push('whatsapp: ' + (wErr.error?.message || wR.status));
+              }
             }
-          }
-          if (!waBody) {
-            waBody = { messaging_product: 'whatsapp', to: phone, type: 'text', text: { body: `Hola, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nRevísala y respóndela aquí:\n${publicUrl}` } };
-          }
-          const wR = await fetch(`https://graph.facebook.com/v20.0/${cli.canales_meta.wa_phone_number_id}/messages`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${cli.canales_meta.wa_token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(waBody)
-          });
-          if (!wR.ok) {
-            const wErr = await wR.json().catch(() => ({}));
-            errors.push('whatsapp: ' + (wErr.error?.message || wR.status));
-          }
-        } catch(e) { errors.push('whatsapp: ' + e.message); }
+          } catch(e) { errors.push('whatsapp: ' + e.message); }
+        }
       }
 
       await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
@@ -857,7 +872,7 @@ export default async function handler(req, res) {
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'id requerido' });
-      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}&estado=eq.borrador`, {
+      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
         method: 'DELETE', headers: _cshG
       });
       return res.status(200).json({ ok: true });
@@ -880,12 +895,55 @@ export default async function handler(req, res) {
       const { token, accion, comentario } = req.body || {};
       if (!token || !['aceptada','rechazada'].includes(accion)) return res.status(400).json({ error: 'Datos inválidos' });
       const rCheck = await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}&estado=eq.enviada&limit=1`, { headers: _cshG });
-      if (!(await rCheck.json())[0]) return res.status(409).json({ error: 'Esta cotización ya fue respondida o no está disponible' });
+      const cot = (await rCheck.json())[0];
+      if (!cot) return res.status(409).json({ error: 'Esta cotización ya fue respondida o no está disponible' });
       await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}`, {
         method: 'PATCH', headers: _csh,
         body: JSON.stringify({ estado: accion, respuesta: { accion, comentario: comentario || null, fecha: new Date().toISOString() } })
       });
-      return res.status(200).json({ ok: true, estado: accion });
+
+      // Si acepta y el negocio tiene Flow configurado → generar link de pago
+      let payment_url = null;
+      if (accion === 'aceptada') {
+        try {
+          const rCli = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}&select=nombre_negocio,metodos_pago&limit=1`, { headers: _cshG });
+          const cli = (await rCli.json())[0];
+          const mp = cli?.metodos_pago || {};
+          if (mp.flow_api_key && mp.flow_secret_key) {
+            const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0) * (parseFloat(it.cantidad)||1) * (1 - (parseFloat(it.descuento)||0)/100), 0);
+            const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
+            if (total > 0) {
+              const flowApiUrl = mp.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
+              const commerceOrder = 'CT' + cot.id.replace(/-/g, '');
+              const params = {
+                apiKey:          mp.flow_api_key,
+                commerceOrder,
+                subject:         `Cotización N° ${cot.numero || ''} — ${cli.nombre_negocio || 'attempo'}`.slice(0, 255),
+                currency:        'CLP',
+                amount:          String(total),
+                email:           cot.datos_destinatario?.email || '',
+                urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cot.cliente_id}`,
+                urlReturn:       `${BASE_URL}/cotizacion?token=${token}&pago=ok`
+              };
+              const signStr = Object.keys(params).sort().map(k => k + params[k]).join('');
+              params.s = crypto.createHmac('sha256', mp.flow_secret_key).update(signStr).digest('hex');
+              const fR = await fetch(`${flowApiUrl}/payment/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(params)
+              });
+              const fD = await fR.json();
+              if (fR.ok && !fD.code) {
+                payment_url = `${fD.url}?token=${fD.token}`;
+              } else {
+                console.error('cot-responder flow error:', JSON.stringify(fD));
+              }
+            }
+          }
+        } catch(e) { console.error('cot-responder flow:', e.message); }
+      }
+
+      return res.status(200).json({ ok: true, estado: accion, ...(payment_url && { payment_url }) });
     }
 
     // GET cot-config — datos del negocio para cotizaciones
@@ -948,6 +1006,44 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Error guardando logo en BD: ' + errTxt.slice(0, 200) });
       }
       return res.status(200).json({ ok: true });
+    }
+
+    // POST cot-voucher-upload — sube comprobante de transferencia y marca cotización como pagada
+    if (req.method === 'POST' && action === 'cot-voucher-upload') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id, fileBase64, mimeType, filename } = req.body || {};
+      if (!id || !fileBase64) return res.status(400).json({ error: 'id y fileBase64 requeridos' });
+      const ext = (filename || 'comprobante.jpg').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = `vouchers/${cid}_${Date.now()}.${ext}`;
+      const bucket = 'cotizaciones';
+      const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
+      if (bucketR.status === 404) {
+        await fetch(`${_CURL}/storage/v1/bucket`, {
+          method: 'POST', headers: _csh, body: JSON.stringify({ id: bucket, name: bucket, public: true })
+        }).catch(() => {});
+      } else {
+        await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, {
+          method: 'PUT', headers: _csh, body: JSON.stringify({ public: true })
+        }).catch(() => {});
+      }
+      const buf = Buffer.from(fileBase64, 'base64');
+      const stR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
+        method: 'POST',
+        headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'image/jpeg', 'x-upsert': 'true' },
+        body: buf
+      });
+      if (!stR.ok) { const e = await stR.text().catch(() => ''); return res.status(500).json({ error: 'Error subiendo comprobante: ' + e.slice(0, 120) }); }
+      const voucher_url = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
+      // Merge en respuesta y marcar como pagada
+      const rCot = await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}&limit=1`, { headers: _cshG });
+      const [cot] = await rCot.json();
+      if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
+      const respMerged = { ...(cot.respuesta || {}), metodo_pago: 'transferencia', voucher_url };
+      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
+        method: 'PATCH', headers: _csh, body: JSON.stringify({ estado: 'pagada', respuesta: respMerged })
+      });
+      return res.status(200).json({ ok: true, voucher_url });
     }
 
     // POST cot-pdf-upload — sube PDF a Supabase Storage con service role key
@@ -1321,7 +1417,17 @@ export default async function handler(req, res) {
   }
 }
 
-function buildCotizacionPDF({ cot, cli }) {
+async function buildCotizacionPDF({ cot, cli }) {
+  // Descargar logo si hay URL pública
+  let logoBuf = null;
+  const logoUrl = cli?.logo_url;
+  if (logoUrl && !logoUrl.startsWith('data:')) {
+    try {
+      const lr = await fetch(logoUrl);
+      if (lr.ok) logoBuf = Buffer.from(await lr.arrayBuffer());
+    } catch(_) {}
+  }
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 40 });
     const chunks = [];
@@ -1338,9 +1444,14 @@ function buildCotizacionPDF({ cot, cli }) {
     const items     = cot.items || [];
     const conds     = cot.condiciones || {};
 
-    // Encabezado
-    doc.fontSize(18).font('Helvetica-Bold').text(negNombre, 40, 40);
-    let y = 62;
+    // Encabezado — logo + nombre negocio
+    let headerY = 40;
+    if (logoBuf) {
+      doc.image(logoBuf, 40, headerY, { fit: [180, 40] });
+      headerY += 46;
+    }
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a1a1a').text(negNombre, 40, headerY);
+    let y = headerY + 22;
     if (negDir)   { doc.fontSize(9).font('Helvetica').fillColor('#666').text(negDir, 40, y);   y += 13; }
     if (negEmail) { doc.text([negEmail, negTel].filter(Boolean).join(' · '), 40, y); y += 13; }
 
@@ -1422,7 +1533,7 @@ function buildCotizacionEmail({ cot, cli, publicUrl, totalFmt }) {
   const nombre  = cot.datos_destinatario?.nombre || 'Estimado/a';
   const negocio = cli?.nombre_negocio || 'Tu proveedor';
   const logo    = cli?.logo_url;
-  const logoHtml = logo
+  const logoHtml = (logo && !logo.startsWith('data:'))
     ? `<img src="${logo}" alt="${negocio}" style="height:48px;width:auto;max-width:160px;display:block;margin:0 0 4px">`
     : `<div style="font-size:20px;font-weight:700;color:#fff">${negocio}</div>`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>

@@ -245,10 +245,11 @@ export default async function handler(req, res) {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const especialista_id = UUID_RE.test(req.body?.especialista_id || '') ? req.body.especialista_id : null;
 
-  // metodo_pago_admin: 'efectivo' | 'tarjeta' | 'link_flow' | 'link_webpay' | null (booking público)
+  // metodo_pago_admin: 'efectivo' | 'tarjeta' | 'link_flow' | 'link_webpay' | 'link_mp' | null (booking público)
   const esPagoPresencial = from_admin && (metodo_pago_admin === 'efectivo' || metodo_pago_admin === 'tarjeta');
   const esLinkWebpay     = from_admin && metodo_pago_admin === 'link_webpay';
   const esLinkFlow       = from_admin && metodo_pago_admin === 'link_flow';
+  const esLinkMP         = from_admin && metodo_pago_admin === 'link_mp';
 
   const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'done', cancelada:'canceled', inasistencia:'no-show' };
   // Pago presencial desde admin → confirmar directamente; link de pago → pending_payment lo asigna el handler de pago
@@ -427,6 +428,15 @@ export default async function handler(req, res) {
     }
 
     const soloFlow = !!(flow_url && (esLinkFlow || (!metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo)));
+
+    // Link MP desde admin → marcar pending_payment con metodo_pago='mercadopago'
+    if (esLinkMP) {
+      await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
+      }).catch(e => console.error('crear-cita: patch link_mp error', e.message));
+    }
 
     // Link Webpay desde admin → marcar pending_payment con metodo_pago='webpay'
     if (esLinkWebpay) {

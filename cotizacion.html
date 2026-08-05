@@ -141,13 +141,14 @@ let _cotEstado = '';
 async function init() {
   const params = new URLSearchParams(location.search);
   _token = params.get('token') || '';
+  const pagoOk = params.get('pago') === 'ok';
   if (!_token) { showError(); return; }
   try {
     const r   = await fetch(`${API}?action=cot-publica&token=${encodeURIComponent(_token)}`);
     if (!r.ok) { showError(); return; }
     const { cotizacion: cot, negocio } = await r.json();
     _cotEstado = cot.estado;
-    render(cot, negocio);
+    render(cot, negocio, pagoOk);
   } catch(e) { showError(); }
 }
 
@@ -158,7 +159,7 @@ function showError() {
 
 function fmt(n) { return '$' + Math.round(n).toLocaleString('es-CL'); }
 
-function render(cot, neg) {
+function render(cot, neg, pagoOk = false) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('main').style.display = 'block';
   document.title = `Cotización N° ${cot.numero} — ${neg.nombre_negocio || ''}`;
@@ -215,9 +216,13 @@ function render(cot, neg) {
     document.getElementById('pdf-ext-box').style.display = 'block';
   }
 
-  const respSec = document.getElementById('resp-section');
   if (cot.estado === 'enviada') {
-    // mostrar botones
+    // mostrar botones (por defecto visible)
+  } else if (cot.estado === 'pagada' || pagoOk) {
+    document.getElementById('resp-accion').style.display = 'none';
+    const est = document.getElementById('resp-estado');
+    est.style.display = 'block';
+    est.innerHTML = `<span class="badge badge-aceptada">Pagada</span><p style="margin-top:10px;color:#666;font-size:13px">Tu pago fue recibido. El negocio confirmará el servicio a la brevedad.</p>`;
   } else if (cot.estado === 'aceptada' || cot.estado === 'rechazada') {
     document.getElementById('resp-accion').style.display = 'none';
     const est = document.getElementById('resp-estado');
@@ -263,7 +268,11 @@ async function enviarRespuesta(accion, comentario) {
     if (!r.ok) { alert(d.error || 'Error'); return; }
     const lbl = accion === 'aceptada' ? 'Aceptada' : 'Rechazada';
     const cls = accion === 'aceptada' ? 'badge-aceptada' : 'badge-rechazada';
-    document.getElementById('resp-accion').innerHTML = `<span class="badge ${cls}">${lbl}</span><p style="margin-top:12px;color:#555;font-size:14px">Gracias. Tu respuesta fue registrada.</p>`;
+    if (accion === 'aceptada' && d.payment_url) {
+      document.getElementById('resp-accion').innerHTML = `<span class="badge ${cls}">${lbl}</span><p style="margin-top:12px;color:#555;font-size:14px">Cotización aceptada. Completa el pago para confirmar el servicio.</p><a href="${d.payment_url}" target="_blank" style="display:inline-block;margin-top:16px;padding:13px 32px;background:#6C5CE4;color:#fff;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none">Pagar ahora →</a>`;
+    } else {
+      document.getElementById('resp-accion').innerHTML = `<span class="badge ${cls}">${lbl}</span><p style="margin-top:12px;color:#555;font-size:14px">Gracias. Tu respuesta fue registrada.</p>`;
+    }
   } catch(e) { alert('Error de red, intenta nuevamente'); document.querySelectorAll('.btn-aceptar,.btn-rechazar').forEach(b => b.disabled = false); }
 }
 

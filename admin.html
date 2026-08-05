@@ -1859,9 +1859,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
       <table>
-        <thead><tr id="ventas-thead-row"><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método de pago</th><th>Monto</th><th>Estado</th></tr></thead>
+        <thead><tr id="ventas-thead-row"><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Profesional</th><th>Método de pago</th><th>Monto</th><th>Estado</th><th>Comprobante</th></tr></thead>
         <tbody id="ventas-tbody">
-          <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
+          <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando transacciones...</td></tr>
         </tbody>
       </table>
       <div id="ventas-pager" style="display:none;text-align:center;padding:12px 0">
@@ -3324,7 +3324,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <input id="srv-nombre" type="text" placeholder="Nombre del servicio (ej: Consulta general)" class="fi" style="width:100%">
             <div style="display:flex;gap:8px">
               <input id="srv-duracion" type="number" placeholder="Duración (min)" class="fi" style="flex:1" min="5" step="5">
-              <input id="srv-precio"   type="number" placeholder="Precio ($)" class="fi" style="flex:1" min="0">
+              <div style="display:flex;gap:4px;flex:1">
+                <input id="srv-precio" type="number" placeholder="Precio ($)" class="fi" style="flex:1" min="0">
+                <button type="button" title="Agregar IVA 19%" onclick="const v=Number(document.getElementById('srv-precio').value);if(v)document.getElementById('srv-precio').value=Math.round(v*1.19);" style="padding:0 10px;border-radius:var(--r);border:1px solid var(--b2);background:var(--bg2);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">+IVA</button>
+              </div>
             </div>
             <div style="display:flex;justify-content:flex-end">
               <button class="btn-a" onclick="agregarServicio()">+ Agregar</button>
@@ -3368,13 +3371,38 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             </div>
             <input type="checkbox" id="pago-efectivo" style="accent-color:var(--a);width:16px;height:16px">
           </label>
-          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer">
+          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)">
             <div>
               <div style="font-size:13px;font-weight:500;color:var(--a)">Pago online con Flow</div>
               <div style="font-size:12px;color:var(--t3)">El paciente paga su cita con tarjeta antes de llegar — requiere cuenta en Flow.cl</div>
             </div>
             <input type="checkbox" id="pago-flow" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleFlowDatos()">
           </label>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:#009ee3">Mercado Pago</div>
+              <div style="font-size:12px;color:var(--t3)">El dinero va directo a tu cuenta MP — sin configurar credenciales</div>
+            </div>
+            <div id="mp-connect-status"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Sección Mercado Pago -->
+      <div id="mp-datos" style="display:none">
+        <div class="card" style="padding:20px;margin-bottom:12px;border:1.5px solid #009ee3">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#22c55e"></div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">Mercado Pago conectado</div>
+          </div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Tu cuenta de Mercado Pago está vinculada. Los pagos van directo a tu cuenta MP.</div>
+          <button class="btn-sm" style="color:#dc2626;border-color:rgba(220,38,38,.3);background:#fef2f2" onclick="desconectarMP()">Desconectar Mercado Pago</button>
+        </div>
+      </div>
+      <div id="mp-no-datos" style="display:none">
+        <div class="card" style="padding:20px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Conectar Mercado Pago</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Vincula tu cuenta de Mercado Pago. El paciente paga en la plataforma de MP y el dinero va directo a tu cuenta — sin intermediarios.</div>
+          <button class="btn-a" style="background:#009ee3" onclick="conectarMP()">Conectar mi cuenta de Mercado Pago →</button>
         </div>
       </div>
 
@@ -3861,13 +3889,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div style="display:flex;gap:6px">
             <button id="pay-prov-flow" onclick="setPayProvider('flow')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--a);background:var(--adim);color:var(--a);font-size:11px;font-weight:600;cursor:pointer">Flow</button>
             <button id="pay-prov-webpay" onclick="setPayProvider('webpay')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer">Webpay</button>
+            <button id="pay-prov-mp" onclick="setPayProvider('mp')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer">Mercado Pago</button>
           </div>
         </div>
       </div>
       <!-- Summary -->
       <div class="res-sum">
         <div class="sum-title">Resumen de la reserva</div>
-        <div class="sum-row"><span class="sum-lbl">Fecha y hora</span><span class="sum-val">Sáb 3 mayo · 12:00 – 13:00</span></div>
+        <div class="sum-row"><span class="sum-lbl">Fecha y hora</span><span class="sum-val" id="s-fecha">—</span></div>
         <div class="sum-row"><span class="sum-lbl">Cliente</span><span class="sum-val" id="s-cli">—</span></div>
         <div class="sum-row"><span class="sum-lbl">Profesional</span><span class="sum-val" id="s-prof">—</span></div>
         <div class="sum-row"><span class="sum-lbl">Servicio</span><span class="sum-val" id="s-srv">Consulta Médica</span></div>
@@ -3966,6 +3995,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
         <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
         <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
+        <div id="fpi-voucher-row" style="display:none"><div class="fp-info-lbl">Voucher</div><div id="fpi-voucher-val" style="margin-top:2px"></div></div>
         <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
         <div><div class="fp-info-lbl">Servicio reservado</div><div class="fp-info-val" id="fpi-servicio-prox">—</div></div>
         <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
@@ -3986,7 +4016,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="btn-g" style="flex:1" onclick="reagendarProxCita()" title="Reagendar la próxima cita">↺ Reagendar</button>
       </div>
       <div style="margin-top:8px">
-        <button class="btn-r" onclick="cancelarProxCita()">✕ Cancelar próxima cita</button>
+        <button class="btn-r" id="fp-cancelar-btn" onclick="cancelarProxCita()">✕ Cancelar próxima cita</button>
       </div>
       <div id="fp-boleta-row" style="display:none;margin-top:8px">
         <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">Emitir boleta</button>
@@ -3996,6 +4026,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
       <div id="fp-webpay-row" style="display:none;margin-top:8px">
         <button class="btn-a" style="width:100%;background:#005BBB" onclick="enviarLinkWebpayPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Webpay</button>
+      </div>
+      <div id="fp-mp-row" style="display:none;margin-top:8px">
+        <button class="btn-a" style="width:100%;background:#009ee3" onclick="enviarLinkMPPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Mercado Pago</button>
       </div>
     </div>
 
@@ -4250,6 +4283,18 @@ function goStep(n) {
     if (sel) sel.innerHTML = '<option value="">Cargando profesionales...</option>';
     _loadModalEspecialistas();
   }
+  if (n === 3) {
+    const fechaVal = document.getElementById('ms-fecha')?.value;
+    const horaVal  = document.getElementById('ms-hora')?.value || '00';
+    const minVal   = document.getElementById('ms-min')?.value  || '00';
+    const finVal   = document.getElementById('fin-time')?.value || '';
+    const sFecha   = document.getElementById('s-fecha');
+    if (sFecha && fechaVal) {
+      const dt  = new Date(fechaVal + 'T12:00:00');
+      const lbl = dt.toLocaleDateString('es-CL', { weekday:'short', day:'numeric', month:'long' });
+      sFecha.textContent = `${lbl} · ${String(horaVal).padStart(2,'0')}:${String(minVal).padStart(2,'0')}${finVal ? ' – ' + finVal : ''}`;
+    }
+  }
 }
 function nextStep() {
   if (curStep === 2) {
@@ -4333,14 +4378,14 @@ function setPayProvider(p) {
   _payProvider = p;
   const btnFlow   = document.getElementById('pay-prov-flow');
   const btnWebpay = document.getElementById('pay-prov-webpay');
-  if (!btnFlow || !btnWebpay) return;
-  if (p === 'flow') {
-    btnFlow.style.cssText   = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--a);background:var(--adim);color:var(--a);font-size:11px;font-weight:600;cursor:pointer';
-    btnWebpay.style.cssText = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer';
-  } else {
-    btnWebpay.style.cssText = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid #005BBB;background:#eff6ff;color:#005BBB;font-size:11px;font-weight:600;cursor:pointer';
-    btnFlow.style.cssText   = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer';
-  }
+  const btnMP     = document.getElementById('pay-prov-mp');
+  const off = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer';
+  if (btnFlow)   btnFlow.style.cssText   = off;
+  if (btnWebpay) btnWebpay.style.cssText = off;
+  if (btnMP)     btnMP.style.cssText     = off;
+  if (p === 'flow'   && btnFlow)   btnFlow.style.cssText   = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--a);background:var(--adim);color:var(--a);font-size:11px;font-weight:600;cursor:pointer';
+  if (p === 'webpay' && btnWebpay) btnWebpay.style.cssText = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid #005BBB;background:#eff6ff;color:#005BBB;font-size:11px;font-weight:600;cursor:pointer';
+  if (p === 'mp'     && btnMP)     btnMP.style.cssText     = 'flex:1;padding:5px 8px;border-radius:6px;border:1px solid #009ee3;background:#e8f7fd;color:#009ee3;font-size:11px;font-weight:600;cursor:pointer';
 }
 
 function setPay(el) {
@@ -4505,7 +4550,16 @@ async function saveReservation() {
   const srvOpt = srvSel?.options[srvSel.selectedIndex];
   const servicio = srvOpt?.dataset?.nombre || srvOpt?.text?.split(' ·')[0] || 'Consulta';
   const precio   = parseInt(srvSel?.value) || 0;
-  const duracion = srvOpt?.dataset?.dur ? parseInt(srvOpt.dataset.dur) : null;
+  // Calcular duración desde hora inicio y fin-time del modal (refleja el botón elegido)
+  const finVal = document.getElementById('fin-time')?.value;
+  let duracion = null;
+  if (finVal) {
+    const [fh, fm] = finVal.split(':').map(Number);
+    const startMins = parseInt(hh) * 60 + parseInt(mm);
+    const endMins   = fh * 60 + fm;
+    if (endMins > startMins) duracion = endMins - startMins;
+  }
+  if (!duracion) duracion = srvOpt?.dataset?.dur ? parseInt(srvOpt.dataset.dur) : null;
 
   // 5. Llamar API
   const cid = await getClienteId();
@@ -4521,9 +4575,9 @@ async function saveReservation() {
       body: JSON.stringify((() => {
         const mp = document.getElementById('pay-ef')?.classList.contains('on') ? 'efectivo'
           : document.getElementById('pay-td')?.classList.contains('on') ? 'tarjeta'
-          : _payProvider === 'webpay' ? 'link_webpay' : 'link_flow';
-        // link_webpay: no enviar email de confirmación desde crear-cita (webpay_init envía el suyo propio con el botón de pago)
-        const envEmail = mp === 'link_webpay' ? false : document.getElementById('email-check')?.checked !== false;
+          : _payProvider === 'webpay' ? 'link_webpay' : _payProvider === 'mp' ? 'link_mp' : 'link_flow';
+        // link_webpay / link_mp: no enviar email de confirmación desde crear-cita (el handler de pago envía el suyo propio)
+        const envEmail = (mp === 'link_webpay' || mp === 'link_mp') ? false : document.getElementById('email-check')?.checked !== false;
         return { cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, estado_admin: currentEstado, enviar_email: envEmail, metodo_pago_admin: mp };
       })())
     });
@@ -4532,7 +4586,7 @@ async function saveReservation() {
 
     const _metodoElegido = document.getElementById('pay-ef')?.classList.contains('on') ? 'efectivo'
       : document.getElementById('pay-td')?.classList.contains('on') ? 'tarjeta'
-      : _payProvider === 'webpay' ? 'link_webpay' : 'link_flow';
+      : _payProvider === 'webpay' ? 'link_webpay' : _payProvider === 'mp' ? 'link_mp' : 'link_flow';
 
     // Capturar ID antes de closeModal() que lo limpia
     const _cancelarId = _reagendarCancelId;
@@ -4553,6 +4607,16 @@ async function saveReservation() {
         toast(d.email_error ? 'Cita creada — link Webpay enviado (email con aviso)' : '✓ Link de pago Webpay enviado al paciente');
       }).catch(() => toast('Cita creada — revisa el link Webpay en el detalle de la cita'));
     }
+    // Link Mercado Pago: enviar link automáticamente
+    if (_metodoElegido === 'link_mp' && _citaId) {
+      fetch('/api/flow', {
+        method: 'POST',
+        headers: { ..._citasH(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'mp_create', cita_id: _citaId })
+      }).then(r => r.json()).then(d => {
+        toast(d.email_error ? 'Cita creada — link MP enviado (email con aviso)' : '✓ Link de pago Mercado Pago enviado al paciente');
+      }).catch(() => toast('Cita creada — revisa el link MP en el detalle de la cita'));
+    }
     // Recargar agenda
     if (typeof cargarCitasSupabase === 'function') cargarCitasSupabase();
   } catch(e) {
@@ -4572,7 +4636,7 @@ const clientData = {}; // vacío — los datos reales vienen de Supabase via _cl
 let _fichaCurrentNombre = '';
 
 function openFichaFromRow(el) { openFicha(el.dataset.nombre, el.dataset.ini, ''); }
-function openFicha(name, initials, rubro) {
+function openFicha(name, initials, rubro, citaId) {
   _fichaCurrentNombre = name;
   const real = (window._clientesDataMap || {})[name] || (window._clientesDataMap || {})[name?.toLowerCase?.()];
   let d;
@@ -4599,6 +4663,7 @@ function openFicha(name, initials, rubro) {
   if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
   const nt = document.getElementById('fp-notas-txt');
   if (nt) nt.value = '';
+  window._fichaDetalleCita = (citaId && window._calCitaById?.[citaId]) ? window._calCitaById[citaId] : null;
   loadFichaData(name);
   document.getElementById('fpi-rut').textContent    = '—';
   document.getElementById('fpi-ciudad').textContent = '—';
@@ -4616,6 +4681,7 @@ function openFicha(name, initials, rubro) {
   });
 }
 function closeFicha() {
+  window._fichaDetalleCita = null;
   document.getElementById('ficha-ov').classList.remove('open');
 }
 
@@ -4730,9 +4796,10 @@ async function savePacienteEdit() {
   }
 }
 async function cancelarProxCita() {
-  const id = window._fichaProxCitaId;
-  if (!id) { toast('No hay cita próxima activa para cancelar'); return; }
-  if (!confirm('¿Cancelar esta cita? El paciente no será notificado automáticamente.')) return;
+  const id = window._fichaDetalleCita?.id || window._fichaProxCitaId;
+  if (!id) { toast('No hay cita activa para cancelar'); return; }
+  const esDetalle = !!window._fichaDetalleCita;
+  if (!confirm(esDetalle ? '¿Cancelar esta reserva? El paciente no será notificado automáticamente.' : '¿Cancelar la próxima cita? El paciente no será notificado automáticamente.')) return;
   const cid = await getClienteId();
   if (!cid) return;
   try {
@@ -4832,7 +4899,13 @@ async function loadFichaData(nombre) {
     if (telEl   && telReal)   telEl.textContent   = telReal;
 
     // Próxima cita
-    const prox = citas.filter(c => c.fecha >= hoy && !['cancelada','canceled','cancelled'].includes(c.estado)).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''))[0];
+    const _horaActual = new Date().toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit', hour12: false, timeZone:'America/Santiago' });
+    const prox = citas.filter(c => {
+      if (['cancelada','canceled','cancelled'].includes(c.estado)) return false;
+      if (c.fecha > hoy) return true;
+      if (c.fecha === hoy) return (c.hora||'23:59').slice(0,5) >= _horaActual;
+      return false;
+    }).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''))[0];
     window._fichaProxCitaId = prox ? prox.id : null;
     // Estado reserva
     const _dbToEstado = { pending:'reservada', confirmed:'confirmada', pending_payment:'pendiente', done:'completada', canceled:'cancelada', 'no-show':'inasistencia' };
@@ -4851,22 +4924,48 @@ async function loadFichaData(nombre) {
     window._fichaProxFecha  = prox ? prox.fecha : null;
     window._fichaProxHora   = prox ? (prox.hora||'').slice(0,5) : null;
     const srvProxEl = document.getElementById('fpi-servicio-prox');
-    if (srvProxEl) srvProxEl.textContent = prox?.servicio || '—';
-    // Botones de pago y estado pago para la próxima cita
-    _currentBoletaCita = prox || null;
-    const _esPendFlow    = prox?.estado === 'pending_payment' && prox?.metodo_pago !== 'webpay';
-    const _esPendWebpay  = prox?.estado === 'pending_payment' && prox?.metodo_pago === 'webpay';
+    if (srvProxEl) srvProxEl.textContent = (window._fichaDetalleCita || prox)?.servicio || '—';
+    // Botones de pago y estado pago — usar cita específica si se abrió desde Ventas, si no la próxima
+    const _pc = window._fichaDetalleCita || prox;
+    _currentBoletaCita = _pc || null;
+    const _esPendFlow    = _pc?.estado === 'pending_payment' && _pc?.metodo_pago !== 'webpay' && _pc?.metodo_pago !== 'mercadopago';
+    const _esPendWebpay  = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'webpay';
+    const _esPendMP      = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'mercadopago';
     const _boletaRow = document.getElementById('fp-boleta-row');
     const _flowRow   = document.getElementById('fp-flow-row');
     const _webpayRow = document.getElementById('fp-webpay-row');
-    if (_boletaRow) _boletaRow.style.display = prox?.precio ? 'block' : 'none';
-    if (_flowRow)   _flowRow.style.display   = (prox?.precio && prox?.estado_pago !== 'pagado') ? 'block' : 'none';
-    if (_webpayRow) _webpayRow.style.display = (prox?.precio && prox?.estado_pago !== 'pagado') ? 'block' : 'none';
+    const _mpRow = document.getElementById('fp-mp-row');
+    if (_boletaRow) _boletaRow.style.display = _pc?.precio ? 'block' : 'none';
+    if (_flowRow)   _flowRow.style.display   = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
+    if (_webpayRow) _webpayRow.style.display = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
+    if (_mpRow)     _mpRow.style.display     = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
+    const _cancelBtn = document.getElementById('fp-cancelar-btn');
+    if (_cancelBtn) _cancelBtn.textContent = window._fichaDetalleCita ? '✕ Cancelar reserva' : '✕ Cancelar próxima cita';
     const _epEl = document.getElementById('fpi-estado-pago');
     const _mpEl = document.getElementById('fpi-metodo-pago');
-    const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay' };
-    if (_epEl) { _epEl.textContent = _esPendFlow ? 'Esperando pago Flow' : _esPendWebpay ? 'Esperando pago Webpay' : prox?.estado_pago === 'pagado' ? 'Pagado ✓' : '—'; _epEl.style.color = (_esPendFlow || _esPendWebpay) ? 'var(--a)' : prox?.estado_pago === 'pagado' ? 'var(--green)' : 'var(--t3)'; }
-    if (_mpEl) _mpEl.textContent = _METODO[prox?.metodo_pago] || (_esPendFlow ? 'Flow' : _esPendWebpay ? 'Webpay' : '—');
+    const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago' };
+    if (_epEl) { _epEl.textContent = _esPendFlow ? 'Esperando pago Flow' : _esPendWebpay ? 'Esperando pago Webpay' : _esPendMP ? 'Esperando pago MP' : _pc?.estado_pago === 'pagado' ? 'Pagado ✓' : '—'; _epEl.style.color = (_esPendFlow || _esPendWebpay || _esPendMP) ? 'var(--a)' : _pc?.estado_pago === 'pagado' ? 'var(--green)' : 'var(--t3)'; }
+    if (_mpEl) _mpEl.textContent = _METODO[_pc?.metodo_pago] || '—';
+    const _vRow = document.getElementById('fpi-voucher-row');
+    const _vVal = document.getElementById('fpi-voucher-val');
+    if (_vRow && _vVal) {
+      const _esWP = _pc?.metodo_pago === 'webpay';
+      const _esMP = _pc?.metodo_pago === 'mercadopago';
+      _vRow.style.display = (_esWP || _esMP) ? '' : 'none';
+      if (_esWP) {
+        if (_pc.webpay_voucher && _pc.estado_pago === 'pagado') {
+          _vVal.innerHTML = `<button class="btn-sm" style="font-size:11px;padding:2px 9px;color:#1d4ed8;border-color:rgba(29,78,216,.3);background:#eff6ff" data-v="${encodeURIComponent(JSON.stringify(_pc.webpay_voucher))}" onclick="openVoucher(decodeURIComponent(this.dataset.v))">Ver voucher ↗</button>`;
+        } else {
+          _vVal.innerHTML = '<span class="fp-info-val" style="color:var(--t3);font-size:12px">Pendiente de pago</span>';
+        }
+      } else if (_esMP) {
+        if (_pc.mp_voucher && _pc.estado_pago === 'pagado') {
+          _vVal.innerHTML = `<button class="btn-sm" style="font-size:11px;padding:2px 9px;color:#007a9e;border-color:rgba(0,158,227,.3);background:#e8f7fd" data-v="${encodeURIComponent(JSON.stringify(_pc.mp_voucher))}" onclick="openMPVoucher(decodeURIComponent(this.dataset.v))">Ver comprobante ↗</button>`;
+        } else {
+          _vVal.innerHTML = '<span class="fp-info-val" style="color:var(--t3);font-size:12px">Pendiente de pago</span>';
+        }
+      }
+    }
     const proximaEl = document.getElementById('fpi-proxima');
     if (proximaEl) {
       const proximaLblEl = document.getElementById('fpi-proxima-lbl');
@@ -5002,7 +5101,7 @@ function renderFichaHistorial(citas) {
   const wrap = document.getElementById('ft-hist-wrap');
   if (!wrap) return;
   if (!citas.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin historial de citas</div>'; return; }
-  const METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow' };
+  const METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay' };
   const estTag = e => {
     if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta">Pendiente</span>';
     if (e==='confirmada'||e==='confirmed')  return '<span class="tag tg">✓ Confirmada</span>';
@@ -5038,6 +5137,7 @@ function renderFichaHistorial(citas) {
             ${metodoStr ? `<span style="font-size:11px;color:var(--t3)">${metodoStr}</span>` : ''}
             ${espStr    ? `<span style="font-size:11px;color:var(--t3)">${escHtml(espStr)}</span>` : ''}
             ${hasFicha  ? '<span style="font-size:10px;color:var(--a);font-weight:600">· Ficha</span>' : ''}
+            ${c.webpay_voucher && c.estado_pago === 'pagado' ? `<button class="btn-sm" style="font-size:10px;padding:1px 7px;color:#1d4ed8;border-color:rgba(29,78,216,.3);background:#eff6ff" data-v="${encodeURIComponent(JSON.stringify(c.webpay_voucher))}" onclick="event.stopPropagation();openVoucher(decodeURIComponent(this.dataset.v))">Voucher ↗</button>` : ''}
           </div>
         </div>
         <div class="ficha-body" style="display:none;background:rgba(108,92,228,0.02);border:1px solid var(--b1);border-top:none;border-radius:0 0 var(--rl) var(--rl);padding:13px">
@@ -5371,6 +5471,16 @@ async function cargarPagos() {
     toggleBancoDatos();
     toggleFlowDatos();
     toggleWebpayDatos();
+    // Mercado Pago: mostrar estado de conexión
+    const mpConnected = !!mp.mp_connected && !!mp.mp_access_token;
+    const mpStatus   = document.getElementById('mp-connect-status');
+    const mpDatos    = document.getElementById('mp-datos');
+    const mpNoDatos  = document.getElementById('mp-no-datos');
+    if (mpStatus) mpStatus.innerHTML = mpConnected
+      ? '<span style="font-size:11px;font-weight:700;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:2px 10px">✓ Conectado</span>'
+      : '<span style="font-size:11px;color:var(--t3)">No conectado</span>';
+    if (mpDatos)   mpDatos.style.display   = mpConnected ? 'block' : 'none';
+    if (mpNoDatos) mpNoDatos.style.display = mpConnected ? 'none'  : 'block';
   } catch(e) { console.error('cargarPagos:', e); }
 }
 
@@ -5415,7 +5525,13 @@ async function guardarPagos(btn) {
     flow_sandbox:          el('flow-sandbox')?.checked       || false,
     webpay_commerce_code:  el('webpay-commerce-code')?.value.trim()  || '',
     webpay_api_key_secret: el('webpay-api-key-secret')?.value.trim() || '',
-    webpay_sandbox:        el('webpay-sandbox')?.checked              || false
+    webpay_sandbox:        el('webpay-sandbox')?.checked              || false,
+    // Mercado Pago: preservar tokens OAuth (no se editan desde este form)
+    mp_connected:    _mpExist.mp_connected    || false,
+    mp_access_token: _mpExist.mp_access_token || null,
+    mp_refresh_token:_mpExist.mp_refresh_token|| null,
+    mp_user_id:      _mpExist.mp_user_id      || null,
+    mp_public_key:   _mpExist.mp_public_key   || null
   };
   const datos_banco = {
     banco:  el('banco-banco')?.value.trim()  || '',
@@ -6891,8 +7007,9 @@ const _GP_PRECIOS = {
 function _gpUpdateBtn() {
   const p = _GP_PRECIOS[_gpTipo] || _GP_PRECIOS.inicio;
   const monto = p[_gpPeriodo] || p.anual;
+  const montoConIva = Math.round(monto * 1.19);
   const btn = document.getElementById('gp-btn-monto');
-  if (btn) btn.textContent = '$' + monto.toLocaleString('es-CL');
+  if (btn) btn.textContent = '$' + montoConIva.toLocaleString('es-CL');
 }
 
 function gpSelectTipo(tipo) {
@@ -6944,7 +7061,8 @@ async function pagarPlanFlow(plan) {
   cerrarGestionarPlan();
   const tipo  = _gpTipo || 'inicio';
   const p     = _GP_PRECIOS[tipo] || _GP_PRECIOS.inicio;
-  const monto = p[plan] || (plan === 'anual' ? 239900 : 24990);
+  const montoBase = p[plan] || (plan === 'anual' ? 239900 : 24990);
+  const monto = Math.round(montoBase * 1.19);
   toast('Generando link de pago...');
   try {
     const tok  = localStorage.getItem('attempo_session_token') || '';
@@ -7778,7 +7896,7 @@ function renderDiaView(date) {
         const ini   = evIniciales(full);
         const hEnd  = `${String(slotH+1).padStart(2,'0')}:00`;
         const posStyle = n === 1 ? 'left:3px;right:3px' : `left:calc(${idx*100/n}% + 2px);right:calc(${(n-idx-1)*100/n}% + 2px)`;
-        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;${posStyle};height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openFicha('${full}','${ini}','')">Ver opciones →</button></div>`;
+        return `<div class="ev ${ev.cls}" data-prof="${ev.espId||''}" style="position:absolute;top:4px;${posStyle};height:44px" onclick="event.stopPropagation();openFicha('${full}','${ini}','','${ev.id||''}')"><div class="evn">${full}</div><div class="evt">${slotTime} – ${hEnd}</div><button class="ev-rag" onclick="event.stopPropagation();openFicha('${full}','${ini}','','${ev.id||''}')">Ver opciones →</button></div>`;
       }).join('');
       if (slotEvs.length > 0 && !slotIsPast) {
         evHtml += `<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime('${diaFecha}','${slotTime}')" title="Agregar sobrecupo a las ${slotTime}">+</button>`;
@@ -7890,10 +8008,10 @@ function renderWeekBody() {
         var hEnd  = (slotH + 1 < 10 ? '0' : '') + (slotH + 1) + ':00';
         var posStyle = nEvs === 1 ? 'left:3px;right:3px' : 'left:calc(' + (ev * 100 / nEvs) + '% + 2px);right:calc(' + ((nEvs - ev - 1) * 100 / nEvs) + '% + 2px)';
         evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;' + posStyle + ';height:44px" onclick="event.stopPropagation();openFicha(\'' +
-                  full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">' +
+                  full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + (cur.id||'') + '\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
-                  '<button class="ev-rag" onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\')">Ver opciones →</button>' +
+                  '<button class="ev-rag" onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + (cur.id||'') + '\')">Ver opciones →</button>' +
                   '</div>';
       }
       // Botón sobrecupo: aparece al hacer hover cuando ya hay un evento en el slot
@@ -8030,7 +8148,7 @@ function renderLista() {
         const color = EV_COLORS[ev.cls] || 'var(--a)';
         const tagCls = TAG_MAP[ev.cls] || 'tn';
         const tagLbl = TAG_LABEL[ev.cls] || 'Reservada';
-        return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openFicha('${full}','${ini}','')">Ver opciones →</button></div>`;
+        return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','','${ev.id||''}')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openFicha('${full}','${ini}','','${ev.id||''}')">Ver opciones →</button></div>`;
       }).join('');
       body = `<div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--b1);border-radius:var(--rl);background:var(--b1);box-shadow:var(--sh1)">${rows}</div>`;
     }
@@ -8112,7 +8230,7 @@ function renderMesGrid() {
     } else {
       dayNumHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${events.length?'5':'0'}px"><div style="font-size:12px;color:var(--t2)">${d}</div>${addBtn}</div>`;
     }
-    let evHtml = events.map((ev,i) => `<div class="ev ${ev.cls}" onclick="event.stopPropagation();openFicha('${(ev.nombre||ev.lbl).replace(/'/g,"\\'").replace(/"/g,'&quot;')}','','')" style="position:static;height:auto;padding:2px 6px;font-size:10px;cursor:pointer;${i<events.length-1?'margin-bottom:2px':''}"><div class="evn">${ev.lbl}</div></div>`).join('');
+    let evHtml = events.map((ev,i) => `<div class="ev ${ev.cls}" onclick="event.stopPropagation();openFicha('${(ev.nombre||ev.lbl).replace(/'/g,"\\'").replace(/"/g,'&quot;')}','','','${ev.id||''}')" style="position:static;height:auto;padding:2px 6px;font-size:10px;cursor:pointer;${i<events.length-1?'margin-bottom:2px':''}"><div class="evn">${ev.lbl}</div></div>`).join('');
     html += `<div style="${cellStyle}" onclick="goToDay(${d},${m},${y})" onmouseover="if(!this.style.outline)this.style.background='rgba(108,92,228,0.02)'" onmouseout="if(!this.style.outline)this.style.background='#fff'">${dayNumHtml}${evHtml}</div>`;
   }
 
@@ -8909,10 +9027,12 @@ function renderVentasTable() {
     { key:'metodo',   label:'Método de pago' },
     { key:'monto',    label:'Monto' },
     { key:'estado',   label:'Estado' },
+    { key:'',         label:'Comprobante' },
   ];
   const theadRow = document.getElementById('ventas-thead-row');
   if (theadRow) {
     theadRow.innerHTML = VCOLS.map(col => {
+      if (!col.key) return `<th style="white-space:nowrap">${col.label}</th>`;
       const active = _ventasSortCol === col.key;
       const arrow  = active ? (_ventasSortDir === 'asc' ? '↑' : '↓') : '↕';
       return `<th onclick="sortVentas('${col.key}')" style="cursor:pointer;user-select:none;white-space:nowrap;${active?'color:var(--a)':''}">`
@@ -8920,7 +9040,7 @@ function renderVentasTable() {
     }).join('');
   }
 
-  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow</span>' };
+  const METODO_TAG = { efectivo:'<span class="tag tn">Efectivo</span>', transferencia:'<span class="tag tb">Transferencia</span>', tarjeta:'<span class="tag tp">Tarjeta</span>', flow:'<span class="tag" style="background:#f5f3ff;color:var(--a);border-color:rgba(108,92,228,.3)">Flow</span>', webpay:'<span class="tag" style="background:#eff6ff;color:#1d4ed8;border-color:rgba(29,78,216,.3)">Webpay</span>', mercadopago:'<span class="tag" style="background:#e8f7fd;color:#009ee3;border-color:rgba(0,158,227,.3)">Mercado Pago</span>' };
   const lista  = _ventasFiltradas();
   const tbody  = document.getElementById('ventas-tbody');
   const pager  = document.getElementById('ventas-pager');
@@ -8929,7 +9049,7 @@ function renderVentasTable() {
   if (!tbody) return;
 
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones en este período</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Sin transacciones en este período</td></tr>';
     if (pager) pager.style.display = 'none';
     return;
   }
@@ -8948,18 +9068,26 @@ function renderVentasTable() {
     const metodo = c.metodo_pago && METODO_TAG[c.metodo_pago]
       ? `<span style="cursor:pointer" title="Cambiar método" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','${c.metodo_pago}')">${METODO_TAG[c.metodo_pago]}</span>`
       : `<button class="btn-sm" style="font-size:11px;padding:2px 8px;color:var(--a);border-color:var(--a)" onclick="event.stopPropagation();openAsignarMetodo('${c.id}','')">+ Asignar</button>`;
-    const esPendienteFlow   = c.estado === 'pending_payment' && c.metodo_pago !== 'webpay';
+    const esPendienteFlow   = c.estado === 'pending_payment' && c.metodo_pago !== 'webpay' && c.metodo_pago !== 'mercadopago';
     const esPendienteWebpay = c.estado === 'pending_payment' && c.metodo_pago === 'webpay';
+    const esPendienteMP     = c.estado === 'pending_payment' && c.metodo_pago === 'mercadopago';
     const estado = esPendienteFlow
       ? `<span class="tag" style="background:#f5f3ff;color:var(--a);border:1px solid rgba(108,92,228,.3);cursor:pointer" title="Reenviar link de pago" onclick="event.stopPropagation();enviarLinkFlowPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')">Pago Flow</span>`
       : esPendienteWebpay
         ? `<span class="tag" style="background:#eff6ff;color:#005BBB;border:1px solid rgba(0,91,187,.3);cursor:pointer" title="Reenviar link de pago Webpay" onclick="event.stopPropagation();enviarLinkWebpayPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')">Pago Webpay</span>`
-        : c.estado_pago === 'pagado'
-          ? '<span class="tag tg">Pagado</span>'
-          : '<span class="tag ta">Pendiente</span>';
+        : esPendienteMP
+          ? `<span class="tag" style="background:#e8f7fd;color:#009ee3;border:1px solid rgba(0,158,227,.3);cursor:pointer" title="Reenviar link de pago MP" onclick="event.stopPropagation();enviarLinkMPPago('${c.id}','${(c.nombre_paciente||'').replace(/'/g,'')}')">Pago MP</span>`
+          : c.estado_pago === 'pagado'
+            ? '<span class="tag tg">Pagado</span>'
+            : '<span class="tag ta">Pendiente</span>';
     const montoVal = c.precio ? '$' + Number(c.precio).toLocaleString('es-CL') : '—';
     const monto = `<span style="cursor:pointer" title="Editar monto" onclick="event.stopPropagation();openEditarMonto('${c.id}',${c.precio||0})">${montoVal} <span style="font-size:10px;opacity:.4">✎</span></span>`;
-    const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado:c.estado,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente}));
+    const comprobante = c.webpay_voucher && c.estado_pago === 'pagado'
+      ? `<button class="btn-sm" style="font-size:11px;padding:2px 9px;color:#1d4ed8;border-color:rgba(29,78,216,.3);background:#eff6ff;white-space:nowrap" data-v="${encodeURIComponent(JSON.stringify(c.webpay_voucher))}" onclick="event.stopPropagation();openVoucher(decodeURIComponent(this.dataset.v))">Ver ↗</button>`
+      : c.mp_voucher && c.estado_pago === 'pagado'
+        ? `<button class="btn-sm" style="font-size:11px;padding:2px 9px;color:#007a9e;border-color:rgba(0,158,227,.3);background:#e8f7fd;white-space:nowrap" data-v="${encodeURIComponent(JSON.stringify(c.mp_voucher))}" onclick="event.stopPropagation();openMPVoucher(decodeURIComponent(this.dataset.v))">Ver ↗</button>`
+        : '<span style="color:var(--t3);font-size:12px">—</span>';
+    const cJson  = encodeURIComponent(JSON.stringify({id:c.id,nombre_paciente:c.nombre_paciente,servicio:c.servicio,fecha:c.fecha,hora:c.hora,precio:c.precio,estado:c.estado,estado_pago:c.estado_pago,metodo_pago:c.metodo_pago,email_paciente:c.email_paciente,tel_paciente:c.tel_paciente,webpay_voucher:c.webpay_voucher||null,mp_voucher:c.mp_voucher||null}));
     return `<tr style="cursor:pointer" onclick="openVentaDetalle(decodeURIComponent('${cJson}'))">
       <td style="font-family:var(--mono);font-size:12px">${fecha}</td>
       <td><div class="tdn"><div class="tav">${ini}</div>${c.nombre_paciente||'—'}</div></td>
@@ -8968,6 +9096,7 @@ function renderVentasTable() {
       <td>${metodo}</td>
       <td style="font-family:var(--mono);font-weight:500;color:var(--t1)">${monto}</td>
       <td>${estado}</td>
+      <td>${comprobante}</td>
     </tr>`;
   }).join('');
 
@@ -9260,16 +9389,36 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
   document.getElementById('fpi-rut').textContent   = '—';
-  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay' };
-  const esPendienteFlow   = c.estado === 'pending_payment' && c.metodo_pago !== 'webpay';
+  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago' };
+  const esPendienteFlow   = c.estado === 'pending_payment' && c.metodo_pago !== 'webpay' && c.metodo_pago !== 'mercadopago';
   const esPendienteWebpay = c.estado === 'pending_payment' && c.metodo_pago === 'webpay';
+  const esPendienteMP2    = c.estado === 'pending_payment' && c.metodo_pago === 'mercadopago';
   const epEl = document.getElementById('fpi-estado-pago');
   if (epEl) {
-    epEl.textContent  = esPendienteFlow ? 'Esperando pago Flow' : esPendienteWebpay ? 'Esperando pago Webpay' : c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente';
-    epEl.style.color  = (esPendienteFlow || esPendienteWebpay) ? 'var(--a)' : c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
+    epEl.textContent  = esPendienteFlow ? 'Esperando pago Flow' : esPendienteWebpay ? 'Esperando pago Webpay' : esPendienteMP2 ? 'Esperando pago MP' : c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente';
+    epEl.style.color  = (esPendienteFlow || esPendienteWebpay || esPendienteMP2) ? 'var(--a)' : c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
   }
   const mpEl = document.getElementById('fpi-metodo-pago');
-  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || (esPendienteFlow ? 'Flow' : esPendienteWebpay ? 'Webpay' : '—');
+  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || '—';
+  const vRow2 = document.getElementById('fpi-voucher-row');
+  const vVal2 = document.getElementById('fpi-voucher-val');
+  if (vRow2 && vVal2) {
+    const esWebpay2 = c.metodo_pago === 'webpay' || esPendienteWebpay;
+    const esMP2     = c.metodo_pago === 'mercadopago' || esPendienteMP2;
+    vRow2.style.display = (esWebpay2 || esMP2) ? '' : 'none';
+    if (esMP2 && !esWebpay2) {
+      vVal2.innerHTML = c.mp_voucher && c.estado_pago === 'pagado'
+        ? `<button class="btn-sm" style="font-size:11px;padding:2px 9px;color:#007a9e;border-color:rgba(0,158,227,.3);background:#e8f7fd" data-v="${encodeURIComponent(JSON.stringify(c.mp_voucher))}" onclick="openMPVoucher(decodeURIComponent(this.dataset.v))">Ver comprobante ↗</button>`
+        : '<span class="fp-info-val" style="color:var(--t3);font-size:12px">Pendiente de pago</span>';
+    }
+    if (esWebpay2) {
+      if (c.webpay_voucher && c.estado_pago === 'pagado') {
+        vVal2.innerHTML = `<button class="btn-sm" style="font-size:11px;padding:2px 9px;color:#1d4ed8;border-color:rgba(29,78,216,.3);background:#eff6ff" data-v="${encodeURIComponent(JSON.stringify(c.webpay_voucher))}" onclick="openVoucher(decodeURIComponent(this.dataset.v))">Ver voucher ↗</button>`;
+      } else {
+        vVal2.innerHTML = '<span class="fp-info-val" style="color:var(--t3);font-size:12px">Pendiente de pago</span>';
+      }
+    }
+  }
   // Guardar cita para boleta y mostrar botones
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
@@ -9277,7 +9426,10 @@ function openVentaDetalle(jsonStr) {
   if (flowRow) flowRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   const webpayRow = document.getElementById('fp-webpay-row');
   if (webpayRow) webpayRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
+  const mpRow = document.getElementById('fp-mp-row');
+  if (mpRow) mpRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   _fichaCurrentNombre = c.nombre_paciente || '';
+  window._fichaDetalleCita = c;
   const hw = document.getElementById('ft-hist-wrap');
   if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
   const nt = document.getElementById('fp-notas-txt');
@@ -9336,6 +9488,39 @@ async function enviarLinkWebpayPago(cita_id, nombre) {
   } catch(e) {
     toast('Error de conexión');
   }
+}
+
+/* ════ MERCADO PAGO ════ */
+async function conectarMP() {
+  const cid = await getClienteId();
+  if (!cid) return;
+  window.location.href = `/api/flow?tipo=mp_connect&cid=${encodeURIComponent(cid)}`;
+}
+
+async function desconectarMP() {
+  if (!confirm('¿Desconectar tu cuenta de Mercado Pago?\n\nLos links de pago MP existentes dejarán de funcionar.')) return;
+  try {
+    const r = await fetch('/api/flow?tipo=mp_disconnect', { headers: _citasH() });
+    const d = await r.json();
+    if (d.ok) { toast('Mercado Pago desconectado'); cargarPagos(); }
+    else toast('Error al desconectar');
+  } catch(e) { toast('Error de conexión'); }
+}
+
+async function enviarLinkMPPago(cita_id, nombre) {
+  if (!cita_id) return;
+  if (!confirm('¿Enviar link de pago Mercado Pago a ' + (nombre || 'el paciente') + '?\n\nEl paciente recibirá un email con el botón de pago MP.')) return;
+  try {
+    const r = await fetch('/api/flow', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'mp_create', cita_id })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) { toast('Error: ' + (d.error || 'No se pudo crear el pago')); return; }
+    toast('Link de pago Mercado Pago enviado al paciente ✓');
+    cargarVentas();
+  } catch(e) { toast('Error de conexión'); }
 }
 
 /* ════ NUEVO CLIENTE ════ */
@@ -9761,8 +9946,10 @@ async function cargarCitasSupabase() {
 
     // 4. Construir mesEvents desde citas reales (limpiar antes para que canceladas no persistan)
     mesEvents = {};
+    window._calCitaById = {};
     const CANCEL_ESTADOS = ['cancelada','canceled','cancelled','no-show','inasistencia'];
     citas.filter(c => !CANCEL_ESTADOS.includes(c.estado)).forEach(c => {
+      window._calCitaById[c.id] = c;
       const [y, mStr, d] = c.fecha.split('-').map(Number);
       const m = mStr - 1;
       const key = `${y}-${m}-${d}`;
@@ -10702,6 +10889,53 @@ body{font-family:Arial,'Helvetica Neue',sans-serif;color:#000;font-size:11px;lin
   </div>
 </div>
 </body></html>`;
+}
+
+/* ════ VOUCHER WEBPAY ════ */
+const _PT = { VN:'Crédito', VD:'Débito Redcompra', VP:'Prepago', SI:'3 cuotas s/i', S2:'2 cuotas s/i', NC:'N cuotas s/i', VC:'Cuotas c/i' };
+function openVoucher(data) {
+  let v;
+  if (typeof data === 'string') { try { v = JSON.parse(data); } catch(e) { return; } } else { v = data; }
+  if (!v) return;
+  const fecha = v.transaction_date ? new Date(v.transaction_date).toLocaleString('es-CL',{timeZone:'America/Santiago',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  document.getElementById('voucher-auth').textContent    = v.authorization_code || '—';
+  document.getElementById('voucher-orden').textContent   = v.buy_order || '—';
+  document.getElementById('voucher-tarjeta').textContent = v.card_detail?.card_number ? '**** ' + v.card_detail.card_number : '—';
+  document.getElementById('voucher-tipo').textContent    = _PT[v.payment_type_code] || v.payment_type_code || '—';
+  document.getElementById('voucher-cuotas').textContent  = v.installments_number > 0 ? v.installments_number + ' cuotas' : 'Sin cuotas';
+  document.getElementById('voucher-monto').textContent   = v.amount ? '$' + Number(v.amount).toLocaleString('es-CL') : '—';
+  document.getElementById('voucher-fecha').textContent   = fecha;
+  document.getElementById('voucher-ov').classList.add('open');
+}
+function closeVoucher() { document.getElementById('voucher-ov').classList.remove('open'); }
+
+/* ════ VOUCHER MERCADO PAGO ════ */
+function openMPVoucher(data) {
+  let v;
+  if (typeof data === 'string') { try { v = JSON.parse(data); } catch(e) { return; } } else { v = data; }
+  if (!v) return;
+  const fecha = v.date ? new Date(v.date).toLocaleString('es-CL',{timeZone:'America/Santiago',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  const brand = (v.card_brand||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  const html = `<div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">
+    <div style="background:#fff;border-radius:20px;padding:32px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <span style="font-size:16px;font-weight:700;color:#1a1a2e">Comprobante Mercado Pago</span>
+        <button onclick="this.closest('[onclick]').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--t3)">×</button>
+      </div>
+      <div style="background:#e8f7fd;border-radius:12px;padding:20px;margin-bottom:20px;text-align:center">
+        <div style="font-size:13px;color:#007a9e;margin-bottom:4px">Total pagado</div>
+        <div style="font-size:32px;font-weight:700;color:#1a1a2e">$${v.amount ? Number(v.amount).toLocaleString('es-CL') : '—'}</div>
+      </div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <tr><td style="padding:6px 0;color:var(--t3)">N° operación</td><td style="text-align:right;font-weight:600">${v.payment_id||'—'}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--t3)">Tarjeta</td><td style="text-align:right">${brand}${v.card_last4?' **** '+v.card_last4:''}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--t3)">Cuotas</td><td style="text-align:right">${v.installments > 1 ? v.installments+' cuotas' : 'Sin cuotas'}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--t3)">Fecha</td><td style="text-align:right">${fecha}</td></tr>
+        ${v.payer_email ? `<tr><td style="padding:6px 0;color:var(--t3)">Pagador</td><td style="text-align:right;font-size:11px">${v.payer_email}</td></tr>` : ''}
+      </table>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
 let _asignarMetodoCitaId = null;
@@ -14136,12 +14370,60 @@ async function actualizarComision(especialistaId, pct, inputEl) {
           <option value="transferencia">Transferencia</option>
           <option value="tarjeta">Tarjeta</option>
           <option value="flow">Flow</option>
+          <option value="webpay">Webpay</option>
         </select>
       </div>
     </div>
     <div class="mfoot">
       <button class="btn-g" onclick="closeAsignarMetodo()">Cancelar</button>
       <button class="btn-a" onclick="saveAsignarMetodo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL VOUCHER WEBPAY ══ -->
+<div class="overlay" id="voucher-ov" style="z-index:750" onclick="if(event.target===this)closeVoucher()">
+  <div class="modal" style="width:340px">
+    <div class="modal-head">
+      <span class="modal-title">Comprobante Webpay</span>
+      <button class="mclose" onclick="closeVoucher()">×</button>
+    </div>
+    <div class="mbody" style="gap:12px">
+      <div style="background:#eff6ff;border:1px solid rgba(29,78,216,.2);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+          <span style="color:var(--t3)">Código de autorización</span>
+          <span style="font-weight:700;font-family:var(--mono);color:#1d4ed8" id="voucher-auth">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+          <span style="color:var(--t3)">N° de orden</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--t2);max-width:180px;text-align:right;word-break:break-all" id="voucher-orden">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+          <span style="color:var(--t3)">Tarjeta</span>
+          <span style="font-family:var(--mono)" id="voucher-tarjeta">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+          <span style="color:var(--t3)">Tipo de pago</span>
+          <span id="voucher-tipo">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+          <span style="color:var(--t3)">Cuotas</span>
+          <span id="voucher-cuotas">—</span>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(29,78,216,.15);margin:2px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:700">
+          <span style="color:var(--t2)">Monto</span>
+          <span style="color:#1d4ed8" id="voucher-monto">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
+          <span style="color:var(--t3)">Fecha transacción</span>
+          <span style="color:var(--t2)" id="voucher-fecha">—</span>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--t3);text-align:center;margin:0">Transacción procesada por Transbank S.A.</p>
+    </div>
+    <div class="mfoot">
+      <button class="btn-a" onclick="closeVoucher()">Cerrar</button>
     </div>
   </div>
 </div>
