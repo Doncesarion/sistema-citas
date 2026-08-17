@@ -2048,6 +2048,20 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div>
 </div>
 
+<!-- Modal Sedes -->
+<div id="sedes-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:24px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
+    <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:4px">Mis sedes</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Agrega todas las sucursales o ubicaciones de tu negocio. El asistente usará esta información al responder sobre dónde están.</div>
+    <div id="sedes-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"></div>
+    <button onclick="addSedeFila()" style="width:100%;border:1px dashed var(--b2);background:rgba(108,92,228,0.04);color:var(--a);font-size:12.5px;font-weight:600;padding:9px;border-radius:var(--r);cursor:pointer">+ Agregar sede</button>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+      <button onclick="closeSedesModal()" style="background:none;border:1px solid var(--b1);color:var(--t2);padding:8px 16px;border-radius:var(--r);font-size:13px;cursor:pointer">Cancelar</button>
+      <button onclick="saveSedesModal()" class="btn-a" style="padding:8px 20px">Guardar sedes</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal marcar como pagada -->
 <div id="modal-pagar-liq" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:500;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:16px;padding:28px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.2)">
@@ -2550,20 +2564,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <button onclick="closeCkModal()" style="background:none;border:1px solid var(--b1);color:var(--t2);padding:8px 16px;border-radius:var(--r);font-size:13px;cursor:pointer">Cancelar</button>
               <button onclick="saveCkEntry()" class="btn-a" style="padding:8px 20px">Guardar</button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal Sedes -->
-      <div id="sedes-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
-        <div style="background:#fff;border-radius:12px;padding:24px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
-          <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:4px">Mis sedes</div>
-          <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Agrega todas las sucursales o ubicaciones de tu negocio. El asistente usará esta información al responder sobre dónde están.</div>
-          <div id="sedes-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"></div>
-          <button onclick="addSedeFila()" style="width:100%;border:1px dashed var(--b2);background:rgba(108,92,228,0.04);color:var(--a);font-size:12.5px;font-weight:600;padding:9px;border-radius:var(--r);cursor:pointer">+ Agregar sede</button>
-          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
-            <button onclick="closeSedesModal()" style="background:none;border:1px solid var(--b1);color:var(--t2);padding:8px 16px;border-radius:var(--r);font-size:13px;cursor:pointer">Cancelar</button>
-            <button onclick="saveSedesModal()" class="btn-a" style="padding:8px 20px">Guardar sedes</button>
           </div>
         </div>
       </div>
@@ -15688,6 +15688,7 @@ async function resolveGap(id) {
 }
 
 // ─── Sedes (multi-ubicación) ───────────────────────────────────────────────
+function _heS(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 let _sedesData = [];
 
 async function openSedesModal() {
@@ -15716,19 +15717,19 @@ function renderSedesList() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px">
         <div>
           <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Nombre de la sede *</label>
-          <input data-field="nombre" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Sede Centro" value="${he(s.nombre||'')}">
+          <input data-field="nombre" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Sede Centro" value="${_heS(s.nombre||'')}">
         </div>
         <div>
           <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Ciudad / Comuna</label>
-          <input data-field="ciudad" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Santiago, Las Condes" value="${he(s.ciudad||'')}">
+          <input data-field="ciudad" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Santiago, Las Condes" value="${_heS(s.ciudad||'')}">
         </div>
         <div style="grid-column:1/-1">
           <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Dirección</label>
-          <input data-field="direccion" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Av. Providencia 1234, Of. 502" value="${he(s.direccion||'')}">
+          <input data-field="direccion" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Av. Providencia 1234, Of. 502" value="${_heS(s.direccion||'')}">
         </div>
         <div>
           <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Teléfono</label>
-          <input data-field="telefono" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="+56 9 1234 5678" value="${he(s.telefono||'')}">
+          <input data-field="telefono" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="+56 9 1234 5678" value="${_heS(s.telefono||'')}">
         </div>
       </div>
     </div>`).join('');
