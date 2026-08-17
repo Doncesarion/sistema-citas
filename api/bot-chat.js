@@ -94,7 +94,7 @@ export default async function handler(req, res) {
   }
 
   // ── Capturar lead + pausar bot + alertar al responsable ──────────────────
-  async function ejecutarCapturarLead(params, emailDestino) {
+  async function ejecutarCapturarLead(params, emailDestino, conversacion = []) {
     const { nombre, telefono, email, interes, resumen } = params;
     const telefonoFinal = telefono || (canal === 'whatsapp' ? canal_user_id : null);
 
@@ -133,25 +133,53 @@ export default async function handler(req, res) {
     const key = process.env.RESEND_API_KEY;
     if (key && emailDestino) {
       const canalLabel = canal === 'whatsapp' ? 'WhatsApp' : canal === 'instagram' ? 'Instagram' : canal === 'messenger' ? 'Messenger' : canal;
-      const nombreDisplay = nombre || canal_user_name || 'Lead';
+      const nombreDisplay = nombre || canal_user_name || 'Visitante';
+
+      // Construir transcript de los últimos 10 mensajes
+      const msgs = conversacion.slice(-10);
+      const transcriptHtml = msgs.length ? `
+<div style="margin-top:20px">
+  <div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:8px">Conversación</div>
+  <div style="border:1px solid #e5e1ff;border-radius:10px;overflow:hidden;font-size:13px">
+    ${msgs.map(m => {
+      const esBot = m.role === 'assistant';
+      const texto = typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join(' ') : '');
+      if (!texto.trim()) return '';
+      return `<div style="padding:10px 14px;background:${esBot ? '#f5f3ff' : '#fff'};border-bottom:1px solid #ede9ff">
+        <span style="font-size:10px;font-weight:600;color:${esBot ? '#6C5CE4' : '#555'};display:block;margin-bottom:3px">${esBot ? (botConfig?.nombre_bot || 'Bot') : (nombreDisplay)}</span>
+        <span style="color:#2d2d2d;line-height:1.5">${String(texto).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+      </div>`;
+    }).filter(Boolean).join('')}
+  </div>
+</div>` : '';
+
       fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Attempo <contacto@attempo.cl>',
           to: [emailDestino],
-          subject: `Nuevo lead — ${canalLabel}: ${nombreDisplay}`,
-          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#2d2d2d">
-<h2 style="color:#6C5CE4;margin:0 0 16px">Contacto pidió atención humana</h2>
-<table style="width:100%;border-collapse:collapse;font-size:14px">
-<tr><td style="padding:6px 0;color:#666;width:90px">Canal</td><td><strong>${canalLabel}</strong></td></tr>
-<tr><td style="padding:6px 0;color:#666">Nombre</td><td>${nombreDisplay}</td></tr>
-${telefonoFinal ? `<tr><td style="padding:6px 0;color:#666">Teléfono</td><td>${telefonoFinal}</td></tr>` : ''}
-${email ? `<tr><td style="padding:6px 0;color:#666">Email</td><td>${email}</td></tr>` : ''}
-${interes ? `<tr><td style="padding:6px 0;color:#666">Interés</td><td>${interes}</td></tr>` : ''}
-</table>
-${resumen ? `<div style="margin-top:16px;padding:12px;background:#f5f3ff;border-radius:8px;font-size:13px;color:#444">${resumen}</div>` : ''}
-<p style="margin-top:16px;font-size:12px;color:#999">El bot está pausado. Esta persona espera que le escribas en el mismo chat.</p>
+          subject: `Requiere atención — ${canalLabel}: ${nombreDisplay}`,
+          html: `<div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;color:#2d2d2d">
+<div style="background:#6C5CE4;border-radius:10px 10px 0 0;padding:16px 20px">
+  <div style="color:#fff;font-size:16px;font-weight:700">Contacto requiere atención humana</div>
+  <div style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:2px">${new Date().toLocaleString('es-CL',{timeZone:'America/Santiago'})}</div>
+</div>
+<div style="border:1px solid #e5e1ff;border-top:none;border-radius:0 0 10px 10px;padding:18px 20px">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px">
+    <tr><td style="padding:5px 0;color:#888;width:80px">Canal</td><td><strong>${canalLabel}</strong></td></tr>
+    <tr><td style="padding:5px 0;color:#888">Nombre</td><td><strong>${nombreDisplay}</strong></td></tr>
+    ${telefonoFinal ? `<tr><td style="padding:5px 0;color:#888">Teléfono</td><td><a href="tel:${telefonoFinal}" style="color:#6C5CE4">${telefonoFinal}</a></td></tr>` : ''}
+    ${email ? `<tr><td style="padding:5px 0;color:#888">Email</td><td><a href="mailto:${email}" style="color:#6C5CE4">${email}</a></td></tr>` : ''}
+    ${interes ? `<tr><td style="padding:5px 0;color:#888;vertical-align:top">Motivo</td><td style="color:#444">${String(interes).replace(/</g,'&lt;')}</td></tr>` : ''}
+  </table>
+  ${resumen ? `<div style="padding:10px 14px;background:#fffbe6;border-left:3px solid #f59e0b;border-radius:4px;font-size:12px;color:#555;margin-top:8px">${String(resumen).replace(/</g,'&lt;')}</div>` : ''}
+  ${transcriptHtml}
+  <div style="margin-top:20px;padding:12px 14px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;font-size:12px;color:#166534">
+    El bot está <strong>pausado</strong> en esta conversación. Esta persona espera que le escribas directamente en ${canalLabel}.
+  </div>
+</div>
+<p style="font-size:11px;color:#aaa;text-align:center;margin-top:12px">attempo — sistema de agendamiento inteligente</p>
 </div>`
         })
       }).catch(() => {});
@@ -387,7 +415,7 @@ HOY ES: ${hoyVentas}`;
 
         for (const block of toolBlocks) {
           if (block.name === 'capturar_lead') {
-            const result = await ejecutarCapturarLead(block.input, 'cesarsalinasmunoz@gmail.com');
+            const result = await ejecutarCapturarLead(block.input, 'cesarsalinasmunoz@gmail.com', [...historial, { role: 'user', content: mensaje }]);
             if (result.ok) leadCapturadoVentas = true;
             toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
           }
@@ -1090,7 +1118,7 @@ REGLAS GENERALES:
       return await ejecutarCrearCita(params);
     }
     if (nombre === 'capturar_lead') {
-      return await ejecutarCapturarLead(params, emailNegocio || 'cesarsalinasmunoz@gmail.com');
+      return await ejecutarCapturarLead(params, emailNegocio || 'cesarsalinasmunoz@gmail.com', [...historial, { role: 'user', content: mensaje }]);
     }
     return { error: 'Herramienta no reconocida' };
   }
