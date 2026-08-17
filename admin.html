@@ -12902,7 +12902,9 @@ function renderListaBandeja() {
     const chSvg = _B_CANAL_SVG[item.canales[0]] || '';
     const unread = item.noLeidos > 0
       ? `<span class="bitem-unread">${item.noLeidos > 99 ? '99+' : item.noLeidos}</span>` : '';
-    return `<div class="bitem${activa}" onclick="abrirConversacion('${item.id}')">
+    const pausaBadge = item.pausa_bot
+      ? `<span style="font-size:9px;font-weight:700;background:#f97316;color:#fff;border-radius:4px;padding:1px 5px;flex-shrink:0">Pendiente</span>` : '';
+    return `<div class="bitem${activa}" onclick="abrirConversacion('${item.id}')" style="${item.pausa_bot ? 'border-left:3px solid #f97316' : ''}">
       <div class="bitem-av">
         <div class="bitem-circle" style="background:${color}">${inits}${fotoHtml}</div>
         <div class="bitem-badge-ch" style="background:${chBg}">${chSvg}</div>
@@ -12914,7 +12916,7 @@ function renderListaBandeja() {
         </div>
         <div class="bitem-row2">
           <span class="bitem-preview">${escH(item.ultimoMensaje || '')}</span>
-          ${unread}
+          ${pausaBadge}${unread}
         </div>
       </div>
     </div>`;

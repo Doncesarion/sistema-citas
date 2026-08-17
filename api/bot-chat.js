@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
   try {
     const rs = await fetch(
-      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id,messages,pausa_bot&limit=1`,
+      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id,messages,pausa_bot,conversation_status&limit=1`,
       { headers: sh }
     );
     const sessions = await rs.json();
@@ -466,6 +466,54 @@ HOY ES: ${hoyVentas}`;
     emailNegocio      = cli?.email || null;
   } catch (e) {
     console.error('bot-chat: error cargando negocio:', e.message);
+  }
+
+  // ── 3b. Detección de escalada humana (keywords + fallos repetidos) ─────────
+  {
+    const KEYWORDS_HUMANO = [
+      'hablar con alguien','hablar con una persona','hablar con un humano',
+      'quiero a una persona','persona real','quiero hablar con','necesito hablar con',
+      'atiéndeme','atención humana','agente humano','representante',
+      'no quiero hablar con un bot','no eres humano','eres un robot','eres una ia',
+      'quiero hablar con el equipo','quiero hablar con ustedes',
+      'quiero que me llamen','que me llamen','llámenme',
+    ];
+    const mensajeLower = mensaje.toLowerCase();
+    const pidioHumano  = KEYWORDS_HUMANO.some(k => mensajeLower.includes(k));
+
+    // Fallos repetidos: el bot ya dijo "alguien del equipo te va a contactar" 2+ veces
+    const TEXTO_ESCALADA = 'alguien del equipo te va a contactar';
+    const fallosBot = historial.filter(m =>
+      m.role === 'assistant' && typeof m.content === 'string' &&
+      m.content.toLowerCase().includes(TEXTO_ESCALADA)
+    ).length;
+    const falloRepetido = fallosBot >= 2;
+
+    if (pidioHumano || falloRepetido) {
+      const motivo = pidioHumano
+        ? `Pidió hablar con una persona: "${mensaje.slice(0, 200)}"`
+        : `El bot escaló ${fallosBot} veces sin resolver la consulta del paciente.`;
+
+      await ejecutarCapturarLead(
+        { nombre: canal_user_name || null, telefono: canal === 'whatsapp' ? canal_user_id : null, interes: motivo },
+        emailNegocio || 'cesarsalinasmunoz@gmail.com',
+        [...historial, { role: 'user', content: mensaje }]
+      );
+
+      const respEscalada = pidioHumano
+        ? 'Claro, te paso con nuestro equipo. Te van a contactar a la brevedad.'
+        : 'Entiendo que no he podido ayudarte bien. Te pongo en contacto con nuestro equipo para que te atiendan personalmente.';
+
+      if (sessionId) {
+        const msgsAct = [...historial, { role: 'user', content: mensaje }, { role: 'assistant', content: respEscalada }];
+        fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
+          method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ messages: msgsAct, conversation_status: 'derivado', pausa_bot: true })
+        }).catch(() => {});
+      }
+
+      return res.status(200).json({ respuesta: respEscalada, delay_min_seg: 0, delay_max_seg: 0 });
+    }
   }
 
   // ── 4. Cargar especialistas ───────────────────────────────────────────────
