@@ -1207,7 +1207,9 @@ REGLAS GENERALES:
   }
 
   return res.status(200).json({
-    respuesta:   respuestaFinal,
-    cita_creada: citaCreada || null
+    respuesta:    respuestaFinal,
+    cita_creada:  citaCreada || null,
+    delay_min_seg: botConfig.delay_min_seg || 0,
+    delay_max_seg: botConfig.delay_max_seg || 0,
   });
 }

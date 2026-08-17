@@ -21,6 +21,29 @@ function incUso(cliente_id, campo) {
   }).catch(() => {});
 }
 
+function incWaUsados(cliente_id) {
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_wa_usados`, {
+    method: 'POST',
+    headers: { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_cliente_id: cliente_id })
+  }).catch(() => {});
+}
+
+async function checkWaQuota(cliente_id) {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=mensajes_wa_limite,mensajes_wa_extra,mensajes_wa_usados&limit=1`,
+      { headers: { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` } }
+    );
+    const [d] = await r.json();
+    if (!d || !d.mensajes_wa_limite) return true;
+    return d.mensajes_wa_usados < (d.mensajes_wa_limite + (d.mensajes_wa_extra || 0));
+  } catch (e) {
+    console.error('[meta-webhook] checkWaQuota error:', e.message);
+    return true;
+  }
+}
+
 export default async function handler(req, res) {
   // ── Verificación de webhook (GET) ─────────────────────────────────────────
   if (req.method === 'GET') {
@@ -187,8 +210,20 @@ export default async function handler(req, res) {
     console.error('meta-webhook: error guardando conversacion:', e.message);
   }
 
+  // ── Verificar cuota mensual WA antes de llamar al bot ────────────────────
+  if (!isAttempoChannel && canal === 'whatsapp' && cliente_id) {
+    const cuotaOk = await checkWaQuota(cliente_id);
+    if (!cuotaOk) {
+      console.log('[meta-webhook] cuota WA agotada para cliente', cliente_id);
+      return res.status(200).end();
+    }
+  }
+
+  // ── Responder 200 a Meta de inmediato para evitar timeout ────────────────
+  res.status(200).end();
+
   // ── Llamar al bot IA ──────────────────────────────────────────────────────
-  let respuesta = '';
+  let respuesta = '', delayMinSeg = 0, delayMaxSeg = 0;
   try {
     const botRes = await fetch(`${BASE_URL}/api/bot-chat`, {
       method: 'POST',
@@ -199,13 +234,15 @@ export default async function handler(req, res) {
     if (botData.pausa) {
       console.log('meta-webhook: bot pausado para', canal_user_id);
       if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
-      return res.status(200).end();
+      return;
     }
-    respuesta = botData.respuesta || '';
+    respuesta    = botData.respuesta    || '';
+    delayMinSeg  = botData.delay_min_seg || 0;
+    delayMaxSeg  = botData.delay_max_seg || delayMinSeg;
   } catch (e) {
     console.error('meta-webhook: error llamando bot-chat:', e.message);
     if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
-    return res.status(200).end();
+    return;
   }
 
   // ── Guardar lead de attempo (usuario + respuesta del bot) ─────────────────
@@ -221,7 +258,14 @@ export default async function handler(req, res) {
     }).catch(e => console.error('meta-webhook: error guardando mensaje bot:', e.message));
   }
 
-  if (!respuesta || !accessToken) return res.status(200).end();
+  if (!respuesta || !accessToken) return;
+
+  // ── Delay configurable antes de enviar ────────────────────────────────────
+  if (delayMinSeg > 0) {
+    const delay = Math.floor(Math.random() * (delayMaxSeg - delayMinSeg + 1) + delayMinSeg);
+    console.log(`meta-webhook: delay ${delay}s para cliente ${cliente_id}`);
+    await new Promise(r => setTimeout(r, delay * 1000));
+  }
 
   // ── Enviar respuesta al canal ─────────────────────────────────────────────
   try {
@@ -248,10 +292,11 @@ export default async function handler(req, res) {
     }
     const sendBody = await sendRes.text();
     console.log('meta-webhook: send status:', sendRes.status, '| body:', sendBody.slice(0,120));
-    if (sendRes.ok) incUso(cliente_id, 'mensajes_wa_bot');
+    if (sendRes.ok) {
+      incUso(cliente_id, 'mensajes_wa_bot');
+      if (!isAttempoChannel) incWaUsados(cliente_id);
+    }
   } catch (e) {
     console.error('meta-webhook: error enviando respuesta:', e.message);
   }
-
-  return res.status(200).end();
 }
