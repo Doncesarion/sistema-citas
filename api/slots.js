@@ -114,7 +114,30 @@ export default async function handler(req, res) {
       logAudit(KEY, 'superadmin_impersonate_post', s.rol, s.cliente_id, overrideId, { resource: req.body?.resource });
     }
     const body = req.body || {};
-    if (!['bot_config', 'notificaciones_config', 'recordatorios_config', 'chatbot-knowledge', 'chatbot-gaps'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
+    if (!['bot_config', 'notificaciones_config', 'recordatorios_config', 'chatbot-knowledge', 'chatbot-gaps', 'ubicaciones'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
+
+    // — POST ubicaciones (save array) —
+    if (body.resource === 'ubicaciones') {
+      try {
+        const sedes = body.sedes;
+        if (!Array.isArray(sedes)) return res.status(400).json({ error: 'sedes debe ser un arreglo' });
+        const cleaned = sedes.slice(0, 20).map(s => ({
+          nombre:    String(s.nombre  || '').trim().slice(0, 100),
+          direccion: String(s.direccion || '').trim().slice(0, 200),
+          ciudad:    String(s.ciudad  || '').trim().slice(0, 80),
+          telefono:  String(s.telefono || '').trim().slice(0, 30),
+        })).filter(s => s.nombre);
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ ubicaciones: cleaned })
+        });
+        if (!r.ok) return res.status(500).json({ error: 'Error al guardar sedes' });
+        return res.status(200).json({ ok: true });
+      } catch(e) {
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
 
     // — POST chatbot-knowledge (save / delete) —
     if (body.resource === 'chatbot-knowledge') {
@@ -563,6 +586,18 @@ export default async function handler(req, res) {
     if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
       cliente_id = overrideId;
       logAudit(KEY, 'superadmin_impersonate_get', s.rol, s.cliente_id, overrideId, { resource: req.query.resource });
+    }
+
+    // — GET ubicaciones —
+    if (req.query.resource === 'ubicaciones') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=ubicaciones&limit=1`, { headers: sh });
+        if (!r.ok) return res.status(500).json({ error: 'Error al obtener ubicaciones' });
+        const data = await r.json();
+        return res.status(200).json(data[0]?.ubicaciones || []);
+      } catch(e) {
+        return res.status(500).json({ error: 'Error interno' });
+      }
     }
 
     // — GET chatbot-knowledge —

@@ -224,7 +224,30 @@ ${resumen ? `<div style="margin-top:16px;padding:12px;background:#f5f3ff;border-
     if (ckResp.ok) chatbotKnowledge = await ckResp.json();
   } catch(e) { /* silencioso */ }
 
-  // ── 2c. Reconocimiento de paciente recurrente (solo WhatsApp) ────────────
+  // ── 2c. Sedes / ubicaciones del negocio ──────────────────────────────────
+  let sedesContexto = '';
+  try {
+    const sedesResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=ubicaciones&limit=1`,
+      { headers: sh }
+    );
+    if (sedesResp.ok) {
+      const sedesData = await sedesResp.json();
+      const sedes = sedesData[0]?.ubicaciones;
+      if (Array.isArray(sedes) && sedes.length > 0) {
+        const lineas = sedes.map((s, i) => {
+          const partes = [`Sede ${i + 1}: ${s.nombre}`];
+          if (s.ciudad)    partes.push(`Ciudad: ${s.ciudad}`);
+          if (s.direccion) partes.push(`Dirección: ${s.direccion}`);
+          if (s.telefono)  partes.push(`Teléfono: ${s.telefono}`);
+          return partes.join(' | ');
+        });
+        sedesContexto = `\n\nSEDES Y UBICACIONES DEL NEGOCIO:\n${lineas.join('\n')}`;
+      }
+    }
+  } catch(e) { /* silencioso */ }
+
+  // ── 2d. Reconocimiento de paciente recurrente (solo WhatsApp) ────────────
   let pacienteContexto = '';
   if (canal === 'whatsapp' && canal_user_id) {
     try {
@@ -523,7 +546,7 @@ ${espTexto}
 
 CATÁLOGO DE SERVICIOS (con precios y duración):
 ${srvTexto}
-${pacienteContexto}${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${chatbotKnowledge.length ? '\n\nBASE DE CONOCIMIENTO DEL NEGOCIO (usa esta información para responder con precisión):\n' + chatbotKnowledge.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n') : ''}${promosTexto}
+${sedesContexto}${pacienteContexto}${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${chatbotKnowledge.length ? '\n\nBASE DE CONOCIMIENTO DEL NEGOCIO (usa esta información para responder con precisión):\n' + chatbotKnowledge.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n') : ''}${promosTexto}
 
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.

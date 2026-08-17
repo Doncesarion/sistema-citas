@@ -2554,6 +2554,20 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
 
+      <!-- Modal Sedes -->
+      <div id="sedes-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:12px;padding:24px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
+          <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:4px">Mis sedes</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Agrega todas las sucursales o ubicaciones de tu negocio. El asistente usará esta información al responder sobre dónde están.</div>
+          <div id="sedes-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"></div>
+          <button onclick="addSedeFila()" style="width:100%;border:1px dashed var(--b2);background:rgba(108,92,228,0.04);color:var(--a);font-size:12.5px;font-weight:600;padding:9px;border-radius:var(--r);cursor:pointer">+ Agregar sede</button>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+            <button onclick="closeSedesModal()" style="background:none;border:1px solid var(--b1);color:var(--t2);padding:8px 16px;border-radius:var(--r);font-size:13px;cursor:pointer">Cancelar</button>
+            <button onclick="saveSedesModal()" class="btn-a" style="padding:8px 20px">Guardar sedes</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Promociones -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -3310,6 +3324,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="cfg-row" onclick="showCfg('horarios',document.getElementById('ctab-horarios'))"><div><div class="cfg-t">Horarios de atención</div><div class="cfg-s">Días y franjas horarias disponibles para reservas</div></div><span style="color:var(--t4)">›</span></div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="showCfg('servicios',document.getElementById('ctab-servicios'))"><div><div class="cfg-t">Servicios</div><div class="cfg-s">Catálogo de servicios, duración y precios</div></div><span style="color:var(--t4)">›</span></div>
+        <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="openSedesModal()"><div><div class="cfg-t">Mis sedes</div><div class="cfg-s">Sucursales y ubicaciones de tu negocio</div></div><div style="display:flex;align-items:center;gap:8px"><span id="sedes-count-badge" style="font-size:11px;font-weight:600;color:var(--t3)"></span><span style="color:var(--t4)">›</span></div></div>
       </div>
 
       <!-- Grupo: Reservas y comunicación -->
@@ -5404,7 +5420,7 @@ function showCfg(panel, btn, skipPush) {
     const t = document.getElementById('ctab-' + p);
     if (t) t.classList.toggle('on', p === panel);
   });
-  if (panel === 'general')       cargarMiPlan();
+  if (panel === 'general')       { cargarMiPlan(); initSedesBadge(); }
   if (panel === 'profesionales') cargarProfesionales();
   if (panel === 'servicios')     cargarServicios();
   if (panel === 'pagos')         cargarPagos();
@@ -15669,6 +15685,101 @@ async function resolveGap(id) {
     });
     await loadGaps();
   } catch(e) { console.error('resolveGap:', e); }
+}
+
+// ─── Sedes (multi-ubicación) ───────────────────────────────────────────────
+let _sedesData = [];
+
+async function openSedesModal() {
+  try {
+    const r = await fetch('/api/slots?resource=ubicaciones', { headers: _citasH() });
+    _sedesData = r.ok ? (await r.json()) : [];
+  } catch(e) { _sedesData = []; }
+  renderSedesList();
+  const m = document.getElementById('sedes-modal');
+  m.style.display = 'flex';
+}
+
+function closeSedesModal() {
+  document.getElementById('sedes-modal').style.display = 'none';
+}
+
+function renderSedesList() {
+  const list = document.getElementById('sedes-list');
+  if (!_sedesData.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Sin sedes registradas. Haz clic en "+ Agregar sede" para crear la primera.</div>';
+    return;
+  }
+  list.innerHTML = _sedesData.map((s,i) => `
+    <div data-sede="${i}" style="border:1px solid var(--b1);border-radius:var(--rl);padding:12px 14px;position:relative">
+      <button onclick="removeSedeFila(${i})" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#e53;font-size:15px;cursor:pointer;line-height:1" title="Eliminar">×</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px">
+        <div>
+          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Nombre de la sede *</label>
+          <input data-field="nombre" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Sede Centro" value="${he(s.nombre||'')}">
+        </div>
+        <div>
+          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Ciudad / Comuna</label>
+          <input data-field="ciudad" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Santiago, Las Condes" value="${he(s.ciudad||'')}">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Dirección</label>
+          <input data-field="direccion" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Av. Providencia 1234, Of. 502" value="${he(s.direccion||'')}">
+        </div>
+        <div>
+          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Teléfono</label>
+          <input data-field="telefono" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="+56 9 1234 5678" value="${he(s.telefono||'')}">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function addSedeFila() {
+  _sedesData.push({ nombre:'', direccion:'', ciudad:'', telefono:'' });
+  renderSedesList();
+  const rows = document.querySelectorAll('#sedes-list [data-sede]');
+  rows[rows.length - 1]?.querySelector('input')?.focus();
+}
+
+function removeSedeFila(i) {
+  _sedesData.splice(i, 1);
+  renderSedesList();
+}
+
+async function saveSedesModal() {
+  const rows = document.querySelectorAll('#sedes-list [data-sede]');
+  const sedes = Array.from(rows).map(row => ({
+    nombre:    (row.querySelector('[data-field="nombre"]')?.value   || '').trim(),
+    ciudad:    (row.querySelector('[data-field="ciudad"]')?.value   || '').trim(),
+    direccion: (row.querySelector('[data-field="direccion"]')?.value || '').trim(),
+    telefono:  (row.querySelector('[data-field="telefono"]')?.value || '').trim(),
+  })).filter(s => s.nombre);
+
+  try {
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource: 'ubicaciones', sedes })
+    });
+    if (!r.ok) throw new Error();
+    _sedesData = sedes;
+    const badge = document.getElementById('sedes-count-badge');
+    if (badge) badge.textContent = sedes.length ? `${sedes.length} sede${sedes.length > 1 ? 's' : ''}` : '';
+    closeSedesModal();
+    toast('Sedes guardadas');
+  } catch(e) {
+    alert('Error al guardar. Intenta de nuevo.');
+  }
+}
+
+async function initSedesBadge() {
+  try {
+    const r = await fetch('/api/slots?resource=ubicaciones', { headers: _citasH() });
+    if (!r.ok) return;
+    const sedes = await r.json();
+    const badge = document.getElementById('sedes-count-badge');
+    if (badge && sedes.length) badge.textContent = `${sedes.length} sede${sedes.length > 1 ? 's' : ''}`;
+  } catch(e) {}
 }
 </script>
 
