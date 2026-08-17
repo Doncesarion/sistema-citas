@@ -2425,6 +2425,24 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <span>Chatbot IA</span>
       </div>
 
+      <!-- Salud del asistente -->
+      <div class="card" id="bot-salud-card" style="padding:20px;margin-bottom:12px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">Salud del asistente</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div id="bot-salud-pct" style="font-size:20px;font-weight:700;color:var(--a)">0%</div>
+            <div id="bot-salud-label" style="font-size:11px;color:var(--t3)"></div>
+          </div>
+        </div>
+        <div style="height:6px;border-radius:99px;background:var(--b1);overflow:hidden;margin-bottom:14px">
+          <div id="bot-salud-bar" style="height:100%;width:0%;border-radius:99px;background:var(--a);transition:width .5s ease"></div>
+        </div>
+        <div id="bot-salud-items" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div id="bot-salud-warn" style="display:none;margin-top:12px;padding:10px 13px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:12px;color:#9a3412">
+          El asistente puede dar respuestas incompletas o incorrectas hasta completar la configuración.
+        </div>
+      </div>
+
       <!-- Personalidad del bot -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Personalidad del asistente</div>
@@ -5662,6 +5680,7 @@ async function guardarPagos(btn) {
 /* ═══ BOT CONFIG ═══ */
 let _botFaqs   = [];
 let _botPromos = [];
+let _botCfgCache = {};
 let _botTestUserId = 'admin-test-' + Date.now();
 
 async function loadBotConfig() {
@@ -5684,6 +5703,7 @@ async function loadBotConfig() {
         _botPromos    = Array.isArray(cfg.promociones) ? cfg.promociones : [];
         _botModos     = Array.isArray(cfg.modos)       ? cfg.modos      : [];
         _modoActivoId = cfg.modo_activo || null;
+        _botCfgCache  = cfg;
         renderFaqs();
         renderPromociones();
         renderModos();
@@ -5947,7 +5967,11 @@ async function saveBotConfig() {
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (r.ok) { toast('✓ Configuración del bot guardada'); }
+    if (r.ok) {
+      toast('✓ Configuración del bot guardada');
+      _botCfgCache = { ..._botCfgCache, ...payload };
+      calcularSaludBot(_botCfgCache, _ckEntries);
+    }
     else { const err = await r.json().catch(()=>({})); toast('Error al guardar: ' + (err.error || r.status)); }
   } catch(e) { toast('Error al guardar la configuración del bot'); }
 }
@@ -15571,6 +15595,7 @@ async function loadChatbotKnowledge() {
     const cnt = document.getElementById('ck-count');
     if (cnt) { cnt.textContent = _ckEntries.length; cnt.style.display = _ckEntries.length ? '' : 'none'; }
   } catch(e) { console.error('loadChatbotKnowledge:', e); }
+  if (_botCfgCache && Object.keys(_botCfgCache).length) calcularSaludBot(_botCfgCache, _ckEntries);
 }
 
 function renderCkFilters() {
@@ -15714,6 +15739,82 @@ async function resolveGap(id) {
     });
     await loadGaps();
   } catch(e) { console.error('resolveGap:', e); }
+}
+
+// ─── Salud del asistente ──────────────────────────────────────────────────
+function calcularSaludBot(cfg, knowledge) {
+  const items = [
+    {
+      key: 'nombre',
+      label: 'Nombre personalizado del asistente',
+      ok: cfg.nombre_bot && cfg.nombre_bot !== 'Valentina' && cfg.nombre_bot.trim().length > 0,
+      peso: 10,
+      accion: () => document.getElementById('bot-nombre')?.focus()
+    },
+    {
+      key: 'saludo',
+      label: 'Mensaje de bienvenida personalizado',
+      ok: cfg.saludo && cfg.saludo.trim().length > 20,
+      peso: 10,
+      accion: () => document.getElementById('bot-saludo')?.focus()
+    },
+    {
+      key: 'faqs',
+      label: 'Al menos 5 preguntas frecuentes',
+      ok: Array.isArray(cfg.faqs) && cfg.faqs.filter(f => f.pregunta?.trim()).length >= 5,
+      det: Array.isArray(cfg.faqs) ? `${cfg.faqs.filter(f=>f.pregunta?.trim()).length} de 5` : '0 de 5',
+      peso: 25,
+      accion: null
+    },
+    {
+      key: 'knowledge',
+      label: 'Base de conocimiento con 3+ entradas',
+      ok: Array.isArray(knowledge) && knowledge.length >= 3,
+      det: Array.isArray(knowledge) ? `${knowledge.length} entrada${knowledge.length !== 1 ? 's' : ''}` : '0 entradas',
+      peso: 25,
+      accion: null
+    },
+    {
+      key: 'conocimiento',
+      label: 'Instrucciones de personalidad definidas',
+      ok: cfg.conocimiento && cfg.conocimiento.trim().length > 30,
+      peso: 15,
+      accion: () => document.getElementById('bot-conocimiento')?.focus()
+    },
+    {
+      key: 'servicios',
+      label: 'Servicios con descripción o precio',
+      ok: Array.isArray(_serviciosCache) && _serviciosCache.some(s => s.precio || s.descripcion),
+      det: Array.isArray(_serviciosCache) ? `${_serviciosCache.filter(s=>s.precio||s.descripcion).length} de ${_serviciosCache.length}` : '',
+      peso: 15,
+    },
+  ];
+
+  const totalPeso = items.reduce((a, i) => a + i.peso, 0);
+  const logrado   = items.filter(i => i.ok).reduce((a, i) => a + i.peso, 0);
+  const pct       = Math.round((logrado / totalPeso) * 100);
+
+  // Renderizar
+  const card = document.getElementById('bot-salud-card');
+  if (card) card.style.display = '';
+  document.getElementById('bot-salud-pct').textContent = pct + '%';
+  const bar = document.getElementById('bot-salud-bar');
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = pct >= 80 ? '#16a34a' : pct >= 50 ? 'var(--a)' : '#e53'; }
+  const label = document.getElementById('bot-salud-label');
+  if (label) label.textContent = pct >= 80 ? 'Listo' : pct >= 50 ? 'En progreso' : 'Necesita configuración';
+  const warn = document.getElementById('bot-salud-warn');
+  if (warn) warn.style.display = pct < 60 ? '' : 'none';
+
+  const cont = document.getElementById('bot-salud-items');
+  if (cont) cont.innerHTML = items.map(item => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:var(--rl);background:${item.ok ? 'rgba(22,163,74,0.05)' : 'rgba(229,83,53,0.04)'};border:1px solid ${item.ok ? 'rgba(22,163,74,0.15)' : 'rgba(229,83,53,0.12)'}">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="${item.ok ? '#16a34a' : '#e5e7eb'}"/>${item.ok ? '<path d="M4 7l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' : '<path d="M5 7h4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>'}</svg>
+        <span style="font-size:12px;color:${item.ok ? 'var(--t2)' : 'var(--t1)'}">${item.label}</span>
+        ${item.det && !item.ok ? `<span style="font-size:11px;color:var(--t3)">(${item.det})</span>` : ''}
+      </div>
+      ${!item.ok && item.accion ? `<button onclick="(${item.accion.toString()})()" style="font-size:11px;color:var(--a);background:none;border:none;cursor:pointer;flex-shrink:0;padding:0;text-decoration:underline;text-underline-offset:2px">Completar</button>` : ''}
+    </div>`).join('');
 }
 
 // ─── Delay de respuesta ────────────────────────────────────────────────────
