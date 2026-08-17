@@ -3317,7 +3317,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <!-- Grupo: Tu negocio -->
       <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Tu negocio</div>
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
-        <div class="cfg-row" onclick="openCfgModal('negocio')"><div><div class="cfg-t">Mi negocio</div><div class="cfg-s">Nombre, logo, descripción y dirección del local</div></div><span style="color:var(--t4)">›</span></div>
+        <div class="cfg-row" onclick="openCfgModal('negocio')"><div><div class="cfg-t">Mi negocio</div><div class="cfg-s">Nombre, logo y descripción de tu negocio</div></div><span style="color:var(--t4)">›</span></div>
         <div style="height:1px;background:var(--b1)"></div>
         <div class="cfg-row" onclick="showCfg('profesionales',document.getElementById('ctab-profesionales'))"><div><div class="cfg-t">Profesionales y roles</div><div class="cfg-s">Gestiona tu equipo y permisos de acceso</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tp">Activos</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
@@ -8858,26 +8858,20 @@ async function loadNegocio() {
   try {
     const cid = await getClienteId();
     if (!cid) return;
-    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,contacto_tel,direccion,descripcion,ciudad,logo_url&limit=1`, { headers: _SH });
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,descripcion,logo_url&limit=1`, { headers: _SH });
     const rows = await r.json();
     const d = Array.isArray(rows) ? rows[0] : null;
     if (!d) return;
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     set('neg-nombre', d.nombre_negocio);
-    set('neg-tel',    d.contacto_tel);
-    set('neg-dir',    d.direccion);
     set('neg-desc',   d.descripcion);
-    set('neg-ciudad', d.ciudad);
     if (d.logo_url) applyLogo(d.logo_url);
   } catch(e) { console.warn('loadNegocio error', e); }
 }
 
 async function saveNegocio() {
-  const nombre  = document.getElementById('neg-nombre')?.value.trim() || '';
-  const tel     = document.getElementById('neg-tel')?.value.trim()    || '';
-  const dir     = document.getElementById('neg-dir')?.value.trim()    || '';
-  const desc    = document.getElementById('neg-desc')?.value.trim()   || '';
-  const ciudad  = document.getElementById('neg-ciudad')?.value.trim() || '';
+  const nombre = document.getElementById('neg-nombre')?.value.trim() || '';
+  const desc   = document.getElementById('neg-desc')?.value.trim()   || '';
 
   try {
     const cid = await getClienteId();
@@ -8885,7 +8879,7 @@ async function saveNegocio() {
     const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
       method: 'PATCH',
       headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ nombre_negocio: nombre, contacto_tel: tel, direccion: dir, descripcion: desc, ciudad })
+      body: JSON.stringify({ nombre_negocio: nombre, descripcion: desc })
     });
     if (!r.ok) throw new Error(await r.text());
   } catch(e) {
@@ -9828,11 +9822,6 @@ function salirImpersonacion() {
     <div class="mbody" style="gap:14px">
       <div class="fg"><label class="fl">Nombre del negocio</label><input class="fi" id="neg-nombre" placeholder="Ej: Clínica Norte"></div>
       <div class="fg"><label class="fl">Descripción</label><textarea class="fi" id="neg-desc" rows="3" style="resize:none;line-height:1.6" placeholder="Breve descripción de tu negocio..."></textarea></div>
-      <div class="r2">
-        <div class="fg"><label class="fl">Ciudad</label><input class="fi" id="neg-ciudad" placeholder="Ej: Santiago"></div>
-        <div class="fg"><label class="fl">Dirección</label><input class="fi" id="neg-dir" placeholder="Ej: Av. Providencia 1234"></div>
-      </div>
-      <div class="fg"><label class="fl">Teléfono del negocio</label><input class="fi" id="neg-tel" placeholder="+56 9 1234 5678" type="tel"></div>
       <div class="fg"><label class="fl">Logo del negocio</label>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--b1);border-radius:var(--r);background:#fafafe">
           <div id="logo-preview" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;font-family:var(--mono);overflow:hidden;flex-shrink:0">tt</div>
