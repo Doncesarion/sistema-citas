@@ -15690,15 +15690,16 @@ async function resolveGap(id) {
 // ─── Sedes (multi-ubicación) ───────────────────────────────────────────────
 function _heS(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 let _sedesData = [];
+let _sedesEditIdx = -1; // índice en edición (-1 = ninguno)
 
 async function openSedesModal() {
   try {
     const r = await fetch('/api/slots?resource=ubicaciones', { headers: _citasH() });
     _sedesData = r.ok ? (await r.json()) : [];
   } catch(e) { _sedesData = []; }
+  _sedesEditIdx = -1;
   renderSedesList();
-  const m = document.getElementById('sedes-modal');
-  m.style.display = 'flex';
+  document.getElementById('sedes-modal').style.display = 'flex';
 }
 
 function closeSedesModal() {
@@ -15711,51 +15712,92 @@ function renderSedesList() {
     list.innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Sin sedes registradas. Haz clic en "+ Agregar sede" para crear la primera.</div>';
     return;
   }
-  list.innerHTML = _sedesData.map((s,i) => `
-    <div data-sede="${i}" style="border:1px solid var(--b1);border-radius:var(--rl);padding:12px 14px;position:relative">
-      <button onclick="removeSedeFila(${i})" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#e53;font-size:15px;cursor:pointer;line-height:1" title="Eliminar">×</button>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px">
-        <div>
-          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Nombre de la sede *</label>
-          <input data-field="nombre" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Sede Centro" value="${_heS(s.nombre||'')}">
+  list.innerHTML = _sedesData.map((s, i) => {
+    if (i === _sedesEditIdx) {
+      // Fila en modo edición
+      return `<div data-sede="${i}" style="border:1px solid var(--a);border-radius:var(--rl);padding:12px 14px;background:rgba(108,92,228,0.03)">
+        <div style="font-size:11px;font-weight:600;color:var(--a);margin-bottom:10px">Editando sede</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Nombre *</label>
+            <input data-field="nombre" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Sede Centro" value="${_heS(s.nombre||'')}">
+          </div>
+          <div>
+            <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Ciudad / Comuna</label>
+            <input data-field="ciudad" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Las Condes" value="${_heS(s.ciudad||'')}">
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Dirección</label>
+            <input data-field="direccion" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Av. Providencia 1234" value="${_heS(s.direccion||'')}">
+          </div>
+          <div>
+            <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Teléfono</label>
+            <input data-field="telefono" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="+56 9 1234 5678" value="${_heS(s.telefono||'')}">
+          </div>
         </div>
-        <div>
-          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Ciudad / Comuna</label>
-          <input data-field="ciudad" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Santiago, Las Condes" value="${_heS(s.ciudad||'')}">
+        <div style="display:flex;gap:8px">
+          <button onclick="confirmarEditSede(${i})" class="btn-a" style="font-size:12px;padding:6px 14px">Listo</button>
+          <button onclick="cancelarEditSede(${i})" style="background:none;border:1px solid var(--b1);color:var(--t2);font-size:12px;padding:6px 12px;border-radius:var(--r);cursor:pointer">Cancelar</button>
         </div>
-        <div style="grid-column:1/-1">
-          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Dirección</label>
-          <input data-field="direccion" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="Ej: Av. Providencia 1234, Of. 502" value="${_heS(s.direccion||'')}">
-        </div>
-        <div>
-          <label style="font-size:10.5px;color:var(--t3);display:block;margin-bottom:3px">Teléfono</label>
-          <input data-field="telefono" class="fi" style="font-size:12.5px;padding:7px 10px" placeholder="+56 9 1234 5678" value="${_heS(s.telefono||'')}">
-        </div>
+      </div>`;
+    }
+    // Fila compacta (vista normal)
+    const sub = [s.direccion, s.ciudad].filter(Boolean).join(' · ');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--b1);border-radius:var(--rl);padding:10px 14px">
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_heS(s.nombre||'Sin nombre')}</div>
+        ${sub ? `<div style="font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_heS(sub)}</div>` : ''}
       </div>
-    </div>`).join('');
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button onclick="editarSede(${i})" style="background:none;border:1px solid var(--b1);color:var(--a);font-size:12px;padding:5px 10px;border-radius:var(--r);cursor:pointer;font-weight:500">Editar</button>
+        <button onclick="eliminarSede(${i})" style="background:none;border:1px solid #fca5a5;color:#e53;font-size:12px;padding:5px 10px;border-radius:var(--r);cursor:pointer">Eliminar</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function addSedeFila() {
-  _sedesData.push({ nombre:'', direccion:'', ciudad:'', telefono:'' });
+function editarSede(i) {
+  _sedesEditIdx = i;
   renderSedesList();
-  const rows = document.querySelectorAll('#sedes-list [data-sede]');
-  rows[rows.length - 1]?.querySelector('input')?.focus();
+  document.querySelector(`#sedes-list [data-sede="${i}"] input`)?.focus();
 }
 
-function removeSedeFila(i) {
-  _sedesData.splice(i, 1);
-  renderSedesList();
-}
-
-async function saveSedesModal() {
-  const rows = document.querySelectorAll('#sedes-list [data-sede]');
-  const sedes = Array.from(rows).map(row => ({
+function confirmarEditSede(i) {
+  const row = document.querySelector(`#sedes-list [data-sede="${i}"]`);
+  if (!row) return;
+  _sedesData[i] = {
     nombre:    (row.querySelector('[data-field="nombre"]')?.value   || '').trim(),
     ciudad:    (row.querySelector('[data-field="ciudad"]')?.value   || '').trim(),
     direccion: (row.querySelector('[data-field="direccion"]')?.value || '').trim(),
     telefono:  (row.querySelector('[data-field="telefono"]')?.value || '').trim(),
-  })).filter(s => s.nombre);
+  };
+  _sedesEditIdx = -1;
+  renderSedesList();
+}
 
+function cancelarEditSede(i) {
+  if (!_sedesData[i].nombre) _sedesData.splice(i, 1);
+  _sedesEditIdx = -1;
+  renderSedesList();
+}
+
+function eliminarSede(i) {
+  _sedesData.splice(i, 1);
+  if (_sedesEditIdx >= i) _sedesEditIdx = -1;
+  renderSedesList();
+}
+
+function addSedeFila() {
+  if (_sedesEditIdx !== -1) confirmarEditSede(_sedesEditIdx);
+  _sedesData.push({ nombre:'', direccion:'', ciudad:'', telefono:'' });
+  _sedesEditIdx = _sedesData.length - 1;
+  renderSedesList();
+  document.querySelector(`#sedes-list [data-sede="${_sedesEditIdx}"] input`)?.focus();
+}
+
+async function saveSedesModal() {
+  if (_sedesEditIdx !== -1) confirmarEditSede(_sedesEditIdx);
+  const sedes = _sedesData.filter(s => s.nombre);
   try {
     const r = await fetch('/api/slots', {
       method: 'POST',
