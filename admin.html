@@ -1570,6 +1570,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <button class="sb-rec-btn" id="sb-rec-btn" onclick="abrirModalRecMas()" style="display:none">+ Obtener más recordatorios</button>
 </div>
 
+<!-- ── CONTADOR MENSAJES WA BOT ── -->
+<div class="sb-rec-counter" id="sb-wa-counter" style="display:none">
+  <div class="sb-msg-counter-label">
+    <span>Mensajes WA este mes</span>
+    <span id="sb-wa-nums">— / —</span>
+  </div>
+  <div class="sb-msg-counter-bar">
+    <div class="sb-msg-counter-fill" id="sb-wa-fill" style="width:0%"></div>
+  </div>
+  <button class="sb-rec-btn" id="sb-wa-btn" onclick="abrirModalWaMas()" style="display:none">+ Obtener más mensajes</button>
+</div>
+
 </aside>
 
 <!-- ═══ MODAL — OBTENER MÁS RECORDATORIOS ═══ -->
@@ -1611,6 +1623,21 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         Pagar con Flow — <span id="mrm-precio-mensual">selecciona una opción</span>
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL — MENSAJES WA ═══ -->
+<div id="modal-wa-mas" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarModalWaMas()">
+  <div style="background:#fff;border-radius:16px;padding:28px 28px 24px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.22)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <div style="font-size:17px;font-weight:700;color:var(--t1)">Mensajes WhatsApp</div>
+      <button onclick="cerrarModalWaMas()" style="background:none;border:none;font-size:20px;color:var(--t3);cursor:pointer;line-height:1;padding:0 0 0 12px">×</button>
+    </div>
+    <div id="wam-uso-txt" style="font-size:13px;color:var(--t3);margin-bottom:20px">Calculando uso...</div>
+    <div style="background:var(--bg2);border-radius:10px;padding:16px;margin-bottom:20px">
+      <div style="font-size:13px;color:var(--t2);line-height:1.6">Tu plan incluye mensajes WA mensuales para el bot IA. Si necesitas más, escríbenos y te cotizamos un pack adicional.</div>
+    </div>
+    <a href="mailto:hola@attempo.cl?subject=Pack mensajes WhatsApp" style="display:block;text-align:center;padding:13px 0;background:var(--a);color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Escribir a hola@attempo.cl</a>
   </div>
 </div>
 
@@ -2350,6 +2377,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
               <span id="bbot-label">Bot activo</span>
             </button>
+            <button class="bbot-toggle" id="bnotif-toggle" onclick="toggleNotifBandeja()" title="Recibir email cuando llegue un mensaje nuevo">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span id="bnotif-label">Notif. off</span>
+            </button>
           </div>
         </div>
         <div class="bthread-msgs" id="bthread-msgs"></div>
@@ -2455,6 +2486,71 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <!-- rendered by JS -->
           </div>
           <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
+        </div>
+      </div>
+
+      <!-- Base de Conocimiento -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">Base de Conocimiento</div>
+            <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">IA lo usa</span>
+            <span id="ck-count" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">0</span>
+          </div>
+          <button class="btn-sm" onclick="showCkModal()" style="font-size:11px">+ Agregar</button>
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Información detallada que el bot usa al responder: políticas, protocolos, ubicación, preguntas complejas. A diferencia de las FAQ, puede ser texto largo y categorizado.</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="ck-cat-filters">
+          <button onclick="filterCk('all',this)" class="ck-filter-btn" style="font-size:11px;padding:4px 10px;border-radius:100px;border:1px solid var(--a);background:var(--a);color:#fff;cursor:pointer">Todas</button>
+        </div>
+        <div id="ck-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="ck-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay entradas. Haz clic en "+ Agregar" para empezar.</div>
+      </div>
+
+      <!-- Preguntas sin respuesta -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:13px;font-weight:600;color:var(--t1)">Preguntas sin respuesta</div>
+            <span id="gaps-badge" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(229,83,83,0.1);color:#e53;border:1px solid rgba(229,83,83,0.2)">0</span>
+          </div>
+          <button onclick="loadGaps()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:12px">Actualizar</button>
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Preguntas que el bot no pudo responder. Úsalas para agregar entradas a la base de conocimiento y mejorar las respuestas.</div>
+        <div id="gaps-list"><div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Cargando...</div></div>
+      </div>
+
+      <!-- Modal Base de Conocimiento -->
+      <div id="ck-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:12px;padding:24px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
+          <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:16px" id="ck-modal-title">Nueva entrada de conocimiento</div>
+          <input type="hidden" id="ck-modal-id">
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Categoría</label>
+            <select class="fs" id="ck-modal-cat" style="width:100%">
+              <option value="politicas">Políticas del negocio</option>
+              <option value="servicios">Servicios y precios</option>
+              <option value="ubicacion">Ubicación y contacto</option>
+              <option value="protocolos">Protocolos de atención</option>
+              <option value="preguntas">Preguntas complejas</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Título</label>
+            <input class="fi" id="ck-modal-titulo" placeholder="Ej: Política de cancelación de citas">
+          </div>
+          <div style="margin-bottom:16px">
+            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Contenido</label>
+            <textarea class="fi" id="ck-modal-contenido" rows="6" placeholder="Ej: Si el paciente cancela con menos de 24 horas de anticipación, se cobra el 50% del valor. Si cancela con más de 24 horas, no hay cobro." style="resize:vertical;line-height:1.6;font-size:13px"></textarea>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <button onclick="deleteCkEntry()" id="ck-modal-del" style="display:none;background:none;border:1px solid #e53;color:#e53;padding:8px 14px;border-radius:var(--r);font-size:12px;cursor:pointer">Eliminar</button>
+            <div style="display:flex;gap:8px;margin-left:auto">
+              <button onclick="closeCkModal()" style="background:none;border:1px solid var(--b1);color:var(--t2);padding:8px 16px;border-radius:var(--r);font-size:13px;cursor:pointer">Cancelar</button>
+              <button onclick="saveCkEntry()" class="btn-a" style="padding:8px 20px">Guardar</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3221,7 +3317,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div class="cfg-row" onclick="openCfgModal('sitio')"><div><div class="cfg-t">Sitio web de reservas</div><div class="cfg-s">Link de reservas en línea y política de cancelación</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
-        <div class="cfg-row" onclick="openCfgModal('recordatorios')"><div><div class="cfg-t">Recordatorios automáticos</div><div class="cfg-s">WhatsApp y email antes de cada cita</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
       </div>
 
       <!-- Grupo: Finanzas -->
@@ -3350,13 +3445,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">¿Cómo aceptas pagos?</div>
         <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Esta información se muestra en los correos de confirmación de cita.</div>
         <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
-          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)">
-            <div>
-              <div style="font-size:13px;font-weight:500;color:var(--t1)">Webpay / Transbank</div>
-              <div style="font-size:12px;color:var(--t3)">Pago online con tarjeta de crédito o débito</div>
-            </div>
-            <input type="checkbox" id="pago-webpay" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleWebpayDatos()">
-          </label>
           <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)" onclick="toggleBancoDatos()">
             <div>
               <div style="font-size:13px;font-weight:500;color:var(--t1)">Transferencia bancaria</div>
@@ -3371,13 +3459,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             </div>
             <input type="checkbox" id="pago-efectivo" style="accent-color:var(--a);width:16px;height:16px">
           </label>
-          <label style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)">
-            <div>
-              <div style="font-size:13px;font-weight:500;color:var(--a)">Pago online con Flow</div>
-              <div style="font-size:12px;color:var(--t3)">El paciente paga su cita con tarjeta antes de llegar — requiere cuenta en Flow.cl</div>
-            </div>
-            <input type="checkbox" id="pago-flow" style="accent-color:var(--a);width:16px;height:16px" onchange="toggleFlowDatos()">
-          </label>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px">
             <div>
               <div style="font-size:13px;font-weight:500;color:#009ee3">Mercado Pago</div>
@@ -3386,6 +3467,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <div id="mp-connect-status"></div>
           </div>
         </div>
+        <!-- checkboxes ocultos para compatibilidad con el guardado existente -->
+        <input type="checkbox" id="pago-webpay" style="display:none">
+        <input type="checkbox" id="pago-flow" style="display:none">
       </div>
       <!-- Sección Mercado Pago -->
       <div id="mp-datos" style="display:none">
@@ -3406,8 +3490,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
 
-      <!-- Credenciales Flow (se muestra si Flow activo) -->
-      <div id="flow-datos" style="display:none">
+      <!-- Credenciales Flow — oculto, reservado para uso futuro -->
+      <div id="flow-datos" style="display:none!important">
         <div class="card" style="padding:20px;margin-bottom:12px">
           <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Credenciales de Flow</div>
           <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Obtén tu API Key y Secret Key en <strong>flow.cl → Panel → Integración API</strong>. El dinero va directo a tu cuenta de Flow.</div>
@@ -3425,8 +3509,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
 
-      <!-- Credenciales Webpay (se muestra si Webpay activo) -->
-      <div id="webpay-datos" style="display:none">
+      <!-- Credenciales Webpay — oculto, reservado para uso futuro -->
+      <div id="webpay-datos" style="display:none!important">
         <div class="card" style="padding:20px;margin-bottom:12px">
           <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Credenciales de Webpay</div>
           <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Obtén tu <strong>Código de Comercio</strong> y <strong>Llave Secreta</strong> desde <strong>Transbank Developers → Ambiente de Producción</strong>. El dinero va directo a tu cuenta bancaria.</div>
@@ -3539,22 +3623,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
 
-      <!-- DTemite -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Integración DTemite <span style="font-size:11px;font-weight:400;color:var(--t3)">(boleta electrónica SII)</span></div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Conecta tu cuenta <a href="https://dtemite.cl" target="_blank" style="color:var(--a);text-decoration:none">DTemite</a> para emitir documentos tributarios electrónicos válidos ante el SII.</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Sistema DTemite</label>
-              <input id="fact-dte-sistema" type="text" placeholder="Ej: webbasico" class="fi" style="width:100%"></div>
-            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Usuario integración</label>
-              <input id="fact-dte-usuario" type="text" placeholder="Ej: integrado_webbasico" class="fi" style="width:100%"></div>
-          </div>
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Contraseña integración</label>
-            <input id="fact-dte-clave" type="password" placeholder="Contraseña de tu cuenta DTemite" class="fi" style="width:100%" autocomplete="new-password"></div>
-        </div>
-        <div id="fact-dte-estado" style="margin-top:10px;font-size:12px;color:var(--t3)"></div>
-      </div>
+      <!-- DTemite — configurado por attempo, no visible para clientes -->
+      <div id="fact-dte-estado" style="display:none"></div>
+      <input id="fact-dte-sistema" type="hidden">
+      <input id="fact-dte-usuario" type="hidden">
+      <input id="fact-dte-clave" type="hidden">
 
       <!-- Numeración -->
       <div class="card" style="padding:20px;margin-bottom:12px">
@@ -3568,7 +3641,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <input id="fact-folio-ini" type="number" min="1" value="1" class="fi" style="width:72px;text-align:center">
           </div>
         </div>
-        <div style="font-size:11px;color:var(--t3);margin-top:8px">Este folio aplica solo para boletas internas generadas en attempo. Los DTE emitidos con DTemite usan numeración SII automática.</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:8px">Este folio aplica para las boletas generadas en attempo.</div>
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:4px">
@@ -3885,12 +3958,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           </div>
         </div>
         <div id="pay-link-info" style="display:none;font-size:11px;color:var(--t3);margin-top:6px;padding:7px 10px;background:rgba(108,92,228,0.05);border-radius:6px;line-height:1.5">
-          <div style="margin-bottom:6px">Elige el método de pago en línea:</div>
-          <div style="display:flex;gap:6px">
-            <button id="pay-prov-flow" onclick="setPayProvider('flow')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--a);background:var(--adim);color:var(--a);font-size:11px;font-weight:600;cursor:pointer">Flow</button>
-            <button id="pay-prov-webpay" onclick="setPayProvider('webpay')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer">Webpay</button>
-            <button id="pay-prov-mp" onclick="setPayProvider('mp')" style="flex:1;padding:5px 8px;border-radius:6px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer">Mercado Pago</button>
-          </div>
+          <div style="margin-bottom:6px">Se enviará un link de pago por Mercado Pago al paciente.</div>
         </div>
       </div>
       <!-- Summary -->
@@ -4021,10 +4089,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div id="fp-boleta-row" style="display:none;margin-top:8px">
         <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">Emitir boleta</button>
       </div>
-      <div id="fp-flow-row" style="display:none;margin-top:8px">
+      <!-- fp-flow-row y fp-webpay-row ocultos, reservados para uso futuro -->
+      <div id="fp-flow-row" style="display:none!important;margin-top:8px">
         <button class="btn-a" style="width:100%;background:var(--a)" onclick="enviarLinkFlowPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Flow</button>
       </div>
-      <div id="fp-webpay-row" style="display:none;margin-top:8px">
+      <div id="fp-webpay-row" style="display:none!important;margin-top:8px">
         <button class="btn-a" style="width:100%;background:#005BBB" onclick="enviarLinkWebpayPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Webpay</button>
       </div>
       <div id="fp-mp-row" style="display:none;margin-top:8px">
@@ -4372,7 +4441,7 @@ function setDur(d) {
 }
 
 /* Payment */
-let _payProvider = 'flow';
+let _payProvider = 'mp';
 
 function setPayProvider(p) {
   _payProvider = p;
@@ -4397,7 +4466,7 @@ function setPay(el) {
   el.classList.add('on');
   const info = document.getElementById('pay-link-info');
   if (info) info.style.display = el.id === 'pay-on' ? 'block' : 'none';
-  if (el.id !== 'pay-on') _payProvider = 'flow'; // reset al salir de link
+  if (el.id !== 'pay-on') _payProvider = 'mp';
 }
 
 /* Price update */
@@ -5490,17 +5559,8 @@ function toggleBancoDatos() {
   if (bd) bd.style.display = checked ? 'block' : 'none';
 }
 
-function toggleFlowDatos() {
-  const checked = document.getElementById('pago-flow')?.checked;
-  const fd = document.getElementById('flow-datos');
-  if (fd) fd.style.display = checked ? 'block' : 'none';
-}
-
-function toggleWebpayDatos() {
-  const checked = document.getElementById('pago-webpay')?.checked;
-  const wd = document.getElementById('webpay-datos');
-  if (wd) wd.style.display = checked ? 'block' : 'none';
-}
+function toggleFlowDatos() { /* oculto — reservado para uso futuro */ }
+function toggleWebpayDatos() { /* oculto — reservado para uso futuro */ }
 
 async function guardarPagos(btn) {
   const cid = await getClienteId();
@@ -5598,6 +5658,8 @@ async function loadBotConfig() {
       }
     }
   } catch(e) { console.error('loadBotConfig:', e.message); }
+  loadChatbotKnowledge();
+  loadGaps();
 }
 
 function _actualizarBadgesCanalesBot(meta) {
@@ -12616,6 +12678,7 @@ window.initBandeja = async function() {
   await cargarConversaciones();
   iniciarPollBandeja();
   cargarStatsIA();
+  cargarEstadoNotif();
 };
 
 // ── Cargar conversaciones ─────────────────────────────────────────────────────
@@ -12975,6 +13038,49 @@ async function cargarEstadoBot(conv_id) {
   // Lo leemos de chat_sessions via pausa-bot existente
   actualizarBotUI(_bConvActual?.pausa_bot || false);
 }
+
+// ── Toggle notificación primer mensaje ────────────────────────────────────────
+let _bNotifActiva = false;
+
+async function cargarEstadoNotif() {
+  try {
+    const r = await fetch('/api/bandeja?action=notif-config', { headers: _bandejaH() });
+    if (!r.ok) return;
+    const data = await r.json();
+    _bNotifActiva = data.notif_nuevo_mensaje || false;
+    actualizarNotifUI(_bNotifActiva);
+  } catch(e) {}
+}
+
+function actualizarNotifUI(activa) {
+  const btn   = document.getElementById('bnotif-toggle');
+  const label = document.getElementById('bnotif-label');
+  if (!btn) return;
+  if (activa) {
+    btn.classList.add('active');
+    if (label) label.textContent = 'Notif. activas';
+  } else {
+    btn.classList.remove('active');
+    if (label) label.textContent = 'Notif. off';
+  }
+}
+
+window.toggleNotifBandeja = async function() {
+  const nuevo = !_bNotifActiva;
+  try {
+    const r = await fetch('/api/bandeja?action=toggle-notif', {
+      method: 'PATCH',
+      headers: { ..._bandejaH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo: nuevo })
+    });
+    if (!r.ok) { toast('Error al cambiar notificación', 3000); return; }
+    _bNotifActiva = nuevo;
+    actualizarNotifUI(nuevo);
+    toast(nuevo ? 'Recibirás un email con el primer mensaje' : 'Notificaciones desactivadas', 2500);
+  } catch(e) {
+    toast('Error al cambiar notificación', 3000);
+  }
+};
 
 function actualizarBotUI(pausado) {
   const btn    = document.getElementById('bbot-toggle');
@@ -13621,9 +13727,43 @@ async function cargarStatsIA() {
 
     // Guardar para el modal
     window._recStatsCache = { rec_mes_count, totalLimiteRec, pctRec };
+
+    // — Contador Mensajes WA Bot —
+    const wa_usados  = data.mensajes_wa_usados || 0;
+    const wa_limite  = data.mensajes_wa_limite || 0;
+    const wa_extra   = data.mensajes_wa_extra  || 0;
+    const wa_total   = wa_limite + wa_extra;
+    if (wa_total > 0) {
+      const pctWa      = Math.min(100, Math.round((wa_usados / wa_total) * 100));
+      const numsWa     = `${wa_usados.toLocaleString('es-CL')} / ${wa_total.toLocaleString('es-CL')}`;
+      const fillWaCls  = 'sb-msg-counter-fill' + (pctWa >= 100 ? ' full' : pctWa >= 80 ? ' warn' : '');
+      const sbWa       = document.getElementById('sb-wa-counter');
+      const sbWaNums   = document.getElementById('sb-wa-nums');
+      const sbWaFill   = document.getElementById('sb-wa-fill');
+      const sbWaBtn    = document.getElementById('sb-wa-btn');
+      if (sbWa)     sbWa.style.display    = 'block';
+      if (sbWaNums) sbWaNums.textContent  = numsWa;
+      if (sbWaFill) { sbWaFill.style.width = pctWa + '%'; sbWaFill.className = fillWaCls; }
+      if (sbWaBtn)  sbWaBtn.style.display = pctWa >= 80 ? '' : 'none';
+      window._waStatsCache = { wa_usados, wa_total, pctWa };
+    }
   } catch (e) {
     console.error('bandeja: error cargando stats', e);
   }
+}
+
+window.abrirModalWaMas = function() {
+  const { wa_usados = 0, wa_total = 0 } = window._waStatsCache || {};
+  const modal = document.getElementById('modal-wa-mas');
+  if (!modal) return;
+  const txt = modal.querySelector('#wam-uso-txt');
+  if (txt) txt.textContent = `Usados este mes: ${wa_usados.toLocaleString('es-CL')} de ${wa_total.toLocaleString('es-CL')} mensajes WA`;
+  modal.style.display = 'flex';
+}
+
+window.cerrarModalWaMas = function() {
+  const modal = document.getElementById('modal-wa-mas');
+  if (modal) modal.style.display = 'none';
 }
 
 // ── Modal "Obtener más recordatorios" ──────────────────────────────────────
@@ -14884,37 +15024,56 @@ function openCotModal(id) {
 function closeCotModal() { document.getElementById('cot-ov').classList.remove('open'); }
 
 function addCotItem(it = {}) {
-  const tr = document.createElement('tr');
-  // Fix 2: Build service dropdown options from _serviciosCache
+  const tr   = document.createElement('tr');
   const srvs = Array.isArray(_serviciosCache) ? _serviciosCache : [];
-  const srvOpts = srvs.map(s =>
-    `<option value="${(s.nombre||'').replace(/"/g,'&quot;')}" data-precio="${parseFloat(s.precio)||0}">${s.nombre}${s.precio ? ' — $'+Math.round(parseFloat(s.precio)).toLocaleString('es-CL') : ''}</option>`
-  ).join('');
-  const hasSrvs = srvs.length > 0;
-  const descVal = (it.descripcion||'').replace(/"/g,'&quot;');
+  const descVal = (it.descripcion || '').replace(/"/g, '&quot;');
+  const inputStyle = 'width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;box-sizing:border-box';
+
+  let descCell;
+  if (srvs.length > 0) {
+    // Determine if the existing description matches a known service
+    const matchesSrv = srvs.some(s => s.nombre === it.descripcion);
+    const isOtro     = !!it.descripcion && !matchesSrv;
+    const srvOpts = srvs.map(s => {
+      const sel = s.nombre === it.descripcion ? ' selected' : '';
+      const priceLabel = s.precio ? ' — $' + Math.round(parseFloat(s.precio)).toLocaleString('es-CL') : '';
+      return `<option value="${(s.nombre||'').replace(/"/g,'&quot;')}" data-precio="${parseFloat(s.precio)||0}"${sel}>${s.nombre}${priceLabel}</option>`;
+    }).join('');
+    descCell = `
+      <select class="ci-srv-sel" onchange="_cotSrvSel(this)" style="${inputStyle};font-family:var(--font);color:var(--t2)">
+        <option value="">— Seleccionar servicio —</option>
+        ${srvOpts}
+        <option value="__otro__"${isOtro ? ' selected' : ''}>— Otro (escribir) —</option>
+      </select>
+      <input class="ci-desc" value="${isOtro ? descVal : ''}" oninput="recalcCotTotales()" placeholder="Descripción del servicio o producto" style="${inputStyle};font-family:var(--font);margin-top:4px;${isOtro ? '' : 'display:none'}">`;
+  } else {
+    descCell = `<input class="ci-desc" value="${descVal}" oninput="recalcCotTotales()" placeholder="Descripción del servicio o producto" style="${inputStyle};font-family:var(--font)">`;
+  }
+
   tr.innerHTML = `
-    <td style="padding:4px 4px;min-width:160px">
-      ${hasSrvs ? `<select class="ci-srv-sel" onchange="_cotSrvSel(this)" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t2);font-size:12px;font-family:var(--font);box-sizing:border-box;margin-bottom:4px"><option value="">Seleccionar servicio...</option>${srvOpts}</select>` : ''}
-      <input class="ci-desc" value="${descVal}" oninput="recalcCotTotales()" placeholder="Descripción del servicio o producto" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--font);box-sizing:border-box">
-    </td>
-    <td style="padding:4px 4px"><input class="ci-cant" type="number" min="0.01" step="any" value="${parseFloat(it.cantidad)||1}" oninput="recalcCotTotales()" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
-    <td style="padding:4px 4px"><input class="ci-precio" type="number" min="0" step="any" value="${parseFloat(it.precio_unitario)||''}" oninput="recalcCotTotales()" placeholder="0" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
-    <td style="padding:4px 4px"><input class="ci-dto" type="number" min="0" max="100" step="any" value="${parseFloat(it.descuento)||0}" oninput="recalcCotTotales()" style="width:100%;padding:6px 8px;border:1px solid var(--b1);border-radius:var(--r);background:var(--bg);color:var(--t1);font-size:13px;font-family:var(--mono);text-align:right;box-sizing:border-box"></td>
+    <td style="padding:4px 4px;min-width:160px">${descCell}</td>
+    <td style="padding:4px 4px"><input class="ci-cant" type="number" min="0.01" step="any" value="${parseFloat(it.cantidad)||1}" oninput="recalcCotTotales()" style="${inputStyle};font-family:var(--mono);text-align:right"></td>
+    <td style="padding:4px 4px"><input class="ci-precio" type="number" min="0" step="any" value="${parseFloat(it.precio_unitario)||''}" oninput="recalcCotTotales()" placeholder="0" style="${inputStyle};font-family:var(--mono);text-align:right"></td>
+    <td style="padding:4px 4px"><input class="ci-dto" type="number" min="0" max="100" step="any" value="${parseFloat(it.descuento)||0}" oninput="recalcCotTotales()" style="${inputStyle};font-family:var(--mono);text-align:right"></td>
     <td style="padding:4px 8px;text-align:right;font-size:13px;font-family:var(--mono);color:var(--a);white-space:nowrap" class="ci-row-total">$0</td>
     <td style="padding:4px 2px;text-align:center"><button onclick="this.closest('tr').remove();recalcCotTotales()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px" title="Eliminar">×</button></td>`;
   document.getElementById('cot-items-tbody').appendChild(tr);
   recalcCotTotales();
 }
 
-// Fix 2: Handler when a service is selected from the dropdown
 function _cotSrvSel(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  if (!opt || !opt.value) return;
-  const tr = sel.closest('tr');
+  const tr         = sel.closest('tr');
   const descInput  = tr.querySelector('.ci-desc');
   const precioInput = tr.querySelector('.ci-precio');
-  if (descInput)  descInput.value  = opt.value;
-  if (precioInput) precioInput.value = opt.dataset.precio || '';
+  if (sel.value === '__otro__') {
+    if (descInput) { descInput.style.display = ''; descInput.value = ''; descInput.focus(); }
+  } else if (sel.value) {
+    if (descInput)  { descInput.style.display = 'none'; descInput.value = ''; }
+    if (precioInput) precioInput.value = sel.options[sel.selectedIndex]?.dataset.precio || '';
+    recalcCotTotales();
+  } else {
+    if (descInput) { descInput.style.display = 'none'; descInput.value = ''; }
+  }
   recalcCotTotales();
 }
 
@@ -14938,12 +15097,22 @@ function recalcCotTotales() {
 }
 
 function getCotFormData() {
-  const items = Array.from(document.querySelectorAll('#cot-items-tbody tr')).map(tr => ({
-    descripcion:    tr.querySelector('.ci-desc')?.value.trim()   || '',
-    cantidad:       parseFloat(tr.querySelector('.ci-cant')?.value)  || 1,
-    precio_unitario:parseFloat(tr.querySelector('.ci-precio')?.value)|| 0,
-    descuento:      parseFloat(tr.querySelector('.ci-dto')?.value)   || 0
-  })).filter(it => it.descripcion);
+  const items = Array.from(document.querySelectorAll('#cot-items-tbody tr')).map(tr => {
+    const sel = tr.querySelector('.ci-srv-sel');
+    const inp = tr.querySelector('.ci-desc');
+    let descripcion = '';
+    if (sel && sel.value && sel.value !== '__otro__') {
+      descripcion = sel.value;
+    } else {
+      descripcion = inp?.value.trim() || '';
+    }
+    return {
+      descripcion,
+      cantidad:        parseFloat(tr.querySelector('.ci-cant')?.value)   || 1,
+      precio_unitario: parseFloat(tr.querySelector('.ci-precio')?.value) || 0,
+      descuento:       parseFloat(tr.querySelector('.ci-dto')?.value)    || 0
+    };
+  }).filter(it => it.descripcion);
   return {
     datos_destinatario: {
       nombre:   document.getElementById('cot-f-nombre').value.trim(),
@@ -15341,6 +15510,166 @@ async function saveCotLogo() {
 // Iniciar routing — aquí todas las funciones ya están definidas
 try { routeFromURL(); } catch(e) { console.error('routeFromURL error:', e); }
 (function(){ const s = document.getElementById('pre-route-style'); if (s) s.remove(); })();
+
+// ── Base de Conocimiento ─────────────────────────────────────────────────────
+let _ckEntries = [];
+let _ckFilter  = 'all';
+const CK_CAT_LABELS = { politicas:'Políticas', servicios:'Servicios', ubicacion:'Ubicación', protocolos:'Protocolos', preguntas:'Preguntas', general:'General' };
+
+async function loadChatbotKnowledge() {
+  try {
+    const r = await fetch('/api/slots?resource=chatbot-knowledge', { headers: _citasH() });
+    if (!r.ok) return;
+    _ckEntries = await r.json();
+    renderCkList();
+    renderCkFilters();
+    const cnt = document.getElementById('ck-count');
+    if (cnt) { cnt.textContent = _ckEntries.length; cnt.style.display = _ckEntries.length ? '' : 'none'; }
+  } catch(e) { console.error('loadChatbotKnowledge:', e); }
+}
+
+function renderCkFilters() {
+  const cats = [...new Set(_ckEntries.map(e => e.categoria))];
+  const c = document.getElementById('ck-cat-filters');
+  if (!c) return;
+  c.innerHTML = `<button onclick="filterCk('all',this)" class="ck-filter-btn" style="font-size:11px;padding:4px 10px;border-radius:100px;border:1px solid var(--a);background:${_ckFilter==='all'?'var(--a)':'transparent'};color:${_ckFilter==='all'?'#fff':'var(--a)'};cursor:pointer">Todas</button>` +
+    cats.map(cat => `<button onclick="filterCk('${cat}',this)" class="ck-filter-btn" style="font-size:11px;padding:4px 10px;border-radius:100px;border:1px solid var(--b1);background:${_ckFilter===cat?'var(--a)':'transparent'};color:${_ckFilter===cat?'#fff':'var(--t2)'};cursor:pointer">${CK_CAT_LABELS[cat]||cat}</button>`).join('');
+}
+
+function filterCk(cat, btn) {
+  _ckFilter = cat;
+  document.querySelectorAll('.ck-filter-btn').forEach(b => {
+    const active = b === btn;
+    b.style.background = active ? 'var(--a)' : 'transparent';
+    b.style.color = active ? '#fff' : (cat === 'all' ? 'var(--a)' : 'var(--t2)');
+    b.style.borderColor = active ? 'var(--a)' : 'var(--b1)';
+  });
+  renderCkList();
+}
+
+function renderCkList() {
+  const list = document.getElementById('ck-list');
+  const empty = document.getElementById('ck-empty');
+  if (!list) return;
+  const filtered = _ckFilter === 'all' ? _ckEntries : _ckEntries.filter(e => e.categoria === _ckFilter);
+  if (!filtered.length) { list.innerHTML = ''; if(empty) empty.style.display = ''; return; }
+  if(empty) empty.style.display = 'none';
+  list.innerHTML = filtered.map(e => `
+    <div style="display:flex;align-items:start;gap:10px;padding:12px;border:1px solid var(--b1);border-radius:var(--r);background:#fff">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">${CK_CAT_LABELS[e.categoria]||e.categoria}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--t1)">${e.titulo}</span>
+        </div>
+        <div style="font-size:12px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line">${e.contenido}</div>
+      </div>
+      <button onclick="showCkModal('${e.id}')" style="flex-shrink:0;background:none;border:1px solid var(--b1);color:var(--t2);padding:4px 10px;border-radius:var(--r);font-size:12px;cursor:pointer">Editar</button>
+    </div>`).join('');
+}
+
+function showCkModal(id) {
+  const modal = document.getElementById('ck-modal');
+  if (!modal) return;
+  document.getElementById('ck-modal-id').value = id || '';
+  document.getElementById('ck-modal-title').textContent = id ? 'Editar entrada' : 'Nueva entrada de conocimiento';
+  document.getElementById('ck-modal-del').style.display = id ? '' : 'none';
+  if (id) {
+    const e = _ckEntries.find(x => x.id === id);
+    if (!e) return;
+    document.getElementById('ck-modal-cat').value      = e.categoria;
+    document.getElementById('ck-modal-titulo').value   = e.titulo;
+    document.getElementById('ck-modal-contenido').value = e.contenido;
+  } else {
+    document.getElementById('ck-modal-cat').value      = 'general';
+    document.getElementById('ck-modal-titulo').value   = '';
+    document.getElementById('ck-modal-contenido').value = '';
+  }
+  modal.style.display = 'flex';
+}
+
+function closeCkModal() {
+  const m = document.getElementById('ck-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function saveCkEntry() {
+  const id       = document.getElementById('ck-modal-id').value;
+  const categoria = document.getElementById('ck-modal-cat').value;
+  const titulo   = document.getElementById('ck-modal-titulo').value.trim();
+  const contenido = document.getElementById('ck-modal-contenido').value.trim();
+  if (!titulo || !contenido) return alert('Completa el título y el contenido.');
+  try {
+    const data = { categoria, titulo, contenido, activo: true };
+    if (id) data.id = id;
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource: 'chatbot-knowledge', action: 'save', data })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    closeCkModal();
+    await loadChatbotKnowledge();
+  } catch(e) { alert('Error al guardar: ' + e.message); }
+}
+
+async function deleteCkEntry() {
+  const id = document.getElementById('ck-modal-id').value;
+  if (!id || !confirm('¿Eliminar esta entrada?')) return;
+  try {
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource: 'chatbot-knowledge', action: 'delete', id })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    closeCkModal();
+    await loadChatbotKnowledge();
+  } catch(e) { alert('Error al eliminar: ' + e.message); }
+}
+
+// ── Gaps Analytics ────────────────────────────────────────────────────────────
+async function loadGaps() {
+  const list = document.getElementById('gaps-list');
+  const badge = document.getElementById('gaps-badge');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/slots?resource=chatbot-gaps', { headers: _citasH() });
+    if (!r.ok) { list.innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Error al cargar.</div>'; return; }
+    const gaps = await r.json();
+    if (badge) { badge.textContent = gaps.length; badge.style.display = gaps.length ? '' : 'none'; }
+    if (!gaps.length) { list.innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">El bot está respondiendo todo. No hay preguntas sin respuesta.</div>'; return; }
+    list.innerHTML = gaps.map(g => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r);background:#fff">
+        <span style="flex-shrink:0;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(229,83,83,0.08);color:#e53;border:1px solid rgba(229,83,83,0.2);min-width:28px;text-align:center">${g.frecuencia}x</span>
+        <div style="flex:1;font-size:12px;color:var(--t1);line-height:1.4">${g.pregunta}</div>
+        <span style="font-size:10px;color:var(--t4);flex-shrink:0">${g.canal||''}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="gapToKnowledge('${g.id}','${encodeURIComponent(g.pregunta)}')" style="background:none;border:1px solid var(--a);color:var(--a);padding:3px 8px;border-radius:var(--r);font-size:11px;cursor:pointer">+ Conocimiento</button>
+          <button onclick="resolveGap('${g.id}')" style="background:none;border:1px solid var(--b1);color:var(--t3);padding:3px 8px;border-radius:var(--r);font-size:11px;cursor:pointer">Resolver</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error('loadGaps:', e); }
+}
+
+function gapToKnowledge(gapId, encodedPregunta) {
+  const pregunta = decodeURIComponent(encodedPregunta);
+  showCkModal();
+  document.getElementById('ck-modal-cat').value       = 'preguntas';
+  document.getElementById('ck-modal-titulo').value    = pregunta.slice(0, 80);
+  document.getElementById('ck-modal-contenido').value = '';
+  document.getElementById('ck-modal-contenido').focus();
+}
+
+async function resolveGap(id) {
+  try {
+    await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource: 'chatbot-gaps', action: 'resolve', id })
+    });
+    await loadGaps();
+  } catch(e) { console.error('resolveGap:', e); }
+}
 </script>
 
 </body>

@@ -114,7 +114,67 @@ export default async function handler(req, res) {
       logAudit(KEY, 'superadmin_impersonate_post', s.rol, s.cliente_id, overrideId, { resource: req.body?.resource });
     }
     const body = req.body || {};
-    if (!['bot_config', 'notificaciones_config', 'recordatorios_config'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
+    if (!['bot_config', 'notificaciones_config', 'recordatorios_config', 'chatbot-knowledge', 'chatbot-gaps'].includes(body.resource)) return res.status(400).json({ error: 'Recurso no válido' });
+
+    // — POST chatbot-knowledge (save / delete) —
+    if (body.resource === 'chatbot-knowledge') {
+      try {
+        if (body.action === 'delete') {
+          if (!body.id || !/^[0-9a-f-]{36}$/i.test(body.id)) return res.status(400).json({ error: 'ID inválido' });
+          await fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?id=eq.${body.id}&cliente_id=eq.${cliente_id}`, {
+            method: 'DELETE', headers: sh
+          });
+          return res.status(200).json({ ok: true });
+        }
+        // save (create or update)
+        const d = body.data || {};
+        if (!d.titulo?.trim() || !d.contenido?.trim()) return res.status(400).json({ error: 'Faltan campos' });
+        const payload = {
+          cliente_id,
+          categoria: d.categoria || 'general',
+          titulo:    d.titulo.trim().slice(0, 200),
+          contenido: d.contenido.trim().slice(0, 4000),
+          activo:    d.activo !== false,
+          orden:     d.orden || 0,
+          updated_at: new Date().toISOString()
+        };
+        if (d.id && /^[0-9a-f-]{36}$/i.test(d.id)) {
+          await fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?id=eq.${d.id}&cliente_id=eq.${cliente_id}`, {
+            method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge`, {
+            method: 'POST', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify(payload)
+          });
+        }
+        return res.status(200).json({ ok: true });
+      } catch(e) {
+        console.error('chatbot-knowledge POST:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — POST chatbot-gaps (resolve / delete-gap) —
+    if (body.resource === 'chatbot-gaps') {
+      try {
+        if (!body.id || !/^[0-9a-f-]{36}$/i.test(body.id)) return res.status(400).json({ error: 'ID inválido' });
+        if (body.action === 'delete-gap') {
+          await fetch(`${SUPABASE_URL}/rest/v1/chatbot_gaps?id=eq.${body.id}&cliente_id=eq.${cliente_id}`, {
+            method: 'DELETE', headers: sh
+          });
+        } else {
+          await fetch(`${SUPABASE_URL}/rest/v1/chatbot_gaps?id=eq.${body.id}&cliente_id=eq.${cliente_id}`, {
+            method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify({ respondida: true })
+          });
+        }
+        return res.status(200).json({ ok: true });
+      } catch(e) {
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
 
     // — POST notificaciones_config —
     if (body.resource === 'notificaciones_config') {
@@ -503,6 +563,30 @@ export default async function handler(req, res) {
     if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
       cliente_id = overrideId;
       logAudit(KEY, 'superadmin_impersonate_get', s.rol, s.cliente_id, overrideId, { resource: req.query.resource });
+    }
+
+    // — GET chatbot-knowledge —
+    if (req.query.resource === 'chatbot-knowledge') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&order=orden.asc,created_at.desc`, { headers: sh });
+        const data = await r.json();
+        if (!r.ok) return res.status(500).json({ error: 'Error al obtener conocimiento' });
+        return res.status(200).json(data);
+      } catch(e) {
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — GET chatbot-gaps —
+    if (req.query.resource === 'chatbot-gaps') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/chatbot_gaps?cliente_id=eq.${cliente_id}&respondida=eq.false&order=frecuencia.desc,last_seen.desc&limit=50`, { headers: sh });
+        const data = await r.json();
+        if (!r.ok) return res.status(500).json({ error: 'Error al obtener gaps' });
+        return res.status(200).json(data);
+      } catch(e) {
+        return res.status(500).json({ error: 'Error interno' });
+      }
     }
 
     // — GET bot_config —
