@@ -1,4 +1,13 @@
+const crypto  = require('crypto');
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
+function generateManageToken(cita_id) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || !cita_id) return '';
+  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+  const hmac = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
+  return expire + '.' + hmac;
+}
 
 function notificarNuevoMensaje(canal, nombre, primerMensaje, destinatario = 'cesarsalinasmunoz@gmail.com') {
   const key = process.env.RESEND_API_KEY;
@@ -1091,7 +1100,7 @@ REGLAS GENERALES:
     ${buildPagoHtml(metodos_pago, datos_banco)}
   </table>
   ${direccion ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;"><tr><td style="text-align:center;"><p style="margin:0 0 10px;color:#6b7280;font-size:13px;">📍 ${he(direccion)}</p><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}" target="_blank" style="display:inline-block;padding:10px 22px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Ver en Google Maps</a></td></tr></table>` : ''}
-  <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${he(cita?.id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a></p>
+  <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${he(cita?.id)}&token=${generateManageToken(cita?.id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a></p>
   ${email_negocio ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${he(email_negocio)}" style="color:#6C5CE4;text-decoration:none;">${he(email_negocio)}</a></p>` : ''}
 </td></tr>
 <tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
