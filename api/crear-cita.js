@@ -41,16 +41,24 @@ function flowSign(params, secret) {
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
-  return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600; // 30 días
+  const hmac = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
+  return expire + '.' + hmac;
 }
 
 function verifyManageToken(cita_id, token) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return false;
-  if (!token || typeof token !== 'string' || token.length !== 64) return false;
-  const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+  if (!token || typeof token !== 'string') return false;
+  const dotIdx = token.indexOf('.');
+  if (dotIdx === -1) return false;
+  const expire = parseInt(token.slice(0, dotIdx), 10);
+  const hmac = token.slice(dotIdx + 1);
+  if (isNaN(expire) || hmac.length !== 64) return false;
+  if (Math.floor(Date.now() / 1000) > expire) return false; // token expirado
+  const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
   try {
-    return crypto.timingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'));
+    return crypto.timingSafeEqual(Buffer.from(hmac, 'hex'), Buffer.from(expected, 'hex'));
   } catch {
     return false;
   }

@@ -1057,8 +1057,8 @@ ${pdfBlock}
         <div style="color:#fff;font-size:24px;font-weight:900;letter-spacing:-.5px;">attempo</div>
       </td></tr>
       <tr><td style="padding:32px 36px;">
-        <p style="font-size:15px;font-weight:700;margin:0 0 12px;">Hola ${cliente_nombre||''},</p>
-        <p style="font-size:14px;color:#444;margin:0 0 20px;">Te enviamos tu boleta <strong>N°${folio}</strong> de <strong>${negocio||'tu negocio'}</strong> correspondiente al ${fechaLarga}.</p>
+        <p style="font-size:15px;font-weight:700;margin:0 0 12px;">Hola ${he(cliente_nombre||'')},</p>
+        <p style="font-size:14px;color:#444;margin:0 0 20px;">Te enviamos tu boleta <strong>N°${he(String(folio||''))}</strong> de <strong>${he(negocio||'tu negocio')}</strong> correspondiente al ${he(fechaLarga||'')}.</p>
         <p style="font-size:14px;color:#444;margin:0;">Encuéntrala adjunta en este correo como PDF.</p>
       </td></tr>
       <tr><td style="padding:16px 36px 28px;text-align:center;font-size:11px;color:#aaa;">

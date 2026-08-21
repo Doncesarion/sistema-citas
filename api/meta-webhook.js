@@ -75,14 +75,13 @@ export default async function handler(req, res) {
 
   // Validar firma X-Hub-Signature-256 de Meta
   const metaAppSecret = process.env.META_APP_SECRET;
-  if (metaAppSecret) {
-    const sig = req.headers['x-hub-signature-256'];
-    if (!sig) return res.status(403).end();
-    const expected = 'sha256=' + crypto.createHmac('sha256', metaAppSecret).update(rawBody).digest('hex');
-    try {
-      if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return res.status(403).end();
-    } catch { return res.status(403).end(); }
-  }
+  if (!metaAppSecret) return res.status(503).end(); // fail-secure: secret obligatorio
+  const sig = req.headers['x-hub-signature-256'];
+  if (!sig) return res.status(403).end();
+  const expected = 'sha256=' + crypto.createHmac('sha256', metaAppSecret).update(rawBody).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return res.status(403).end();
+  } catch { return res.status(403).end(); }
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
 
