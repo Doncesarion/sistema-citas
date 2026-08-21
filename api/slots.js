@@ -699,11 +699,28 @@ export default async function handler(req, res) {
       if (id && !/^[0-9a-f-]{36}$/i.test(id)) {
         return res.status(400).json({ error: 'ID inválido' });
       }
+      const ALLOWED_SELECT = [
+        '*',
+        '*,especialistas(id,nombre)',
+        'id,fecha,hora,estado,nombre_paciente',
+        'id,fecha,hora,estado,nombre_paciente,email_paciente,telefono_paciente',
+        'id,fecha,hora,estado',
+      ];
+      const ALLOWED_ORDER = [
+        'fecha.desc,hora.desc',
+        'fecha.asc,hora.asc',
+        'created_at.desc',
+        'created_at.asc',
+        'fecha.desc',
+        'fecha.asc',
+      ];
+      const safeSelect = ALLOWED_SELECT.includes(select) ? select : '*,especialistas(id,nombre)';
+      const safeOrder  = ALLOWED_ORDER.includes(order)   ? order  : 'fecha.desc,hora.desc';
       const parts = [`cliente_id=eq.${cliente_id}`];
       if (id)     parts.push(`id=eq.${id}`);
       if (nombre) parts.push(`nombre_paciente=ilike.${encodeURIComponent(nombre)}`);
-      parts.push(`select=${select || '*,especialistas(id,nombre)'}`);
-      parts.push(`order=${order   || 'fecha.desc,hora.desc'}`);
+      parts.push(`select=${safeSelect}`);
+      parts.push(`order=${safeOrder}`);
       if (limit) parts.push(`limit=${Math.min(parseInt(limit) || 50, 200)}`);
 
       const url = `${SUPABASE_URL}/rest/v1/citas?${parts.join('&')}`;

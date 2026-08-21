@@ -2,6 +2,8 @@ import crypto from 'crypto';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+export const config = { api: { bodyParser: false } };
+
 function _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, respuesta) {
   const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
   const mensajes = [{ role: 'user', content: mensaje, name: canal_user_name || canal_user_id }];
@@ -60,22 +62,29 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
+  // Leer raw body para validar firma de Meta
+  let rawBody = '';
+  await new Promise((resolve, reject) => {
+    req.on('data', chunk => { rawBody += chunk.toString(); });
+    req.on('end', resolve);
+    req.on('error', reject);
+  });
+  // Parsear manualmente el JSON
+  let body;
+  try { body = JSON.parse(rawBody); } catch { return res.status(400).json({ error: 'Body inválido' }); }
+
   // Validar firma X-Hub-Signature-256 de Meta
   const metaAppSecret = process.env.META_APP_SECRET;
   if (metaAppSecret) {
     const sig = req.headers['x-hub-signature-256'];
-    if (!sig) return res.status(403).json({ error: 'Firma ausente' });
-    const rawBody = JSON.stringify(req.body);
+    if (!sig) return res.status(403).end();
     const expected = 'sha256=' + crypto.createHmac('sha256', metaAppSecret).update(rawBody).digest('hex');
     try {
-      if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
-        return res.status(403).json({ error: 'Firma inválida' });
-      }
-    } catch { return res.status(403).json({ error: 'Firma inválida' }); }
+      if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return res.status(403).end();
+    } catch { return res.status(403).end(); }
   }
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
-  const body = req.body || {};
 
   // ── Parsear mensaje según canal ───────────────────────────────────────────
   let canal, canal_user_id, canal_user_name, mensaje, channelKey, channelValue;

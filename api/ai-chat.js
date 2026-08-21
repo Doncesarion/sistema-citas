@@ -4,7 +4,8 @@ function verifySessionToken(token) {
   if (!token) return null;
   const [payload, sig] = [token.slice(0, token.lastIndexOf('.')), token.slice(token.lastIndexOf('.') + 1)];
   if (!payload || !sig) return null;
-  const SECRET = process.env.SESSION_SECRET || '';
+  const SECRET = process.env.SESSION_SECRET;
+  if (!SECRET) return null;
   const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
   try {
     if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
@@ -720,7 +721,10 @@ CÓMO ESCRIBIR:
   }
 
   try {
-    let msgs = [...messages];
+    const safeMessages = messages
+      .slice(-12)
+      .map(m => ({ ...m, content: String(m.content || '').slice(0, 2000) }));
+    let msgs = [...safeMessages];
     let slots_disponibles   = null;
     let mostrar_calendario  = false;
     let especialista_id_cal = null;

@@ -3,7 +3,7 @@ import { promisify } from 'util';
 import PDFDocument from 'pdfkit';
 const scryptAsync = promisify(crypto.scrypt);
 
-export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
+export const config = { api: { bodyParser: { sizeLimit: '2mb' } } };
 
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
@@ -997,6 +997,7 @@ export default async function handler(req, res) {
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
       const { fileBase64, mimeType } = req.body || {};
       if (!fileBase64) return res.status(400).json({ error: 'fileBase64 requerido' });
+      if (!/^image\//i.test(mimeType || '')) return res.status(400).json({ error: 'Formato de imagen inválido' });
       const bucket = 'cotizaciones';
       const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
       if (bucketR.status === 404) {

@@ -5,6 +5,7 @@ const scryptAsync = promisify(crypto.scrypt);
 
 // Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
 const _loginFallback = new Map();
+const registroRateLimit = new Map();
 async function isRateLimited(ip) {
   const MAX = 10;
   const WINDOW_S = 15 * 60;
@@ -115,6 +116,13 @@ export default async function handler(req, res) {
 
       const resetToken = crypto.randomBytes(32).toString('hex');
       const expiresAt  = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+      // Invalidar tokens anteriores del mismo email
+      await fetch(`${SUPABASE_URL}/rest/v1/password_resets?email=eq.${encodeURIComponent(email)}&used=eq.false`, {
+        method: 'PATCH',
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ used: true }),
+      }).catch(() => {});
 
       await fetch(`${SUPABASE_URL}/rest/v1/password_resets`, {
         method: 'POST',
@@ -229,6 +237,17 @@ export default async function handler(req, res) {
 
   // ── Registro de nuevo cliente ────────────────────────────────────────────
   if (req.body?.action === 'registro') {
+    const regIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    const regNow = Date.now();
+    const regWindowMs = 60 * 60 * 1000; // 1 hora
+    const regMaxAttempts = 3;
+    const regEntry = registroRateLimit.get(regIp) || { count: 0, start: regNow };
+    if (regNow - regEntry.start > regWindowMs) { regEntry.count = 0; regEntry.start = regNow; }
+    regEntry.count++;
+    registroRateLimit.set(regIp, regEntry);
+    if (regEntry.count > regMaxAttempts) {
+      return res.status(429).json({ error: 'Demasiados registros. Intenta en una hora.' });
+    }
     const { nombre, negocio, email, password, rubro } = req.body;
     if (!nombre?.trim() || !negocio?.trim() || !email?.trim() || !password) {
       return res.status(400).json({ error: 'Completa todos los campos requeridos' });

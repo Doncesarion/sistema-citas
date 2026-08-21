@@ -5,19 +5,28 @@ const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
 function verifySessionToken(token) {
-  if (!token) return false;
+  if (!token) return null;
   const SECRET = process.env.SESSION_SECRET;
-  if (!SECRET) return false;
+  if (!SECRET) return null;
   const dot = token.lastIndexOf('.');
-  if (dot === -1) return false;
+  if (dot === -1) return null;
   const payload = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
-  if (sig !== expected) return false;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
   const parts = payload.split(':');
-  if (parts.length !== 3) return false;
-  if (Date.now() > parseInt(parts[2])) return false;
-  return true;
+  if (parts.length !== 3) return null;
+  if (Date.now() > parseInt(parts[2])) return null;
+  return { cliente_id: parts[0], rol: parts[1] };
+}
+
+function resolveClienteId(req, defaultId) {
+  const session = verifySessionToken(req.headers['x-session-token']);
+  const overrideId = req.headers['x-override-cliente-id'];
+  if (session?.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) return overrideId;
+  return session?.cliente_id || defaultId;
 }
 
 function he(str) {
@@ -189,7 +198,7 @@ async function procesarReactivacion(sh, shJson) {
 // Ejemplo: si son las 14:00 y el recordatorio es "2h antes", busca citas de las 16:xx de hoy.
 const REC_LIMITE_PLAN = { inicio: 300, pro: 1000, clinica_ia: 3000 };
 
-async function procesarRecordatorios(sh, shJson) {
+async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
   const resend_key = process.env.RESEND_API_KEY;
   if (!resend_key) return { enviados: 0, errores: ['Sin RESEND_API_KEY'] };
 
@@ -209,8 +218,9 @@ async function procesarRecordatorios(sh, shJson) {
   const errores = [];
 
   try {
+    const filtroIdParam = soloClienteId ? `&id=eq.${soloClienteId}` : '';
     const rCli = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,direccion,recordatorios_config,canales_meta,tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,direccion,recordatorios_config,canales_meta,tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual${filtroIdParam}`,
       { headers: sh }
     );
     const clientes = await rCli.json();
@@ -477,25 +487,24 @@ export default async function handler(req, res) {
   if (!verifySessionToken(req.headers['x-session-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
   }
+
   if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: 'Sin clave de email' });
 
   const body = req.body || {};
 
   // — Enviar recordatorios manualmente —
   if (body.type === 'enviar_recordatorios') {
-    const result = await procesarRecordatorios(sh, shJson);
+    const session = verifySessionToken(req.headers['x-session-token']);
+    // Si no hay sesión o es superadmin, corre para todos; si no, solo su cliente
+    const filtroCliente = (!session || session.rol === 'superadmin') ? null : session.cliente_id;
+    const result = await procesarRecordatorios(sh, shJson, filtroCliente);
     return res.status(200).json(result);
   }
 
   // — Email de prueba —
   if (body.type === 'email_prueba') {
-    const token = req.headers['x-session-token'];
-    if (!token) return res.status(401).json({ error: 'No autorizado' });
-    const dot = token.lastIndexOf('.');
-    const parts = token.slice(0, dot).split(':');
-    const cliente_id = parts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
 
     const rCli = await fetch(
       `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=email,nombre_negocio,direccion&limit=1`,
@@ -544,13 +553,8 @@ export default async function handler(req, res) {
     const phone = (body.phone || '').replace(/\D/g, '');
     if (!phone) return res.status(400).json({ error: 'Ingresa un número de teléfono' });
 
-    const token = req.headers['x-session-token'];
-    if (!token) return res.status(401).json({ error: 'No autorizado' });
-    const dot = token.lastIndexOf('.');
-    const parts = token.slice(0, dot).split(':');
-    const cliente_id = parts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
 
     const rCli = await fetch(
       `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,canales_meta&limit=1`,
@@ -586,12 +590,8 @@ export default async function handler(req, res) {
     if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
       return res.status(400).json({ error: 'Ingresa un email válido para la prueba' });
     }
-    const token = req.headers['x-session-token'];
-    const dot = token.lastIndexOf('.');
-    const parts = token.slice(0, dot).split(':');
-    const cliente_id = parts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
     const rCli = await fetch(
       `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio&limit=1`,
       { headers: sh }
@@ -627,12 +627,8 @@ export default async function handler(req, res) {
 
   // — Lista de pacientes con email para selector —
   if (body.type === 'promo_lista_pacientes') {
-    const token = req.headers['x-session-token'];
-    const dot = token.lastIndexOf('.');
-    const parts = token.slice(0, dot).split(':');
-    const cliente_id = parts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
     const rCitas = await fetch(
       `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null&select=email_paciente,nombre_paciente&limit=2000`,
       { headers: sh }
@@ -654,12 +650,8 @@ export default async function handler(req, res) {
   // — Enviar campaña a pacientes —
   if (body.type === 'promo_email') {
     if (!body.asunto || !body.mensaje) return res.status(400).json({ error: 'Faltan asunto y mensaje' });
-    const token = req.headers['x-session-token'];
-    const dot = token.lastIndexOf('.');
-    const parts = token.slice(0, dot).split(':');
-    const cliente_id = parts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
     const rCli = await fetch(
       `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio&limit=1`,
       { headers: sh }
@@ -753,12 +745,8 @@ export default async function handler(req, res) {
   }
 
   if (body.type === 'promo_conteo') {
-    const token = req.headers['x-session-token'];
-    const dot = token.lastIndexOf('.');
-    const parts = token.slice(0, dot).split(':');
-    const cliente_id = parts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
     const filtroUrl = _buildPromoFiltroUrl(body.filtro, body.periodo);
     const rCitas = await fetch(
       `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cid}&email_paciente=not.is.null${filtroUrl}&select=email_paciente&limit=2000`,
@@ -775,12 +763,8 @@ export default async function handler(req, res) {
     const { to, cliente_nombre, cliente_rut, negocio, negocio_rut, negocio_giro, negocio_dir, folio, total, tipo, fecha, items } = body;
     if (!to) return res.status(400).json({ error: 'Falta email destino' });
 
-    const token = req.headers['x-session-token'];
-    const dot = token.lastIndexOf('.');
-    const tparts = token.slice(0, dot).split(':');
-    const cliente_id = tparts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : cliente_id;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
 
     const rCli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago&limit=1`, { headers: sh });
     const [cliDte] = await rCli.json().catch(() => []);
@@ -1109,12 +1093,8 @@ ${pdfBlock}
   if (body.type === 'confirmar_desde_admin') {
     const cita_id = String(body.cita_id || '').trim();
     if (!cita_id || !/^[0-9a-f-]{36}$/i.test(cita_id)) return res.status(400).json({ error: 'cita_id inválido' });
-    const token = req.headers['x-session-token'];
-    const dot = token.lastIndexOf('.');
-    const parts = token.slice(0, dot).split(':');
-    const sesCliente = parts[0];
-    const overrideId = req.headers['x-override-cliente-id'];
-    const cid = (overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : sesCliente;
+    const cid = resolveClienteId(req, null);
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
     try {
       const [rCita, rCli] = await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita_id}&cliente_id=eq.${cid}&select=*,especialistas(nombre)&limit=1`, { headers: sh }),

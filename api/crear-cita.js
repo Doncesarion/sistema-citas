@@ -4,7 +4,8 @@ const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().repla
 
 function verifySessionToken(token) {
   if (!token) return null;
-  const secret = process.env.SESSION_SECRET || '';
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return null;
   const dot = token.lastIndexOf('.');
   if (dot === -1) return null;
   const payload = token.slice(0, dot);
@@ -45,7 +46,7 @@ function generateManageToken(cita_id) {
 
 function verifyManageToken(cita_id, token) {
   const secret = process.env.SESSION_SECRET;
-  if (!secret) return true;
+  if (!secret) return false;
   if (!token || typeof token !== 'string' || token.length !== 64) return false;
   const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
   try {
@@ -146,6 +147,12 @@ export default async function handler(req, res) {
         patchBody = { estado: 'canceled' };
       } else {
         if (!nueva_fecha || !nueva_hora) return res.status(400).json({ error: 'Faltan fecha u hora' });
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(nueva_fecha)) {
+          return res.status(400).json({ error: 'Formato de fecha inválido' });
+        }
+        if (!/^\d{2}:\d{2}$/.test(nueva_hora)) {
+          return res.status(400).json({ error: 'Formato de hora inválido' });
+        }
         patchBody = { fecha: nueva_fecha, hora: nueva_hora };
       }
 
@@ -284,6 +291,9 @@ export default async function handler(req, res) {
   const confirmarDespues = !from_admin && !esPagoPresencial;
 
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
+  if (citaIdYaCreada && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(citaIdYaCreada)) {
+    return res.status(400).json({ error: 'ID de cita inválido' });
+  }
   if (!citaIdYaCreada) {
     const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
     if (await isBookingRateLimited(ip)) {

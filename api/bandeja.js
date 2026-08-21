@@ -20,7 +20,9 @@ function verifySessionToken(token) {
   const payload = token.slice(0, dot);
   const sig     = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-  if (sig !== expected) return null;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
   const parts = payload.split(':');
   if (parts.length < 3) return null;
   const cliente_id = parts[0];
@@ -98,6 +100,9 @@ export default async function handler(req, res) {
   // ── GET ?id=xxx — mensajes de una conversación ────────────────────────────
   if (req.method === 'GET' && req.query.id) {
     const conv_id = req.query.id;
+    if (!conv_id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conv_id)) {
+      return res.status(400).json({ error: 'ID de conversación inválido' });
+    }
 
     const rc = await fetch(
       `${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}&cliente_id=eq.${cliente_id}&limit=1`,

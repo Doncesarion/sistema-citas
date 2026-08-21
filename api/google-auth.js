@@ -6,7 +6,8 @@ const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 
 function verifySessionToken(token) {
   if (!token) return null;
-  const secret = process.env.SESSION_SECRET || '';
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return null;
   const dot = token.lastIndexOf('.');
   if (dot === -1) return null;
   const payload = token.slice(0, dot);
@@ -54,8 +55,14 @@ export default async function handler(req, res) {
 
   // ── GET sin code: iniciar flujo OAuth ──────────────────────────────────────
   if (req.method === 'GET' && !req.query.code) {
+    const sessionToken = req.headers['x-session-token'];
+    const session = verifySessionToken(sessionToken);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
     const { cliente_id } = req.query;
     if (!cliente_id) return res.status(400).json({ error: 'Falta cliente_id' });
+    if (session.rol !== 'superadmin' && cliente_id !== session.cliente_id) {
+      return res.status(403).json({ error: 'Acceso denegado' });
+    }
 
     const csrf = crypto.createHmac('sha256', process.env.SESSION_SECRET || '').update(cliente_id + Date.now()).digest('hex').slice(0, 32);
     res.setHeader('Set-Cookie', `oauth_csrf=${encodeURIComponent(cliente_id + ':' + csrf)}; HttpOnly; SameSite=Lax; Path=/api/google-auth; Max-Age=600`);
@@ -171,8 +178,14 @@ export default async function handler(req, res) {
 
   // ── POST: sincronizar citas existentes al calendario Attempo ──────────────
   if (req.method === 'POST') {
+    const sessionToken = req.headers['x-session-token'];
+    const session = verifySessionToken(sessionToken);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
     const { cliente_id } = req.body || {};
     if (!cliente_id) return res.status(400).json({ error: 'Falta cliente_id' });
+    if (session.rol !== 'superadmin' && cliente_id !== session.cliente_id) {
+      return res.status(403).json({ error: 'Acceso denegado' });
+    }
 
     try {
       const rc = await fetch(
