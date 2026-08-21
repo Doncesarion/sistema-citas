@@ -1,5 +1,24 @@
 import crypto from 'crypto';
 
+function verifySessionToken(token) {
+  if (!token) return null;
+  const [payload, sig] = [token.slice(0, token.lastIndexOf('.')), token.slice(token.lastIndexOf('.') + 1)];
+  if (!payload || !sig) return null;
+  const SECRET = process.env.SESSION_SECRET || '';
+  const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
+  const parts = payload.split(':');
+  if (parts.length < 3) return null;
+  const [cliente_id, rol, expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return { cliente_id, rol };
+}
+
+// Rate limiting en memoria para modo landing (chatbot público web)
+const landingRateLimit = new Map();
+
 const ADMIN_HELP_PROMPT = `Eres Attio, el asistente de ayuda interno de Attempo. Tu misión es responder todas las dudas del administrador sobre cómo usar el dashboard. Eres claro, amigable y directo. Siempre respondes en español.
 
 SECCIONES DEL DASHBOARD:
@@ -67,6 +86,9 @@ export default async function handler(req, res) {
 
   // ── Modo admin-help (Attio) ──────────────────────────────────────────────
   if (type === 'admin') {
+    const sessionToken = req.headers['x-session-token'];
+    const session = verifySessionToken(sessionToken);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -83,68 +105,199 @@ export default async function handler(req, res) {
 
   // ── Modo landing (Attia website sales bot) ────────────────────────────────
   if (type === 'landing') {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const windowMs = 60 * 1000;
+    const maxReqs = 20;
+    const entry = landingRateLimit.get(ip) || { count: 0, start: now };
+    if (now - entry.start > windowMs) { entry.count = 0; entry.start = now; }
+    entry.count++;
+    landingRateLimit.set(ip, entry);
+    if (entry.count > maxReqs) return res.status(429).json({ error: 'Demasiadas solicitudes' });
+
     const { session_id } = req.body || {};
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
     const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
     const sh2 = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
     const hoy = new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago' });
-    const landingPrompt = `Eres Attia, la asistente virtual de attempo. Atiendes desde el sitio web a personas interesadas en conocer la plataforma.
+
+    const landingPrompt = `Eres Attia, la asistente de attempo en el sitio web. Atiendes a personas interesadas en conocer la plataforma.
 
 SOBRE ATTEMPO:
-attempo es una plataforma de agendamiento online para profesionales y clínicas en Chile. Tus pacientes o clientes reservan citas 24/7 desde el celular, reciben recordatorios automáticos por WhatsApp y email, y pueden pagar con Webpay. Todo listo en minutos, sin complicaciones técnicas.
+attempo es una plataforma chilena de agendamiento online con chatbot IA. Los pacientes reservan citas 24/7, reciben recordatorios automáticos por WhatsApp y pueden pagar con Webpay. Sin complicaciones técnicas.
 
 PLANES Y PRECIOS:
-- Plan Inicio: $24.990/mes + IVA — agenda online, recordatorios automáticos, cobro con Webpay. Para profesionales solos.
-- Plan Pro: $44.990/mes + IVA — todo lo de Inicio + chatbot IA (Attia) que responde y agenda en Instagram, WhatsApp y Messenger.
+- Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
+- Plan Pro: $44.990/mes + IVA — todo lo anterior + chatbot IA (Attia) que responde y agenda en WhatsApp, Instagram y Messenger.
 - Plan Clínica IA: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro.
-- Todos los planes incluyen 12 días de prueba gratis.
+- Todos incluyen 12 días de prueba gratis, sin tarjeta de crédito.
 
 PARA QUIÉN ES:
-Psicólogos, médicos, nutricionistas, kinesiólogos, dentistas, fonoaudiólogos, matronas, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
+Psicólogos, médicos, nutricionistas, kinesiólogos, dentistas, fonoaudiólogos, matronas, abogados, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
 
 CÓMO EMPEZAR:
-Pueden crear su cuenta gratis en https://app.attempo.cl/registro (12 días de prueba, sin tarjeta de crédito).
-O escribirnos por WhatsApp al +56957285407 para una demo personalizada.
+https://app.attempo.cl/registro — 12 días de prueba, sin tarjeta.
+WhatsApp +56957285407 para una demo personalizada.
 
 CÓMO RESPONDER:
-- Mensajes cortos, máximo 3 líneas. Sin textos largos.
-- Una sola pregunta o idea por mensaje.
-- Usa "tú" con el visitante. No uses markdown ni asteriscos. Sin emojis.
-- No menciones que eres una IA.
-- Si no sabes algo técnico específico, di "te consulto con el equipo".
-- Cuando muestren interés real: "puedes crear tu cuenta gratis en https://app.attempo.cl/registro o escribirnos al WhatsApp +56957285407 para que te mostremos cómo funciona para tu rubro".
+- Máximo 3 líneas por mensaje. Una idea por mensaje.
+- Tratas de tú. Sin markdown ni asteriscos.
+- PROHIBIDO usar emojis. No uses ninguno: ni 😊 ni 👋 ni 📧 ni 🚀 ni ningún otro. Solo texto plano.
+- No menciones que eres IA.
+- NUNCA digas: "te consulto con el equipo", "le pregunto al equipo técnico", "puedo consultarlo", "escribe a contacto@..." ni ninguna variante. Si no puedes responder, usa capturar_lead — no inventes frases de relleno.
+
+RESPUESTAS A PREGUNTAS FRECUENTES (usa estas directamente, sin derivar):
+
+Integraciones con otros sistemas:
+- Reservo: attempo no se integra directamente con Reservo. Los dos pueden correr en paralelo: tu equipo sigue usando Reservo para gestión clínica y fichas, mientras Attia maneja el canal de WhatsApp para reservas y recordatorios. Las citas que agenda Attia quedan en attempo.
+- Medilink, Agenda Pro u otro sistema clínico: No hay integración directa. attempo maneja sus propias citas de forma independiente.
+- WordPress: La página de reservas de attempo se puede agregar en WordPress como link o iframe. No hay plugin nativo.
+- Chatbot en mi web (sitio web propio): Attia funciona en WhatsApp, Instagram y Messenger. No se instala en un sitio web como chat flotante. Lo que sí puedes agregar a tu web es el botón o link de reservas de attempo, o embeber el calendario como iframe.
+- Google Calendar: Sí, attempo se conecta con Google Calendar. Cada cita nueva aparece automáticamente en tu calendario.
+
+Configuración y tiempos:
+- Tiempo de implementación: Entre 5 y 15 minutos para crear la cuenta y configurar la agenda. Conectar WhatsApp Business toma 1-2 días adicionales dependiendo de la verificación de Meta.
+- ¿Necesito un técnico?: No. Todo se configura desde el panel web sin instalaciones.
+- ¿Qué necesito para empezar?: Una cuenta de email y, si quieres el chatbot, un número de WhatsApp Business verificado en Meta Business Suite.
+
+Personalización:
+- Sí, puedes configurar: nombre y personalidad del bot, mensaje de saludo, preguntas frecuentes, catálogo de servicios con precios y duración, horarios de atención y promociones.
+
+Panel y funcionalidades:
+- El dashboard incluye: agenda de citas (vista día/semana/lista), listado de clientes, historial de conversaciones por canal, reportes de citas e ingresos, configuración del bot y métricas de uso mensual.
+- No hay app móvil separada. El panel es web y funciona desde el celular en el navegador.
+
+Recordatorios:
+- Se envían automáticamente por WhatsApp y email 24h y 1h antes de la cita. El paciente puede confirmar o cancelar desde el mensaje.
+
+Precios y prueba:
+- La prueba gratis dura 12 días. No se pide tarjeta de crédito para empezar.
+- Puedes cancelar en cualquier momento sin costos adicionales.
+
+CUANDO ALGUIEN PIDE UNA DEMO, QUIERE HABLAR CON ALGUIEN, O HACE UNA PREGUNTA QUE NO ESTÁ EN ESTA LISTA:
+Usa de inmediato la herramienta capturar_lead con los datos disponibles (nombre, email o WhatsApp, interés).
+Después di únicamente: "Perfecto, alguien del equipo te va a contactar a la brevedad."
+No sigas intentando responder. No inventes respuestas para lo que no sabes.
 
 HOY ES: ${hoy}`;
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, system: landingPrompt, messages: messages.slice(-12) })
-      });
-      if (!r.ok) return res.status(502).json({ error: 'Error AI' });
-      const data = await r.json();
-      const reply = data.content?.[0]?.text || '';
-      if (session_id && SUPABASE_KEY) {
-        const cid = `web-${session_id}`;
-        const lastUser = messages[messages.length - 1];
-        const toInsert = [];
-        if (lastUser?.role === 'user') toInsert.push({ cliente_id: cid, remitente: 'visitante', contenido: lastUser.content, leido: false });
-        if (reply) toInsert.push({ cliente_id: cid, remitente: 'attia', contenido: reply, leido: false });
-        if (toInsert.length) {
-          fetch(`${SUPABASE_URL}/rest/v1/soporte_mensajes`, {
-            method: 'POST',
-            headers: { ...sh2, Prefer: 'return=minimal' },
-            body: JSON.stringify(toInsert)
-          }).catch(() => {});
+
+    const landingTools = [
+      {
+        name: 'capturar_lead',
+        description: 'Registra a un visitante que pidió contacto humano o una demo. Alerta al equipo de attempo. Úsala cuando alguien pide hablar con una persona, solicita una demo, o deja sus datos para ser contactado.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            nombre:   { type: 'string' },
+            email:    { type: 'string' },
+            telefono: { type: 'string', description: 'WhatsApp o teléfono' },
+            interes:  { type: 'string', description: 'Qué tipo de negocio tiene o qué preguntó' },
+            resumen:  { type: 'string', description: 'Resumen breve de la conversación' }
+          },
+          required: []
         }
       }
-      return res.json({ reply });
+    ];
+
+    async function ejecutarCapturarLeadLanding(params) {
+      const { nombre, email, telefono, interes, resumen } = params;
+      const clienteIdAttempo = process.env.ATTEMPO_VENTAS_CLIENT_ID;
+      if (clienteIdAttempo && SUPABASE_KEY) {
+        fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+          method: 'POST',
+          headers: { ...sh2, Prefer: 'return=minimal' },
+          body: JSON.stringify({ cliente_id: clienteIdAttempo, canal: 'web', canal_user_id: session_id || null, nombre: nombre || null, email: email || null, telefono: telefono || null, interes: interes || null, resumen: resumen || null, estado: 'nuevo' })
+        }).catch(e => console.error('landing capturar_lead:', e.message));
+      }
+      const key = process.env.RESEND_API_KEY;
+      if (key) {
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Attempo <contacto@attempo.cl>',
+            to: ['cesarsalinasmunoz@gmail.com'],
+            subject: `Lead web — ${nombre || 'Visitante'}`,
+            html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#2d2d2d"><h2 style="color:#6C5CE4;margin:0 0 16px">Lead del sitio web</h2><table style="width:100%;font-size:14px"><tr><td style="color:#666;padding:6px 0;width:90px">Canal</td><td><strong>Sitio web (Attia)</strong></td></tr>${nombre ? `<tr><td style="color:#666;padding:6px 0">Nombre</td><td>${nombre}</td></tr>` : ''}${email ? `<tr><td style="color:#666;padding:6px 0">Email</td><td>${email}</td></tr>` : ''}${telefono ? `<tr><td style="color:#666;padding:6px 0">WhatsApp</td><td>${telefono}</td></tr>` : ''}${interes ? `<tr><td style="color:#666;padding:6px 0">Interés</td><td>${interes}</td></tr>` : ''}</table>${resumen ? `<div style="margin-top:16px;padding:12px;background:#f5f3ff;border-radius:8px;font-size:13px;color:#444">${resumen}</div>` : ''}</div>`
+          })
+        }).catch(() => {});
+      }
+      return { ok: true };
+    }
+
+    let landingMsgs = messages.slice(-12);
+    let reply = '';
+
+    try {
+      for (let i = 0; i < 5; i++) {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, system: landingPrompt, tools: landingTools, messages: landingMsgs })
+        });
+        if (!r.ok) return res.status(502).json({ error: 'Error AI' });
+        const data = await r.json();
+
+        if (data.stop_reason !== 'tool_use') {
+          reply = data.content?.find(b => b.type === 'text')?.text || '';
+          break;
+        }
+
+        const toolBlocks = data.content.filter(b => b.type === 'tool_use');
+        const toolResults = [];
+        for (const block of toolBlocks) {
+          if (block.name === 'capturar_lead') {
+            const result = await ejecutarCapturarLeadLanding(block.input);
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
+          }
+        }
+        landingMsgs = [
+          ...landingMsgs,
+          { role: 'assistant', content: data.content },
+          { role: 'user',      content: toolResults }
+        ];
+      }
     } catch (err) {
+      console.error('ai-chat landing error:', err);
       return res.status(500).json({ error: 'Error interno' });
     }
+
+    if (messages.length === 1 && process.env.RESEND_API_KEY) {
+      const primerMensaje = messages[0]?.content || '';
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: ['cesarsalinasmunoz@gmail.com'],
+          subject: 'Nuevo visitante en attempo.cl — Attia',
+          html: `<p style="font-family:sans-serif"><strong>Canal:</strong> Sitio web (Attia)<br><strong>Mensaje:</strong> "${String(primerMensaje).slice(0, 400)}"</p>`
+        })
+      }).catch(() => {});
+    }
+
+    if (session_id && SUPABASE_KEY) {
+      const cid = `web-${session_id}`;
+      const lastUser = messages[messages.length - 1];
+      const toInsert = [];
+      if (lastUser?.role === 'user') toInsert.push({ cliente_id: cid, remitente: 'visitante', contenido: lastUser.content, leido: false });
+      if (reply) toInsert.push({ cliente_id: cid, remitente: 'attia', contenido: reply, leido: false });
+      if (toInsert.length) {
+        fetch(`${SUPABASE_URL}/rest/v1/soporte_mensajes`, {
+          method: 'POST',
+          headers: { ...sh2, Prefer: 'return=minimal' },
+          body: JSON.stringify(toInsert)
+        }).catch(() => {});
+      }
+    }
+    return res.json({ reply });
   }
 
-  if (!cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
+  // Validar que cliente_id es un UUID válido antes de usarlo
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!cliente_id || !uuidRegex.test(cliente_id)) {
+    return res.status(400).json({ error: 'cliente_id inválido' });
+  }
 
   const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;
   const SUPABASE_URL  = 'https://xztqawulvrtjvtfixofy.supabase.co';

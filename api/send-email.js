@@ -454,6 +454,20 @@ export default async function handler(req, res) {
     console.log('send-email: cron finalizado —', result.enviados, 'enviados,', result.errores.length, 'errores');
     const trialResult = await procesarTrialReminder(sh, shJson);
     if (trialResult.enviados.length) console.log('send-email: trial reminders —', trialResult.enviados.length, 'enviados');
+
+    // Reset mensual de cuota WA si cambió el mes
+    try {
+      const rWa = await fetch(`${SUPABASE_URL}/rest/v1/rpc/reset_wa_si_mes_cambio`, {
+        method: 'POST',
+        headers: shJson,
+        body: JSON.stringify({})
+      });
+      const waResetCount = await rWa.json();
+      if (waResetCount > 0) console.log('send-email: reset WA mensajes para', waResetCount, 'clientes');
+    } catch(e) {
+      console.error('send-email: error reset WA mensual:', e.message);
+    }
+
     return res.status(200).json({ ...result, trial_reminders: trialResult.enviados });
   }
 
@@ -1236,12 +1250,12 @@ function buildPagoHtml(metodos_pago, datos_banco) {
   if (metodos_pago.transferencia && datos_banco && Object.keys(datos_banco).length) {
     const d = datos_banco;
     const filas = [];
-    if (d.banco)  filas.push(`Banco: ${d.banco}`);
-    if (d.tipo)   filas.push(`Tipo: ${d.tipo}`);
-    if (d.cuenta) filas.push(`N° cuenta: ${d.cuenta}`);
-    if (d.rut)    filas.push(`RUT: ${d.rut}`);
-    if (d.nombre) filas.push(`A nombre de: ${d.nombre}`);
-    if (d.email)  filas.push(`Email: ${d.email}`);
+    if (d.banco)  filas.push(`Banco: ${he(d.banco)}`);
+    if (d.tipo)   filas.push(`Tipo: ${he(d.tipo)}`);
+    if (d.cuenta) filas.push(`N° cuenta: ${he(d.cuenta)}`);
+    if (d.rut)    filas.push(`RUT: ${he(d.rut)}`);
+    if (d.nombre) filas.push(`A nombre de: ${he(d.nombre)}`);
+    if (d.email)  filas.push(`Email: ${he(d.email)}`);
     if (filas.length) bancoRows = `<tr><td style="padding:2px 0 10px;text-align:center;font-size:12px;color:#6b7280;line-height:1.8">${filas.join('<br>')}</td></tr>`;
   }
   return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;

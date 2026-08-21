@@ -2,6 +2,24 @@ import crypto from 'crypto';
 
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function verifySessionToken(token) {
+  if (!token) return null;
+  const secret = process.env.SESSION_SECRET || '';
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
+  const parts = payload.split(':');
+  if (parts.length < 3) return null;
+  const [cliente_id, rol, expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return { cliente_id, rol };
+}
+
 function decryptToken(encrypted) {
   if (!encrypted?.startsWith('enc:')) return encrypted;
   const parts = encrypted.split(':');
@@ -79,8 +97,9 @@ export default async function handler(req, res) {
 
   // ── GET: consultar datos de una cita (gestionar-cita) ─────────────────────
   if (req.method === 'GET') {
-    const { id } = req.query;
+    const { id, t } = req.query;
     if (!id) return res.status(400).json({ error: 'Falta id' });
+    if (!t || !verifyManageToken(id, t)) return res.status(403).json({ error: 'Acceso no autorizado' });
 
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&select=*&limit=1`, { headers: sh });
@@ -237,9 +256,16 @@ export default async function handler(req, res) {
     cliente_id, nombre_especialista,
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
-    from_admin, enviar_email, estado_admin, slug,
+    enviar_email, estado_admin, slug,
     metodo_pago_admin
   } = req.body || {};
+
+  // Validar que from_admin solo sea true si el request tiene sesión válida de admin
+  const sessionToken = req.headers['x-session-token'];
+  const session = verifySessionToken(sessionToken);
+  const isAdmin = !!session;
+  const effectiveFromAdmin = isAdmin ? (req.body?.from_admin || false) : false;
+  const from_admin = effectiveFromAdmin;
 
   // Sanitizar especialista_id: solo aceptar UUIDs válidos, cualquier otro valor (como 'any') → null
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

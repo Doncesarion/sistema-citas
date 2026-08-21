@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
@@ -58,6 +59,20 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Validar firma X-Hub-Signature-256 de Meta
+  const metaAppSecret = process.env.META_APP_SECRET;
+  if (metaAppSecret) {
+    const sig = req.headers['x-hub-signature-256'];
+    if (!sig) return res.status(403).json({ error: 'Firma ausente' });
+    const rawBody = JSON.stringify(req.body);
+    const expected = 'sha256=' + crypto.createHmac('sha256', metaAppSecret).update(rawBody).digest('hex');
+    try {
+      if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+        return res.status(403).json({ error: 'Firma inválida' });
+      }
+    } catch { return res.status(403).json({ error: 'Firma inválida' }); }
+  }
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
   const body = req.body || {};

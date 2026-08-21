@@ -62,7 +62,12 @@ async function verifyPassword(password, stored) {
   }
 
   if (!stored.startsWith('scrypt$')) {
-    return { ok: stored === password, upgrade: stored === password, first: false };
+    // Password legacy en texto plano — comparar con timing-safe
+    let match = false;
+    try {
+      match = crypto.timingSafeEqual(Buffer.from(stored), Buffer.from(password));
+    } catch { match = false; }
+    return { ok: match, upgrade: match, first: false };
   }
   const parts = stored.split('$');
   if (parts.length !== 3) return { ok: false, upgrade: false, first: false };

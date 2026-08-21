@@ -71,7 +71,7 @@ export default async function handler(req, res) {
 
     const [rUso, rCli] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/uso_mensual?cliente_id=eq.${cliente_id}&mes=eq.${mesKey}&select=mensajes_ia&limit=1`, { headers: sh }),
-      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual`, { headers: sh })
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual,mensajes_wa_usados,mensajes_wa_limite,mensajes_wa_extra`, { headers: sh })
     ]);
     const usoData = await rUso.json();
     const cliData = await rCli.json();
@@ -88,7 +88,10 @@ export default async function handler(req, res) {
       rec_mes_count,
       rec_mes_limit_extra,
       rec_limite_extra_mensual,
-      tipo_plan
+      tipo_plan,
+      mensajes_wa_usados: cli?.mensajes_wa_usados || 0,
+      mensajes_wa_limite: cli?.mensajes_wa_limite || 0,
+      mensajes_wa_extra:  cli?.mensajes_wa_extra  || 0
     });
   }
 
@@ -207,7 +210,8 @@ export default async function handler(req, res) {
   // ── POST — enviar mensaje manual desde admin ──────────────────────────────
   if (req.method === 'POST') {
     const { conversacion_id, contenido } = req.body || {};
-    if (!conversacion_id || !contenido?.trim()) {
+    const contenidoLimitado = contenido?.trim().slice(0, 4096);
+    if (!conversacion_id || !contenidoLimitado) {
       return res.status(400).json({ error: 'Datos incompletos' });
     }
 
@@ -244,7 +248,7 @@ export default async function handler(req, res) {
                 from: 'contacto@attempo.cl',
                 to: canal_user_id,
                 subject: `Mensaje de ${conv.canal_user_name || 'tu centro'}`,
-                html: contenido.trim().replace(/\n/g, '<br>')
+                html: contenidoLimitado.replace(/\n/g, '<br>')
               })
             });
             if (!emailRes.ok) console.error('bandeja attia: error email', await emailRes.text());
@@ -260,19 +264,19 @@ export default async function handler(req, res) {
           metaRes = await fetch(`https://graph.facebook.com/v20.0/${channelId}/messages`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: contenido.trim() } })
+            body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: contenidoLimitado } })
           });
         } else if (canal === 'instagram') {
           metaRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenido.trim() } })
+            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenidoLimitado } })
           });
         } else {
           metaRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenido.trim() } })
+            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenidoLimitado } })
           });
         }
         if (!metaRes.ok) {
@@ -289,11 +293,11 @@ export default async function handler(req, res) {
     await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
         method: 'POST', headers: { ...shJ, Prefer: 'return=minimal' },
-        body: JSON.stringify({ conversacion_id, cliente_id, rol: 'admin', contenido: contenido.trim(), visto: true })
+        body: JSON.stringify({ conversacion_id, cliente_id, rol: 'admin', contenido: contenidoLimitado, visto: true })
       }),
       fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conversacion_id}`, {
         method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
-        body: JSON.stringify({ ultimo_mensaje: contenido.trim().slice(0, 120), ultimo_mensaje_at: ahora })
+        body: JSON.stringify({ ultimo_mensaje: contenidoLimitado.slice(0, 120), ultimo_mensaje_at: ahora })
       })
     ]);
 
@@ -519,6 +523,40 @@ export default async function handler(req, res) {
       }
     );
     return res.status(200).json({ ok: true, pausa_bot: pausaVal });
+  }
+
+  // ── GET ?action=notif-config — leer estado de notificación ─────────────────
+  if (req.method === 'GET' && req.query.action === 'notif-config') {
+    const rb = await fetch(
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=notif_nuevo_mensaje&limit=1`,
+      { headers: sh }
+    );
+    const [bc] = await rb.json();
+    return res.status(200).json({ notif_nuevo_mensaje: bc?.notif_nuevo_mensaje || false });
+  }
+
+  // ── PATCH ?action=toggle-notif — activar/desactivar notificación ────────────
+  if (req.method === 'PATCH' && req.query.action === 'toggle-notif') {
+    const activo = req.body?.activo === true;
+    const rbCheck = await fetch(
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=id&limit=1`,
+      { headers: sh }
+    );
+    const [existing] = await rbCheck.json();
+    if (existing) {
+      await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}`, {
+        method: 'PATCH',
+        headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify({ notif_nuevo_mensaje: activo })
+      });
+    } else {
+      await fetch(`${SUPABASE_URL}/rest/v1/bot_config`, {
+        method: 'POST',
+        headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify({ cliente_id, notif_nuevo_mensaje: activo })
+      });
+    }
+    return res.status(200).json({ ok: true, notif_nuevo_mensaje: activo });
   }
 
   // ── DELETE ?id=xxx — eliminar conversación y sus mensajes ───────────────────

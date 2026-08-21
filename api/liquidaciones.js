@@ -47,6 +47,7 @@ export default async function handler(req, res) {
   let cliente_id = s.cliente_id;
   const overrideId = req.headers['x-override-cliente-id'];
   if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
+    console.log(`[audit] superadmin impersonation: override cliente_id=${overrideId} at ${new Date().toISOString()}`);
     cliente_id = overrideId;
   }
 

@@ -16,7 +16,9 @@ function verifySessionToken(token, expectedClienteId) {
   const payload = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
-  if (sig !== expected) return false;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return false;
+  } catch { return false; }
   const parts = payload.split(':');
   if (parts.length !== 3) return false;
   const [clienteId, , expires] = parts;
@@ -34,7 +36,9 @@ function getClienteIdFromToken(token) {
   const payload = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
-  if (sig !== expected) return null;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
   const parts = payload.split(':');
   if (parts.length !== 3) return null;
   const [clienteId, , expires] = parts;
@@ -79,7 +83,9 @@ function verifyToken(token) {
   const payload = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
-  if (sig !== expected) return false;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return false;
+  } catch { return false; }
   if (Date.now() > parseInt(payload)) return false;
   return true;
 }
@@ -825,35 +831,49 @@ export default async function handler(req, res) {
           const waHeaders = { Authorization: `Bearer ${cli.canales_meta.wa_token}`, 'Content-Type': 'application/json' };
           try {
             // Intento 1: template aprobado (llega a cualquier número sin restricción de 24h)
-            const templateBody = {
-              messaging_product: 'whatsapp', to: phone, type: 'template',
-              template: {
-                name: 'cotizacion_nueva', language: { code: 'es' },
-                components: [{ type: 'body', parameters: [
-                  { type: 'text', text: firstName },
-                  { type: 'text', text: String(cot.numero || '') },
-                  { type: 'text', text: totalFmt },
-                  { type: 'text', text: publicUrl }
-                ]}]
-              }
-            };
-            const wR = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(templateBody) });
-            if (!wR.ok) {
-              const wErr = await wR.json().catch(() => ({}));
-              const errCode = wErr.error?.code;
-              // Template aún no aprobado o no existe → fallback a texto libre (funciona dentro de 24h)
-              if (errCode === 132001 || errCode === 132000 || errCode === 100 || String(wErr.error?.message || '').includes('template')) {
-                const textBody = {
-                  messaging_product: 'whatsapp', to: phone, type: 'text',
-                  text: { body: `Hola ${firstName}, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nRevísala y respóndela aquí:\n${publicUrl}` }
-                };
-                const wR2 = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(textBody) });
-                if (!wR2.ok) {
-                  const wErr2 = await wR2.json().catch(() => ({}));
-                  errors.push('whatsapp: ' + (wErr2.error?.message || wR2.status));
+            // Intenta primero es_LA (Chile/Latam), luego es (genérico) si falla
+            const langCodes = ['es_LA', 'es'];
+            let templateOk = false;
+            for (const langCode of langCodes) {
+              const templateBody = {
+                messaging_product: 'whatsapp', to: phone, type: 'template',
+                template: {
+                  name: 'cotizacion_nueva', language: { code: langCode },
+                  components: [{ type: 'body', parameters: [
+                    { type: 'text', text: firstName },
+                    { type: 'text', text: String(cot.numero || '') },
+                    { type: 'text', text: totalFmt },
+                    { type: 'text', text: publicUrl }
+                  ]}]
                 }
-              } else {
-                errors.push('whatsapp: ' + (wErr.error?.message || wR.status));
+              };
+              console.log(`[cotiz-wa] intentando template lang=${langCode} phone=${phone}`);
+              const wR = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(templateBody) });
+              const wRText = await wR.text();
+              console.log(`[cotiz-wa] template ${langCode} → status=${wR.status} body=${wRText.slice(0,300)}`);
+              if (wR.ok) { templateOk = true; break; }
+              const wErr = JSON.parse(wRText || '{}');
+              const errCode = wErr.error?.code;
+              // Si el error NO es de template, no tiene caso probar otro lang
+              const esErrorTemplate = errCode === 132001 || errCode === 132000 || errCode === 100 || String(wErr.error?.message || '').includes('template') || String(wErr.error?.message || '').includes('language');
+              if (!esErrorTemplate) {
+                errors.push(`whatsapp: [${errCode}] ${wErr.error?.message || wR.status}`);
+                break;
+              }
+            }
+            // Fallback a texto libre si el template falló (funciona solo dentro de ventana 24h)
+            if (!templateOk && !errors.some(e => e.startsWith('whatsapp:'))) {
+              console.log('[cotiz-wa] template falló, intentando texto libre');
+              const textBody = {
+                messaging_product: 'whatsapp', to: phone, type: 'text',
+                text: { body: `Hola ${firstName}, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nRevísala y respóndela aquí:\n${publicUrl}` }
+              };
+              const wR2 = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(textBody) });
+              const wR2Text = await wR2.text();
+              console.log(`[cotiz-wa] texto libre → status=${wR2.status} body=${wR2Text.slice(0,200)}`);
+              if (!wR2.ok) {
+                const wErr2 = JSON.parse(wR2Text || '{}');
+                errors.push(`whatsapp: [${wErr2.error?.code}] ${wErr2.error?.message || wR2.status}`);
               }
             }
           } catch(e) { errors.push('whatsapp: ' + e.message); }
@@ -902,45 +922,61 @@ export default async function handler(req, res) {
         body: JSON.stringify({ estado: accion, respuesta: { accion, comentario: comentario || null, fecha: new Date().toISOString() } })
       });
 
-      // Si acepta y el negocio tiene Flow configurado → generar link de pago
+      // Si acepta y el negocio tiene MP conectado → generar link de pago
       let payment_url = null;
       if (accion === 'aceptada') {
         try {
           const rCli = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}&select=nombre_negocio,metodos_pago&limit=1`, { headers: _cshG });
           const cli = (await rCli.json())[0];
           const mp = cli?.metodos_pago || {};
-          if (mp.flow_api_key && mp.flow_secret_key) {
-            const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0) * (parseFloat(it.cantidad)||1) * (1 - (parseFloat(it.descuento)||0)/100), 0);
-            const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
-            if (total > 0) {
-              const flowApiUrl = mp.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
-              const commerceOrder = 'CT' + cot.id.replace(/-/g, '');
-              const params = {
-                apiKey:          mp.flow_api_key,
-                commerceOrder,
-                subject:         `Cotización N° ${cot.numero || ''} — ${cli.nombre_negocio || 'attempo'}`.slice(0, 255),
-                currency:        'CLP',
-                amount:          String(total),
-                email:           cot.datos_destinatario?.email || '',
-                urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cot.cliente_id}`,
-                urlReturn:       `${BASE_URL}/cotizacion?token=${token}&pago=ok`
-              };
-              const signStr = Object.keys(params).sort().map(k => k + params[k]).join('');
-              params.s = crypto.createHmac('sha256', mp.flow_secret_key).update(signStr).digest('hex');
-              const fR = await fetch(`${flowApiUrl}/payment/create`, {
+          const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0) * (parseFloat(it.cantidad)||1) * (1 - (parseFloat(it.descuento)||0)/100), 0);
+          const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
+          if (mp.mp_connected && mp.mp_access_token && total > 0) {
+            let mpToken = mp.mp_access_token;
+            const prefBody = {
+              items: [{ title: `Cotización N° ${cot.numero || ''} — ${cli?.nombre_negocio || ''}`.slice(0, 255), quantity: 1, unit_price: total, currency_id: 'CLP' }],
+              external_reference: `COT-${cot.id}`,
+              back_urls: {
+                success: `${BASE_URL}/cotizacion?token=${token}&pago=ok`,
+                failure: `${BASE_URL}/cotizacion?token=${token}&pago=error`,
+                pending: `${BASE_URL}/cotizacion?token=${token}`
+              },
+              auto_return: 'approved',
+              notification_url: `${BASE_URL}/api/flow?tipo=mp_webhook`
+            };
+            let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+              body: JSON.stringify(prefBody)
+            });
+            if (prefResp.status === 401 && mp.mp_refresh_token) {
+              const tr = await fetch('https://api.mercadopago.com/oauth/token', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams(params)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ grant_type: 'refresh_token', client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, refresh_token: mp.mp_refresh_token })
               });
-              const fD = await fR.json();
-              if (fR.ok && !fD.code) {
-                payment_url = `${fD.url}?token=${fD.token}`;
-              } else {
-                console.error('cot-responder flow error:', JSON.stringify(fD));
+              const td = await tr.json();
+              if (td.access_token) {
+                mp.mp_access_token = td.access_token;
+                if (td.refresh_token) mp.mp_refresh_token = td.refresh_token;
+                await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}`, { method: 'PATCH', headers: _csh, body: JSON.stringify({ metodos_pago: mp }) });
+                mpToken = td.access_token;
+                prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+                  body: JSON.stringify(prefBody)
+                });
               }
             }
+            const prefData = await prefResp.json();
+            if (prefData.init_point) payment_url = prefData.init_point;
+            else console.error('cot-responder mp error:', JSON.stringify(prefData));
           }
-        } catch(e) { console.error('cot-responder flow:', e.message); }
+          /* Webpay — reservado para uso futuro
+          else if (mp.webpay && mp.webpay_commerce_code && mp.webpay_api_key_secret && total > 0) {
+            payment_url = `${BASE_URL}/api/flow?tipo=webpay_cot_create&cot_token=${encodeURIComponent(token)}`;
+          } */
+        } catch(e) { console.error('cot-responder mp:', e.message); }
       }
 
       return res.status(200).json({ ok: true, estado: accion, ...(payment_url && { payment_url }) });
