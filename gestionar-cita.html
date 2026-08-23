@@ -170,7 +170,7 @@ function fechaTexto(iso) {
 async function cargar() {
   if (!citaId) { mostrarError('No se encontró el identificador de la cita.'); return; }
   try {
-    const r = await fetch(`/api/gestionar-cita?id=${encodeURIComponent(citaId)}`);
+    const r = await fetch(`/api/gestionar-cita?id=${encodeURIComponent(citaId)}&t=${encodeURIComponent(manageToken)}`);
     const data = await r.json();
     if (!r.ok || !data.cita) { mostrarError(data.error || 'Cita no encontrada.'); return; }
     renderCita(data);
