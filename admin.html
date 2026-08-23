@@ -307,6 +307,15 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .ev-r{background:rgba(220,38,38,0.08);color:#B91C1C;border-color:var(--red)}
 .ev-b{background:rgba(37,99,235,0.09);color:#1D4ED8;border-color:var(--blue)}
 .ev-t{background:rgba(13,148,136,0.09);color:#0F766E;border-color:var(--teal)}
+.ev[draggable="true"]{cursor:grab}.ev[draggable="true"]:active{cursor:grabbing}
+.ev.dragging{opacity:.35;pointer-events:none}
+.slot.drag-over{background:rgba(108,92,228,0.1)!important;outline:2px dashed rgba(108,92,228,0.45)}
+/* Búsqueda rápida */
+.busq-row{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .1s;border-radius:0}
+.busq-row:hover,.busq-row.sel{background:rgba(108,92,228,0.07)}
+.busq-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.busq-name{font-size:13px;font-weight:600;color:var(--t1)}
+.busq-sub{font-size:11px;color:var(--t3);margin-top:1px}
 /* Now indicator */
 .now-line{position:absolute;left:0;right:0;z-index:3;pointer-events:none;display:flex;align-items:center}
 .now-dot{width:8px;height:8px;border-radius:50%;background:var(--a);flex-shrink:0;box-shadow:0 0 0 2px rgba(108,92,228,0.2),0 0 8px rgba(108,92,228,0.4)}
@@ -1715,6 +1724,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
     <div class="ag-right">
       <span class="ag-sync"><span class="ldot"></span>&nbsp;Actualizado ahora</span>
+      <button class="btn-refresh" onclick="openBusq()" title="Buscar paciente (Cmd+K)" style="gap:5px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Buscar
+      </button>
       <button class="btn-refresh" id="btn-refresh" onclick="manualRefresh()" title="Actualizar reservas">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         Actualizar
@@ -1722,6 +1735,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="view-tabs">
         <button class="vtab on" id="vtab-semana" onclick="setCalView('semana',this)">Semana</button>
         <button class="vtab"    id="vtab-dia"    onclick="setCalView('dia',this)">Día</button>
+        <button class="vtab"    id="vtab-mes"    onclick="setCalView('mes',this)">Mes</button>
         <button class="vtab"    id="vtab-lista"  onclick="setCalView('lista',this)">Lista</button>
       </div>
     </div>
@@ -4190,6 +4204,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
     </div>
 
+    <!-- Badge de pago: visible siempre que la cita tenga precio -->
+    <div id="fp-pago-badge" style="display:none;margin:0 16px 10px;padding:8px 13px;border-radius:8px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500">
+      <span id="fp-pago-ico" style="font-size:14px">💳</span>
+      <span id="fp-pago-txt" style="color:inherit">—</span>
+      <span id="fp-pago-monto" style="margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:700">—</span>
+    </div>
+
     <div class="fp-tabs" style="justify-content:space-between">
       <div style="display:flex">
         <button class="fptab on" onclick="fpTab(this,'ft-info')">Información</button>
@@ -4909,6 +4930,7 @@ function openFicha(name, initials, rubro, citaId) {
   document.getElementById('fpi-email').textContent = d.email;
   document.getElementById('fpi-tel').textContent   = d.tel;
   // Reset campos dinámicos
+  const _pb = document.getElementById('fp-pago-badge'); if (_pb) _pb.style.display = 'none';
   ['fpi-proxima','fpi-prof-habitual','fpi-serv-top','fpi-serv-top-sub'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = '…'; });
   const hw = document.getElementById('ft-hist-wrap');
   if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
@@ -5219,6 +5241,28 @@ async function loadFichaData(nombre) {
     const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago' };
     if (_epEl) { _epEl.textContent = _esPendFlow ? 'Esperando pago Flow' : _esPendWebpay ? 'Esperando pago Webpay' : _esPendMP ? 'Esperando pago MP' : _pc?.estado_pago === 'pagado' ? 'Pagado ✓' : '—'; _epEl.style.color = (_esPendFlow || _esPendWebpay || _esPendMP) ? 'var(--a)' : _pc?.estado_pago === 'pagado' ? 'var(--green)' : 'var(--t3)'; }
     if (_mpEl) _mpEl.textContent = _METODO[_pc?.metodo_pago] || '—';
+    // — Badge de pago prominente —
+    const _pagBadge = document.getElementById('fp-pago-badge');
+    if (_pagBadge) {
+      if (_pc?.precio) {
+        const _pagado  = _pc.estado_pago === 'pagado';
+        const _pend    = _esPendFlow || _esPendWebpay || _esPendMP;
+        const _txt     = _pagado ? '✓ Pagado' : _pend ? 'Pago pendiente' : 'Sin cobro registrado';
+        const _ico     = _pagado ? '✅' : _pend ? '⏳' : '💳';
+        const _bg      = _pagado ? 'rgba(16,185,129,0.08)' : _pend ? 'rgba(217,119,6,0.08)' : 'rgba(108,92,228,0.06)';
+        const _border  = _pagado ? 'rgba(16,185,129,0.2)' : _pend ? 'rgba(217,119,6,0.22)' : 'rgba(108,92,228,0.12)';
+        const _color   = _pagado ? '#10b981' : _pend ? '#b45309' : 'var(--t2)';
+        _pagBadge.style.cssText = `display:flex;margin:0 16px 10px;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500;background:${_bg};border:1px solid ${_border};color:${_color}`;
+        const _ico_el  = document.getElementById('fp-pago-ico');
+        const _txt_el  = document.getElementById('fp-pago-txt');
+        const _mon_el  = document.getElementById('fp-pago-monto');
+        if (_ico_el) _ico_el.textContent = _ico;
+        if (_txt_el) _txt_el.textContent = _txt;
+        if (_mon_el) _mon_el.textContent = '$' + Number(_pc.precio).toLocaleString('es-CL');
+      } else {
+        _pagBadge.style.display = 'none';
+      }
+    }
     const _vRow = document.getElementById('fpi-voucher-row');
     const _vVal = document.getElementById('fpi-voucher-val');
     if (_vRow && _vVal) {
@@ -8307,11 +8351,15 @@ function renderWeekBody() {
         var ini   = evIniciales(full);
         var hEnd  = (slotH + 1 < 10 ? '0' : '') + (slotH + 1) + ':00';
         var posStyle = nEvs === 1 ? 'left:3px;right:3px' : 'left:calc(' + (ev * 100 / nEvs) + '% + 2px);right:calc(' + ((nEvs - ev - 1) * 100 / nEvs) + '% + 2px)';
-        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" style="position:absolute;top:4px;' + posStyle + ';height:44px" onclick="event.stopPropagation();openFicha(\'' +
-                  full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + (cur.id||'') + '\')">' +
+        var _cId = (cur.id||'');
+        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" draggable="true"' +
+                  ' style="position:absolute;top:4px;' + posStyle + ';height:44px"' +
+                  ' ondragstart="_startDragEv(event,\'' + _cId + '\')"' +
+                  ' ondragend="_endDragEv(event)"' +
+                  ' onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + _cId + '\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
-                  '<button class="ev-rag" onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + (cur.id||'') + '\')">Ver opciones →</button>' +
+                  '<button class="ev-rag" onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + _cId + '\')">Ver opciones →</button>' +
                   '</div>';
       }
       // Botón sobrecupo: aparece al hacer hover cuando ya hay un evento en el slot
@@ -8319,7 +8367,8 @@ function renderWeekBody() {
         evHtml += '<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="Agregar sobrecupo a las ' + HOURS[s] + '">+</button>';
       }
       var slotClick  = ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"';
-      html += '<div class="slot"' + slotClick + ' style="cursor:pointer' + (slotIsPast ? ';opacity:.45' : '') + '">' + evHtml + '</div>';
+      var slotDrag   = ' ondragover="_slotDragOver(event)" ondragleave="_slotDragLeave(event)" ondrop="_dropOnSlot(event,\'' + dFecha + '\',\'' + HOURS[s] + '\')"';
+      html += '<div class="slot"' + slotClick + slotDrag + ' style="cursor:pointer' + (slotIsPast ? ';opacity:.45' : '') + '">' + evHtml + '</div>';
     }
     html += '</div>';
   }
@@ -8343,11 +8392,10 @@ function setCalView(view, btn, skipPush) {
     if (b) b.classList.toggle('on', v === view || (v === 'semana' && view === 'dia'));
   });
 
-  // Top bar tabs: Semana/Día only active when in semana or dia views
-  const topView = (view === 'dia') ? 'dia' : 'semana';
-  ['semana','dia'].forEach(v => {
+  // Top bar tabs: sync all 4 view tabs
+  ['semana','dia','mes','lista'].forEach(v => {
     const b = document.getElementById('vtab-' + v);
-    if (b) b.classList.toggle('on', v === topView);
+    if (b) b.classList.toggle('on', v === view);
   });
 
   // Hide all sub-views
@@ -16338,6 +16386,22 @@ async function initSedesBadge() {
 }
 </script>
 
+<!-- ═══ BÚSQUEDA RÁPIDA (Cmd/Ctrl+K) ═══ -->
+<div id="busq-ov" onclick="if(event.target===this)closeBusq()" style="display:none;position:fixed;inset:0;background:rgba(15,10,40,0.45);z-index:9100;align-items:flex-start;justify-content:center;padding-top:72px">
+  <div style="background:#fff;border-radius:14px;width:520px;max-width:calc(100vw - 24px);box-shadow:0 24px 64px rgba(0,0,0,0.22);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--b1)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="busq-inp" type="text" autocomplete="off" placeholder="Buscar paciente o cita…"
+        style="flex:1;border:none;outline:none;font-size:15px;font-family:var(--font);color:var(--t1);background:transparent"
+        oninput="_doBusq(this.value)" onkeydown="_busqKey(event)">
+      <kbd style="font-size:10px;color:var(--t3);background:var(--surface-hi);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0">Esc</kbd>
+    </div>
+    <div id="busq-res" style="max-height:360px;overflow-y:auto;padding:4px 0">
+      <div id="busq-empty" style="padding:20px 16px;text-align:center;color:var(--t3);font-size:13px">Escribe para buscar pacientes…</div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ MOBILE BOTTOM NAV ═══ -->
 <nav id="mob-nav">
   <button class="mob-tab on" id="mobt-agenda" onclick="_mobNav('agenda',this)">
@@ -16368,6 +16432,127 @@ function _mobNav(sec, btn) {
   if (btn) btn.classList.add('on');
   const ntab = document.getElementById('ntab-' + sec);
   if (ntab) { sv(sec, ntab); }
+}
+
+// ── BÚSQUEDA RÁPIDA ──────────────────────────────────────────────────────────
+let _busqSelIdx = -1;
+
+function openBusq() {
+  const ov = document.getElementById('busq-ov');
+  if (!ov) return;
+  ov.style.display = 'flex';
+  const inp = document.getElementById('busq-inp');
+  if (inp) { inp.value = ''; inp.focus(); }
+  _doBusq('');
+}
+function closeBusq() {
+  const ov = document.getElementById('busq-ov');
+  if (ov) ov.style.display = 'none';
+  _busqSelIdx = -1;
+}
+
+function _doBusq(q) {
+  const res = document.getElementById('busq-res');
+  const empty = document.getElementById('busq-empty');
+  if (!res) return;
+  _busqSelIdx = -1;
+  q = q.trim().toLowerCase();
+  if (!q) {
+    res.innerHTML = '<div id="busq-empty" style="padding:20px 16px;text-align:center;color:var(--t3);font-size:13px">Escribe para buscar pacientes…</div>';
+    return;
+  }
+  const citas = window._citasAgenda || [];
+  const seen = new Set();
+  const rows = [];
+  const hoy = new Date().toISOString().split('T')[0];
+  citas.forEach(c => {
+    const nombre = c.nombre_paciente || '';
+    if (!nombre || !nombre.toLowerCase().includes(q) || seen.has(nombre.toLowerCase())) return;
+    seen.add(nombre.toLowerCase());
+    const futuras = citas.filter(x => x.nombre_paciente === nombre && x.fecha >= hoy && !['cancelada','canceled','cancelled'].includes(x.estado)).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''));
+    const prox = futuras[0];
+    const ini = nombre.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const proxTxt = prox ? `Próxima: ${new Date(prox.fecha+'T12:00').toLocaleDateString('es-CL',{day:'numeric',month:'short'})} ${(prox.hora||'').slice(0,5)}` : 'Sin citas próximas';
+    rows.push({ nombre, ini, proxTxt, citaId: prox?.id || c.id });
+  });
+  if (!rows.length) {
+    res.innerHTML = '<div style="padding:20px 16px;text-align:center;color:var(--t3);font-size:13px">Sin resultados para "' + q + '"</div>';
+    return;
+  }
+  res.innerHTML = rows.slice(0,8).map((r,i) =>
+    `<div class="busq-row" data-idx="${i}" onclick="_selBusq('${r.nombre.replace(/'/g,"\\'")}','${r.ini}','${r.citaId||''}')">` +
+    `<div class="busq-av">${r.ini}</div>` +
+    `<div><div class="busq-name">${r.nombre}</div><div class="busq-sub">${r.proxTxt}</div></div>` +
+    `</div>`
+  ).join('');
+}
+
+function _selBusq(nombre, ini, citaId) {
+  closeBusq();
+  if (currentSection !== 'agenda') sv('agenda', document.getElementById('ntab-agenda'));
+  openFicha(nombre, ini, '', citaId);
+}
+
+function _busqKey(e) {
+  const rows = document.querySelectorAll('#busq-res .busq-row');
+  if (e.key === 'Escape') { closeBusq(); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); _busqSelIdx = Math.min(_busqSelIdx + 1, rows.length - 1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _busqSelIdx = Math.max(_busqSelIdx - 1, 0); }
+  else if (e.key === 'Enter' && _busqSelIdx >= 0 && rows[_busqSelIdx]) { rows[_busqSelIdx].click(); return; }
+  rows.forEach((r,i) => r.classList.toggle('sel', i === _busqSelIdx));
+  if (rows[_busqSelIdx]) rows[_busqSelIdx].scrollIntoView({ block: 'nearest' });
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openBusq(); }
+  if (e.key === 'Escape') closeBusq();
+});
+
+// ── DRAG-AND-DROP REAGENDAMIENTO ─────────────────────────────────────────────
+window._dragCita = null;
+
+function _startDragEv(e, citaId) {
+  const cita = (window._calCitaById || {})[citaId];
+  if (!cita) { e.preventDefault(); return; }
+  window._dragCita = { id: citaId, nombre: cita.nombre_paciente, fecha: cita.fecha, hora: (cita.hora||'').slice(0,5) };
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('dragging');
+  e.stopPropagation();
+}
+
+function _endDragEv(e) {
+  e.currentTarget.classList.remove('dragging');
+}
+
+function _slotDragOver(e) {
+  if (!window._dragCita) return;
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function _slotDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+async function _dropOnSlot(e, fecha, hora) {
+  e.preventDefault(); e.stopPropagation();
+  e.currentTarget.classList.remove('drag-over');
+  const dc = window._dragCita;
+  window._dragCita = null;
+  if (!dc?.id) return;
+  if (dc.fecha === fecha && dc.hora === hora) return;
+  const fmtFecha = new Date(fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
+  if (!confirm(`¿Mover la cita de ${dc.nombre} al ${fmtFecha} a las ${hora}?`)) return;
+  try {
+    const r = await fetch(`/api/slots?id=${dc.id}`, {
+      method: 'PATCH',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fecha, hora })
+    });
+    if (!r.ok) { const d = await r.json().catch(()=>({})); toastErr(d.error || 'No se pudo reagendar'); return; }
+    toast(`✓ ${dc.nombre} → ${fmtFecha} ${hora}`);
+    cargarCitasSupabase();
+  } catch(err) { toastErr('Error al reagendar'); }
 }
 </script>
 
