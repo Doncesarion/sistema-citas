@@ -1281,9 +1281,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ntab"     onclick="sv('clientes',this)"      id="ntab-clientes">Clientes</button>
       <button class="ntab"     onclick="sv('ventas',this)"        id="ntab-ventas">Ventas</button>
       <button class="ntab"     onclick="sv('cotizaciones',this)"  id="ntab-cotizaciones">Cotizaciones</button>
-      <button class="ntab"     onclick="sv('bandeja',this)"       id="ntab-bandeja" style="position:relative">Bandeja <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
+      <button class="ntab"     onclick="sv('bandeja',this)"       id="ntab-bandeja" style="position:relative">Mensajes <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"     onclick="sv('reportes',this)"      id="ntab-reportes">Reportes</button>
-      <button class="ntab"     onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Liquidaciones</button>
+      <button class="ntab"     onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Mis transferencias</button>
       <button class="ntab"     onclick="sv('config',this)"        id="ntab-config">Configuración</button>
     </div>
   </div>
@@ -1966,7 +1966,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <div id="v-liquidaciones" style="display:none">
   <div class="vp">
     <div class="vh">
-      Liquidaciones
+      Mis transferencias
       <div style="display:flex;gap:8px;align-items:center">
         <span id="liq-loading" style="display:none;font-size:12px;color:var(--t3)">Cargando...</span>
       </div>
@@ -4226,7 +4226,7 @@ function sv(v, btn, skipPush) {
   // Refrescar contador de plan en cada cambio de sección
   if (typeof cargarStatsIA === 'function') cargarStatsIA();
 
-  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Bandeja',reportes:'Reportes',config:'Configuración',liquidaciones:'Liquidaciones'};
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')        cargarVentas();
@@ -8924,6 +8924,13 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ════ COPY LINK ════ */
 let currentBookingUrl = 'studio-norte';
 function copyLink() {
+  // Validar que está listo para recibir reservas
+  const pendientes = _onbSteps.filter(s => !s.done && s.id !== 'cuenta' && s.id !== 'link');
+  if (pendientes.length > 0) {
+    const labels = pendientes.map(s => s.label).join(' · ');
+    toast('Antes de compartir tu link, completa: ' + labels);
+    return;
+  }
   const url = 'https://app.attempo.cl/' + currentBookingUrl;
   try {
     if (navigator.clipboard && window.isSecureContext) {

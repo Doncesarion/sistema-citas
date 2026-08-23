@@ -128,6 +128,7 @@ body::before{
 .horas-sep{height:1px;background:var(--b1);margin-bottom:18px}
 .horas-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:10px}
 .horas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+@media(max-width:768px){.horas-grid{grid-template-columns:repeat(3,1fr)}}
 .h-btn{padding:10px 4px;border:1.5px solid var(--b1);border-radius:var(--r);background:#fff;cursor:pointer;font-size:12px;font-family:var(--mono);font-weight:500;color:var(--t2);transition:all .12s;text-align:center;}
 .h-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
 .h-btn.sel{background:var(--a);border-color:var(--a);color:#fff;box-shadow:0 2px 8px rgba(108,92,228,.3)}
@@ -328,11 +329,15 @@ body::before{
       <div class="acc-body">
         <div class="acc-body-pad">
           <div class="r2">
-            <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="d-nom" placeholder="Tu nombre" oninput="checkForm()"></div>
-            <div class="fg"><label class="fl">Apellido *</label><input class="fi" id="d-ap" placeholder="Tu apellido" oninput="checkForm()"></div>
+            <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="d-nom" placeholder="Tu nombre" autocomplete="given-name" oninput="checkForm()"></div>
+            <div class="fg"><label class="fl">Apellido *</label><input class="fi" id="d-ap" placeholder="Tu apellido" autocomplete="family-name" oninput="checkForm()"></div>
           </div>
-          <div class="fg"><label class="fl">Email *</label><input class="fi" id="d-em" type="email" placeholder="correo@ejemplo.com" oninput="checkForm()"></div>
-          <div class="fg"><label class="fl">Teléfono / WhatsApp *</label><input class="fi" id="d-tel" type="tel" placeholder="+56 9 XXXX XXXX" oninput="checkForm()"></div>
+          <div class="fg"><label class="fl">Email *</label><input class="fi" id="d-em" type="email" placeholder="correo@ejemplo.com" autocomplete="email" oninput="checkForm()"></div>
+          <div class="fg" id="fg-tel">
+            <label class="fl">Teléfono / WhatsApp *</label>
+            <input class="fi" id="d-tel" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" oninput="checkForm(); validarTel()">
+            <span id="tel-hint" style="display:none;font-size:11px;color:#DC2626;margin-top:2px">Ingresa un número chileno válido: +56 9 XXXX XXXX</span>
+          </div>
           <div class="fg"><label class="fl">Notas <span style="color:var(--t4)">(opcional)</span></label><textarea class="fi" id="d-nota" rows="3" placeholder="Cuéntanos el motivo de tu consulta..." style="resize:vertical;min-height:68px"></textarea></div>
           <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="/terminos" style="color:var(--a)" target="_blank" rel="noopener noreferrer">términos de uso</a> y la <a href="/privacidad" style="color:var(--a)" target="_blank" rel="noopener noreferrer">política de privacidad</a> *</span></label>
           <div class="foot">
@@ -740,6 +745,12 @@ function renderCal() {
   const rows  = Math.ceil(total / 7);
   for (let d = 1; d <= rows * 7 - total; d++) html += `<div class="cal-day other">${d}</div>`;
   grid.innerHTML = html;
+
+  // Si no hay días disponibles este mes, auto-navegar al siguiente (máx 6 meses)
+  const limiteMax = new Date(NOW.getFullYear(), NOW.getMonth() + 6, 1);
+  if (!html.includes('avail') && new Date(calY, calM, 1) < limiteMax) {
+    setTimeout(() => nextMes(), 120);
+  }
 }
 
 async function selDia(d, m, y) {
@@ -888,11 +899,24 @@ function updateResumen() {
 }
 
 /* ── VALIDACIÓN FORM ── */
+function validarTel() {
+  const val = document.getElementById('d-tel').value.trim();
+  const digits = val.replace(/\D/g, '');
+  // Acepta +569XXXXXXXX, 569XXXXXXXX, 9XXXXXXXX (9 dígitos sin prefijo)
+  const ok = /^(\+?56)?9\d{8}$/.test(digits) || /^9\d{8}$/.test(digits) || digits.length === 0;
+  document.getElementById('tel-hint').style.display = (!ok && val.length > 3) ? 'block' : 'none';
+  document.getElementById('d-tel').style.borderColor = (!ok && val.length > 3) ? '#DC2626' : '';
+  return ok || digits.length === 0;
+}
+
 function checkForm() {
+  const telVal = document.getElementById('d-tel').value.trim();
+  const telDigits = telVal.replace(/\D/g, '');
+  const telOk = /^(\+?56)?9\d{8}$/.test(telDigits) || /^9\d{8}$/.test(telDigits);
   const ok = document.getElementById('d-nom').value.trim() &&
              document.getElementById('d-ap').value.trim() &&
              document.getElementById('d-em').value.trim() &&
-             document.getElementById('d-tel').value.trim() &&
+             telOk &&
              document.getElementById('chk-t').checked;
   document.getElementById('btn4').disabled = !ok;
 }
