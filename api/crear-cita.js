@@ -885,7 +885,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
   const sv  = htmlEscape(servicio || 'Consulta');
   const dir = htmlEscape(direccion);
   const en  = htmlEscape(email_negocio);
-  const dur = htmlEscape(duracion);
+  const dur = duracion ? htmlEscape(String(parseInt(duracion) || duracion)) + ' minutos' : '';
   const precioStr = precio
     ? htmlEscape(typeof precio === 'number' ? '$' + precio.toLocaleString('es-CL') : precio)
     : '';
