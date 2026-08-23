@@ -67,6 +67,7 @@ function verifyManageToken(cita_id, token) {
 // Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
 const _bookingFallback = new Map();
 const _gestionarFallback = new Map();
+const _emailLookupFallback = new Map();
 async function isBookingRateLimited(ip) {
   const MAX = 20;
   const WINDOW_S = 60 * 60;
@@ -132,6 +133,36 @@ async function isGestionRateLimited(ip) {
   return false;
 }
 
+async function isEmailLookupRateLimited(ip) {
+  const MAX = 15;
+  const WINDOW_S = 3600;
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (url && token) {
+    try {
+      const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
+      const key = `rl:emaillookup:${ip}:${bucket}`;
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', key], ['EXPIRE', key, WINDOW_S * 2]])
+      });
+      const data = await r.json();
+      const count = data[0]?.result;
+      if (typeof count === 'number') return count > MAX;
+    } catch {}
+  }
+  const now = Date.now();
+  const entry = _emailLookupFallback.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _emailLookupFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
+    return false;
+  }
+  if (entry.count >= MAX) return true;
+  entry.count++;
+  return false;
+}
+
 export default async function handler(req, res) {
   const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -139,7 +170,32 @@ export default async function handler(req, res) {
 
   // ── GET: consultar datos de una cita (gestionar-cita) ─────────────────────
   if (req.method === 'GET') {
-    const { id, t } = req.query;
+    const { id, t, email, cid } = req.query;
+
+    // Lookup por email: paciente busca sus citas próximas en la página de reserva
+    if (email && cid) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+      const UUID_RE_Q = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE_Q.test(cid)) return res.status(400).json({ error: 'Parámetro inválido' });
+      const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+      if (await isEmailLookupRateLimited(ip)) return res.status(429).json({ error: 'Demasiadas consultas. Intenta más tarde.' });
+      try {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cid}&fecha=gte.${hoy}&estado=neq.canceled&order=fecha.asc&limit=3&select=id,fecha,hora,servicio,estado,nombre_especialista`,
+          { headers: sh }
+        );
+        const rows = await r.json();
+        const citas = Array.isArray(rows)
+          ? rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, nombre_especialista: c.nombre_especialista, token: generateManageToken(c.id) }))
+          : [];
+        return res.json({ ok: true, citas });
+      } catch(e) {
+        console.error('email-lookup error:', e.message);
+        return res.status(500).json({ error: 'Error al buscar citas' });
+      }
+    }
+
     if (!id) return res.status(400).json({ error: 'Falta id' });
     if (!t || !verifyManageToken(id, t)) return res.status(403).json({ error: 'Acceso no autorizado' });
 

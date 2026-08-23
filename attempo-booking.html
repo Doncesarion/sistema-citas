@@ -386,8 +386,21 @@ body::before{
   </div><!-- /content-wrap -->
 </div><!-- /page -->
 
-<div style="text-align:center;padding:12px 24px 4px;font-size:12px;color:var(--t3)">
-  ¿Quieres cancelar o reagendar tu cita? Busca el link en tu email o WhatsApp de confirmación.
+<div style="max-width:480px;margin:16px auto 0;padding:0 16px">
+  <div style="background:#fff;border:1px solid var(--b1);border-radius:var(--rx);padding:18px 20px;box-shadow:var(--sh1)">
+    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">¿Ya tienes una cita?</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Ingresa tu email para cancelar o reagendar</div>
+    <div style="display:flex;gap:8px">
+      <input id="gc-email" type="email" placeholder="tu@correo.cl" autocomplete="email"
+        style="flex:1;padding:10px 12px;border:1.5px solid var(--b2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t1);background:#fff;outline:none"
+        onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
+        onkeydown="if(event.key==='Enter')buscarCita()">
+      <button onclick="buscarCita()" id="gc-btn"
+        style="padding:10px 16px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Buscar</button>
+    </div>
+    <div id="gc-result" style="margin-top:12px;display:none"></div>
+  </div>
 </div>
 
 <footer style="margin-top:auto;border-top:1px solid var(--b1);padding:14px 24px;text-align:center;font-size:11px;color:var(--t4);position:relative;z-index:1">
@@ -1348,6 +1361,48 @@ function _attiaTyping() {
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
   return div;
+}
+
+async function buscarCita() {
+  const email = document.getElementById('gc-email').value.trim();
+  const result = document.getElementById('gc-result');
+  const btn = document.getElementById('gc-btn');
+  if (!email || !negocioData?.id) return;
+  btn.disabled = true;
+  btn.textContent = 'Buscando…';
+  result.style.display = 'none';
+  try {
+    const r = await fetch(`/api/gestionar-cita?email=${encodeURIComponent(email)}&cid=${encodeURIComponent(negocioData.id)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error al buscar');
+    if (!data.citas?.length) {
+      result.innerHTML = '<div style="font-size:12px;color:var(--t3);text-align:center;padding:8px 0">No encontramos citas próximas con ese email.</div>';
+      result.style.display = 'block';
+      return;
+    }
+    const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const MESES_L = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const cards = data.citas.map(c => {
+      const [y, m, d] = (c.fecha || '').split('-').map(Number);
+      const fechaFmt = d ? `${DIAS[new Date(y, m-1, d).getDay()]} ${d} de ${MESES_L[m-1]} ${y}` : c.fecha;
+      const link = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
+      const prof = c.nombre_especialista ? `<div style="font-size:11px;color:var(--t3);margin-bottom:2px">${c.nombre_especialista}</div>` : '';
+      return `<div style="background:var(--bg);border:1px solid var(--b1);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+        ${prof}
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px">${c.servicio || 'Cita'}</div>
+        <div style="font-size:12px;color:var(--t2)">${fechaFmt} · ${(c.hora||'').slice(0,5)}</div>
+        <a href="${link}" style="display:block;margin-top:10px;text-align:center;padding:9px;background:var(--a);color:#fff;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">Cancelar o reagendar →</a>
+      </div>`;
+    }).join('');
+    result.innerHTML = cards;
+    result.style.display = 'block';
+  } catch(e) {
+    result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${e.message}</div>`;
+    result.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Buscar';
+  }
 }
 </script>
 </body>
