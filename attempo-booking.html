@@ -351,12 +351,12 @@ body::before{
           <div class="c-title" id="cf-title">¡Reserva confirmada!</div>
           <div class="c-sub" id="cf-sub">Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.</div>
 
-          <!-- Botón Flow (solo cuando hay pago pendiente) -->
-          <div id="cf-flow-wrap" style="display:none;margin-bottom:16px">
-            <a id="cf-flow-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
-              Pagar ahora con Flow →
+          <!-- Botón Mercado Pago (solo cuando hay pago pendiente) -->
+          <div id="cf-mp-wrap" style="display:none;margin-bottom:16px">
+            <a id="cf-mp-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
+              Pagar con Mercado Pago →
             </a>
-            <div id="cf-flow-hint" style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">Tu hora queda reservada por 30 minutos</div>
+            <div id="cf-mp-hint" style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">Débito, crédito o saldo MP — pago seguro</div>
           </div>
 
           <div id="cf-ref-wrap" style="display:none;font-size:11px;color:var(--t3);text-align:center;margin-bottom:10px;letter-spacing:0.3px">
@@ -986,38 +986,37 @@ async function confirmar() {
     // Métodos de pago
     const mp  = negocioData.metodos_pago || {};
     const db  = negocioData.datos_banco  || {};
-    const tieneFlow = !!(data.flow_url && mp.flow);
-    const soloFlow  = !!data.solo_flow;
-    const tienePago = tieneFlow || mp.transferencia || mp.webpay || mp.efectivo;
+    const tieneMP  = !!data.mp_url;
+    const soloMP   = !!data.solo_mp;
+    const tienePago = tieneMP || mp.transferencia || mp.webpay || mp.efectivo;
 
-    // Mostrar advertencia si Flow falló pero hay otros métodos
-    if (data.flow_error && mp.flow && !tieneFlow) {
+    // Advertencia si MP falló pero hay otros métodos
+    if (data.mp_error && mp.mp_connected && !tieneMP) {
       const warn = document.createElement('div');
       warn.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;font-size:12px;color:#856404;margin-bottom:14px';
-      warn.textContent = 'El pago online con Flow no está disponible en este momento. Puedes usar otro método de pago.';
+      warn.textContent = 'El pago online no está disponible en este momento. Puedes usar otro método de pago.';
       document.getElementById('cf-pagos')?.before(warn);
     }
 
-    // Solo mostrar "Completa tu pago" cuando Flow es el único método
-    if (soloFlow) {
+    // Solo mostrar "Completa tu pago" cuando MP es el único método
+    if (soloMP) {
       document.getElementById('cf-icon').textContent  = '→';
       document.getElementById('cf-title').textContent = 'Completa tu pago';
       document.getElementById('cf-sub').textContent   = 'Tu hora está reservada. Paga ahora para confirmar tu cita.';
-      const btn = document.getElementById('cf-flow-btn');
-      btn.href = data.flow_url;
-      document.getElementById('cf-flow-wrap').style.display = 'block';
+      document.getElementById('cf-mp-btn').href = data.mp_url;
+      document.getElementById('cf-mp-wrap').style.display = 'block';
     } else {
       document.getElementById('cf-icon').textContent  = '✓';
       document.getElementById('cf-title').textContent = '¡Reserva confirmada!';
       document.getElementById('cf-sub').textContent   = precio && tienePago
         ? 'Te enviamos los detalles de pago y el resumen a tu correo.'
         : 'Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.';
-      if (tieneFlow) {
-        document.getElementById('cf-flow-btn').href = data.flow_url;
-        document.getElementById('cf-flow-hint').textContent = 'Paga ahora y evita llevar efectivo';
-        document.getElementById('cf-flow-wrap').style.display = 'block';
+      if (tieneMP) {
+        document.getElementById('cf-mp-btn').href = data.mp_url;
+        document.getElementById('cf-mp-hint').textContent = 'Paga ahora y evita llevar efectivo';
+        document.getElementById('cf-mp-wrap').style.display = 'block';
       } else {
-        document.getElementById('cf-flow-wrap').style.display = 'none';
+        document.getElementById('cf-mp-wrap').style.display = 'none';
       }
     }
 
@@ -1046,7 +1045,7 @@ async function confirmar() {
       }
 
       if (items.length) {
-        document.getElementById('cf-pagos-titulo').textContent = tieneFlow ? 'O paga de otra forma' : 'Opciones de pago';
+        document.getElementById('cf-pagos-titulo').textContent = tieneMP ? 'O paga de otra forma' : 'Opciones de pago';
         document.getElementById('cf-pagos-list').innerHTML = items.join('');
         document.getElementById('cf-pagos').style.display = 'block';
       } else {
@@ -1311,14 +1310,14 @@ async function attiaConfirmar() {
     });
     const data = await r.json();
     if (data.ok || data.id) {
-      const flowBtn = data.flow_url
-        ? `<a href="${data.flow_url}" target="_blank" style="display:inline-block;margin-top:10px;padding:10px 22px;border-radius:8px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:inherit">Pagar ahora con Flow →</a>`
+      const mpBtn = data.mp_url
+        ? `<a href="${data.mp_url}" target="_blank" style="display:inline-block;margin-top:10px;padding:10px 22px;border-radius:8px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:inherit">Pagar con Mercado Pago →</a>`
         : '';
       document.getElementById('attia-card-reserva').innerHTML =
-        `<div style="color:#16a34a;font-weight:600;font-size:13px;padding:4px 0">✓ ¡Cita reservada! Recibirás un email de confirmación.</div>${flowBtn}`;
+        `<div style="color:#16a34a;font-weight:600;font-size:13px;padding:4px 0">✓ ¡Cita reservada! Recibirás un email de confirmación.</div>${mpBtn}`;
       const mp = negocioData?.metodos_pago || {};
       const metPago = [];
-      if (mp.flow)          metPago.push('Flow (link de pago online)');
+      if (mp.mp_connected)  metPago.push('Mercado Pago (link de pago online)');
       if (mp.webpay)        metPago.push('Webpay/Transbank');
       if (mp.transferencia) metPago.push('Transferencia bancaria');
       if (mp.efectivo)      metPago.push('Efectivo en el local');

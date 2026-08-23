@@ -464,8 +464,8 @@ export default async function handler(req, res) {
     const precioFlow    = metodos_pago?.aplica_iva ? Math.round(precioNum * 1.19) : precioNum;
 
     let flow_error = null;
-    // Pago presencial desde admin o link Webpay → no generar link Flow
-    const generarFlow = !esPagoPresencial && !esLinkWebpay && metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0;
+    // Flow solo se genera cuando el admin elige explícitamente "link_flow" — no en booking público
+    const generarFlow = esLinkFlow && flowApiKey && flowSecretKey && precioNum > 0;
     if (generarFlow) {
       const flowApiUrl = flowSandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
       try {
@@ -509,10 +509,74 @@ export default async function handler(req, res) {
       }
     }
 
-    const soloFlow = !!(flow_url && (esLinkFlow || (!metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo)));
+    const soloFlow = !!(flow_url && esLinkFlow);
+
+    // Mercado Pago checkout — booking público O admin eligió link_mp
+    let mp_url = null;
+    let mp_error = null;
+    const generarMP = !esPagoPresencial && !esLinkWebpay && !esLinkFlow &&
+                      metodos_pago?.mp_connected && metodos_pago?.mp_access_token && precioNum > 0;
+    if (generarMP) {
+      try {
+        let mpToken = metodos_pago.mp_access_token;
+        const manageLink = `${BASE_URL}/gestionar-cita?id=${cita.id}&token=${generateManageToken(cita.id)}`;
+        const prefBody = {
+          items: [{ title: `${servicio || 'Cita'} — ${negocio_nombre || ''}`.slice(0, 255), quantity: 1, unit_price: precioNum, currency_id: 'CLP' }],
+          payer: email_paciente ? { email: email_paciente } : undefined,
+          external_reference: `CITA-${cita.id}`,
+          back_urls: { success: `${manageLink}&pago=ok`, failure: `${manageLink}&pago=error`, pending: manageLink },
+          auto_return: 'approved',
+          notification_url: `${BASE_URL}/api/flow?tipo=mp_webhook`
+        };
+        let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+          body: JSON.stringify(prefBody),
+          signal: AbortSignal.timeout(12000)
+        });
+        if (prefResp.status === 401 && metodos_pago.mp_refresh_token) {
+          const tr = await fetch('https://api.mercadopago.com/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ grant_type: 'refresh_token', client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, refresh_token: metodos_pago.mp_refresh_token })
+          });
+          const td = await tr.json();
+          if (td.access_token) {
+            metodos_pago.mp_access_token = td.access_token;
+            if (td.refresh_token) metodos_pago.mp_refresh_token = td.refresh_token;
+            await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ metodos_pago }) });
+            mpToken = td.access_token;
+            prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+              body: JSON.stringify(prefBody)
+            });
+          }
+        }
+        const prefData = await prefResp.json();
+        if (prefData.init_point) {
+          mp_url = prefData.init_point;
+          const soloMP = !metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo;
+          if (soloMP) {
+            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+              method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
+            }).catch(e => console.error('crear-cita: patch mp pending_payment:', e.message));
+          }
+          console.log('crear-cita: mp_url generado OK, soloMP:', soloMP);
+        } else {
+          mp_error = prefData.message || prefData.error || JSON.stringify(prefData).slice(0, 120);
+          console.error('crear-cita: mp error:', mp_error);
+        }
+      } catch(e) {
+        mp_error = e.name === 'TimeoutError' ? 'timeout conectando con Mercado Pago' : e.message;
+        console.error('crear-cita: mp exception:', mp_error);
+      }
+    }
+    const soloMP = !!(mp_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
 
     // Link MP desde admin → marcar pending_payment con metodo_pago='mercadopago'
-    if (esLinkMP) {
+    if (esLinkMP && !mp_url) {
       await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
         method: 'PATCH',
         headers: { ...sh, Prefer: 'return=minimal' },
@@ -574,7 +638,7 @@ export default async function handler(req, res) {
       }).catch(e => console.error('crear-cita: patch confirmed error:', e.message));
     }
 
-    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, manage_token: cita?.id ? generateManageToken(cita.id) : null });
+    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, mp_url, solo_mp: soloMP, mp_error, manage_token: cita?.id ? generateManageToken(cita.id) : null });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });
