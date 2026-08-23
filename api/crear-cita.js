@@ -208,8 +208,10 @@ export default async function handler(req, res) {
       const ip2 = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
       if (await isEmailLookupRateLimited(ip2)) return res.status(429).json({ error: 'Demasiadas consultas. Intenta más tarde.' });
       try {
+        const lo = `${hex}-0000-0000-0000-000000000000`;
+        const hi = `${hex}-ffff-ffff-ffff-ffffffffffff`;
         const r = await fetch(
-          `${SUPABASE_URL}/rest/v1/citas?id=like.${hex}*&cliente_id=eq.${refCid}&select=id,fecha,hora,servicio,estado&limit=1`,
+          `${SUPABASE_URL}/rest/v1/citas?id=gte.${lo}&id=lte.${hi}&cliente_id=eq.${refCid}&select=id,fecha,hora,servicio,estado&limit=1`,
           { headers: sh }
         );
         const rows = await r.json();
