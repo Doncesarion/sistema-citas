@@ -1302,21 +1302,24 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 </nav>
 
 <!-- ═══ BANNER PRIMEROS PASOS ═══ -->
-<div id="onb-banner" style="display:none">
-  <div style="max-width:1400px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
-      <span style="font-size:15px">🚀</span>
-      <span style="font-size:12px;font-weight:600;color:var(--a)">Primeros pasos</span>
+<div id="onb-banner" style="display:none;background:linear-gradient(135deg,rgba(108,92,228,0.08),rgba(108,92,228,0.04));border-bottom:2px solid rgba(108,92,228,0.25)">
+  <div style="max-width:1400px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <span style="font-size:18px">🚀</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--a);line-height:1.2">Configura tu cuenta</div>
+        <div style="font-size:11px;color:var(--t3);line-height:1.2">Completa estos pasos para empezar a recibir reservas</div>
+      </div>
     </div>
     <div id="onb-steps" style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap;min-width:0"></div>
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto">
       <div style="display:flex;align-items:center;gap:7px">
-        <div style="width:80px;height:4px;background:rgba(108,92,228,0.1);border-radius:2px;overflow:hidden">
-          <div id="onb-fill" style="height:100%;background:linear-gradient(90deg,var(--a2),var(--a3));border-radius:2px;transition:width .4s ease;width:0%"></div>
+        <div style="width:90px;height:6px;background:rgba(108,92,228,0.12);border-radius:3px;overflow:hidden">
+          <div id="onb-fill" style="height:100%;background:linear-gradient(90deg,var(--a2),var(--a3));border-radius:3px;transition:width .4s ease;width:0%"></div>
         </div>
-        <span id="onb-count" style="font-size:11px;font-family:var(--mono);color:var(--t3)"></span>
+        <span id="onb-count" style="font-size:11px;font-family:var(--mono);font-weight:600;color:var(--a)"></span>
       </div>
-      <button onclick="dismissOnboarding()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:17px;line-height:1;padding:0 2px;transition:color .12s" title="Cerrar" onmouseenter="this.style.color='var(--t1)'" onmouseleave="this.style.color='var(--t3)'">×</button>
+      <button onclick="dismissOnboarding()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:19px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .12s,background .12s" title="Cerrar" onmouseenter="this.style.color='var(--t1)';this.style.background='rgba(0,0,0,0.06)'" onmouseleave="this.style.color='var(--t3)';this.style.background='none'">×</button>
     </div>
   </div>
 </div>
@@ -2425,7 +2428,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <span>Chatbot IA</span>
       </div>
 
-      <!-- Salud del asistente -->
+      <!-- CARD 1: Salud del asistente -->
       <div class="card" id="bot-salud-card" style="padding:20px;margin-bottom:12px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:13px;font-weight:600;color:var(--t1)">Salud del asistente</div>
@@ -2443,13 +2446,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
 
-      <!-- Personalidad del bot -->
+      <!-- CARD 2: Mi asistente (identidad + instrucciones + delay) -->
       <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Personalidad del asistente</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Define cómo se presenta y comunica tu asistente virtual.</div>
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:16px">Mi asistente</div>
+
+        <!-- Identidad -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
           <div>
-            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre del asistente</label>
+            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre</label>
             <input class="fi" id="bot-nombre" placeholder="Ej: Valentina" value="Valentina">
           </div>
           <div>
@@ -2464,23 +2468,60 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Tono de comunicación</label>
           <div style="display:flex;gap:8px">
             <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer" id="tono-informal-lbl">
-              <input type="radio" name="bot-tono" value="informal" id="bot-tono-informal" checked style="accent-color:var(--a)">
+              <input type="radio" name="bot-tono" value="informal" id="bot-tono-informal" checked style="accent-color:var(--a)" onchange="updateTonoUI('informal')">
               <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Informal (tú)</div><div style="font-size:11px;color:var(--t3)">Cercano y natural</div></div>
             </label>
             <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer" id="tono-formal-lbl">
-              <input type="radio" name="bot-tono" value="formal" id="bot-tono-formal" style="accent-color:var(--a)">
+              <input type="radio" name="bot-tono" value="formal" id="bot-tono-formal" style="accent-color:var(--a)" onchange="updateTonoUI('formal')">
               <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Formal (usted)</div><div style="font-size:11px;color:var(--t3)">Profesional y respetuoso</div></div>
             </label>
           </div>
         </div>
-        <div>
+        <div style="margin-bottom:20px">
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Mensaje de bienvenida</label>
           <textarea class="fi" id="bot-saludo" rows="2" placeholder="Ej: Hola, soy Valentina, la asistente virtual de {negocio}. ¿En qué te puedo ayudar?" style="resize:vertical">Hola, soy {nombre_bot}, la asistente virtual de {negocio}. ¿En qué te puedo ayudar?</textarea>
           <div style="font-size:11px;color:var(--t3);margin-top:4px">Usa {nombre_bot} y {negocio} como variables dinámicas.</div>
         </div>
+
+        <!-- Divisor -->
+        <div style="border-top:1px solid var(--b1);margin-bottom:20px"></div>
+
+        <!-- Instrucciones / estilo -->
+        <div style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label style="font-size:11px;color:var(--t3)">¿Cómo debe hablar?</label>
+            <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">IA lo aplica</span>
+          </div>
+          <textarea class="fi" id="bot-conocimiento" rows="5" placeholder="Ejemplo:&#10;— Siempre menciona el nombre del paciente cuando ya lo sabes&#10;— No des precios por teléfono, invita a venir a consulta&#10;— Si preguntan por urgencias, dales el número +56 9 1234 5678&#10;— Evita comparar con otras clínicas&#10;— Menciona siempre que los estacionamientos son gratuitos" style="resize:vertical;line-height:1.6;font-size:12.5px"></textarea>
+          <div style="font-size:11px;color:var(--t4);margin-top:4px">Texto libre. Puedes usar guiones o cualquier formato. Máx. 6.000 caracteres.</div>
+        </div>
+
+        <!-- Divisor -->
+        <div style="border-top:1px solid var(--b1);margin-bottom:16px"></div>
+
+        <!-- Tiempo de respuesta (compacto) -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--t3);white-space:nowrap">Tiempo de respuesta</span>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--t2);cursor:pointer">
+            <input type="radio" name="delay-tipo" value="0" id="delay-inmediata" checked onchange="updateDelayUI()" style="accent-color:var(--a)">
+            Inmediata
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--t2);cursor:pointer">
+            <input type="radio" name="delay-tipo" value="rango" id="delay-rango" onchange="updateDelayUI()" style="accent-color:var(--a)">
+            Entre
+          </label>
+          <div id="delay-rango-inputs" style="display:none;align-items:center;gap:6px">
+            <input type="number" id="delay-min" min="0" max="60" value="2" style="width:50px;padding:5px 8px;border:1px solid var(--b1);border-radius:var(--rl);font-size:13px;text-align:center">
+            <span style="font-size:12px;color:var(--t3)">y</span>
+            <input type="number" id="delay-max" min="0" max="60" value="5" style="width:50px;padding:5px 8px;border:1px solid var(--b1);border-radius:var(--rl);font-size:13px;text-align:center" oninput="updateDelayBadge()">
+            <span style="font-size:12px;color:var(--t3)">min</span>
+          </div>
+          <span id="delay-badge" style="font-size:11px;font-weight:600;color:var(--t3)">Inmediata</span>
+        </div>
+        <div style="font-size:11px;color:var(--t4);margin-top:8px">Solo aplica en WhatsApp, Instagram y Messenger. Máximo 5 minutos.</div>
       </div>
 
-      <!-- Modos de respuesta -->
+      <!-- CARD 3: Modos de respuesta -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -2492,64 +2533,79 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <button id="modos-toggle-btn" onclick="toggleModosSection()" style="background:none;border:none;cursor:pointer;color:var(--t3);padding:2px 6px;font-size:18px;line-height:1;transition:transform .2s" title="Colapsar">▾</button>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Activa un modo para cambiar cómo responde el bot ese día. Cuando un modo está activo, sus respuestas programadas reemplazan las generales. Sin modo activo, el bot usa las respuestas de abajo.</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Activa un modo para cambiar cómo responde el bot ese día. Cuando un modo está activo, sus respuestas programadas reemplazan las generales.</div>
         <div id="modos-section-body">
           <div id="modos-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
           <div id="modos-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay modos configurados. Crea uno para empezar.</div>
         </div>
       </div>
 
-      <!-- Preguntas frecuentes -->
+      <!-- CARD 4: Contenido del bot (FAQs + Conocimiento + Gaps + Promociones en tabs) -->
       <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="font-size:13px;font-weight:600;color:var(--t1)">Preguntas frecuentes</div>
-            <span id="faqs-mode-label" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.12);color:var(--a);border:1px solid rgba(108,92,228,0.25)"></span>
-            <span id="faqs-count" style="font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15);display:none">0</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <button class="btn-sm" onclick="addFaq()" style="font-size:11px">+ Agregar</button>
-            <button id="faqs-toggle-btn" onclick="toggleFaqsSection()" style="background:none;border:none;cursor:pointer;color:var(--t3);padding:2px 6px;font-size:18px;line-height:1;transition:transform .2s" title="Colapsar">▾</button>
-          </div>
+        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:14px">Contenido del bot</div>
+        <!-- Tabs internos -->
+        <div style="display:flex;gap:3px;background:var(--bg);border:1px solid var(--b1);border-radius:10px;padding:4px;margin-bottom:16px">
+          <button id="ctab-btn-faqs" onclick="switchContenidoTab('faqs')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:var(--a);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            FAQs <span id="faqs-count" style="display:none;font-size:10px;opacity:.85"> 0</span>
+          </button>
+          <button id="ctab-btn-ck" onclick="switchContenidoTab('ck')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            Conocimiento <span id="ck-count" style="display:none;font-size:10px;opacity:.85"> 0</span>
+          </button>
+          <button id="ctab-btn-gaps" onclick="switchContenidoTab('gaps')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            Sin respuesta <span id="gaps-badge" style="display:none;font-size:10px;opacity:.85"> 0</span>
+          </button>
+          <button id="ctab-btn-promos" onclick="switchContenidoTab('promos')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            Promociones
+          </button>
         </div>
-        <div id="faqs-desc" style="font-size:12px;color:var(--t3);margin-bottom:14px">Respuestas por defecto cuando no hay ningún modo activo. El bot las usa sin IA.</div>
-        <div id="faqs-section-body">
-          <div id="faqs-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-            <!-- rendered by JS -->
-          </div>
-          <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
-        </div>
-      </div>
 
-      <!-- Base de Conocimiento -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="font-size:13px;font-weight:600;color:var(--t1)">Base de Conocimiento</div>
-            <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">IA lo usa</span>
-            <span id="ck-count" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">0</span>
+        <!-- Tab: FAQs -->
+        <div id="ctab-faqs">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:12px;color:var(--t3)">Respuestas rápidas sin IA. El bot las usa literalmente.</div>
+              <span id="faqs-mode-label" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(108,92,228,0.12);color:var(--a);border:1px solid rgba(108,92,228,0.25)"></span>
+            </div>
+            <button class="btn-sm" onclick="addFaq()" style="font-size:11px;flex-shrink:0">+ Agregar</button>
           </div>
-          <button class="btn-sm" onclick="showCkModal()" style="font-size:11px">+ Agregar</button>
+          <div id="faqs-desc" style="display:none"></div>
+          <div id="faqs-section-body">
+            <div id="faqs-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
+            <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
+          </div>
         </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Información detallada que el bot usa al responder: políticas, protocolos, ubicación, preguntas complejas. A diferencia de las FAQ, puede ser texto largo y categorizado.</div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="ck-cat-filters">
-          <button onclick="filterCk('all',this)" class="ck-filter-btn" style="font-size:11px;padding:4px 10px;border-radius:100px;border:1px solid var(--a);background:var(--a);color:#fff;cursor:pointer">Todas</button>
-        </div>
-        <div id="ck-list" style="display:flex;flex-direction:column;gap:8px"></div>
-        <div id="ck-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay entradas. Haz clic en "+ Agregar" para empezar.</div>
-      </div>
 
-      <!-- Preguntas sin respuesta -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="font-size:13px;font-weight:600;color:var(--t1)">Preguntas sin respuesta</div>
-            <span id="gaps-badge" style="display:none;font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;background:rgba(229,83,83,0.1);color:#e53;border:1px solid rgba(229,83,83,0.2)">0</span>
+        <!-- Tab: Base de Conocimiento -->
+        <div id="ctab-ck" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:12px;color:var(--t3)">Información detallada que la IA usa al responder: políticas, protocolos, preguntas complejas.</div>
+            <button class="btn-sm" onclick="showCkModal()" style="font-size:11px;flex-shrink:0;margin-left:10px">+ Agregar</button>
           </div>
-          <button onclick="loadGaps()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:12px">Actualizar</button>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="ck-cat-filters">
+            <button onclick="filterCk('all',this)" class="ck-filter-btn" style="font-size:11px;padding:4px 10px;border-radius:100px;border:1px solid var(--a);background:var(--a);color:#fff;cursor:pointer">Todas</button>
+          </div>
+          <div id="ck-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div id="ck-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay entradas. Haz clic en "+ Agregar" para empezar.</div>
         </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Preguntas que el bot no pudo responder. Úsalas para agregar entradas a la base de conocimiento y mejorar las respuestas.</div>
-        <div id="gaps-list"><div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Cargando...</div></div>
+
+        <!-- Tab: Sin respuesta (gaps) -->
+        <div id="ctab-gaps" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:12px;color:var(--t3)">Preguntas que el bot no pudo responder. Úsalas para mejorar la base de conocimiento.</div>
+            <button onclick="loadGaps()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:12px;flex-shrink:0">Actualizar</button>
+          </div>
+          <div id="gaps-list"><div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Cargando...</div></div>
+        </div>
+
+        <!-- Tab: Promociones -->
+        <div id="ctab-promos" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:12px;color:var(--t3)">El bot solo menciona las promociones vigentes según sus fechas.</div>
+            <button class="btn-sm" onclick="addPromocion()" style="font-size:11px;flex-shrink:0">+ Agregar</button>
+          </div>
+          <div id="promos-list" style="display:flex;flex-direction:column;gap:10px"></div>
+          <div id="promos-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay promociones configuradas. Haz clic en "+ Agregar" para crear una.</div>
+        </div>
       </div>
 
       <!-- Modal Base de Conocimiento -->
@@ -2586,55 +2642,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
       </div>
 
-      <!-- Promociones -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:13px;font-weight:600;color:var(--t1)">Promociones</div>
-          <button class="btn-sm" onclick="addPromocion()" style="font-size:11px">+ Agregar</button>
-        </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">El asistente solo mencionará las promociones que estén vigentes según sus fechas. Si no pones fechas, la promoción siempre estará activa.</div>
-        <div id="promos-list" style="display:flex;flex-direction:column;gap:10px"></div>
-        <div id="promos-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay promociones configuradas. Haz clic en "+ Agregar" para crear una.</div>
-      </div>
-
-      <!-- Personalidad y estilo -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:13px;font-weight:600;color:var(--t1)">Personalidad y estilo</div>
-          <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">IA lo aplica</span>
-        </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Define cómo quieres que hable el bot: frases que siempre debe usar o evitar, cosas que debe mencionar proactivamente, restricciones de contenido, etc.</div>
-        <textarea class="fi" id="bot-conocimiento" rows="6" placeholder="Ejemplo:&#10;— Siempre menciona el nombre del paciente cuando ya lo sabes&#10;— No des precios por teléfono, invita a venir a consulta&#10;— Si preguntan por urgencias, dales el número +56 9 1234 5678&#10;— Evita comparar con otras clínicas&#10;— Menciona siempre que los estacionamientos son gratuitos" style="resize:vertical;line-height:1.6;font-size:12.5px"></textarea>
-        <div style="font-size:11px;color:var(--t4);margin-top:6px">Puedes escribir en texto libre, con guiones o como prefieras. Máx. 6.000 caracteres.</div>
-      </div>
-
-      <!-- Tiempo de respuesta -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:13px;font-weight:600;color:var(--t1)">Tiempo de respuesta</div>
-          <span id="delay-badge" style="font-size:11px;font-weight:600;color:var(--t3)">Inmediata</span>
-        </div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Simula tiempos de respuesta humanos. El bot procesa el mensaje de inmediato pero lo envía después del tiempo configurado.</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t2);cursor:pointer">
-            <input type="radio" name="delay-tipo" value="0" id="delay-inmediata" checked onchange="updateDelayUI()" style="accent-color:var(--a)">
-            Inmediata
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t2);cursor:pointer">
-            <input type="radio" name="delay-tipo" value="rango" id="delay-rango" onchange="updateDelayUI()" style="accent-color:var(--a)">
-            Entre
-          </label>
-          <div id="delay-rango-inputs" style="display:none;align-items:center;gap:6px">
-            <input type="number" id="delay-min" min="0" max="60" value="2" style="width:54px;padding:5px 8px;border:1px solid var(--b1);border-radius:var(--rl);font-size:13px;text-align:center">
-            <span style="font-size:12px;color:var(--t3)">y</span>
-            <input type="number" id="delay-max" min="0" max="60" value="5" style="width:54px;padding:5px 8px;border:1px solid var(--b1);border-radius:var(--rl);font-size:13px;text-align:center" oninput="updateDelayBadge()">
-            <span style="font-size:12px;color:var(--t3)">minutos</span>
-          </div>
-        </div>
-        <div style="font-size:11px;color:var(--t4);margin-top:10px">Solo aplica a respuestas por WhatsApp, Instagram y Messenger. Máximo 5 minutos.</div>
-      </div>
-
-      <!-- Probar bot -->
+      <!-- CARD 5: Probar el asistente -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Probar el asistente</div>
         <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Simula una conversación para ver cómo responde antes de activarlo.</div>
@@ -5232,11 +5240,11 @@ function renderFichaHistorial(citas) {
   if (!citas.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin historial de citas</div>'; return; }
   const METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay' };
   const estTag = e => {
-    if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta">Pendiente</span>';
-    if (e==='confirmada'||e==='confirmed')  return '<span class="tag tg">✓ Confirmada</span>';
-    if (e==='completada'||e==='completed')  return '<span class="tag tn">✓ Completada</span>';
-    if (['cancelada','canceled','cancelled'].includes(e)) return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Cancelada</span>';
-    if (e==='inasistencia'||e==='no-show')  return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Inasistencia</span>';
+    if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta" title="Esperando confirmación del paciente o pendiente de pago">Pendiente</span>';
+    if (e==='confirmada'||e==='confirmed')  return '<span class="tag tg" title="Cita confirmada y agendada">✓ Confirmada</span>';
+    if (e==='completada'||e==='completed')  return '<span class="tag tn" title="Atención realizada">✓ Completada</span>';
+    if (['cancelada','canceled','cancelled'].includes(e)) return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444" title="Cita cancelada">Cancelada</span>';
+    if (e==='inasistencia'||e==='no-show')  return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444" title="El paciente no se presentó">Inasistencia</span>';
     return `<span class="tag">${e}</span>`;
   };
   const dotCls = e => ['completada','completed','confirmada','confirmed'].includes(e) ? 'ok' : ['cancelada','canceled','cancelled','inasistencia','no-show'].includes(e) ? 'cn' : 'pn';
@@ -5765,14 +5773,11 @@ function _getFaqsCtx() {
 function _updateFaqsHeader() {
   const { nombre } = _getFaqsCtx();
   const lbl  = document.getElementById('faqs-mode-label');
-  const desc = document.getElementById('faqs-desc');
   if (nombre) {
     lbl.textContent = 'Modo: ' + nombre;
     lbl.style.display = '';
-    desc.textContent = `Respuestas del modo "${nombre}". Reemplazan las generales mientras este modo esté activo.`;
   } else {
     lbl.style.display = 'none';
-    desc.textContent = 'Respuestas por defecto cuando no hay ningún modo activo. El bot las usa sin IA.';
   }
 }
 
@@ -5790,7 +5795,7 @@ function renderFaqs() {
   }
   empty.style.display = 'none';
   count.style.display = '';
-  count.textContent = faqs.length;
+  count.textContent = ' ' + faqs.length;
   list.innerHTML = faqs.map((f, i) => {
     const isOpen    = _faqOpenIndex === i;
     const prev      = f.pregunta?.trim() || '—';
@@ -5826,8 +5831,25 @@ function toggleFaqCard(i) {
 
 function toggleFaqsSection() {
   _faqsCollapsed = !_faqsCollapsed;
-  document.getElementById('faqs-section-body').style.display = _faqsCollapsed ? 'none' : '';
-  document.getElementById('faqs-toggle-btn').style.transform = _faqsCollapsed ? 'rotate(-90deg)' : '';
+  const body = document.getElementById('faqs-section-body');
+  const btn  = document.getElementById('faqs-toggle-btn');
+  if (body) body.style.display = _faqsCollapsed ? 'none' : '';
+  if (btn)  btn.style.transform = _faqsCollapsed ? 'rotate(-90deg)' : '';
+}
+
+let _contenidoTab = 'faqs';
+function switchContenidoTab(tab) {
+  _contenidoTab = tab;
+  ['faqs','ck','gaps','promos'].forEach(t => {
+    const content = document.getElementById('ctab-' + t);
+    const btn     = document.getElementById('ctab-btn-' + t);
+    if (content) content.style.display = t === tab ? '' : 'none';
+    if (btn) {
+      btn.style.background = t === tab ? 'var(--a)' : 'transparent';
+      btn.style.color      = t === tab ? '#fff' : 'var(--t2)';
+    }
+  });
+  if (tab === 'gaps') loadGaps();
 }
 
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -12020,11 +12042,11 @@ function renderRepTablaDia() {
   const citas = _allReportes.filter(c=>c.fecha===fechaStr).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
   if (!citas.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Sin citas este día</td></tr>'; return; }
   const _etag = (e) => {
-    if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta">Pendiente</span>';
-    if (e==='confirmada'||e==='confirmed') return '<span class="tag tg">Confirmada</span>';
-    if (e==='completada'||e==='completed') return '<span class="tag tg">Completada</span>';
-    if (e==='cancelada'||e==='canceled'||e==='cancelled') return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Cancelada</span>';
-    if (e==='inasistencia'||e==='no-show') return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444">Inasistencia</span>';
+    if (!e||e==='pending'||e==='pendiente') return '<span class="tag ta" title="Esperando confirmación del paciente o pendiente de pago">Pendiente</span>';
+    if (e==='confirmada'||e==='confirmed') return '<span class="tag tg" title="Cita confirmada y agendada">Confirmada</span>';
+    if (e==='completada'||e==='completed') return '<span class="tag tg" title="Atención realizada">Completada</span>';
+    if (e==='cancelada'||e==='canceled'||e==='cancelled') return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444" title="Cita cancelada">Cancelada</span>';
+    if (e==='inasistencia'||e==='no-show') return '<span class="tag" style="background:rgba(239,68,68,.1);color:#EF4444" title="El paciente no se presentó">Inasistencia</span>';
     return `<span class="tag">${e}</span>`;
   };
   tbody.innerHTML = citas.map(c => `<tr>
@@ -15595,7 +15617,7 @@ async function loadChatbotKnowledge() {
     renderCkList();
     renderCkFilters();
     const cnt = document.getElementById('ck-count');
-    if (cnt) { cnt.textContent = _ckEntries.length; cnt.style.display = _ckEntries.length ? '' : 'none'; }
+    if (cnt) { cnt.textContent = ' ' + _ckEntries.length; cnt.style.display = _ckEntries.length ? '' : 'none'; }
   } catch(e) { console.error('loadChatbotKnowledge:', e); }
   if (_botCfgCache && Object.keys(_botCfgCache).length) calcularSaludBot(_botCfgCache, _ckEntries);
 }
@@ -15708,7 +15730,7 @@ async function loadGaps() {
     const r = await fetch('/api/slots?resource=chatbot-gaps', { headers: _citasH() });
     if (!r.ok) { list.innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Error al cargar.</div>'; return; }
     const gaps = await r.json();
-    if (badge) { badge.textContent = gaps.length; badge.style.display = gaps.length ? '' : 'none'; }
+    if (badge) { badge.textContent = ' ' + gaps.length; badge.style.display = gaps.length ? '' : 'none'; }
     if (!gaps.length) { list.innerHTML = '<div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">El bot está respondiendo todo. No hay preguntas sin respuesta.</div>'; return; }
     list.innerHTML = gaps.map(g => `
       <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r);background:#fff">

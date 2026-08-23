@@ -359,12 +359,18 @@ body::before{
             <div id="cf-flow-hint" style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">Tu hora queda reservada por 30 minutos</div>
           </div>
 
+          <div id="cf-ref-wrap" style="display:none;font-size:11px;color:var(--t3);text-align:center;margin-bottom:10px;letter-spacing:0.3px">
+            N° de reserva: <span id="cf-ref" style="font-family:var(--mono);font-weight:700;color:var(--t2)"></span>
+          </div>
           <div class="c-card">
             <div class="c-row"><b>Servicio</b><span id="cf-svc">—</span></div>
             <div class="c-row"><b>Profesional</b><span id="cf-prof">—</span></div>
             <div class="c-row"><b>Fecha</b><span id="cf-fecha">—</span></div>
             <div class="c-row"><b>Hora</b><span id="cf-hora">—</span></div>
             <div class="c-row" id="cf-precio-row" style="display:none"><b>Total</b><span id="cf-precio" style="color:var(--a);font-weight:700;font-family:var(--mono)">—</span></div>
+          </div>
+          <div id="cf-gestionar-wrap" style="display:none;margin-top:12px;text-align:center">
+            <a id="cf-gestionar-btn" href="#" style="font-size:12px;color:var(--a);text-decoration:none;font-weight:600">Cancelar o reagendar esta cita →</a>
           </div>
           <div id="cf-pagos" style="display:none;margin-top:14px;border-top:1px solid var(--b1);padding-top:14px">
             <div id="cf-pagos-titulo" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3);margin-bottom:10px">Opciones de pago</div>
@@ -948,6 +954,17 @@ async function confirmar() {
     }
 
     const data = await r.json().catch(() => ({}));
+
+    // Número de reserva visible
+    if (data.cita?.id) {
+      document.getElementById('cf-ref').textContent = 'AT-' + data.cita.id.slice(0, 8).toUpperCase();
+      document.getElementById('cf-ref-wrap').style.display = 'block';
+    }
+    // Link gestionar cita
+    if (data.cita?.id && data.manage_token) {
+      document.getElementById('cf-gestionar-btn').href = `/gestionar-cita?id=${data.cita.id}&token=${encodeURIComponent(data.manage_token)}`;
+      document.getElementById('cf-gestionar-wrap').style.display = 'block';
+    }
 
     // Mostrar confirmación
     const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];

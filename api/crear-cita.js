@@ -574,7 +574,7 @@ export default async function handler(req, res) {
       }).catch(e => console.error('crear-cita: patch confirmed error:', e.message));
     }
 
-    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error });
+    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, manage_token: cita?.id ? generateManageToken(cita.id) : null });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });
