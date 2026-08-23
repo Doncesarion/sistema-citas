@@ -180,7 +180,6 @@ body::before{
   .horas-grid{grid-template-columns:repeat(3,1fr)}
   .r2{grid-template-columns:1fr}
   .res-price{margin-left:0;width:100%}
-  #biz-lookup-sep,#biz-lookup-panel{display:none!important}
 }
 </style>
 </head>
@@ -231,21 +230,26 @@ body::before{
           </div>
         </div>
       </div>
-      <div id="biz-lookup-sep" style="width:1px;background:var(--b1);align-self:stretch;flex-shrink:0;margin:0 4px"></div>
-      <div id="biz-lookup-panel" style="flex-shrink:0;width:210px">
-        <div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:3px">¿Ya tienes una cita?</div>
-        <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.4">Ingresa tu email o N° de reserva</div>
-        <div style="display:flex;gap:6px;margin-bottom:0">
-          <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-XXXXX" autocomplete="email"
-            style="flex:1;min-width:0;padding:8px 10px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:#fff;outline:none"
+    </div>
+
+    <!-- LOOKUP CITA EXISTENTE -->
+    <div style="background:#fff;border:1px solid var(--b1);border-radius:var(--rx);padding:14px 20px;margin-bottom:16px;box-shadow:var(--sh1)">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex-shrink:0">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:1px">¿Ya tienes una cita?</div>
+          <div style="font-size:11px;color:var(--t3)">Ingresa tu email o N° de reserva</div>
+        </div>
+        <div style="flex:1;min-width:220px;display:flex;gap:8px">
+          <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-XXXXXXXX" autocomplete="email"
+            style="flex:1;min-width:0;padding:9px 12px;border:1.5px solid var(--b2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t1);background:#fff;outline:none"
             onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
             onkeydown="if(event.key==='Enter')buscarCita()">
           <button onclick="buscarCita()" id="gc-btn"
-            style="padding:8px 12px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;flex-shrink:0"
+            style="padding:9px 16px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;flex-shrink:0"
             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Buscar</button>
         </div>
-        <div id="gc-result" style="margin-top:8px;display:none"></div>
       </div>
+      <div id="gc-result" style="margin-top:10px;display:none"></div>
     </div>
 
     <!-- STEPS BAR -->
