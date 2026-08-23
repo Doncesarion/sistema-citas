@@ -600,6 +600,9 @@ CÓMO ESCRIBIR:
 
     if (nombre === 'verificar_disponibilidad') {
       const { especialista_id, fecha } = params;
+      const _uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!_uuidRe.test(especialista_id || '')) return { error: 'Profesional no válido' };
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return { error: 'Fecha inválida' };
       const r1 = await fetch(
         `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
         { headers: sh }
@@ -638,6 +641,10 @@ CÓMO ESCRIBIR:
 
     if (nombre === 'confirmar_reserva') {
       const { especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha, hora, duracion, precio } = params;
+      const _uuidRe2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (especialista_id && !_uuidRe2.test(especialista_id)) return { ok: true, listo: true };
+      if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: true, listo: true };
+      if (!hora || !/^\d{2}:\d{2}$/.test(hora)) return { ok: true, listo: true };
 
       // Crear la cita en Supabase
       let cita;

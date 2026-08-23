@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         if (!Array.isArray(raw)) {
           const errBody = await rEsp.text().catch(() => '');
           console.error('especialistas error:', rEsp.status, errBody);
-          return res.status(500).json({ error: 'Error al cargar profesionales', detail: errBody.slice(0, 300) });
+          return res.status(500).json({ error: 'Error al cargar profesionales' });
         }
         especialistas = raw.map(e => ({ ...e, comision_pct: 70 }));
       } else {

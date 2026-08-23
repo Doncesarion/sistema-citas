@@ -50,9 +50,6 @@ function verifySaToken(token) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://app.attempo.cl');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-session-token,x-sa-impersona,x-override-cliente-id');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const session = verifySessionToken(req.headers['x-session-token']);
@@ -468,7 +465,7 @@ export default async function handler(req, res) {
   // ── PATCH ?id=xxx&action=update-name — editar nombre del contacto ─────────
   if (req.method === 'PATCH' && req.query.id && req.query.action === 'update-name') {
     const conv_id = req.query.id;
-    const nombre  = (req.body?.nombre || '').trim();
+    const nombre  = (req.body?.nombre || '').trim().slice(0, 200);
     if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
 
     const rc = await fetch(

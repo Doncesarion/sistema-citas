@@ -66,6 +66,7 @@ function verifyManageToken(cita_id, token) {
 
 // Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
 const _bookingFallback = new Map();
+const _gestionarFallback = new Map();
 async function isBookingRateLimited(ip) {
   const MAX = 20;
   const WINDOW_S = 60 * 60;
@@ -92,6 +93,38 @@ async function isBookingRateLimited(ip) {
   const entry = _bookingFallback.get(ip);
   if (!entry || now > entry.resetAt) {
     _bookingFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
+    return false;
+  }
+  if (entry.count >= MAX) return true;
+  entry.count++;
+  return false;
+}
+
+async function isGestionRateLimited(ip) {
+  const MAX = 10;
+  const WINDOW_S = 3600;
+
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (url && token) {
+    try {
+      const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
+      const key = `rl:gestionar:${ip}:${bucket}`;
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', key], ['EXPIRE', key, WINDOW_S * 2]])
+      });
+      const data = await r.json();
+      const count = data[0]?.result;
+      if (typeof count === 'number') return count > MAX;
+    } catch {}
+  }
+
+  const now = Date.now();
+  const entry = _gestionarFallback.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _gestionarFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
     return false;
   }
   if (entry.count >= MAX) return true;
@@ -144,6 +177,11 @@ export default async function handler(req, res) {
   if (req.body?.accion) {
     const { id, accion, nueva_fecha, nueva_hora, token } = req.body;
     if (!id || !['cancelar', 'reagendar'].includes(accion)) return res.status(400).json({ error: 'Acción inválida' });
+
+    const ipGestionar = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+    if (await isGestionRateLimited(ipGestionar)) {
+      return res.status(429).json({ error: 'Demasiadas solicitudes. Intenta más tarde.' });
+    }
 
     if (!verifyManageToken(id, token)) {
       return res.status(401).json({ error: 'Link inválido. Usa el enlace original de tu email de confirmación.' });
