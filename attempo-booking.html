@@ -92,6 +92,7 @@ body::before{
 .svc-info{flex:1;min-width:0}
 .svc-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:1px}
 .svc-meta{font-size:11px;color:var(--t3)}
+.svc-desc{font-size:11px;color:var(--t4);margin-top:3px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .svc-price{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--a);flex-shrink:0}
 .svc-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .svc-row.sel .svc-radio{background:var(--a);border-color:var(--a)}
@@ -377,6 +378,19 @@ body::before{
           <div id="cf-gestionar-wrap" style="display:none;margin-top:12px;text-align:center">
             <a id="cf-gestionar-btn" href="#" style="font-size:12px;color:var(--a);text-decoration:none;font-weight:600">Cancelar o reagendar esta cita →</a>
           </div>
+          <div id="cf-calendar-wrap" style="display:none;margin-top:14px;display:none">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--t3);margin-bottom:8px;text-align:center">Agregar a tu calendario</div>
+            <div style="display:flex;gap:8px;justify-content:center">
+              <a id="cf-gcal-btn" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);text-decoration:none;transition:all .15s" onmouseover="this.style.borderColor='var(--a)';this.style.color='var(--a)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t2)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Google Calendar
+              </a>
+              <button onclick="descargarICS()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);background:none;cursor:pointer;font-family:var(--font);transition:all .15s" onmouseover="this.style.borderColor='var(--a)';this.style.color='var(--a)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t2)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Descargar (.ics)
+              </button>
+            </div>
+          </div>
           <div id="cf-pagos" style="display:none;margin-top:14px;border-top:1px solid var(--b1);padding-top:14px">
             <div id="cf-pagos-titulo" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3);margin-bottom:10px">Opciones de pago</div>
             <div id="cf-pagos-list"></div>
@@ -574,6 +588,7 @@ function renderServicios(servicios) {
       <div class="svc-info">
         <div class="svc-name">${s.nombre}</div>
         <div class="svc-meta">${durStr}</div>
+        ${s.descripcion ? `<div class="svc-desc">${s.descripcion}</div>` : ''}
       </div>
       ${precioStr ? `<div class="svc-price">${precioStr}</div>` : ''}
       <div class="svc-radio"></div>
@@ -1007,6 +1022,14 @@ async function confirmar() {
       document.getElementById('cf-gestionar-wrap').style.display = 'block';
     }
 
+    // Botones de calendario (se ocultan si es flujo solo-MP)
+    if (!data.solo_mp) {
+      _actualizarCalButtons(y, m, d, st.hora, st.svc.duracion, negocioData.nombre_negocio, negocioData.direccion, espNom);
+    } else {
+      const calWrap = document.getElementById('cf-calendar-wrap');
+      if (calWrap) calWrap.style.display = 'none';
+    }
+
     // Mostrar confirmación
     const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const dd   = new Date(y, m, d);
@@ -1114,6 +1137,59 @@ async function confirmar() {
     btn.textContent = 'Confirmar reserva →';
     alert('No se pudo confirmar: ' + e.message);
   }
+}
+
+/* ── CALENDARIO ── */
+let _calData = null;
+function _actualizarCalButtons(y, m, d, hora, duracion, negNom, direccion, espNom) {
+  _calData = { y, m, d, hora, duracion, negNom, direccion, espNom };
+  const pad  = n => String(n).padStart(2,'0');
+  const mes  = pad(m + 1);
+  const dia  = pad(d);
+  const [hh, mm] = (hora || '00:00').split(':').map(Number);
+  const startStr = `${y}${mes}${dia}T${pad(hh)}${pad(mm)}00`;
+  const totalMin = hh * 60 + mm + (duracion || 60);
+  const eh = Math.floor(totalMin / 60) % 24, em = totalMin % 60;
+  const endStr   = `${y}${mes}${dia}T${pad(eh)}${pad(em)}00`;
+  const title    = encodeURIComponent(`Cita en ${negNom || 'attempo'} con ${espNom}`);
+  const loc      = encodeURIComponent(direccion || negNom || '');
+  const gcalUrl  = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&ctz=America%2FSantiago${loc ? '&location=' + loc : ''}`;
+  const wrap = document.getElementById('cf-calendar-wrap');
+  const btn  = document.getElementById('cf-gcal-btn');
+  if (btn) btn.href = gcalUrl;
+  if (wrap) wrap.style.display = 'block';
+}
+
+function descargarICS() {
+  if (!_calData) return;
+  const { y, m, d, hora, duracion, negNom, direccion, espNom } = _calData;
+  const pad = n => String(n).padStart(2,'0');
+  const mes = pad(m + 1);
+  const dia = pad(d);
+  const [hh, mm] = (hora || '00:00').split(':').map(Number);
+  const startDt = `${y}${mes}${dia}T${pad(hh)}${pad(mm)}00`;
+  const totalMin = hh * 60 + mm + (duracion || 60);
+  const eh = Math.floor(totalMin / 60) % 24, em = totalMin % 60;
+  const endDt = `${y}${mes}${dia}T${pad(eh)}${pad(em)}00`;
+  const uid   = `attempo-${Date.now()}@attempo.cl`;
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//attempo//attempo.cl//ES',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTART;TZID=America/Santiago:${startDt}`,
+    `DTEND;TZID=America/Santiago:${endDt}`,
+    `SUMMARY:Cita en ${negNom || 'attempo'} con ${espNom}`,
+    direccion ? `LOCATION:${direccion}` : '',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].filter(Boolean).join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'cita-attempo.ics'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* ── RESET ── */

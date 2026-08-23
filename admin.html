@@ -3539,6 +3539,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 <button type="button" title="Agregar IVA 19%" onclick="const v=Number(document.getElementById('srv-precio').value);if(v)document.getElementById('srv-precio').value=Math.round(v*1.19);" style="padding:0 10px;border-radius:var(--r);border:1px solid var(--b2);background:var(--bg2);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">+IVA</button>
               </div>
             </div>
+            <textarea id="srv-desc" class="fi" placeholder="Descripción (opcional — visible para tus pacientes al reservar)" rows="2" style="resize:vertical;font-size:12px;line-height:1.5"></textarea>
             <div style="display:flex;justify-content:flex-end">
               <button class="btn-a" onclick="agregarServicio()">+ Agregar</button>
             </div>
@@ -5603,6 +5604,7 @@ function renderServicios() {
           ${s.duracion && s.precio ? ' · ' : ''}
           ${s.precio ? '$' + Number(s.precio).toLocaleString('es-CL') : ''}
         </div>
+        ${s.descripcion ? `<div style="font-size:11px;color:var(--t4);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px">${s.descripcion}</div>` : ''}
       </div>
       <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px" title="Eliminar">×</button>
     </div>
@@ -5610,15 +5612,14 @@ function renderServicios() {
 }
 
 function agregarServicio() {
-  const nombre  = document.getElementById('srv-nombre')?.value.trim();
-  const duracion = parseInt(document.getElementById('srv-duracion')?.value) || null;
-  const precio   = parseInt(document.getElementById('srv-precio')?.value)   || null;
+  const nombre      = document.getElementById('srv-nombre')?.value.trim();
+  const duracion    = parseInt(document.getElementById('srv-duracion')?.value) || null;
+  const precio      = parseInt(document.getElementById('srv-precio')?.value)   || null;
+  const descripcion = document.getElementById('srv-desc')?.value.trim()        || null;
   if (!nombre) { toast('Ingresa un nombre para el servicio'); return; }
-  _serviciosCache.push({ nombre, duracion, precio });
+  _serviciosCache.push({ nombre, duracion, precio, ...(descripcion ? { descripcion } : {}) });
   renderServicios();
-  document.getElementById('srv-nombre').value  = '';
-  document.getElementById('srv-duracion').value = '';
-  document.getElementById('srv-precio').value   = '';
+  ['srv-nombre','srv-duracion','srv-precio','srv-desc'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 }
 
 function eliminarServicio(idx) {
