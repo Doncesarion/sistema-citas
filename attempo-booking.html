@@ -1473,19 +1473,27 @@ async function buscarCita() {
     }
     const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const MESES_L = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    const cards = data.citas.map(c => {
-      const [y, m, d] = (c.fecha || '').split('-').map(Number);
-      const fechaFmt = d ? `${DIAS[new Date(y, m-1, d).getDay()]} ${d} de ${MESES_L[m-1]} ${y}` : c.fecha;
+    const multiple = data.citas.length > 1;
+    const header = multiple
+      ? `<div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:6px">Selecciona tu cita</div>`
+      : '';
+    const rows = data.citas.map((c, i) => {
+      const [y, mo, d] = (c.fecha || '').split('-').map(Number);
+      const dd = new Date(y, mo-1, d);
+      const diasCrt = ['dom','lun','mar','mié','jue','vie','sáb'];
+      const mesCrt  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      const fechaCrt = d ? `${diasCrt[dd.getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
       const link = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
-      const prof = c.nombre_especialista ? `<div style="font-size:11px;color:var(--t3);margin-bottom:2px">${c.nombre_especialista}</div>` : '';
-      return `<div style="background:var(--bg);border:1px solid var(--b1);border-radius:10px;padding:12px 14px;margin-bottom:8px">
-        ${prof}
-        <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px">${c.servicio || 'Cita'}</div>
-        <div style="font-size:12px;color:var(--t2)">${fechaFmt} · ${(c.hora||'').slice(0,5)}</div>
-        <a href="${link}" style="display:block;margin-top:10px;text-align:center;padding:9px;background:var(--a);color:#fff;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">Cancelar o reagendar →</a>
-      </div>`;
+      const border = i < data.citas.length - 1 ? 'border-bottom:1px solid var(--b1);' : '';
+      return `<a href="${link}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;${border}text-decoration:none;transition:background .12s;border-radius:${i===0?'8px 8px 0 0':i===data.citas.length-1?'0 0 8px 8px':'0'}" onmouseover="this.style.background='rgba(108,92,228,0.05)'" onmouseout="this.style.background='none'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.servicio || 'Cita'}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:1px">${fechaCrt} · ${(c.hora||'').slice(0,5)}${c.nombre_especialista ? ' · ' + c.nombre_especialista : ''}</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--a)" stroke-width="2" stroke-linecap="round"><path d="M6 4l4 4-4 4"/></svg>
+      </a>`;
     }).join('');
-    result.innerHTML = cards;
+    result.innerHTML = `${header}<div style="border:1px solid var(--b2);border-radius:8px;overflow:hidden;background:#fff">${rows}</div>`;
     result.style.display = 'block';
   } catch(e) {
     result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${e.message}</div>`;
