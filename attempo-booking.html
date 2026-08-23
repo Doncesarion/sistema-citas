@@ -41,11 +41,13 @@ body::before{
 .nav-badge .ldot{width:6px;height:6px;border-radius:50%;background:#16A34A;flex-shrink:0;animation:blink 2.5s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
 .page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:28px 20px 64px;width:100%}
+.header-row{display:flex;gap:14px;align-items:stretch;margin-bottom:24px}
 .biz-header{
   background:#fff;border:1px solid var(--b1);border-radius:var(--rxx);
-  padding:28px 32px;margin-bottom:24px;box-shadow:var(--sh1);
+  padding:28px 32px;box-shadow:var(--sh1);flex:1;
   display:flex;gap:22px;align-items:center;position:relative;overflow:hidden;
 }
+.lookup-card{background:#fff;border:1px solid var(--b1);border-radius:var(--rx);padding:18px 20px;box-shadow:var(--sh1);width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:0}
 .biz-header::after{content:'';position:absolute;top:0;right:0;width:200px;height:100%;background:radial-gradient(ellipse at 100% 50%,rgba(108,92,228,0.05),transparent 70%);pointer-events:none}
 .biz-logo{width:72px;height:72px;flex-shrink:0;border-radius:16px;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:22px;font-weight:500;color:#fff;box-shadow:0 6px 20px rgba(108,92,228,0.32)}
 .biz-info{flex:1;min-width:0}
@@ -170,7 +172,9 @@ body::before{
 .error-state .e-title{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:8px}
 .error-state .e-sub{font-size:13px;color:var(--t3)}
 @media(max-width:600px){
+  .header-row{flex-direction:column;gap:10px}
   .biz-header{gap:14px;padding:18px 20px}
+  .lookup-card{width:auto}
   .biz-logo{width:48px;height:48px;font-size:15px}
   .biz-name{font-size:17px}
   .sbi-lbl{display:none}
@@ -208,7 +212,8 @@ body::before{
   <!-- CONTENIDO PRINCIPAL -->
   <div id="content-wrap" style="display:none">
 
-    <!-- BIZ HEADER -->
+    <!-- HEADER ROW: biz-info + lookup -->
+    <div class="header-row">
     <div class="biz-header">
       <div class="biz-logo" id="biz-logo-ini">AT</div>
       <div class="biz-info">
@@ -232,25 +237,19 @@ body::before{
       </div>
     </div>
 
-    <!-- LOOKUP CITA EXISTENTE -->
-    <div style="background:#fff;border:1px solid var(--b1);border-radius:var(--rx);padding:14px 20px;margin-bottom:16px;box-shadow:var(--sh1)">
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <div style="flex-shrink:0">
-          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:1px">¿Ya tienes una cita?</div>
-          <div style="font-size:11px;color:var(--t3)">Ingresa tu email o N° de reserva</div>
-        </div>
-        <div style="flex:1;min-width:220px;display:flex;gap:8px">
-          <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-XXXXXXXX" autocomplete="email"
-            style="flex:1;min-width:0;padding:9px 12px;border:1.5px solid var(--b2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t1);background:#fff;outline:none"
-            onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
-            onkeydown="if(event.key==='Enter')buscarCita()">
-          <button onclick="buscarCita()" id="gc-btn"
-            style="padding:9px 16px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;flex-shrink:0"
-            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Buscar</button>
-        </div>
-      </div>
+    <div class="lookup-card">
+      <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px">¿Ya tienes una cita?</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:12px;line-height:1.4">Ingresa tu email o N° de reserva</div>
+      <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-XXXXXXXX" autocomplete="email"
+        style="padding:9px 12px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:#fff;outline:none;width:100%;margin-bottom:8px"
+        onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
+        onkeydown="if(event.key==='Enter')buscarCita()">
+      <button onclick="buscarCita()" id="gc-btn"
+        style="width:100%;padding:9px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Buscar</button>
       <div id="gc-result" style="margin-top:10px;display:none"></div>
     </div>
+    </div><!-- /header-row -->
 
     <!-- STEPS BAR -->
     <div class="sbar" id="sbar">
@@ -1473,27 +1472,19 @@ async function buscarCita() {
     }
     const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const MESES_L = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    const multiple = data.citas.length > 1;
-    const header = multiple
-      ? `<div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:6px">Selecciona tu cita</div>`
-      : '';
-    const rows = data.citas.map((c, i) => {
+    const diasCrt = ['dom','lun','mar','mié','jue','vie','sáb'];
+    const mesCrt  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const opts = data.citas.map(c => {
       const [y, mo, d] = (c.fecha || '').split('-').map(Number);
-      const dd = new Date(y, mo-1, d);
-      const diasCrt = ['dom','lun','mar','mié','jue','vie','sáb'];
-      const mesCrt  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-      const fechaCrt = d ? `${diasCrt[dd.getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
-      const link = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
-      const border = i < data.citas.length - 1 ? 'border-bottom:1px solid var(--b1);' : '';
-      return `<a href="${link}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;${border}text-decoration:none;transition:background .12s;border-radius:${i===0?'8px 8px 0 0':i===data.citas.length-1?'0 0 8px 8px':'0'}" onmouseover="this.style.background='rgba(108,92,228,0.05)'" onmouseout="this.style.background='none'">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.servicio || 'Cita'}</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:1px">${fechaCrt} · ${(c.hora||'').slice(0,5)}${c.nombre_especialista ? ' · ' + c.nombre_especialista : ''}</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--a)" stroke-width="2" stroke-linecap="round"><path d="M6 4l4 4-4 4"/></svg>
-      </a>`;
+      const fechaCrt = d ? `${diasCrt[new Date(y,mo-1,d).getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
+      const label = `${c.servicio || 'Cita'} · ${fechaCrt} · ${(c.hora||'').slice(0,5)}`;
+      const link  = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
+      return `<option value="${link}">${label}</option>`;
     }).join('');
-    result.innerHTML = `${header}<div style="border:1px solid var(--b2);border-radius:8px;overflow:hidden;background:#fff">${rows}</div>`;
+    result.innerHTML = `<select onchange="if(this.value)window.location.href=this.value" style="width:100%;padding:9px 10px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:#fff;outline:none;cursor:pointer;appearance:auto">
+      <option value="">Selecciona tu cita…</option>
+      ${opts}
+    </select>`;
     result.style.display = 'block';
   } catch(e) {
     result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${e.message}</div>`;
