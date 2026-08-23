@@ -182,17 +182,42 @@ export default async function handler(req, res) {
       try {
         const hoy = new Date().toISOString().slice(0, 10);
         const r = await fetch(
-          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cid}&fecha=gte.${hoy}&estado=neq.canceled&order=fecha.asc&limit=3&select=id,fecha,hora,servicio,estado,nombre_especialista`,
+          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cid}&fecha=gte.${hoy}&estado=neq.canceled&order=fecha.asc&limit=3&select=id,fecha,hora,servicio,estado`,
           { headers: sh }
         );
         const rows = await r.json();
-        const citas = Array.isArray(rows)
-          ? rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, nombre_especialista: c.nombre_especialista, token: generateManageToken(c.id) }))
-          : [];
+        if (!Array.isArray(rows)) {
+          console.error('email-lookup supabase error:', JSON.stringify(rows));
+          return res.status(500).json({ error: 'Error al buscar citas' });
+        }
+        const citas = rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, token: generateManageToken(c.id) }));
         return res.json({ ok: true, citas });
       } catch(e) {
         console.error('email-lookup error:', e.message);
         return res.status(500).json({ error: 'Error al buscar citas' });
+      }
+    }
+
+    // Lookup por número de reserva AT-XXXXXXXX
+    const { ref, cid: refCid } = req.query;
+    if (ref && refCid) {
+      const hex = ref.toUpperCase().startsWith('AT-') ? ref.slice(3).toLowerCase() : ref.toLowerCase();
+      if (!/^[0-9a-f]{8}$/.test(hex)) return res.status(400).json({ error: 'Número de reserva inválido' });
+      const UUID_RE_Q2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE_Q2.test(refCid)) return res.status(400).json({ error: 'Parámetro inválido' });
+      const ip2 = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+      if (await isEmailLookupRateLimited(ip2)) return res.status(429).json({ error: 'Demasiadas consultas. Intenta más tarde.' });
+      try {
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?id=like.${hex}*&cliente_id=eq.${refCid}&select=id,fecha,hora,servicio,estado&limit=1`,
+          { headers: sh }
+        );
+        const rows = await r.json();
+        if (!Array.isArray(rows)) return res.status(500).json({ error: 'Error al buscar cita' });
+        const citas = rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, token: generateManageToken(c.id) }));
+        return res.json({ ok: true, citas });
+      } catch(e) {
+        return res.status(500).json({ error: 'Error al buscar cita' });
       }
     }
 
