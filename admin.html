@@ -729,6 +729,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .bfilt{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1.5px solid var(--b2);background:none;cursor:pointer;color:var(--t2);font-family:var(--font);transition:all .12s;white-space:nowrap;flex-shrink:0}
 .bfilt.on{background:var(--a);color:#fff;border-color:var(--a)}
 .bfilt:hover:not(.on){border-color:var(--a);color:var(--a)}
+.bsfilt{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1.5px solid var(--b2);background:none;cursor:pointer;color:var(--t3);font-family:var(--font);transition:all .12s;white-space:nowrap;flex-shrink:0}
+.bsfilt.on{background:rgba(108,92,228,0.1);color:var(--a);border-color:rgba(108,92,228,0.3)}
+.bsfilt:hover:not(.on){border-color:var(--a);color:var(--a)}
 .blist-items{flex:1;overflow-y:auto;overscroll-behavior:contain}
 .blist-items::-webkit-scrollbar{width:3px}
 .blist-items::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
@@ -1650,6 +1653,21 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ═══ AGENDA ═══ -->
 <div id="v-agenda" style="display:flex;flex-direction:column;height:100%;overflow:hidden">
 
+  <!-- Resumen de hoy -->
+  <div id="hoy-card" style="display:none;background:linear-gradient(135deg,rgba(108,92,228,0.07),rgba(108,92,228,0.02));border-bottom:1.5px solid rgba(108,92,228,0.18);padding:10px 16px;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:baseline;gap:8px;flex-shrink:0">
+        <span style="font-size:28px;font-weight:700;color:var(--a);font-family:var(--mono);line-height:1" id="hoy-count-lbl">0</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--a);line-height:1.2" id="hoy-count-sub">citas hoy</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:1px" id="hoy-fecha-lbl"></div>
+        </div>
+      </div>
+      <div id="hoy-citas-list" style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px;align-items:center"></div>
+      <button onclick="dismissHoyCard()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:20px;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0;font-family:var(--font)" title="Ocultar por hoy" onmouseenter="this.style.color='var(--t1)'" onmouseleave="this.style.color='var(--t3)'">×</button>
+    </div>
+  </div>
+
   <!-- Top bar -->
   <div class="ag-bar">
     <div class="ag-nav">
@@ -1969,6 +1987,30 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       Mis transferencias
       <div style="display:flex;gap:8px;align-items:center">
         <span id="liq-loading" style="display:none;font-size:12px;color:var(--t3)">Cargando...</span>
+      </div>
+    </div>
+
+    <!-- Resumen del mes actual -->
+    <div id="liq-mes-summary" style="display:none;background:linear-gradient(135deg,rgba(108,92,228,0.06),rgba(108,92,228,0.02));border:1.5px solid rgba(108,92,228,0.14);border-radius:10px;padding:14px 18px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px" id="liq-mes-lbl">Este mes</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:2px">Cobrado</div>
+          <div style="display:flex;align-items:baseline;gap:2px"><span style="font-size:12px;color:var(--a);font-weight:600">$</span><span style="font-size:22px;font-weight:700;color:var(--a);font-family:var(--mono)" id="liq-mes-cobrado">—</span></div>
+          <div style="font-size:11px;color:var(--t3);margin-top:1px" id="liq-mes-cobrado-sub">—</div>
+        </div>
+        <div style="width:1px;background:var(--b1);flex-shrink:0;align-self:stretch"></div>
+        <div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:2px">Por cobrar</div>
+          <div style="display:flex;align-items:baseline;gap:2px"><span style="font-size:12px;color:var(--amber);font-weight:600">$</span><span style="font-size:22px;font-weight:700;color:var(--amber);font-family:var(--mono)" id="liq-mes-pendiente">—</span></div>
+          <div style="font-size:11px;color:var(--t3);margin-top:1px" id="liq-mes-pendiente-sub">—</div>
+        </div>
+        <div style="width:1px;background:var(--b1);flex-shrink:0;align-self:stretch"></div>
+        <div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:2px">Total citas</div>
+          <div style="font-size:22px;font-weight:700;color:var(--t1);font-family:var(--mono)" id="liq-mes-total">—</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:1px">este mes</div>
+        </div>
       </div>
     </div>
 
@@ -2292,6 +2334,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <button class="bfilt"    id="bfilt-instagram"  data-canal="instagram"  onclick="filtrarBandejaCanal('instagram',this)" style="display:none">Instagram</button>
           <button class="bfilt"    id="bfilt-messenger"  data-canal="messenger"  onclick="filtrarBandejaCanal('messenger',this)" style="display:none">Messenger</button>
           <button class="bfilt"    id="bfilt-attia"      data-canal="attia"      onclick="filtrarBandejaCanal('attia',this)" style="display:none">Attia</button>
+        </div>
+        <div class="blist-filters" id="blist-status-filters" style="border-top:1px solid var(--b1);padding-top:5px">
+          <button class="bsfilt on" id="bsfilt-todos"   onclick="filtrarBandejaEstado('todos',this)">Todos</button>
+          <button class="bsfilt"    id="bsfilt-sinleer" onclick="filtrarBandejaEstado('sinleer',this)">Sin leer</button>
+          <button class="bsfilt"    id="bsfilt-pausado" onclick="filtrarBandejaEstado('pausado',this)">Bot pausado<span id="bsfilt-pausado-n" style="display:none;margin-left:4px;background:#f97316;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:0 4px;line-height:14px;vertical-align:middle"></span></button>
         </div>
       </div>
       <div class="breporte" id="breporte"></div>
@@ -4147,6 +4194,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <span class="tag tg" id="fpi-serv-top-tag">0</span>
         </div>
       </div>
+      <div id="fp-btn-realizada-wrap" style="display:none;margin-bottom:8px">
+        <button class="btn-g" id="fp-btn-realizada" style="width:100%;background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3);color:#10b981;font-weight:600" onclick="marcarCitaRealizada()">✓ Marcar como realizada</button>
+      </div>
       <div class="fp-actions">
         <button class="btn-a" style="flex:1" onclick="closeFicha();openModal()">+ Nueva cita</button>
         <button class="btn-g" style="flex:1" onclick="reagendarProxCita()" title="Reagendar la próxima cita">↺ Reagendar</button>
@@ -4932,6 +4982,26 @@ async function savePacienteEdit() {
     if (btn) { btn.textContent = '✓ Guardar'; btn.disabled = false; }
   }
 }
+async function marcarCitaRealizada() {
+  const id = window._fichaDetalleCita?.id || window._fichaProxCitaId;
+  if (!id) { toast('No hay cita activa'); return; }
+  try {
+    const r = await fetch(`/api/slots?id=${id}`, {
+      method: 'PATCH',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: 'done' })
+    });
+    if (!r.ok) { const d = await r.json().catch(()=>({})); toastErr(d.error || 'Error al guardar'); return; }
+    toast('✓ Cita marcada como realizada');
+    const wrap = document.getElementById('fp-btn-realizada-wrap');
+    if (wrap) wrap.style.display = 'none';
+    const edot = document.getElementById('fpi-estado-dot'), elbl = document.getElementById('fpi-estado-lbl');
+    if (edot) edot.style.background = '#10b981';
+    if (elbl) { elbl.textContent = 'Completada'; elbl.style.color = '#10b981'; }
+    cargarCitasSupabase();
+  } catch(e) { toastErr('Error al guardar'); }
+}
+
 async function cancelarProxCita() {
   const id = window._fichaDetalleCita?.id || window._fichaProxCitaId;
   if (!id) { toast('No hay cita activa para cancelar'); return; }
@@ -5078,6 +5148,10 @@ async function loadFichaData(nombre) {
     if (_mpRow)     _mpRow.style.display     = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     const _cancelBtn = document.getElementById('fp-cancelar-btn');
     if (_cancelBtn) _cancelBtn.textContent = window._fichaDetalleCita ? '✕ Cancelar reserva' : '✕ Cancelar próxima cita';
+    // Botón "Marcar realizada": visible solo si hay cita activa no completada
+    const _realizadaWrap = document.getElementById('fp-btn-realizada-wrap');
+    const _DONE_ESTADOS = ['completada','completed','done','cancelada','canceled','cancelled','no-show','inasistencia'];
+    if (_realizadaWrap) _realizadaWrap.style.display = (_pc && !_DONE_ESTADOS.includes(_pc.estado)) ? '' : 'none';
     const _epEl = document.getElementById('fpi-estado-pago');
     const _mpEl = document.getElementById('fpi-metodo-pago');
     const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago' };
@@ -10103,6 +10177,7 @@ async function cargarCitasSupabase() {
     const r2 = await fetch(`/api/slots?select=*,especialistas(id,nombre)&order=fecha.asc,hora.asc`, { headers: _citasH() });
     const citas = await r2.json();
     if (!Array.isArray(citas)) { if (_esErrorAuth(r2.status, citas)) _sesionExpirada(); return; }
+    window._citasAgenda = citas;
 
     // 4. Construir mesEvents desde citas reales (limpiar antes para que canceladas no persistan)
     mesEvents = {};
@@ -10182,6 +10257,9 @@ async function cargarCitasSupabase() {
 
     // 7. Banner motivacional
     _updateInsight(citas);
+
+    // 8. Hoy card prominente
+    _updateHoyCard(citasHoy, today);
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
@@ -10222,6 +10300,50 @@ function _updateInsight(citas) {
   card.style.display = 'block';
 }
 
+function _updateHoyCard(citasHoy, today) {
+  const card    = document.getElementById('hoy-card');
+  const countEl = document.getElementById('hoy-count-lbl');
+  const subEl   = document.getElementById('hoy-count-sub');
+  const fechaEl = document.getElementById('hoy-fecha-lbl');
+  const listEl  = document.getElementById('hoy-citas-list');
+  if (!card) return;
+
+  const DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const dow = DIAS[today.getDay()];
+  const mes = MESES[today.getMonth()];
+
+  if (fechaEl) fechaEl.textContent = `${dow} ${today.getDate()} de ${mes}`;
+  if (countEl) countEl.textContent = citasHoy.length;
+  if (subEl)   subEl.textContent   = citasHoy.length === 1 ? 'cita hoy' : 'citas hoy';
+
+  if (listEl) {
+    if (!citasHoy.length) {
+      listEl.innerHTML = '<span style="font-size:12px;color:var(--t3);font-style:italic">Sin citas programadas para hoy</span>';
+    } else {
+      listEl.innerHTML = citasHoy.map(c => {
+        const nombre = (c.nombre_paciente || '—').split(' ').slice(0,2).join(' ');
+        const hora   = (c.hora || '').slice(0, 5);
+        const done   = c.estado === 'done' || c.estado === 'completada' || c.estado === 'completed';
+        return `<span onclick="openFicha('${escH(c.nombre_paciente||'')}','','','${c.id}')" style="display:inline-flex;align-items:center;gap:5px;background:${done?'rgba(16,185,129,0.08)':'rgba(108,92,228,0.07)'};border:1px solid ${done?'rgba(16,185,129,0.2)':'rgba(108,92,228,0.15)'};border-radius:20px;padding:3px 10px 3px 8px;cursor:pointer;font-size:12px;color:var(--t1)">
+          <span style="font-weight:700;color:${done?'#10b981':'var(--a)'}">${hora}</span>
+          <span>${escH(nombre)}</span>${done?'<span style="font-size:9px;color:#10b981;font-weight:700">✓</span>':''}
+        </span>`;
+      }).join('');
+    }
+  }
+
+  if (localStorage.getItem('attempo_hoy_dismissed') !== today.toDateString()) {
+    card.style.display = '';
+  }
+}
+
+function dismissHoyCard() {
+  const card = document.getElementById('hoy-card');
+  if (card) { card.style.transition = 'opacity .2s'; card.style.opacity = '0'; setTimeout(() => { card.style.display = 'none'; card.style.opacity = ''; card.style.transition = ''; }, 220); }
+  localStorage.setItem('attempo_hoy_dismissed', new Date().toDateString());
+}
+
 /* ════ VENTAS: carga y registrar pago ════ */
 let _ventasCid = null;
 
@@ -10259,6 +10381,7 @@ async function cargarVentas() {
     console.error('[cargarVentas] respuesta no-array:', JSON.stringify(citas)); return;
   }
   _allVentas  = citas;
+  window._citasAgenda = window._citasAgenda || citas;
   _ventasPage = 0;
   _renderVentasSidebarProfs();
   renderVentasKPIs();
@@ -12715,7 +12838,8 @@ let _bConvs       = [];          // lista completa de conversaciones
 let _bConvActual  = null;        // conversación abierta
 let _bMsgs        = [];          // mensajes del hilo actual
 let _bMsgIaCached = null;        // cache del contador de mensajes IA
-let _bFiltroCanal = 'todos';
+let _bFiltroCanal  = 'todos';
+let _bFiltroEstado = 'todos';
 let _bPollTimer   = null;
 let _bMsgPollTimer = null;
 let _bInited      = false;
@@ -12838,7 +12962,9 @@ function renderListaBandeja() {
   if (_fMS) _fMS.style.display = (!_fPerms.soloWA && _fActivos.has('messenger')) ? '' : 'none';
 
   let convsFiltradas = _bConvs.filter(c => {
-    if (_bFiltroCanal !== 'todos' && c.canal !== _bFiltroCanal) return false;
+    if (_bFiltroCanal  !== 'todos' && c.canal !== _bFiltroCanal) return false;
+    if (_bFiltroEstado === 'sinleer' && !(c.no_leidos > 0)) return false;
+    if (_bFiltroEstado === 'pausado' && !c.pausa_bot) return false;
     if (q) {
       const nombre = (c.canal_user_name || '').toLowerCase();
       if (!nombre.includes(q)) return false;
@@ -12956,7 +13082,8 @@ function renderListaBandeja() {
 function actualizarBadgeNav() {
   const badge = document.getElementById('bandeja-badge');
   if (!badge) return;
-  const total = _bConvs.reduce((s, c) => s + (c.no_leidos || 0), 0);
+  const total  = _bConvs.reduce((s, c) => s + (c.no_leidos || 0), 0);
+  const paused = _bConvs.filter(c => c.pausa_bot).length;
   if (total > 0) {
     badge.textContent = total > 99 ? '99+' : total;
     badge.style.display = 'flex';
@@ -12964,6 +13091,11 @@ function actualizarBadgeNav() {
     badge.style.justifyContent = 'center';
   } else {
     badge.style.display = 'none';
+  }
+  const pausadoN = document.getElementById('bsfilt-pausado-n');
+  if (pausadoN) {
+    pausadoN.textContent = paused;
+    pausadoN.style.display = paused > 0 ? 'inline' : 'none';
   }
 }
 
@@ -13747,8 +13879,15 @@ window.filtrarBandeja = function() { renderListaBandeja(); };
 
 window.filtrarBandejaCanal = function(canal, btn) {
   _bFiltroCanal = canal;
-  document.querySelectorAll('.bfilt').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('#blist-filters .bfilt').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
+  renderListaBandeja();
+};
+
+window.filtrarBandejaEstado = function(estado, btn) {
+  _bFiltroEstado = estado;
+  document.querySelectorAll('.bsfilt').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
   renderListaBandeja();
 };
 
@@ -14138,7 +14277,43 @@ function getPeriodoLabel(periodo) {
   return meses[parseInt(m) - 1] + ' ' + y;
 }
 
+function _updateLiqSummary() {
+  const sumCard = document.getElementById('liq-mes-summary');
+  if (!sumCard) return;
+  const citas = window._citasAgenda || window._allVentas || [];
+  if (!citas.length) { sumCard.style.display = 'none'; return; }
+
+  const now   = new Date();
+  const thisM = now.getMonth() + 1;
+  const thisY = now.getFullYear();
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const CANCEL = ['cancelada','canceled','cancelled','no-show','inasistencia'];
+
+  const mesCitas   = citas.filter(c => { if (!c.fecha) return false; const [y,m] = c.fecha.split('-').map(Number); return y===thisY && m===thisM && !CANCEL.includes(c.estado); });
+  const cobradas   = mesCitas.filter(c => c.estado_pago === 'pagado');
+  const pendientes = mesCitas.filter(c => c.estado_pago !== 'pagado');
+  const cobrado    = cobradas.reduce((s, c) => s + (Number(c.precio)||0), 0);
+  const pendiente  = pendientes.reduce((s, c) => s + (Number(c.precio)||0), 0);
+
+  const lbl       = document.getElementById('liq-mes-lbl');
+  const cobEl     = document.getElementById('liq-mes-cobrado');
+  const cobSub    = document.getElementById('liq-mes-cobrado-sub');
+  const pendEl    = document.getElementById('liq-mes-pendiente');
+  const pendSub   = document.getElementById('liq-mes-pendiente-sub');
+  const totEl     = document.getElementById('liq-mes-total');
+
+  if (lbl)    lbl.textContent    = `Este mes (${MESES[now.getMonth()]})`;
+  if (cobEl)  cobEl.textContent  = cobrado.toLocaleString('es-CL');
+  if (cobSub) cobSub.textContent = cobradas.length + ` cita${cobradas.length !== 1 ? 's' : ''} cobrada${cobradas.length !== 1 ? 's' : ''}`;
+  if (pendEl) pendEl.textContent = pendiente.toLocaleString('es-CL');
+  if (pendSub) pendSub.textContent = pendientes.length + ` cita${pendientes.length !== 1 ? 's' : ''} por cobrar`;
+  if (totEl)  totEl.textContent  = mesCitas.length;
+
+  sumCard.style.display = '';
+}
+
 function cargarLiquidaciones() {
+  _updateLiqSummary();
   // Poblar selector de períodos (12 meses atrás + actual)
   var sel = document.getElementById('liq-periodo');
   sel.innerHTML = '';
