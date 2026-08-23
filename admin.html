@@ -4207,10 +4207,6 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div id="fp-boleta-row" style="display:none;margin-top:8px">
         <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">Emitir boleta</button>
       </div>
-      <!-- fp-flow-row y fp-webpay-row ocultos, reservados para uso futuro -->
-      <div id="fp-flow-row" style="display:none!important;margin-top:8px">
-        <button class="btn-a" style="width:100%;background:var(--a)" onclick="enviarLinkFlowPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Flow</button>
-      </div>
       <div id="fp-webpay-row" style="display:none!important;margin-top:8px">
         <button class="btn-a" style="width:100%;background:#005BBB" onclick="enviarLinkWebpayPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Webpay</button>
       </div>
@@ -5139,11 +5135,9 @@ async function loadFichaData(nombre) {
     const _esPendWebpay  = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'webpay';
     const _esPendMP      = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'mercadopago';
     const _boletaRow = document.getElementById('fp-boleta-row');
-    const _flowRow   = document.getElementById('fp-flow-row');
     const _webpayRow = document.getElementById('fp-webpay-row');
     const _mpRow = document.getElementById('fp-mp-row');
     if (_boletaRow) _boletaRow.style.display = _pc?.precio ? 'block' : 'none';
-    if (_flowRow)   _flowRow.style.display   = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     if (_webpayRow) _webpayRow.style.display = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     if (_mpRow)     _mpRow.style.display     = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     const _cancelBtn = document.getElementById('fp-cancelar-btn');
@@ -8999,7 +8993,7 @@ document.addEventListener('DOMContentLoaded', function() {
 let currentBookingUrl = 'studio-norte';
 function copyLink() {
   // Validar que está listo para recibir reservas
-  const pendientes = _onbSteps.filter(s => !s.done && s.id !== 'cuenta' && s.id !== 'link');
+  const pendientes = _onbSteps.filter(s => !s.done && s.id !== 'cuenta' && s.id !== 'link' && s.id !== 'primera_cita');
   if (pendientes.length > 0) {
     const labels = pendientes.map(s => s.label).join(' · ');
     toast('Antes de compartir tu link, completa: ' + labels);
@@ -9661,8 +9655,6 @@ function openVentaDetalle(jsonStr) {
   // Guardar cita para boleta y mostrar botones
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
-  const flowRow = document.getElementById('fp-flow-row');
-  if (flowRow) flowRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   const webpayRow = document.getElementById('fp-webpay-row');
   if (webpayRow) webpayRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   const mpRow = document.getElementById('fp-mp-row');
@@ -10260,6 +10252,12 @@ async function cargarCitasSupabase() {
 
     // 8. Hoy card prominente
     _updateHoyCard(citasHoy, today);
+
+    // 9. Milestone onboarding: primera reserva
+    const _CANCEL_ST = ['cancelada','canceled','cancelled'];
+    if (_onbSteps.length && citas.some(c => !_CANCEL_ST.includes(c.estado))) {
+      onbCheckStep('primera_cita');
+    }
   } catch(e) { console.warn('Supabase load error:', e); }
 }
 
@@ -10601,23 +10599,28 @@ async function initOnboarding() {
 
     const [rEsp, rCli] = await Promise.all([
       fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id&limit=1`, { headers: _SH }),
-      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios,horario_negocio,booking_slug&limit=1`, { headers: _SH }),
+      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios,horario_negocio,booking_slug,nombre_negocio&limit=1`, { headers: _SH }),
     ]);
     const esps = await rEsp.json().catch(() => []);
     const clis = await rCli.json().catch(() => []);
     const cli  = Array.isArray(clis) ? (clis[0] || {}) : {};
 
-    const tieneEsp     = Array.isArray(esps) && esps.length > 0;
-    const tieneHorario = !!cli.horario_negocio && Object.keys(cli.horario_negocio).some(d => cli.horario_negocio[d]?.activo);
-    const tieneServ    = Array.isArray(cli.servicios) && cli.servicios.length > 0;
-    const tieneSlug    = !!cli.booking_slug;
+    const tienePerfil   = !!(cli.nombre_negocio?.trim());
+    const tieneEsp      = Array.isArray(esps) && esps.length > 0;
+    const tieneServ     = Array.isArray(cli.servicios) && cli.servicios.length > 0;
+    const tieneHorario  = !!cli.horario_negocio && Object.keys(cli.horario_negocio).some(d => cli.horario_negocio[d]?.activo);
+    const tieneSlug     = !!cli.booking_slug;
+    const CANCEL_ST     = ['cancelada','canceled','cancelled'];
+    const tieneCita     = (window._citasAgenda || []).some(c => !CANCEL_ST.includes(c.estado));
 
     _onbSteps = [
-      { id: 'cuenta',       label: 'Cuenta creada',          done: true,         action: null },
-      { id: 'especialista', label: 'Agrega un especialista', done: tieneEsp,     action: () => _onbIr('profesionales') },
-      { id: 'horario',      label: 'Configura horarios',     done: tieneHorario, action: () => _onbIr('horarios') },
-      { id: 'servicio',     label: 'Crea un servicio',       done: tieneServ,    action: () => _onbIr('servicios') },
-      { id: 'link',         label: 'Comparte tu link',       done: tieneSlug,    action: () => _onbLink(cli.booking_slug) },
+      { id: 'cuenta',       label: 'Cuenta creada',              done: true,          action: null },
+      { id: 'perfil',       label: 'Personaliza tu cuenta',      done: tienePerfil,   action: () => _onbIr('general') },
+      { id: 'especialista', label: 'Agrega un profesional',      done: tieneEsp,      action: () => _onbIr('profesionales') },
+      { id: 'servicio',     label: 'Crea un servicio',           done: tieneServ,     action: () => _onbIr('servicios') },
+      { id: 'horario',      label: 'Configura tus horarios',     done: tieneHorario,  action: () => _onbIr('horarios') },
+      { id: 'link',         label: 'Comparte tu link',           done: tieneSlug,     action: () => _onbLink(cli.booking_slug) },
+      { id: 'primera_cita', label: 'Recibe tu primera reserva', done: tieneCita,     action: null },
     ];
 
     if (_onbSteps.every(s => s.done)) { localStorage.setItem('attempo_onb_done', '1'); return; }
@@ -10641,8 +10644,9 @@ function _onbLink(slug) {
 }
 
 function _renderOnboarding() {
-  const doneSinCuenta = _onbSteps.filter(s => s.id !== 'cuenta' && s.done).length;
-  const total = _onbSteps.length - 1;
+  const _stepsContar = _onbSteps.filter(s => s.id !== 'cuenta');
+  const doneSinCuenta = _stepsContar.filter(s => s.done).length;
+  const total = _stepsContar.length;
   const pct   = Math.round((doneSinCuenta / total) * 100);
 
   const fill    = document.getElementById('onb-fill');
