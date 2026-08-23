@@ -1576,10 +1576,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 <!-- ── PANEL USO MENSUAL COMPACTO ── -->
 <div id="sb-uso-panel" style="display:none">
-  <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Uso del mes</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em">Uso del mes</div>
+    <span id="uso-plan-badge" style="font-size:9px;font-weight:600;color:var(--a);background:rgba(108,92,228,0.1);border-radius:4px;padding:1px 6px;letter-spacing:.01em"></span>
+  </div>
   <div class="uso-row" id="uso-ia-row" style="display:none">
     <div class="uso-row-head">
-      <span class="uso-row-lbl">IA</span>
+      <span class="uso-row-lbl">Attia IA</span>
       <span class="uso-row-num" id="sb-msg-nums">—</span>
     </div>
     <div class="uso-bar"><div class="sb-msg-counter-fill" id="sb-msg-fill" style="width:0%"></div></div>
@@ -12986,7 +12989,7 @@ let _bFiltroEstado = 'todos';
 let _bPollTimer   = null;
 let _bMsgPollTimer = null;
 let _bInited      = false;
-const PLAN_LIMITE = { inicio: 0, pro: 2000, 'clinica_ia': 5000 };
+const PLAN_LIMITE = { inicio: 0, pro: 2000, clinica_ia: 5000, chatbot_2k: 2000, chatbot_5k: 5000, chatbot_8k: 8000, chatbot_2k_agenda: 2000, chatbot_5k_agenda: 5000, chatbot_8k_agenda: 8000 };
 const REC_LIMITE  = { inicio: 300, pro: 1000, clinica_ia: 3000 };
 
 // ── Helpers avatar ─────────────────────────────────────────────────────────────
@@ -14059,6 +14062,9 @@ async function cargarStatsIA() {
 
   const _usoPanel = document.getElementById('sb-uso-panel');
   if (_usoPanel) _usoPanel.style.display = '';
+  const _planLabels = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Chatbot 2K', chatbot_5k:'Chatbot 5K', chatbot_8k:'Chatbot 8K', chatbot_2k_agenda:'Chatbot 2K', chatbot_5k_agenda:'Chatbot 5K', chatbot_8k_agenda:'Chatbot 8K', demo:'Demo' };
+  const badge = document.getElementById('uso-plan-badge');
+  if (badge) badge.textContent = _planLabels[plan] || plan;
   if (limiteIA > 0) {
     const iaRow = document.getElementById('uso-ia-row');
     if (iaRow) iaRow.style.display = '';
