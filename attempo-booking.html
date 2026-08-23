@@ -180,6 +180,7 @@ body::before{
   .horas-grid{grid-template-columns:repeat(3,1fr)}
   .r2{grid-template-columns:1fr}
   .res-price{margin-left:0;width:100%}
+  #biz-lookup-sep,#biz-lookup-panel{display:none!important}
 }
 </style>
 </head>
@@ -229,6 +230,21 @@ body::before{
             <span id="biz-horario-txt"></span>
           </div>
         </div>
+      </div>
+      <div id="biz-lookup-sep" style="width:1px;background:var(--b1);align-self:stretch;flex-shrink:0;margin:0 4px"></div>
+      <div id="biz-lookup-panel" style="flex-shrink:0;width:210px">
+        <div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:3px">¿Ya tienes una cita?</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.4">Ingresa tu email o N° de reserva</div>
+        <div style="display:flex;gap:6px;margin-bottom:0">
+          <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-XXXXX" autocomplete="email"
+            style="flex:1;min-width:0;padding:8px 10px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:#fff;outline:none"
+            onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
+            onkeydown="if(event.key==='Enter')buscarCita()">
+          <button onclick="buscarCita()" id="gc-btn"
+            style="padding:8px 12px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;flex-shrink:0"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Buscar</button>
+        </div>
+        <div id="gc-result" style="margin-top:8px;display:none"></div>
       </div>
     </div>
 
@@ -362,33 +378,23 @@ body::before{
             <a id="cf-mp-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
               Pagar con Mercado Pago →
             </a>
-            <div id="cf-mp-hint" style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">Débito, crédito o saldo MP — pago seguro</div>
           </div>
 
-          <div id="cf-ref-wrap" style="display:none;font-size:11px;color:var(--t3);text-align:center;margin-bottom:10px;letter-spacing:0.3px">
-            N° de reserva: <span id="cf-ref" style="font-family:var(--mono);font-weight:700;color:var(--t2)"></span>
-          </div>
           <div class="c-card">
             <div class="c-row"><b>Servicio</b><span id="cf-svc">—</span></div>
+            <div class="c-row" id="cf-ref-wrap" style="display:none"><b>N° reserva</b><span id="cf-ref" style="font-family:var(--mono);font-weight:600;color:var(--a)"></span></div>
             <div class="c-row"><b>Profesional</b><span id="cf-prof">—</span></div>
             <div class="c-row"><b>Fecha</b><span id="cf-fecha">—</span></div>
             <div class="c-row"><b>Hora</b><span id="cf-hora">—</span></div>
             <div class="c-row" id="cf-precio-row" style="display:none"><b>Total</b><span id="cf-precio" style="color:var(--a);font-weight:700;font-family:var(--mono)">—</span></div>
           </div>
-          <div id="cf-gestionar-wrap" style="display:none;margin-top:12px;text-align:center">
-            <a id="cf-gestionar-btn" href="#" style="font-size:12px;color:var(--a);text-decoration:none;font-weight:600">Cancelar o reagendar esta cita →</a>
-          </div>
-          <div id="cf-calendar-wrap" style="display:none;margin-top:14px;display:none">
+          <div id="cf-calendar-wrap" style="display:none;margin-top:14px">
             <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--t3);margin-bottom:8px;text-align:center">Agregar a tu calendario</div>
-            <div style="display:flex;gap:8px;justify-content:center">
-              <a id="cf-gcal-btn" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);text-decoration:none;transition:all .15s" onmouseover="this.style.borderColor='var(--a)';this.style.color='var(--a)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t2)'">
+            <div style="display:flex;justify-content:center">
+              <a id="cf-gcal-btn" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);text-decoration:none;transition:all .15s" onmouseover="this.style.borderColor='var(--a)';this.style.color='var(--a)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t2)'">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Google Calendar
+                Agregar a Google Calendar
               </a>
-              <button onclick="descargarICS()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-weight:600;color:var(--t2);background:none;cursor:pointer;font-family:var(--font);transition:all .15s" onmouseover="this.style.borderColor='var(--a)';this.style.color='var(--a)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t2)'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Descargar (.ics)
-              </button>
             </div>
           </div>
           <div id="cf-pagos" style="display:none;margin-top:14px;border-top:1px solid var(--b1);padding-top:14px">
@@ -404,23 +410,6 @@ body::before{
 
   </div><!-- /content-wrap -->
 </div><!-- /page -->
-
-<div style="max-width:480px;margin:16px auto 0;padding:0 16px">
-  <div style="background:#fff;border:1px solid var(--b1);border-radius:var(--rx);padding:18px 20px;box-shadow:var(--sh1)">
-    <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px">¿Ya tienes una cita?</div>
-    <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Ingresa tu email o número de reserva (AT-XXXXXXXX)</div>
-    <div style="display:flex;gap:8px">
-      <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-96E98375" autocomplete="email"
-        style="flex:1;padding:10px 12px;border:1.5px solid var(--b2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t1);background:#fff;outline:none"
-        onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
-        onkeydown="if(event.key==='Enter')buscarCita()">
-      <button onclick="buscarCita()" id="gc-btn"
-        style="padding:10px 16px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s"
-        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Buscar</button>
-    </div>
-    <div id="gc-result" style="margin-top:12px;display:none"></div>
-  </div>
-</div>
 
 <footer style="margin-top:auto;border-top:1px solid var(--b1);padding:14px 24px;text-align:center;font-size:11px;color:var(--t4);position:relative;z-index:1">
   Powered by <a href="https://attempo.cl" style="color:var(--a);text-decoration:none">attempo</a> · <a href="/privacidad" style="color:var(--t4);text-decoration:none">Privacidad</a> · <a href="/terminos" style="color:var(--t4);text-decoration:none">Términos</a>
@@ -1014,12 +1003,7 @@ async function confirmar() {
     // Número de reserva visible
     if (data.cita?.id) {
       document.getElementById('cf-ref').textContent = 'AT-' + data.cita.id.slice(0, 8).toUpperCase();
-      document.getElementById('cf-ref-wrap').style.display = 'block';
-    }
-    // Link gestionar cita
-    if (data.cita?.id && data.manage_token) {
-      document.getElementById('cf-gestionar-btn').href = `/gestionar-cita?id=${data.cita.id}&token=${encodeURIComponent(data.manage_token)}`;
-      document.getElementById('cf-gestionar-wrap').style.display = 'block';
+      document.getElementById('cf-ref-wrap').style.display = '';
     }
 
     // Botones de calendario (se ocultan si es flujo solo-MP)
@@ -1077,7 +1061,6 @@ async function confirmar() {
         : 'Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.';
       if (tieneMP) {
         document.getElementById('cf-mp-btn').href = data.mp_url;
-        document.getElementById('cf-mp-hint').textContent = 'Paga ahora y evita llevar efectivo';
         document.getElementById('cf-mp-wrap').style.display = 'block';
       } else {
         document.getElementById('cf-mp-wrap').style.display = 'none';
