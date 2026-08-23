@@ -16489,7 +16489,8 @@ function _doBusq(q) {
 
 function _selBusq(nombre, ini, citaId) {
   closeBusq();
-  if (currentSection !== 'agenda') sv('agenda', document.getElementById('ntab-agenda'));
+  const _agV = document.getElementById('v-agenda');
+  if (_agV && _agV.style.display === 'none') sv('agenda', document.getElementById('ntab-agenda'));
   openFicha(nombre, ini, '', citaId);
 }
 
