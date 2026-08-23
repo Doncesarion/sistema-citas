@@ -1073,7 +1073,7 @@ REGLAS GENERALES:
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            subject: `Tu cita en ${negocioNombre} está confirmada ✓`,
+            subject: `Tu cita en ${negocioNombre} está confirmada`,
             headers: {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'

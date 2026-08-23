@@ -1111,7 +1111,7 @@ ${pdfBlock}
         body: JSON.stringify({
           from: 'Attempo <contacto@attempo.cl>',
           to: [cita.email_paciente],
-          subject: `Tu cita en ${cli?.nombre_negocio || 'la clínica'} está confirmada ✓`,
+          subject: `Tu cita en ${cli?.nombre_negocio || 'la clínica'} está confirmada`,
           html: emailHtml({
             nombre_paciente:   cita.nombre_paciente,
             nombre_especialista: cita.especialistas?.nombre || null,
@@ -1158,7 +1158,7 @@ ${pdfBlock}
       body: JSON.stringify({
         from: 'Attempo <contacto@attempo.cl>',
         to,
-        subject: `Tu cita en ${negocio || 'la clínica'} está confirmada ✓`,
+        subject: `Tu cita en ${negocio || 'la clínica'} está confirmada`,
         html: emailHtml({ nombre_paciente: cliente, nombre_especialista: especialista, fechaFmt: fecha, hora, servicio, negocio_nombre: negocio, duracion, total, metodos_pago, datos_banco })
       })
     });

@@ -337,7 +337,7 @@ export default async function handler(req, res) {
               body: JSON.stringify({
                 from: 'Attempo <contacto@attempo.cl>',
                 to: cita.email_paciente,
-                subject: `Tu cita en ${cliente?.nombre_negocio || 'la clínica'} fue reagendada ✓`,
+                subject: `Tu cita en ${cliente?.nombre_negocio || 'la clínica'} fue reagendada`,
                 headers: {
                   'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
                   'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -691,7 +691,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada ✓`,
+            subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,
             headers: {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -962,7 +962,7 @@ function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, h
   ${logoHdr}
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
-  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Cita reagendada ✓</h2>
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Cita reagendada</h2>
   <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, tu cita fue reagendada exitosamente.</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${ne}</span></td></tr>
