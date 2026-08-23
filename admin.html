@@ -951,6 +951,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .sb-rec-counter{padding:10px 14px 14px;border-top:1px solid var(--b1);flex-shrink:0}
 .sb-rec-btn{margin-top:7px;width:100%;padding:5px 0;font-size:11px;font-weight:600;color:var(--a);background:rgba(108,92,228,0.07);border:1px solid rgba(108,92,228,0.18);border-radius:6px;cursor:pointer;transition:background .15s}
 .sb-rec-btn:hover{background:rgba(108,92,228,0.14)}
+/* Panel uso compacto */
+#sb-uso-panel{padding:10px 14px 12px;border-top:1px solid var(--b1);flex-shrink:0}
+.uso-row{margin-top:6px}
+.uso-row:first-of-type{margin-top:0}
+.uso-row-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.uso-row-lbl{font-size:11px;color:var(--t3)}
+.uso-row-num{font-size:10px;font-family:var(--mono);color:var(--t4)}
+.uso-bar{height:4px;background:var(--b1);border-radius:2px;overflow:hidden}
 #modal-rec-mas{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:600;display:none;align-items:center;justify-content:center;padding:20px}
 #modal-rec-mas .mrm-box{background:#fff;border-radius:16px;padding:28px 28px 24px;max-width:460px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.22)}
 .mrm-title{font-size:17px;font-weight:700;color:var(--t1);margin-bottom:4px}
@@ -1566,39 +1574,32 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <!-- ── CONFIG CONTEXT ── -->
 <div id="sb-config" class="sb-ctx"></div>
 
-<!-- ── CONTADOR MSG IA ── -->
-<div class="sb-msg-counter" id="sb-msg-counter" style="display:none">
-  <div class="sb-msg-counter-label">
-    <span>Mensajes IA este mes</span>
-    <span id="sb-msg-nums">— / —</span>
+<!-- ── PANEL USO MENSUAL COMPACTO ── -->
+<div id="sb-uso-panel" style="display:none">
+  <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Uso del mes</div>
+  <div class="uso-row" id="uso-ia-row" style="display:none">
+    <div class="uso-row-head">
+      <span class="uso-row-lbl">IA</span>
+      <span class="uso-row-num" id="sb-msg-nums">—</span>
+    </div>
+    <div class="uso-bar"><div class="sb-msg-counter-fill" id="sb-msg-fill" style="width:0%"></div></div>
   </div>
-  <div class="sb-msg-counter-bar">
-    <div class="sb-msg-counter-fill" id="sb-msg-fill" style="width:0%"></div>
+  <div class="uso-row" id="uso-rec-row">
+    <div class="uso-row-head">
+      <span class="uso-row-lbl">Recordatorios</span>
+      <span class="uso-row-num" id="sb-rec-nums">—</span>
+    </div>
+    <div class="uso-bar"><div class="sb-msg-counter-fill" id="sb-rec-fill" style="width:0%"></div></div>
+    <button class="sb-rec-btn" id="sb-rec-btn" onclick="abrirModalRecMas()" style="display:none">+ Más recordatorios</button>
   </div>
-</div>
-
-<!-- ── CONTADOR RECORDATORIOS ── -->
-<div class="sb-rec-counter" id="sb-rec-counter" style="display:none">
-  <div class="sb-msg-counter-label">
-    <span>Recordatorios este mes</span>
-    <span id="sb-rec-nums">— / —</span>
+  <div class="uso-row" id="uso-wa-row" style="display:none">
+    <div class="uso-row-head">
+      <span class="uso-row-lbl">WhatsApp</span>
+      <span class="uso-row-num" id="sb-wa-nums">—</span>
+    </div>
+    <div class="uso-bar"><div class="sb-msg-counter-fill" id="sb-wa-fill" style="width:0%"></div></div>
+    <button class="sb-rec-btn" id="sb-wa-btn" onclick="abrirModalWaMas()" style="display:none">+ Más mensajes WA</button>
   </div>
-  <div class="sb-msg-counter-bar">
-    <div class="sb-msg-counter-fill" id="sb-rec-fill" style="width:0%"></div>
-  </div>
-  <button class="sb-rec-btn" id="sb-rec-btn" onclick="abrirModalRecMas()" style="display:none">+ Obtener más recordatorios</button>
-</div>
-
-<!-- ── CONTADOR MENSAJES WA BOT ── -->
-<div class="sb-rec-counter" id="sb-wa-counter" style="display:none">
-  <div class="sb-msg-counter-label">
-    <span>Mensajes WA este mes</span>
-    <span id="sb-wa-nums">— / —</span>
-  </div>
-  <div class="sb-msg-counter-bar">
-    <div class="sb-msg-counter-fill" id="sb-wa-fill" style="width:0%"></div>
-  </div>
-  <button class="sb-rec-btn" id="sb-wa-btn" onclick="abrirModalWaMas()" style="display:none">+ Obtener más mensajes</button>
 </div>
 
 </aside>
@@ -14056,9 +14057,11 @@ async function cargarStatsIA() {
   const limiteIA = PLAN_LIMITE[plan] || 0;
   const limiteRec = REC_LIMITE[plan] || REC_LIMITE.inicio;
 
+  const _usoPanel = document.getElementById('sb-uso-panel');
+  if (_usoPanel) _usoPanel.style.display = '';
   if (limiteIA > 0) {
-    const counter = document.getElementById('sb-msg-counter');
-    if (counter) counter.style.display = 'block';
+    const iaRow = document.getElementById('uso-ia-row');
+    if (iaRow) iaRow.style.display = '';
   }
 
   try {
@@ -14071,7 +14074,8 @@ async function cargarStatsIA() {
     if (limiteIA > 0) {
       _bMsgIaCached = msg_ia_mes;
       const pct = Math.min(100, Math.round((msg_ia_mes / limiteIA) * 100));
-      const numsText = `${msg_ia_mes.toLocaleString('es-CL')} / ${limiteIA.toLocaleString('es-CL')}`;
+      const _fmt = n => n >= 1000 ? (n/1000).toFixed(n%1000===0?0:1).replace('.',',')+'K' : String(n);
+      const numsText = `${_fmt(msg_ia_mes)} / ${_fmt(limiteIA)}`;
       const fillClass = 'sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
       const nums = document.getElementById('sb-msg-nums');
       const fill = document.getElementById('sb-msg-fill');
@@ -14089,12 +14093,11 @@ async function cargarStatsIA() {
     // — Contador Recordatorios —
     const totalLimiteRec = limiteRec + rec_mes_limit_extra + rec_limite_extra_mensual;
     const pctRec = Math.min(100, Math.round((rec_mes_count / totalLimiteRec) * 100));
-    const numsTextRec = `${rec_mes_count.toLocaleString('es-CL')} / ${totalLimiteRec.toLocaleString('es-CL')}`;
+    const _fmtR = n => n >= 1000 ? (n/1000).toFixed(n%1000===0?0:1).replace('.',',')+'K' : String(n);
+    const numsTextRec = `${_fmtR(rec_mes_count)} / ${_fmtR(totalLimiteRec)}`;
     const fillClassRec = 'sb-msg-counter-fill' + (pctRec >= 100 ? ' full' : pctRec >= 80 ? ' warn' : '');
     const mostrarBoton = pctRec >= 80;
 
-    const sbRec = document.getElementById('sb-rec-counter');
-    if (sbRec) sbRec.style.display = 'block';
     const sbRecNums = document.getElementById('sb-rec-nums');
     const sbRecFill = document.getElementById('sb-rec-fill');
     const sbRecBtn  = document.getElementById('sb-rec-btn');
@@ -14122,13 +14125,14 @@ async function cargarStatsIA() {
     const wa_total   = wa_limite + wa_extra;
     if (wa_total > 0) {
       const pctWa      = Math.min(100, Math.round((wa_usados / wa_total) * 100));
-      const numsWa     = `${wa_usados.toLocaleString('es-CL')} / ${wa_total.toLocaleString('es-CL')}`;
+      const _fmtW = n => n >= 1000 ? (n/1000).toFixed(n%1000===0?0:1).replace('.',',')+'K' : String(n);
+      const numsWa     = `${_fmtW(wa_usados)} / ${_fmtW(wa_total)}`;
       const fillWaCls  = 'sb-msg-counter-fill' + (pctWa >= 100 ? ' full' : pctWa >= 80 ? ' warn' : '');
-      const sbWa       = document.getElementById('sb-wa-counter');
       const sbWaNums   = document.getElementById('sb-wa-nums');
       const sbWaFill   = document.getElementById('sb-wa-fill');
       const sbWaBtn    = document.getElementById('sb-wa-btn');
-      if (sbWa)     sbWa.style.display    = 'block';
+      const waRow      = document.getElementById('uso-wa-row');
+      if (waRow)    waRow.style.display   = '';
       if (sbWaNums) sbWaNums.textContent  = numsWa;
       if (sbWaFill) { sbWaFill.style.width = pctWa + '%'; sbWaFill.className = fillWaCls; }
       if (sbWaBtn)  sbWaBtn.style.display = pctWa >= 80 ? '' : 'none';
