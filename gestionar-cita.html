@@ -227,12 +227,12 @@ function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre })
           </div>
           <div class="fb-wrap" id="fb-wrap">
             <div class="fb-title">¿Cómo fue tu experiencia?</div>
-            <div class="fb-stars" id="fb-stars">
-              <button class="star-btn" data-v="1" onclick="selStar(1)">★</button>
-              <button class="star-btn" data-v="2" onclick="selStar(2)">★</button>
-              <button class="star-btn" data-v="3" onclick="selStar(3)">★</button>
-              <button class="star-btn" data-v="4" onclick="selStar(4)">★</button>
-              <button class="star-btn" data-v="5" onclick="selStar(5)">★</button>
+            <div class="fb-stars" id="fb-stars" role="group" aria-label="Calificación">
+              <button class="star-btn" data-v="1" onclick="selStar(1)" aria-label="1 estrella">★</button>
+              <button class="star-btn" data-v="2" onclick="selStar(2)" aria-label="2 estrellas">★</button>
+              <button class="star-btn" data-v="3" onclick="selStar(3)" aria-label="3 estrellas">★</button>
+              <button class="star-btn" data-v="4" onclick="selStar(4)" aria-label="4 estrellas">★</button>
+              <button class="star-btn" data-v="5" onclick="selStar(5)" aria-label="5 estrellas">★</button>
             </div>
             <textarea class="fb-textarea" id="fb-comment" placeholder="Cuéntanos más sobre tu experiencia... (opcional)"></textarea>
             <button class="btn-fb" id="fb-btn" onclick="enviarFeedback()" disabled>Enviar reseña</button>
@@ -256,9 +256,9 @@ function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre })
             <div class="rag-title">Reagendando tu cita</div>
             <div class="rag-subtitle">Fecha actual: ${fechaTexto(cita.fecha)} · ${(cita.hora || '').slice(0,5)} hrs</div>
             <div class="cal-nav">
-              <button class="cal-arr" onclick="prevMes()">‹</button>
-              <span class="cal-month-lbl" id="cal-lbl"></span>
-              <button class="cal-arr" onclick="nextMes()">›</button>
+              <button class="cal-arr" onclick="prevMes()" aria-label="Mes anterior">‹</button>
+              <span class="cal-month-lbl" id="cal-lbl" aria-live="polite"></span>
+              <button class="cal-arr" onclick="nextMes()" aria-label="Mes siguiente">›</button>
             </div>
             <div class="cal-grid" id="cal-grid"></div>
             <div id="slots-wrap" style="display:none">
@@ -324,7 +324,19 @@ function toggleCalendario() {
     btn.textContent = calAbierto ? 'Cerrar calendario' : 'Reagendar cita';
     btn.classList.toggle('open', calAbierto);
   }
-  if (calAbierto) renderCal();
+  if (calAbierto) {
+    renderCal();
+    // Auto-seleccionar primer día disponible (mañana)
+    setTimeout(() => {
+      const prox = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() + 1);
+      calY = prox.getFullYear();
+      calM = prox.getMonth();
+      const iso = `${calY}-${String(calM+1).padStart(2,'0')}-${String(prox.getDate()).padStart(2,'0')}`;
+      renderCal();
+      selDia(iso);
+      document.getElementById('rag-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 160);
+  }
 }
 
 function renderCal() {

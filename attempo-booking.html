@@ -254,12 +254,18 @@ body::before{
     </div><!-- /header-row -->
 
     <!-- STEPS BAR -->
-    <div class="sbar" id="sbar">
-      <div class="sbi active" id="sb1"><div class="sbi-num">1</div><div class="sbi-lbl">Servicio</div></div>
-      <div class="sbi" id="sb2"><div class="sbi-num">2</div><div class="sbi-lbl">Profesional</div></div>
-      <div class="sbi" id="sb3"><div class="sbi-num">3</div><div class="sbi-lbl">Fecha y hora</div></div>
-      <div class="sbi" id="sb4"><div class="sbi-num">4</div><div class="sbi-lbl">Tus datos</div></div>
-      <div class="sbi" id="sb5"><div class="sbi-num">5</div><div class="sbi-lbl">Confirmar</div></div>
+    <nav class="sbar" id="sbar" aria-label="Pasos de la reserva">
+      <div class="sbi active" id="sb1" aria-current="step"><div class="sbi-num" aria-hidden="true">1</div><div class="sbi-lbl">Servicio</div></div>
+      <div class="sbi" id="sb2"><div class="sbi-num" aria-hidden="true">2</div><div class="sbi-lbl">Profesional</div></div>
+      <div class="sbi" id="sb3"><div class="sbi-num" aria-hidden="true">3</div><div class="sbi-lbl">Fecha y hora</div></div>
+      <div class="sbi" id="sb4"><div class="sbi-num" aria-hidden="true">4</div><div class="sbi-lbl">Tus datos</div></div>
+      <div class="sbi" id="sb5"><div class="sbi-num" aria-hidden="true">5</div><div class="sbi-lbl">Confirmar</div></div>
+    </nav>
+
+    <!-- CTA PACIENTE QUE REGRESA -->
+    <div style="text-align:center;margin:-6px 0 14px;font-size:12px;color:var(--t3)">
+      ¿Ya tienes una cita?
+      <button onclick="document.getElementById('gc-email').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>document.getElementById('gc-email').focus(),350)" style="background:none;border:none;color:var(--a);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;padding:0 0 0 2px;text-decoration:underline">Búscala aquí</button>
     </div>
 
     <!-- RESUMEN FLOTANTE -->
@@ -321,9 +327,9 @@ body::before{
       <div class="acc-body">
         <div class="acc-body-pad">
           <div class="cal-nav">
-            <button class="cal-arr" onclick="prevMes()">‹</button>
-            <div class="cal-month-lbl" id="cal-lbl"></div>
-            <button class="cal-arr" onclick="nextMes()">›</button>
+            <button class="cal-arr" onclick="prevMes()" aria-label="Mes anterior">‹</button>
+            <div class="cal-month-lbl" id="cal-lbl" aria-live="polite"></div>
+            <button class="cal-arr" onclick="nextMes()" aria-label="Mes siguiente">›</button>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
           <div id="horas-wrap" style="display:none" class="horas-wrap">
@@ -432,6 +438,7 @@ const DOW_KEY = ['dom','lun','mar','mie','jue','vie','sab'];
 const NOW = new Date();
 let calY = NOW.getFullYear();
 let calM = NOW.getMonth();
+const _citasMes = {};
 
 let clienteId = null;
 let slug = null;
@@ -648,6 +655,46 @@ function minToH(m) {
   return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
 }
 
+async function cargarCitasMes(y, m) {
+  const key = `${y}-${String(m+1).padStart(2,'0')}`;
+  if (key in _citasMes) return;
+  _citasMes[key] = null; // marcador: cargando
+  const p1 = `${y}-${String(m+1).padStart(2,'0')}-01`;
+  const p2 = `${y}-${String(m+1).padStart(2,'0')}-${String(new Date(y, m+1, 0).getDate()).padStart(2,'0')}`;
+  try {
+    const r = await fetch(
+      `${SURL}/rest/v1/citas_disponibilidad?cliente_id=eq.${clienteId}&fecha=gte.${p1}&fecha=lte.${p2}&select=hora,duracion,especialista_id,fecha`,
+      { headers: SH }
+    );
+    const rows = await r.json();
+    const mapa = {};
+    if (Array.isArray(rows)) rows.forEach(c => { if (!mapa[c.fecha]) mapa[c.fecha] = []; mapa[c.fecha].push(c); });
+    _citasMes[key] = mapa;
+  } catch(_) { _citasMes[key] = {}; }
+}
+
+function getSlotsRealesDelDia(y, m, d) {
+  const key = `${y}-${String(m+1).padStart(2,'0')}`;
+  const fechaStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const citasFecha = (_citasMes[key] && typeof _citasMes[key] === 'object') ? (_citasMes[key][fechaStr] || []) : [];
+  const todosSlots = getSlotsDelDia(y, m, d);
+  const dur = st.svc?.duracion || 60;
+  const descanso = parseInt(negocioData?.descanso_minutos) || 0;
+  const hoy = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+  const isToday = new Date(y, m, d).toDateString() === hoy.toDateString();
+  const ahoraMin = isToday ? NOW.getHours() * 60 + NOW.getMinutes() : -1;
+  return todosSlots.filter(s => {
+    if (isToday && hToMin(s.h) <= ahoraMin) return false;
+    const espId = s.espId || 'any';
+    const ini = hToMin(s.h), fin = ini + dur;
+    return !citasFecha.some(c => {
+      if (espId !== 'any' && c.especialista_id && c.especialista_id !== espId) return false;
+      const ci = hToMin(c.hora), cf = ci + (parseInt(c.duracion) || 60) + descanso;
+      return ini < cf && fin > ci;
+    });
+  });
+}
+
 function getEspsActivos() {
   if (!st.prof || st.prof.id === 'any') return especialistas;
   const e = especialistas.find(e => e.id === st.prof.id);
@@ -748,7 +795,7 @@ function renderCal() {
     if (isAvail) cls += ' avail';
     if (isSel)   cls += ' sel';
     const click = isAvail ? `onclick="selDia(${d},${calM},${calY})"` : '';
-    const slotCnt = isAvail ? getSlotsDelDia(calY, calM, d).length : 0;
+    const slotCnt = isAvail ? getSlotsRealesDelDia(calY, calM, d).length : 0;
     html += `<div class="${cls}" ${click}${isAvail ? ` data-slots="${slotCnt}"` : ''}>${d}</div>`;
   }
 
@@ -761,6 +808,14 @@ function renderCal() {
   const limiteMax = new Date(NOW.getFullYear(), NOW.getMonth() + 6, 1);
   if (!html.includes('avail') && new Date(calY, calM, 1) < limiteMax) {
     setTimeout(() => nextMes(), 120);
+  }
+
+  // Cargar disponibilidad real del mes si aún no está en caché
+  const _mesKey = `${calY}-${String(calM+1).padStart(2,'0')}`;
+  if (clienteId && !(_mesKey in _citasMes)) {
+    cargarCitasMes(calY, calM).then(() => {
+      if (`${calY}-${String(calM+1).padStart(2,'0')}` === _mesKey) renderCal();
+    }).catch(() => {});
   }
 }
 
@@ -860,8 +915,9 @@ function openAcc(n) {
   for (let i = 1; i <= 5; i++) {
     const sb = document.getElementById('sb' + i);
     sb.classList.remove('active','done');
+    sb.removeAttribute('aria-current');
     if (i < n) sb.classList.add('done');
-    if (i === n) sb.classList.add('active');
+    if (i === n) { sb.classList.add('active'); sb.setAttribute('aria-current', 'step'); }
   }
   setTimeout(() => document.getElementById('acc' + n).scrollIntoView({ behavior:'smooth', block:'start' }), 100);
 }
@@ -1517,25 +1573,38 @@ async function buscarCita() {
     const mesCrt  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     _gc_citas = data.citas;
     const today = new Date(new Date().toDateString());
-    result.innerHTML = _gc_citas.map((c, i) => {
+    const proximas = [], pasadas = [];
+    _gc_citas.forEach((c, i) => {
       const [y, mo, d] = (c.fecha || '').split('-').map(Number);
-      const fechaCrt = d ? `${diasCrt[new Date(y,mo-1,d).getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
-      const label = `${c.servicio || 'Cita'} · ${fechaCrt} · ${(c.hora||'').slice(0,5)}`;
-      const link  = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
       const isUpcoming = d && new Date(y, mo-1, d) >= today;
-      const estadoColor = c.estado === 'canceled' ? 'var(--red)' : c.estado === 'done' ? 'var(--green)' : 'var(--amber)';
-      const estadoLbl = c.estado === 'canceled' ? 'Cancelada' : c.estado === 'done' ? 'Realizada' : 'Pendiente';
-      return `<div style="background:var(--adim);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;margin-bottom:6px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <div style="font-size:12px;font-weight:600;color:var(--t1)">${label}</div>
-          <span style="font-size:10px;font-weight:600;color:${estadoColor};background:rgba(0,0,0,0.04);padding:2px 7px;border-radius:20px;flex-shrink:0;margin-left:6px">${estadoLbl}</span>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${isUpcoming ? `<a href="${link}" style="padding:5px 11px;background:var(--a);color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">Gestionar →</a>` : ''}
-          <button onclick="rereservarCita(${i})" style="padding:5px 11px;border:1.5px solid var(--b2);border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:var(--a);cursor:pointer;font-family:inherit;transition:all .12s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background='#fff'">↺ Re-reservar igual</button>
-        </div>
-      </div>`;
-    }).join('');
+      (isUpcoming ? proximas : pasadas).push({ c, i, y, mo, d });
+    });
+
+    function renderGrupo(items, titulo) {
+      if (!items.length) return '';
+      const header = `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin:8px 0 6px">${titulo}</div>`;
+      const cards = items.map(({ c, i, y, mo, d }) => {
+        const fechaCrt = d ? `${diasCrt[new Date(y,mo-1,d).getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
+        const label = `${c.servicio || 'Cita'} · ${fechaCrt} · ${(c.hora||'').slice(0,5)}`;
+        const link  = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
+        const estadoColor = c.estado === 'canceled' ? 'var(--red)' : c.estado === 'done' ? 'var(--green)' : 'var(--amber)';
+        const estadoLbl   = c.estado === 'canceled' ? 'Cancelada' : c.estado === 'done' ? 'Realizada' : 'Pendiente';
+        const isUp = d && new Date(y, mo-1, d) >= today;
+        return `<div style="background:var(--adim);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:12px;font-weight:600;color:var(--t1)">${label}</div>
+            <span style="font-size:10px;font-weight:600;color:${estadoColor};padding:2px 7px;border-radius:20px;flex-shrink:0;margin-left:6px">${estadoLbl}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${isUp ? `<a href="${link}" style="padding:5px 11px;background:var(--a);color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">Gestionar →</a>` : ''}
+            <button onclick="rereservarCita(${i})" style="padding:5px 11px;border:1.5px solid var(--b2);border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:var(--a);cursor:pointer;font-family:inherit">↺ Re-reservar</button>
+          </div>
+        </div>`;
+      }).join('');
+      return header + cards;
+    }
+
+    result.innerHTML = renderGrupo(proximas, 'Próximas') + renderGrupo(pasadas, 'Historial');
     result.style.display = 'block';
   } catch(e) {
     result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${e.message}</div>`;
