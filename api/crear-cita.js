@@ -182,7 +182,7 @@ export default async function handler(req, res) {
       try {
         const hace90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
         const r = await fetch(
-          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cid}&fecha=gte.${hace90}&order=fecha.desc&limit=6&select=id,fecha,hora,servicio,estado,especialista_id,nombre_especialista,duracion,precio`,
+          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cid}&fecha=gte.${hace90}&order=fecha.desc&limit=6&select=id,fecha,hora,servicio,estado,especialista_id`,
           { headers: sh }
         );
         const rows = await r.json();
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
           console.error('email-lookup supabase error:', JSON.stringify(rows));
           return res.status(500).json({ error: 'Error al buscar citas' });
         }
-        const citas = rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, especialista_id: c.especialista_id, nombre_especialista: c.nombre_especialista, duracion: c.duracion, precio: c.precio, token: generateManageToken(c.id) }));
+        const citas = rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, especialista_id: c.especialista_id, token: generateManageToken(c.id) }));
         return res.json({ ok: true, citas });
       } catch(e) {
         console.error('email-lookup error:', e.message);
