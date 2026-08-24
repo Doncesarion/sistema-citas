@@ -309,7 +309,13 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .ev-t{background:rgba(13,148,136,0.09);color:#0F766E;border-color:var(--teal)}
 .ev[draggable="true"]{cursor:grab}.ev[draggable="true"]:active{cursor:grabbing}
 .ev.dragging{opacity:.35;pointer-events:none}
-.slot.drag-over{background:rgba(108,92,228,0.1)!important;outline:2px dashed rgba(108,92,228,0.45)}
+.slot.drag-over{background:rgba(108,92,228,0.06)!important}
+.drop-preview{position:absolute;top:4px;left:3px;right:3px;height:44px;border-radius:4px;background:rgba(108,92,228,0.12);border:2px dashed rgba(108,92,228,0.5);color:var(--a);font-size:11px;font-weight:600;padding:4px 7px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Selección masiva */
+.lista-row.sel-mode{cursor:default}
+.lista-row.sel-mode.checked{background:rgba(108,92,228,0.06)}
+#bulk-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid rgba(108,92,228,0.18);padding:10px 20px;display:flex;align-items:center;gap:10px;z-index:600;box-shadow:0 -4px 20px rgba(0,0,0,0.1)}
+@media(max-width:720px){#bulk-bar{padding:10px 14px;bottom:64px}}
 /* Búsqueda rápida */
 .busq-row{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .1s;border-radius:0}
 .busq-row:hover,.busq-row.sel{background:rgba(108,92,228,0.07)}
@@ -1724,6 +1730,10 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
     <div class="ag-right">
       <span class="ag-sync"><span class="ldot"></span>&nbsp;Actualizado ahora</span>
+      <button class="btn-refresh" id="btn-seleccionar" onclick="_toggleSelectMode()" title="Selección masiva">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Seleccionar
+      </button>
       <button class="btn-refresh" onclick="openBusq()" title="Buscar paciente (Cmd+K)" style="gap:5px">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         Buscar
@@ -1843,6 +1853,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   </div><!-- end cv-lista -->
 
 </div><!-- end v-agenda -->
+
+<!-- ── BULK ACTION BAR ── -->
+<div id="bulk-bar">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="bulk-count" style="font-size:13px;font-weight:700;color:var(--t1)">0 seleccionadas</span>
+  <button class="btn-a" style="font-size:12px;padding:6px 12px" onclick="_bulkDone()">✓ Marcar realizadas</button>
+  <button class="btn-r" style="font-size:12px;padding:6px 12px" onclick="_bulkCancel()">✕ Cancelar citas</button>
+  <button class="btn-g" style="font-size:12px;padding:6px 12px;margin-left:auto" onclick="_toggleSelectMode()">Salir</button>
+</div>
 
 <!-- ═══ EDIT PROFESIONAL MODAL ═══ -->
 <!-- ═══ CLIENTES ═══ -->
@@ -4205,10 +4224,22 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     </div>
 
     <!-- Badge de pago: visible siempre que la cita tenga precio -->
-    <div id="fp-pago-badge" style="display:none;margin:0 16px 10px;padding:8px 13px;border-radius:8px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500">
+    <div id="fp-pago-badge" style="display:none;margin:0 16px 6px;padding:8px 13px;border-radius:8px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500">
       <span id="fp-pago-ico" style="font-size:14px">💳</span>
       <span id="fp-pago-txt" style="color:inherit">—</span>
       <span id="fp-pago-monto" style="margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:700">—</span>
+    </div>
+    <!-- Registro de pago manual: mostrado cuando hay precio y no está pagado -->
+    <div id="fp-pago-manual" style="display:none;margin:0 16px 10px;padding:8px 12px;background:var(--surface-hi);border-radius:8px;border:1px solid var(--b1)">
+      <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Registrar pago</div>
+      <div style="display:flex;gap:8px">
+        <select id="fp-pago-metodo-sel" style="flex:1;padding:6px 9px;border:1px solid var(--b2);border-radius:6px;font-size:12px;font-family:var(--font);background:#fff;color:var(--t1)">
+          <option value="efectivo">💵 Efectivo</option>
+          <option value="transferencia">🏦 Transferencia</option>
+          <option value="tarjeta">💳 Tarjeta</option>
+        </select>
+        <button id="fp-pago-manual-btn" onclick="registrarPagoManual()" class="btn-a" style="font-size:12px;padding:6px 12px;flex-shrink:0">✓ Confirmar</button>
+      </div>
     </div>
 
     <div class="fp-tabs" style="justify-content:space-between">
@@ -4931,6 +4962,7 @@ function openFicha(name, initials, rubro, citaId) {
   document.getElementById('fpi-tel').textContent   = d.tel;
   // Reset campos dinámicos
   const _pb = document.getElementById('fp-pago-badge'); if (_pb) _pb.style.display = 'none';
+  const _pm = document.getElementById('fp-pago-manual'); if (_pm) _pm.style.display = 'none';
   ['fpi-proxima','fpi-prof-habitual','fpi-serv-top','fpi-serv-top-sub'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = '…'; });
   const hw = document.getElementById('ft-hist-wrap');
   if (hw) hw.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
@@ -5230,6 +5262,10 @@ async function loadFichaData(nombre) {
     if (_boletaRow) _boletaRow.style.display = _pc?.precio ? 'block' : 'none';
     if (_webpayRow) _webpayRow.style.display = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     if (_mpRow)     _mpRow.style.display     = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
+    // Pago manual: mostrar cuando hay precio, no está pagado, y el método no es online
+    const _pagManual = document.getElementById('fp-pago-manual');
+    const _metOnline = ['webpay','mercadopago','flow'].includes(_pc?.metodo_pago);
+    if (_pagManual) _pagManual.style.display = (_pc?.precio && _pc?.estado_pago !== 'pagado' && !_metOnline) ? '' : 'none';
     const _cancelBtn = document.getElementById('fp-cancelar-btn');
     if (_cancelBtn) _cancelBtn.textContent = window._fichaDetalleCita ? '✕ Cancelar reserva' : '✕ Cancelar próxima cita';
     // Botón "Marcar realizada": visible solo si hay cita activa no completada
@@ -8496,7 +8532,12 @@ function renderLista() {
         const color = EV_COLORS[ev.cls] || 'var(--a)';
         const tagCls = TAG_MAP[ev.cls] || 'tn';
         const tagLbl = TAG_LABEL[ev.cls] || 'Reservada';
-        return `<div class="lista-row" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','','${ev.id||''}')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openFicha('${full}','${ini}','','${ev.id||''}')">Ver opciones →</button></div>`;
+        const cId = ev.id || '';
+        if (_selectMode) {
+          const isChk = _selectedCitas.has(cId);
+          return `<div class="lista-row sel-mode${isChk?' checked':''}" data-id="${cId}" data-prof="${ev.espId||''}" onclick="_toggleSelectCita('${cId}',this)"><input type="checkbox" class="lista-chk" onclick="event.stopPropagation();_toggleSelectCita('${cId}',this.closest('.lista-row'))"${isChk?' checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--a);flex-shrink:0"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span></div>`;
+        }
+        return `<div class="lista-row" data-id="${cId}" data-prof="${ev.espId||''}" onclick="openFicha('${full}','${ini}','','${cId}')"><div class="lista-time">${time}</div><div class="lista-bar" style="background:${color}"></div><div class="lista-body"><div class="lista-name">${full}</div><div class="lista-meta">${time}</div></div><span class="tag ${tagCls}">${tagLbl}</span><button class="btn-sm btn-reagendar" onclick="event.stopPropagation();openFicha('${full}','${ini}','','${cId}')">Ver opciones →</button></div>`;
       }).join('');
       body = `<div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--b1);border-radius:var(--rl);background:var(--b1);box-shadow:var(--sh1)">${rows}</div>`;
     }
@@ -16532,16 +16573,27 @@ function _endDragEv(e) {
 function _slotDragOver(e) {
   if (!window._dragCita) return;
   e.preventDefault();
-  e.currentTarget.classList.add('drag-over');
+  const slot = e.currentTarget;
+  slot.classList.add('drag-over');
+  if (!slot.querySelector('.drop-preview')) {
+    const prev = document.createElement('div');
+    prev.className = 'drop-preview';
+    prev.textContent = window._dragCita.nombre;
+    slot.appendChild(prev);
+  }
 }
 
 function _slotDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
+  const slot = e.currentTarget;
+  slot.classList.remove('drag-over');
+  slot.querySelector('.drop-preview')?.remove();
 }
 
 async function _dropOnSlot(e, fecha, hora) {
   e.preventDefault(); e.stopPropagation();
-  e.currentTarget.classList.remove('drag-over');
+  const slot = e.currentTarget;
+  slot.classList.remove('drag-over');
+  slot.querySelector('.drop-preview')?.remove();
   const dc = window._dragCita;
   window._dragCita = null;
   if (!dc?.id) return;
@@ -16558,6 +16610,104 @@ async function _dropOnSlot(e, fecha, hora) {
     toast(`✓ ${dc.nombre} → ${fmtFecha} ${hora}`);
     cargarCitasSupabase();
   } catch(err) { toastErr('Error al reagendar'); }
+}
+
+// ── SELECCIÓN MASIVA ──────────────────────────────────────────────────────────
+let _selectMode = false;
+let _selectedCitas = new Set();
+
+function _toggleSelectMode() {
+  _selectMode = !_selectMode;
+  _selectedCitas = new Set();
+  const btn = document.getElementById('btn-seleccionar');
+  if (btn) {
+    btn.style.background = _selectMode ? 'var(--adim)' : '';
+    btn.style.color      = _selectMode ? 'var(--a)' : '';
+    btn.style.borderColor= _selectMode ? 'var(--a)' : '';
+  }
+  const bar = document.getElementById('bulk-bar');
+  if (bar) bar.style.display = _selectMode ? 'flex' : 'none';
+  if (currentCalView !== 'lista') setCalView('lista', document.getElementById('vtab-lista'));
+  else renderLista();
+}
+
+function _toggleSelectCita(id, rowEl) {
+  if (!id) return;
+  if (_selectedCitas.has(id)) _selectedCitas.delete(id);
+  else _selectedCitas.add(id);
+  if (rowEl) {
+    rowEl.classList.toggle('checked', _selectedCitas.has(id));
+    const chk = rowEl.querySelector('input[type=checkbox]');
+    if (chk) chk.checked = _selectedCitas.has(id);
+  }
+  const cnt = document.getElementById('bulk-count');
+  if (cnt) cnt.textContent = `${_selectedCitas.size} seleccionada${_selectedCitas.size !== 1 ? 's' : ''}`;
+}
+
+async function _bulkCancel() {
+  if (!_selectedCitas.size) return;
+  if (!confirm(`¿Cancelar ${_selectedCitas.size} cita${_selectedCitas.size!==1?'s':''}? Esta acción no se puede deshacer.`)) return;
+  const ids = [..._selectedCitas];
+  let ok = 0, err = 0;
+  await Promise.all(ids.map(async id => {
+    try {
+      const r = await fetch(`/api/slots?id=${id}`, { method: 'DELETE', headers: _citasH() });
+      if (r.ok) ok++; else err++;
+    } catch { err++; }
+  }));
+  toast(`✓ ${ok} cita${ok!==1?'s':''} cancelada${ok!==1?'s':''}`+(err?` · ${err} error${err!==1?'es':''}`:``));
+  _toggleSelectMode();
+  cargarCitasSupabase();
+}
+
+async function _bulkDone() {
+  if (!_selectedCitas.size) return;
+  const ids = [..._selectedCitas];
+  let ok = 0, err = 0;
+  await Promise.all(ids.map(async id => {
+    try {
+      const r = await fetch(`/api/slots?id=${id}`, {
+        method: 'PATCH',
+        headers: { ..._citasH(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'done' })
+      });
+      if (r.ok) ok++; else err++;
+    } catch { err++; }
+  }));
+  toast(`✓ ${ok} cita${ok!==1?'s':''} marcada${ok!==1?'s':''} como realizadas`+(err?` · ${err} error${err!==1?'es':''}`:``));
+  _toggleSelectMode();
+  cargarCitasSupabase();
+}
+
+// ── PAGO MANUAL ──────────────────────────────────────────────────────────────
+async function registrarPagoManual() {
+  const id = window._fichaDetalleCita?.id || window._fichaProxCitaId;
+  if (!id) { toastErr('No hay cita activa'); return; }
+  const metodo = document.getElementById('fp-pago-metodo-sel')?.value || 'efectivo';
+  const btn = document.getElementById('fp-pago-manual-btn');
+  if (btn) { btn.textContent = 'Guardando…'; btn.disabled = true; }
+  try {
+    const r = await fetch(`/api/slots?id=${id}`, {
+      method: 'PATCH',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado_pago: 'pagado', metodo_pago: metodo })
+    });
+    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'Error');
+    toast('✓ Pago registrado');
+    document.getElementById('fp-pago-manual').style.display = 'none';
+    const badge = document.getElementById('fp-pago-badge');
+    const _icoEl = document.getElementById('fp-pago-ico');
+    const _txtEl = document.getElementById('fp-pago-txt');
+    if (badge) badge.style.cssText = 'display:flex;margin:0 16px 6px;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#10b981';
+    if (_icoEl) _icoEl.textContent = '✅';
+    if (_txtEl) _txtEl.textContent = '✓ Pagado';
+    const _pc = window._fichaDetalleCita;
+    if (_pc) { _pc.estado_pago = 'pagado'; _pc.metodo_pago = metodo; }
+    cargarCitasSupabase();
+  } catch(e) {
+    toastErr('Error al registrar el pago');
+    if (btn) { btn.textContent = '✓ Confirmar'; btn.disabled = false; }
+  }
 }
 </script>
 
