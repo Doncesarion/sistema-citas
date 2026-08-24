@@ -8130,6 +8130,7 @@ function setEstadoReserva(estado) {
 // Vista del calendario
 let currentCalView = 'semana';
 let _calHoras = null; // horas del calendario según horario_negocio
+let _weekScrollInit = false; // true = ya se hizo el scroll inicial, no volver a auto-scrollear
 
 // Navigate mini calendar day → vista Día
 // ── Constantes de navegación ──
@@ -8408,24 +8409,27 @@ function renderWeekBody() {
   }
 
   var calBody = document.querySelector('.cal-body');
-  var prevScroll = calBody ? calBody.scrollTop : -1;
+  var prevScroll = (calBody && _weekScrollInit) ? calBody.scrollTop : null;
 
   body.innerHTML = html;
 
-  // Restaurar scroll previo si el usuario ya había hecho scroll; solo auto-scroll en la primera carga
   if (calBody) {
-    if (prevScroll > 0) {
+    if (prevScroll !== null) {
+      // Restore user's scroll position after re-render
       calBody.scrollTop = prevScroll;
     } else {
+      // First render: auto-scroll to current hour
       var scrollH = (nowH > 1 ? nowH - 1 : 0);
       var scrollIdx = HOURS.findIndex(function(h){ return parseInt(h) >= scrollH; });
       if (scrollIdx < 0) scrollIdx = 0;
       calBody.scrollTop = 52 + scrollIdx * 52;
+      _weekScrollInit = true;
     }
   }
 }
 
 function setCalView(view, btn, skipPush) {
+  if (view !== currentCalView) _weekScrollInit = false;
   currentCalView = view;
 
   // Sidebar vista buttons
