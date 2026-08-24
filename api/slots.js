@@ -521,6 +521,28 @@ export default async function handler(req, res) {
           const err = await r.json().catch(() => ({}));
           return res.status(500).json({ error: `Error al reagendar: ${err?.message || err?.code || r.status}` });
         }
+        // Email de reagendamiento al paciente (asíncrono, no bloquea la respuesta)
+        if (process.env.RESEND_API_KEY) {
+          Promise.all([
+            fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}&select=nombre_paciente,email_paciente,fecha,hora,servicio,especialistas(nombre)&limit=1`, { headers: sh }),
+            fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio&limit=1`, { headers: sh })
+          ]).then(async ([rCita, rCli]) => {
+            const [cita] = await rCita.json().catch(() => []);
+            const [cli]  = await rCli.json().catch(() => []);
+            if (!cita?.email_paciente) return;
+            const he = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const nuevaFecha = patch.fecha || cita.fecha;
+            const nuevaHora  = (patch.hora || cita.hora || '').slice(0,5);
+            const fechaFmt   = new Date(`${nuevaFecha}T12:00:00`).toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+            const negocio    = cli?.nombre_negocio || 'la clínica';
+            const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);"><tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;"><img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p></td></tr><tr><td style="padding:28px 24px;text-align:center;"><h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Tu cita fue reagendada 📅</h2><p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(cita.nombre_paciente)}</strong>, tu hora fue cambiada a una nueva fecha.</p><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">${cita.especialistas?.nombre?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${he(cita.especialistas.nombre)}</span></td></tr>`:''}<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Nueva fecha</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:700;">${he(fechaFmt)}</span></td></tr><tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Nueva hora</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:700;">${he(nuevaHora)}</span></td></tr>${cita.servicio?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Motivo</span><br><span style="color:#2d2d2d;font-size:15px;">${he(cita.servicio)}</span></td></tr>`:''}</table></td></tr><tr><td style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;"><p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a> — Todo a tu tiempo</p></td></tr></table></td></tr></table></body></html>`;
+            fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ from: 'Attempo <contacto@attempo.cl>', to: [cita.email_paciente], subject: `Tu cita en ${negocio} fue reagendada`, html })
+            }).catch(e => console.error('slots reagendar email error:', e.message));
+          }).catch(e => console.error('slots reagendar email fetch error:', e.message));
+        }
         return res.json({ ok: true });
       } catch(e) {
         return res.status(500).json({ error: 'Error interno' });
