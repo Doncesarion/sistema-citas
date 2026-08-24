@@ -203,8 +203,8 @@ async function cargar() {
     const data = await r.json();
     if (!r.ok || !data.cita) { mostrarError(data.error || 'Cita no encontrada.'); return; }
     if (shortId) citaId = data.cita.id; // necesario para los POST (cancelar/reagendar/feedback)
-    // Limpiar la URL: mostrar solo /gc/AT-XXXXXXXX sin el token en el hash
-    if (shortId) history.replaceState(null, '', location.pathname);
+    // Limpiar la URL: mostrar solo /gc/AT-XXXXXXXX sin el token (sea en path o en hash)
+    if (shortId) history.replaceState(null, '', '/gc/' + shortId);
     renderCita(data);
   } catch (e) {
     mostrarError('Error de conexión. Intenta de nuevo.');
