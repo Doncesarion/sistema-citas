@@ -123,7 +123,9 @@ body::before{
 .cal-day.today{background:rgba(108,92,228,0.08);color:var(--a);font-weight:600}
 .cal-day.avail{cursor:pointer;color:var(--t1)}
 .cal-day.avail:hover{background:var(--adim);border-color:var(--b2)}
-.cal-day.avail::after{content:'';width:4px;height:4px;border-radius:50%;background:var(--green);position:absolute;bottom:3px;left:50%;transform:translateX(-50%)}
+.cal-day.avail::after{content:attr(data-slots);font-size:7px;font-weight:700;font-family:var(--mono);color:var(--green);position:absolute;bottom:2px;left:50%;transform:translateX(-50%);line-height:1}
+.cal-day[data-slots="1"]::after,.cal-day[data-slots="2"]::after,.cal-day[data-slots="3"]::after{color:var(--amber)}
+.cal-day.sel::after{color:rgba(255,255,255,0.75)!important}
 .cal-day.sel{background:var(--a)!important;color:#fff!important;border-color:var(--a)!important;box-shadow:0 2px 10px rgba(108,92,228,.35);font-weight:600}
 .cal-day.sel::after{background:#fff!important}
 .horas-wrap{animation:fadeUp .2s ease}
@@ -177,7 +179,7 @@ body::before{
   .lookup-card{width:auto}
   .biz-logo{width:48px;height:48px;font-size:15px}
   .biz-name{font-size:17px}
-  .sbi-lbl{display:none}
+  .sbi-lbl{font-size:8px;overflow:hidden;text-overflow:ellipsis}
   .page{padding:18px 14px 48px}
   .acc-head{padding:15px 16px}
   .acc-body{padding:0 16px 18px}
@@ -434,6 +436,7 @@ let calM = NOW.getMonth();
 let clienteId = null;
 let slug = null;
 let negocioData = null;
+let _gc_citas = [];
 let horarioNegocio = null;
 let especialistas = [];
 let citasDelDia = [];
@@ -745,7 +748,8 @@ function renderCal() {
     if (isAvail) cls += ' avail';
     if (isSel)   cls += ' sel';
     const click = isAvail ? `onclick="selDia(${d},${calM},${calY})"` : '';
-    html += `<div class="${cls}" ${click}>${d}</div>`;
+    const slotCnt = isAvail ? getSlotsDelDia(calY, calM, d).length : 0;
+    html += `<div class="${cls}" ${click}${isAvail ? ` data-slots="${slotCnt}"` : ''}>${d}</div>`;
   }
 
   const total = startDow + lastDay;
@@ -1178,6 +1182,43 @@ function descargarICS() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/* ── RE-RESERVA RÁPIDA ── */
+function rereservarCita(idx) {
+  const c = _gc_citas[idx];
+  if (!c) return;
+
+  document.getElementById('gc-result').style.display = 'none';
+  document.getElementById('gc-email').value = '';
+
+  // Buscar el servicio por nombre
+  const svcRows = document.querySelectorAll('.svc-row');
+  let svcFound = false;
+  svcRows.forEach(row => {
+    try {
+      const data = JSON.parse(row.getAttribute('data-svc'));
+      if (data.nom === c.servicio) { selSvc(row); svcFound = true; }
+    } catch(_) {}
+  });
+  if (!svcFound) { openAcc(1); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+
+  // Buscar el profesional por id
+  setTimeout(() => {
+    const profRows = document.querySelectorAll('.prof-row');
+    let profFound = false;
+    profRows.forEach(row => {
+      try {
+        const data = JSON.parse(row.getAttribute('data-prof'));
+        if (data.id === c.especialista_id) { selProf(row); profFound = true; }
+      } catch(_) {}
+    });
+    if (!profFound) {
+      const anyRow = document.querySelector('.prof-row.any');
+      if (anyRow) selProf(anyRow);
+    }
+    setTimeout(() => openAcc(3), 280);
+  }, 280);
+}
+
 /* ── RESET ── */
 function resetear() {
   Object.assign(st, { svc:null, prof:null, fecha:null, hora:null, _espAsignado:null });
@@ -1474,17 +1515,27 @@ async function buscarCita() {
     const MESES_L = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const diasCrt = ['dom','lun','mar','mié','jue','vie','sáb'];
     const mesCrt  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    const opts = data.citas.map(c => {
+    _gc_citas = data.citas;
+    const today = new Date(new Date().toDateString());
+    result.innerHTML = _gc_citas.map((c, i) => {
       const [y, mo, d] = (c.fecha || '').split('-').map(Number);
       const fechaCrt = d ? `${diasCrt[new Date(y,mo-1,d).getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
       const label = `${c.servicio || 'Cita'} · ${fechaCrt} · ${(c.hora||'').slice(0,5)}`;
       const link  = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
-      return `<option value="${link}">${label}</option>`;
+      const isUpcoming = d && new Date(y, mo-1, d) >= today;
+      const estadoColor = c.estado === 'canceled' ? 'var(--red)' : c.estado === 'done' ? 'var(--green)' : 'var(--amber)';
+      const estadoLbl = c.estado === 'canceled' ? 'Cancelada' : c.estado === 'done' ? 'Realizada' : 'Pendiente';
+      return `<div style="background:var(--adim);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:600;color:var(--t1)">${label}</div>
+          <span style="font-size:10px;font-weight:600;color:${estadoColor};background:rgba(0,0,0,0.04);padding:2px 7px;border-radius:20px;flex-shrink:0;margin-left:6px">${estadoLbl}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${isUpcoming ? `<a href="${link}" style="padding:5px 11px;background:var(--a);color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">Gestionar →</a>` : ''}
+          <button onclick="rereservarCita(${i})" style="padding:5px 11px;border:1.5px solid var(--b2);border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:var(--a);cursor:pointer;font-family:inherit;transition:all .12s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background='#fff'">↺ Re-reservar igual</button>
+        </div>
+      </div>`;
     }).join('');
-    result.innerHTML = `<select onchange="if(this.value)window.location.href=this.value" style="width:100%;padding:9px 10px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:#fff;outline:none;cursor:pointer;appearance:auto">
-      <option value="">Selecciona tu cita…</option>
-      ${opts}
-    </select>`;
     result.style.display = 'block';
   } catch(e) {
     result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${e.message}</div>`;

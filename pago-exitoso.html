@@ -5,76 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pago confirmado — attempo</title>
   <link rel="icon" href="/logo_attempo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Inter, -apple-system, sans-serif;
-      background: #f5f3ff;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --a:#6C5CE4;--a3:#4F3EE0;--adim:rgba(108,92,228,0.08);
+      --bg:#F8F7FF;
+      --t1:#16143A;--t2:#5E5880;--t3:#9C96B4;--t4:#C4C0D8;
+      --green:#16A34A;--red:#DC2626;--amber:#D97706;
+      --b1:rgba(108,92,228,0.08);--b2:rgba(108,92,228,0.18);
+      --sh1:0 4px 24px rgba(108,92,228,0.12),0 1px 4px rgba(108,92,228,0.06);
+      --r:8px;--rl:12px;--rx:16px;
     }
-    .card {
-      background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 8px 40px rgba(108,92,228,0.12);
-      padding: 48px 40px;
-      max-width: 480px;
-      width: 100%;
-      text-align: center;
-    }
-    .logo { margin-bottom: 32px; }
-    .logo img { height: 40px; }
-    .check-circle {
-      width: 72px; height: 72px;
-      background: #ecfdf5;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 24px;
-    }
-    .check-circle svg { color: #10b981; }
-    h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #1a1a2e;
-      margin-bottom: 10px;
-    }
-    p {
-      font-size: 15px;
-      color: #6b7280;
-      line-height: 1.6;
-      margin-bottom: 32px;
-    }
-    .pill {
-      display: inline-block;
-      background: #ede9fe;
-      color: #6C5CE4;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 6px 16px;
-      border-radius: 999px;
-      margin-bottom: 32px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 14px 32px;
-      background: #6C5CE4;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      transition: background .15s;
-    }
-    .btn:hover { background: #5a4bd1; }
-    .footer {
-      margin-top: 32px;
-      font-size: 12px;
-      color: #9ca3af;
-    }
-    .footer a { color: #6C5CE4; text-decoration: none; }
+    html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);color:var(--t1)}
+    body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 20% 10%,rgba(108,92,228,0.07),transparent 70%),radial-gradient(ellipse 40% 50% at 80% 90%,rgba(139,124,248,0.06),transparent 70%)}
+    .card{position:relative;z-index:1;background:#fff;border:1px solid var(--b1);border-radius:var(--rx);box-shadow:var(--sh1);padding:44px 40px 40px;max-width:460px;width:100%;text-align:center}
+    .logo{margin-bottom:28px}
+    .logo img{height:36px;border-radius:8px}
+    .icon-circle{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+    .icon-circle.ok{background:rgba(22,163,74,0.1);border:2px solid rgba(22,163,74,0.22)}
+    .icon-circle.err{background:rgba(220,38,38,0.08);border:2px solid rgba(220,38,38,0.18)}
+    .icon-circle.warn{background:rgba(217,119,6,0.08);border:2px solid rgba(217,119,6,0.2)}
+    h1{font-size:21px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:8px}
+    p{font-size:14px;color:var(--t2);line-height:1.6;margin-bottom:24px}
+    .pill{display:inline-flex;align-items:center;gap:6px;background:var(--adim);color:var(--a);font-size:12px;font-weight:600;padding:6px 14px;border-radius:100px;border:1px solid var(--b2);margin-bottom:28px}
+    .pill.ok{background:rgba(22,163,74,0.08);color:var(--green);border-color:rgba(22,163,74,0.2)}
+    .pill.err{background:rgba(220,38,38,0.07);color:var(--red);border-color:rgba(220,38,38,0.15)}
+    .pill.warn{background:rgba(217,119,6,0.07);color:var(--amber);border-color:rgba(217,119,6,0.18)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 28px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;text-decoration:none;border-radius:var(--r);font-size:14px;font-weight:600;transition:all .15s;box-shadow:0 2px 10px rgba(108,92,228,.28);border:none;cursor:pointer;font-family:'Geist',sans-serif}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(108,92,228,.4)}
+    .btn.secondary{background:#fff;color:var(--t2);border:1.5px solid var(--b1);box-shadow:none}
+    .btn.secondary:hover{border-color:var(--b2);color:var(--t1)}
+    .btn-row{display:flex;flex-direction:column;gap:8px;align-items:center}
+    .footer{margin-top:24px;font-size:12px;color:var(--t4)}
+    .footer a{color:var(--a);text-decoration:none}
+    @media(max-width:480px){.card{padding:32px 24px 28px}}
   </style>
 </head>
 <body>
@@ -83,19 +52,20 @@
       <img src="/logo_attempo.png" alt="attempo">
     </div>
 
-    <div class="check-circle">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <div class="icon-circle ok" id="icon-wrap">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="20 6 9 17 4 12"/>
       </svg>
     </div>
 
-    <h1>¡Pago confirmado!</h1>
-    <p>Tu suscripción a attempo fue activada exitosamente. Ya puedes acceder a todas las funciones de tu plan.</p>
+    <h1 id="main-title">¡Pago confirmado!</h1>
+    <p id="main-desc">Tu suscripción a attempo fue activada exitosamente. Ya puedes acceder a todas las funciones de tu plan.</p>
 
-    <div class="pill" id="plan-pill">Plan mensual activo</div>
+    <div class="pill ok" id="plan-pill">Plan mensual activo ✓</div>
 
-    <br>
-    <a href="/admin" class="btn">Ir al panel de administración</a>
+    <div class="btn-row">
+      <a href="/admin" class="btn" id="main-btn">Ir al panel de administración</a>
+    </div>
 
     <div class="footer">
       <p>¿Tienes dudas? Escríbenos a <a href="mailto:contacto@attempo.cl">contacto@attempo.cl</a></p>
@@ -103,89 +73,93 @@
   </div>
 
   <script>
-    const params = new URLSearchParams(location.search);
-    const tipo = params.get('tipo');
-    const plan = params.get('plan');
+    const params  = new URLSearchParams(location.search);
+    const tipo    = params.get('tipo');
+    const plan    = params.get('plan');
+    history.replaceState(null, '', '/pago-exitoso');
 
-    if (tipo === 'webpay') {
+    const iconWrap = document.getElementById('icon-wrap');
+    const title    = document.getElementById('main-title');
+    const desc     = document.getElementById('main-desc');
+    const pill     = document.getElementById('plan-pill');
+    const btn      = document.getElementById('main-btn');
+
+    function setOk(titleTxt, descTxt, pillTxt) {
+      title.textContent = titleTxt;
+      desc.textContent  = descTxt;
+      pill.textContent  = pillTxt;
+      pill.className    = 'pill ok';
+    }
+
+    function setError(titleTxt, descTxt, pillTxt, isWarn) {
+      iconWrap.className = isWarn ? 'icon-circle warn' : 'icon-circle err';
+      const strokeColor  = isWarn ? '#D97706' : '#DC2626';
+      iconWrap.innerHTML = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+      title.textContent = titleTxt;
+      desc.textContent  = descTxt;
+      pill.textContent  = pillTxt;
+      pill.className    = isWarn ? 'pill warn' : 'pill err';
+      btn.href          = document.referrer || 'https://app.attempo.cl';
+      btn.textContent   = 'Volver';
+      btn.className     = 'btn secondary';
+      const retryBtn = document.createElement('a');
+      retryBtn.href = 'javascript:history.back()';
+      retryBtn.className = 'btn';
+      retryBtn.textContent = 'Volver a intentar';
+      btn.parentNode.insertBefore(retryBtn, btn.nextSibling);
+    }
+
+    if (tipo === 'plan') {
       const resultado = params.get('resultado') || 'error';
-      const iconWrap  = document.querySelector('.check-circle');
-      const h1        = document.querySelector('h1');
-      const p         = document.querySelector('p');
-      const pill      = document.getElementById('plan-pill');
-      const btn       = document.querySelector('.btn');
+      const planLabel = plan === 'anual' ? 'Plan anual activo ✓' : 'Plan mensual activo ✓';
+      if (resultado === 'ok') {
+        setOk('¡Suscripción activada!', 'Tu plan de attempo está activo. Ya puedes acceder a todas las funciones.', planLabel);
+        btn.href = '/admin';
+        btn.textContent = 'Ir al panel de administración';
+      } else if (resultado === 'cancelado') {
+        setError('Pago cancelado', 'Cancelaste el pago en Webpay. Tu suscripción no fue renovada. Escríbenos a contacto@attempo.cl si necesitas ayuda.', 'Pago cancelado', false);
+      } else if (resultado === 'rechazado') {
+        setError('Pago rechazado', 'Tu tarjeta fue rechazada. Intenta con otra tarjeta o contacta a contacto@attempo.cl.', 'Tarjeta rechazada', false);
+      } else if (resultado === 'timeout') {
+        setError('Tiempo agotado', 'La sesión de pago expiró. Por favor solicita un nuevo enlace de pago.', 'Tiempo agotado', true);
+      } else {
+        setError('Error en el pago', 'Ocurrió un error al procesar el pago. Contacta a contacto@attempo.cl.', 'Error de pago', false);
+      }
 
+    } else if (tipo === 'webpay') {
+      const resultado = params.get('resultado') || 'error';
       if (resultado === 'ok') {
         const slug = params.get('slug');
-        h1.textContent   = '¡Pago confirmado!';
-        p.textContent    = 'Tu cita está reservada. Recibirás un correo con los detalles.';
-        pill.textContent = 'Cita confirmada con Webpay ✓';
-        btn.href         = slug ? `https://app.attempo.cl/${slug}` : 'https://attempo.cl';
-        btn.textContent  = slug ? 'Volver al negocio' : 'Volver al inicio';
+        setOk('¡Pago confirmado!', 'Tu cita está reservada. Recibirás un correo con los detalles.', 'Cita confirmada con Webpay ✓');
+        btn.href = slug ? `https://app.attempo.cl/${slug}` : 'https://attempo.cl';
+        btn.textContent = slug ? 'Volver al negocio' : 'Volver al inicio';
+      } else if (resultado === 'cancelado') {
+        setError('Pago cancelado', 'Cancelaste el pago en Webpay. Tu cita NO fue reservada.', 'Pago cancelado', false);
+      } else if (resultado === 'rechazado') {
+        setError('Pago rechazado', 'Tu tarjeta fue rechazada. Intenta con otra tarjeta o método de pago.', 'Tarjeta rechazada', false);
+      } else if (resultado === 'timeout') {
+        setError('Tiempo agotado', 'La sesión de pago expiró. Por favor genera un nuevo enlace de pago.', 'Tiempo agotado', true);
       } else {
-        // Replace green check with red X
-        iconWrap.style.background = '#fef2f2';
-        iconWrap.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-
-        if (resultado === 'cancelado') {
-          h1.textContent   = 'Pago cancelado';
-          p.textContent    = 'Cancelaste el pago en Webpay. Tu cita NO fue reservada.';
-          pill.textContent = 'Pago cancelado';
-          pill.style.background = '#fef2f2';
-          pill.style.color      = '#ef4444';
-        } else if (resultado === 'rechazado') {
-          h1.textContent   = 'Pago rechazado';
-          p.textContent    = 'Tu tarjeta fue rechazada. Intenta con otra tarjeta o método de pago.';
-          pill.textContent = 'Tarjeta rechazada';
-          pill.style.background = '#fef2f2';
-          pill.style.color      = '#ef4444';
-        } else if (resultado === 'timeout') {
-          h1.textContent   = 'Se agotó el tiempo para pagar';
-          p.textContent    = 'La sesión de pago expiró. Por favor genera un nuevo enlace de pago.';
-          pill.textContent = 'Tiempo agotado';
-          pill.style.background = '#fff7ed';
-          pill.style.color      = '#f59e0b';
-        } else {
-          h1.textContent   = 'Error en el pago';
-          p.textContent    = 'Ocurrió un error al procesar el pago. Por favor intenta nuevamente.';
-          pill.textContent = 'Error de pago';
-          pill.style.background = '#fef2f2';
-          pill.style.color      = '#ef4444';
-        }
-
-        btn.href        = document.referrer || 'https://app.attempo.cl';
-        btn.textContent = 'Volver';
-        btn.style.background = '#6b7280';
-
-        // Add secondary "Volver a intentar" button using history.back
-        const retryBtn = document.createElement('a');
-        retryBtn.href    = 'javascript:history.back()';
-        retryBtn.className = 'btn';
-        retryBtn.textContent = 'Volver a intentar';
-        retryBtn.style.cssText = 'display:inline-block;margin-top:12px;background:#005BBB;';
-        btn.parentNode.insertBefore(retryBtn, btn.nextSibling);
+        setError('Error en el pago', 'Ocurrió un error al procesar el pago. Por favor intenta nuevamente.', 'Error de pago', false);
       }
 
     } else if (tipo === 'cita') {
-      document.querySelector('h1').textContent = '¡Pago recibido!';
-      document.querySelector('p').textContent = 'Tu cita está confirmada. Recibirás un correo con los detalles de tu reserva.';
-      document.getElementById('plan-pill').textContent = 'Cita confirmada ✓';
       const slug = params.get('slug');
+      setOk('¡Pago recibido!', 'Tu cita está confirmada. Recibirás un correo con los detalles de tu reserva.', 'Cita confirmada ✓');
       let vueltaHref = 'https://app.attempo.cl';
       if (slug) {
         vueltaHref = `https://app.attempo.cl/${slug}`;
       } else if (document.referrer) {
         try {
           const ref = new URL(document.referrer);
-          if (ref.hostname === 'app.attempo.cl' && ref.pathname.length > 1) {
-            vueltaHref = document.referrer;
-          }
+          if (ref.hostname === 'app.attempo.cl' && ref.pathname.length > 1) vueltaHref = document.referrer;
         } catch {}
       }
-      document.querySelector('.btn').href = vueltaHref;
-      document.querySelector('.btn').textContent = 'Volver al negocio';
+      btn.href = vueltaHref;
+      btn.textContent = 'Volver al negocio';
+
     } else if (plan === 'anual') {
-      document.getElementById('plan-pill').textContent = 'Plan anual activo';
+      pill.textContent = 'Plan anual activo ✓';
     }
   </script>
 </body>

@@ -98,6 +98,18 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 .btn-confirm-rag{width:100%;padding:12px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-confirm-rag:disabled{opacity:.4;cursor:not-allowed}
 
+/* ── FEEDBACK ── */
+.fb-wrap{background:var(--adim);border:1px solid var(--b2);border-radius:var(--rl);padding:18px;margin:16px 0;text-align:center}
+.fb-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:12px}
+.fb-stars{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
+.star-btn{font-size:28px;background:none;border:none;cursor:pointer;color:var(--t4);padding:2px 4px;transition:color .12s,transform .1s;line-height:1}
+.star-btn:hover{color:#F59E0B;transform:scale(1.15)}
+.star-btn.lit{color:#F59E0B}
+.fb-textarea{width:100%;padding:9px 12px;border:1.5px solid var(--b1);border-radius:var(--r);font-size:12px;font-family:'Geist',sans-serif;color:var(--t1);background:#fff;outline:none;resize:vertical;min-height:64px;transition:border-color .12s;margin-bottom:10px}
+.fb-textarea:focus{border-color:var(--a)}
+.btn-fb{width:100%;padding:10px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:opacity .15s}
+.btn-fb:disabled{opacity:.35;cursor:not-allowed}
+
 /* ── MISC ── */
 .msg-ok{text-align:center;padding:36px 20px}
 .msg-icon{font-size:40px;margin-bottom:16px}
@@ -212,8 +224,20 @@ function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre })
           <div class="msg-ok" style="padding:24px 0 4px">
             <div class="msg-icon">✅</div>
             <div class="msg-title" style="font-size:15px">Esta cita ya fue realizada</div>
-            ${booking_slug ? `<a href="/${booking_slug}" class="btn-new">Agendar una nueva cita</a>` : ''}
           </div>
+          <div class="fb-wrap" id="fb-wrap">
+            <div class="fb-title">¿Cómo fue tu experiencia?</div>
+            <div class="fb-stars" id="fb-stars">
+              <button class="star-btn" data-v="1" onclick="selStar(1)">★</button>
+              <button class="star-btn" data-v="2" onclick="selStar(2)">★</button>
+              <button class="star-btn" data-v="3" onclick="selStar(3)">★</button>
+              <button class="star-btn" data-v="4" onclick="selStar(4)">★</button>
+              <button class="star-btn" data-v="5" onclick="selStar(5)">★</button>
+            </div>
+            <textarea class="fb-textarea" id="fb-comment" placeholder="Cuéntanos más sobre tu experiencia... (opcional)"></textarea>
+            <button class="btn-fb" id="fb-btn" onclick="enviarFeedback()" disabled>Enviar reseña</button>
+          </div>
+          ${booking_slug ? `<a href="/${booking_slug}" class="btn-new" style="margin-top:12px">Agendar una nueva cita</a>` : ''}
         ` : `
           <div class="actions">
             ${espId ? `<button class="btn-reagendar" id="btn-rag" onclick="toggleCalendario()">Reagendar cita</button>` : ''}
@@ -441,6 +465,45 @@ async function confirmarReagendado() {
     btn.textContent = 'Confirmar nueva hora';
     btn.disabled = false;
     alert('No se pudo reagendar: ' + e.message);
+  }
+}
+
+/* ── FEEDBACK ── */
+let _fbRating = 0;
+
+function selStar(n) {
+  _fbRating = n;
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.classList.toggle('lit', i < n);
+  });
+  const fbBtn = document.getElementById('fb-btn');
+  if (fbBtn) fbBtn.disabled = false;
+}
+
+async function enviarFeedback() {
+  const btn = document.getElementById('fb-btn');
+  const comentario = (document.getElementById('fb-comment')?.value || '').trim();
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/gestionar-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: citaId, accion: 'feedback', rating: _fbRating, comentario, token: manageToken })
+    });
+    const data = await r.json();
+    const wrap = document.getElementById('fb-wrap');
+    if (wrap) {
+      const estrellas = '★'.repeat(_fbRating) + '☆'.repeat(5 - _fbRating);
+      wrap.innerHTML = `<div style="padding:8px 0">
+        <div style="font-size:20px;color:#F59E0B;margin-bottom:8px">${estrellas}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--green)">¡Gracias por tu reseña!</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:4px">Tu opinión nos ayuda a mejorar.</div>
+      </div>`;
+    }
+  } catch (e) {
+    btn.textContent = 'Enviar reseña';
+    btn.disabled = false;
   }
 }
 

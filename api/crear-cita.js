@@ -259,7 +259,7 @@ export default async function handler(req, res) {
   // ── POST: cancelar o reagendar (gestionar-cita) ───────────────────────────
   if (req.body?.accion) {
     const { id, accion, nueva_fecha, nueva_hora, token } = req.body;
-    if (!id || !['cancelar', 'reagendar'].includes(accion)) return res.status(400).json({ error: 'Acción inválida' });
+    if (!id || !['cancelar', 'reagendar', 'feedback'].includes(accion)) return res.status(400).json({ error: 'Acción inválida' });
 
     const ipGestionar = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
     if (await isGestionRateLimited(ipGestionar)) {
@@ -268,6 +268,42 @@ export default async function handler(req, res) {
 
     if (!verifyManageToken(id, token)) {
       return res.status(401).json({ error: 'Link inválido. Usa el enlace original de tu email de confirmación.' });
+    }
+
+    // ── FEEDBACK ──────────────────────────────────────────────────────────────
+    if (accion === 'feedback') {
+      const { rating, comentario } = req.body;
+      const r = parseInt(rating, 10);
+      if (!r || r < 1 || r > 5) return res.status(400).json({ error: 'Rating inválido' });
+      try {
+        const rc = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&select=nombre_paciente,servicio,fecha,hora,cliente_id&limit=1`, { headers: sh });
+        const [cita] = await rc.json();
+        if (cita?.cliente_id && process.env.RESEND_API_KEY) {
+          const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=email,nombre_negocio&limit=1`, { headers: sh });
+          const [cli] = await rcli.json();
+          if (cli?.email) {
+            const estrellas = '★'.repeat(r) + '☆'.repeat(5 - r);
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: 'Attempo <contacto@attempo.cl>',
+                to: cli.email,
+                subject: `Nueva reseña de ${cita.nombre_paciente || 'paciente'} — ${r}/5 estrellas`,
+                html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+                  <h2 style="color:#16143A;margin-bottom:4px">Nueva reseña recibida</h2>
+                  <p style="color:#9C96B4;font-size:13px;margin-bottom:20px">${cita.nombre_paciente || 'Paciente'} · ${cita.servicio || ''} · ${cita.fecha || ''}</p>
+                  <div style="font-size:32px;margin-bottom:12px">${estrellas}</div>
+                  <div style="font-size:22px;font-weight:700;color:#16143A;margin-bottom:16px">${r}/5 estrellas</div>
+                  ${comentario ? `<div style="background:#F8F7FF;border-left:3px solid #6C5CE4;padding:12px 16px;border-radius:4px;font-size:14px;color:#16143A;font-style:italic">"${htmlEscape(comentario)}"</div>` : ''}
+                  <p style="font-size:12px;color:#9C96B4;margin-top:20px">Desde el panel de gestión puedes ver todas tus reseñas.</p>
+                </div>`
+              })
+            }).catch(() => {});
+          }
+        }
+      } catch (_) {}
+      return res.json({ ok: true });
     }
 
     try {
