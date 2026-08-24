@@ -10445,7 +10445,7 @@ function _updateInsight(citas) {
     const pct = Math.round((citasMes.length - citasAnt.length) / citasAnt.length * 100);
     if (pct >= 20) { message = `Este mes llevas un ${pct}% más de reservas que el mes anterior.`; }
     else if (pct > 0) { message = `Ya llevas ${citasMes.length} reservas este mes, ${pct}% más que el mes anterior.`; }
-    else if (pct < -10) { message = `¿Activaste los recordatorios automáticos? Ayudan a reducir las inasistencias.`; }
+    else if (pct < -10) { message = `__rec__`; }
   }
 
   if (!message) {
@@ -10455,7 +10455,11 @@ function _updateInsight(citas) {
     else { card.style.display = 'none'; return; }
   }
 
-  msg.textContent  = message;
+  if (message === '__rec__') {
+    msg.innerHTML = `¿Activaste los recordatorios automáticos? Ayudan a reducir las inasistencias. <a href="#" style="color:var(--a);font-weight:600;text-decoration:none" onclick="event.preventDefault();sv('bandeja',document.getElementById('ntab-bandeja'));showBandejaTab('recordatorios',document.getElementById('bsectab-recordatorios'))">Configurar ahora →</a>`;
+  } else {
+    msg.textContent = message;
+  }
   card.style.display = 'block';
 }
 
