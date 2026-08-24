@@ -32,7 +32,7 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 .card{background:#fff;border:1px solid var(--b1);border-radius:var(--rx);box-shadow:var(--sh1);overflow:hidden}
 .card-head{padding:24px 28px 16px;text-align:center}
 .card-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:8px}
-.card-ref{font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:6px;letter-spacing:.02em}
+.card-ref{font-size:12px;color:var(--t2);font-family:var(--mono);font-weight:600;margin-top:8px;letter-spacing:.04em}
 .card-body{padding:20px 28px 28px}
 .info-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--b1)}
 .info-row:last-child{border-bottom:none}
@@ -151,9 +151,20 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 </div>
 
 <script>
-const params = new URLSearchParams(location.search);
-const citaId = params.get('id');
-const manageToken = params.get('token') || '';
+// Soporte para URL corta (/gc/AT-XXXXXXXX/token) y URL legacy (?id=UUID&token=TOKEN)
+const _pathParts = location.pathname.split('/').filter(Boolean);
+let shortId    = null;
+let citaId     = null;
+let manageToken = '';
+
+if (_pathParts[0] === 'gc' && _pathParts[1] && _pathParts[2]) {
+  shortId     = _pathParts[1]; // "AT-6A2B2FFF"
+  manageToken = _pathParts[2];
+} else {
+  const _params = new URLSearchParams(location.search);
+  citaId       = _params.get('id');
+  manageToken  = _params.get('token') || '';
+}
 
 const MESES     = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESES_CAP = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -182,11 +193,15 @@ function fechaTexto(iso) {
 
 /* ── CARGAR CITA ── */
 async function cargar() {
-  if (!citaId) { mostrarError('No se encontró el identificador de la cita.'); return; }
+  if (!citaId && !shortId) { mostrarError('No se encontró el identificador de la cita.'); return; }
   try {
-    const r = await fetch(`/api/gestionar-cita?id=${encodeURIComponent(citaId)}&t=${encodeURIComponent(manageToken)}`);
+    const url = shortId
+      ? `/api/gestionar-cita?short=${encodeURIComponent(shortId)}&t=${encodeURIComponent(manageToken)}`
+      : `/api/gestionar-cita?id=${encodeURIComponent(citaId)}&t=${encodeURIComponent(manageToken)}`;
+    const r = await fetch(url);
     const data = await r.json();
     if (!r.ok || !data.cita) { mostrarError(data.error || 'Cita no encontrada.'); return; }
+    if (shortId) citaId = data.cita.id; // necesario para los POST (cancelar/reagendar/feedback)
     renderCita(data);
   } catch (e) {
     mostrarError('Error de conexión. Intenta de nuevo.');

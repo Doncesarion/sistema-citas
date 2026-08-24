@@ -1242,7 +1242,8 @@ function _gcSelCita(idx) {
   const today = new Date(new Date().toDateString());
   const [y, mo, d] = (c.fecha || '').split('-').map(Number);
   const isUp = d && new Date(y, mo-1, d) >= today;
-  const link = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
+  const _sid = c.id.replace(/-/g,'').slice(0,8).toUpperCase();
+  const link = `/gc/AT-${_sid}/${c.token}`;
   actions.style.display = 'flex';
   actions.innerHTML = isUp
     ? `<a href="${link}" style="display:block;width:100%;padding:8px;background:var(--a);color:#fff;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;text-align:center">Gestionar</a>`

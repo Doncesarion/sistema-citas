@@ -42,9 +42,14 @@ function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
   const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
-  const expB36 = expire.toString(36); // base36 más corto que decimal
+  const expB36 = expire.toString(36);
   const hmac   = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('base64url');
-  return expB36 + '.' + hmac; // ~50 chars vs ~77 del formato anterior
+  return expB36 + '.' + hmac;
+}
+
+function manageShortUrl(cita_id) {
+  const shortId = cita_id.replace(/-/g, '').slice(0, 8).toUpperCase();
+  return `${BASE_URL}/gc/AT-${shortId}/${generateManageToken(cita_id)}`;
 }
 
 function verifyManageToken(cita_id, token) {
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
 
   // ── GET: consultar datos de una cita (gestionar-cita) ─────────────────────
   if (req.method === 'GET') {
-    const { id, t, email, cid } = req.query;
+    const { id, t, email, cid, short } = req.query;
 
     // Lookup por email: paciente busca sus citas próximas en la página de reserva
     if (email && cid) {
@@ -233,6 +238,33 @@ export default async function handler(req, res) {
         return res.json({ ok: true, citas });
       } catch(e) {
         return res.status(500).json({ error: 'Error al buscar cita' });
+      }
+    }
+
+    // Gestionar vía URL corta: /gc/AT-XXXXXXXX/token
+    if (short && t) {
+      const hex = short.toUpperCase().startsWith('AT-') ? short.slice(3).toLowerCase() : short.toLowerCase();
+      if (!/^[0-9a-f]{8}$/.test(hex)) return res.status(400).json({ error: 'Referencia inválida' });
+      try {
+        const lo = `${hex}-0000-0000-0000-000000000000`;
+        const hi = `${hex}-ffff-ffff-ffff-ffffffffffff`;
+        const rs = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=gte.${lo}&id=lte.${hi}&select=*&limit=1`, { headers: sh });
+        const rows = await rs.json();
+        if (!Array.isArray(rows) || !rows[0]) return res.status(404).json({ error: 'Cita no encontrada' });
+        const cita = rows[0];
+        if (!verifyManageToken(cita.id, t)) return res.status(403).json({ error: 'Acceso no autorizado' });
+        let nombre_especialista = null;
+        if (cita.especialista_id) {
+          const re = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${cita.especialista_id}&select=nombre&limit=1`, { headers: sh });
+          const [esp] = await re.json();
+          nombre_especialista = esp?.nombre || null;
+        }
+        const rcs = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh });
+        const [cliente] = await rcs.json();
+        return res.json({ cita, nombre_especialista, booking_slug: cliente?.booking_slug || null, negocio_nombre: cliente?.nombre_negocio || null });
+      } catch(e) {
+        console.error('gestionar-cita short GET error:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
       }
     }
 
@@ -651,7 +683,7 @@ export default async function handler(req, res) {
     if (generarMP) {
       try {
         let mpToken = metodos_pago.mp_access_token;
-        const manageLink = `${BASE_URL}/gestionar-cita?id=${cita.id}&token=${generateManageToken(cita.id)}`;
+        const manageLink = manageShortUrl(cita.id);
         const prefBody = {
           items: [{ title: `${servicio || 'Cita'} — ${negocio_nombre || ''}`.slice(0, 255), quantity: 1, unit_price: precioNum, currency_id: 'CLP' }],
           payer: email_paciente ? { email: email_paciente } : undefined,
@@ -770,7 +802,7 @@ export default async function handler(req, res) {
       }).catch(e => console.error('crear-cita: patch confirmed error:', e.message));
     }
 
-    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, mp_url, solo_mp: soloMP, mp_error, manage_token: cita?.id ? generateManageToken(cita.id) : null });
+    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, mp_url, solo_mp: soloMP, mp_error, manage_token: cita?.id ? generateManageToken(cita.id) : null, manage_url: cita?.id ? manageShortUrl(cita.id) : null });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });
@@ -980,7 +1012,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     </td></tr>
   </table>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">
-    ¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}&token=${generateManageToken(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
+    ¿Necesitas cambios? <a href="${manageShortUrl(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
   </p>
   ${en ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${en}" style="color:#6C5CE4;text-decoration:none;">${en}</a></p>` : ''}
 </td></tr>
