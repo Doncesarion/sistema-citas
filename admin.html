@@ -307,10 +307,12 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .ev-r{background:rgba(220,38,38,0.08);color:#B91C1C;border-color:var(--red)}
 .ev-b{background:rgba(37,99,235,0.09);color:#1D4ED8;border-color:var(--blue)}
 .ev-t{background:rgba(13,148,136,0.09);color:#0F766E;border-color:var(--teal)}
-.ev[draggable="true"]{cursor:grab;user-select:none;-webkit-user-drag:element}.ev[draggable="true"]:active{cursor:grabbing}
-.ev.dragging{opacity:.35;pointer-events:none}
-.slot.drag-over{background:rgba(108,92,228,0.06)!important}
+.ev[data-cid]{cursor:grab;user-select:none}
+.ev.dragging{opacity:.3;pointer-events:none}
+.slot.drag-over{background:rgba(108,92,228,0.08)!important}
 .drop-preview{position:absolute;top:4px;left:3px;right:3px;height:44px;border-radius:4px;background:rgba(108,92,228,0.12);border:2px dashed rgba(108,92,228,0.5);color:var(--a);font-size:11px;font-weight:600;padding:4px 7px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#drag-ghost{position:fixed;pointer-events:none;z-index:9999;padding:5px 9px;border-radius:6px;background:#fff;border:2px solid var(--a);color:var(--a);font-size:11px;font-weight:700;box-shadow:0 8px 24px rgba(108,92,228,0.3);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;display:none}
+body.is-dragging,body.is-dragging *{cursor:grabbing!important;user-select:none!important}
 /* Selección masiva */
 .lista-row.sel-mode{cursor:default}
 .lista-row.sel-mode.checked{background:rgba(108,92,228,0.06)}
@@ -8387,7 +8389,7 @@ function renderWeekBody() {
         var hEnd  = (slotH + 1 < 10 ? '0' : '') + (slotH + 1) + ':00';
         var posStyle = nEvs === 1 ? 'left:3px;right:3px' : 'left:calc(' + (ev * 100 / nEvs) + '% + 2px);right:calc(' + ((nEvs - ev - 1) * 100 / nEvs) + '% + 2px)';
         var _cId = (cur.id||'');
-        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" data-cid="' + _cId + '" draggable="true"' +
+        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" data-cid="' + _cId + '"' +
                   ' style="position:absolute;top:4px;' + posStyle + ';height:44px"' +
                   ' onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + _cId + '\')">' +
                   '<div class="evn">' + full + '</div>' +
@@ -16550,82 +16552,102 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeBusq();
 });
 
-// ── DRAG-AND-DROP REAGENDAMIENTO (delegación en document) ────────────────────
-window._dragCita = null;
+// ── REAGENDAMIENTO CON MOUSE (mousedown/mousemove/mouseup) ───────────────────
+// Usamos mouse events en vez de HTML5 DnD — son 100% confiables en todos los navegadores
+var _drag = null;
+var _DRAG_PX = 6; // píxeles mínimos para iniciar drag
 
-document.addEventListener('dragstart', function(e) {
+document.addEventListener('mousedown', function(e) {
+  if (e.button !== 0) return;
   var el = e.target.closest && e.target.closest('.ev[data-cid]');
   if (!el) return;
   var citaId = el.dataset.cid;
   if (!citaId) return;
   var cita = (window._calCitaById || {})[citaId];
-  window._dragCita = {
+  _drag = {
     id: citaId,
     nombre: cita ? cita.nombre_paciente : '—',
     fecha: cita ? cita.fecha : '',
-    hora: cita ? (cita.hora||'').slice(0,5) : ''
+    hora:  cita ? (cita.hora||'').slice(0,5) : '',
+    sx: e.clientX, sy: e.clientY,
+    started: false,
+    el: el
   };
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', citaId);
-  el.classList.add('dragging');
 });
 
-document.addEventListener('dragend', function(e) {
-  var el = e.target.closest && e.target.closest('.ev[data-cid]');
-  if (el) el.classList.remove('dragging');
+document.addEventListener('mousemove', function(e) {
+  if (!_drag) return;
+  if (!_drag.started) {
+    if (Math.abs(e.clientX - _drag.sx) < _DRAG_PX && Math.abs(e.clientY - _drag.sy) < _DRAG_PX) return;
+    _drag.started = true;
+    _drag.el.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+    var g = document.getElementById('drag-ghost') || document.createElement('div');
+    g.id = 'drag-ghost';
+    g.textContent = _drag.nombre;
+    document.body.appendChild(g);
+  }
+  var g = document.getElementById('drag-ghost');
+  if (g) { g.style.display = 'block'; g.style.left = (e.clientX + 14) + 'px'; g.style.top = (e.clientY - 16) + 'px'; }
+  // Resaltar slot bajo el cursor
+  _highlightSlotAt(e.clientX, e.clientY);
+});
+
+window.addEventListener('mouseup', function(e) {
+  if (!_drag) return;
+  var drag = _drag;
+  _drag = null;
+  drag.el.classList.remove('dragging');
+  document.body.classList.remove('is-dragging');
+  var g = document.getElementById('drag-ghost');
+  if (g) g.remove();
   document.querySelectorAll('.slot.drag-over').forEach(function(s) {
     s.classList.remove('drag-over');
     var p = s.querySelector('.drop-preview'); if (p) p.remove();
   });
-});
-
-document.addEventListener('dragover', function(e) {
-  var slot = e.target.closest && e.target.closest('.slot[data-fecha]');
-  if (!slot || !window._dragCita) return;
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  slot.classList.add('drag-over');
-  if (!slot.querySelector('.drop-preview')) {
-    var prev = document.createElement('div');
-    prev.className = 'drop-preview';
-    prev.textContent = window._dragCita.nombre;
-    slot.appendChild(prev);
-  }
-});
-
-document.addEventListener('dragleave', function(e) {
-  var slot = e.target.closest && e.target.closest('.slot[data-fecha]');
+  if (!drag.started || !drag.id) return;
+  var slot = _slotFromPoint(e.clientX, e.clientY);
   if (!slot) return;
-  if (slot.contains(e.relatedTarget)) return;
-  slot.classList.remove('drag-over');
-  var p = slot.querySelector('.drop-preview'); if (p) p.remove();
-});
-
-document.addEventListener('drop', function(e) {
-  var slot = e.target.closest && e.target.closest('.slot[data-fecha]');
-  if (!slot) return;
-  e.preventDefault();
-  e.stopPropagation();
-  slot.classList.remove('drag-over');
-  var p = slot.querySelector('.drop-preview'); if (p) p.remove();
-  var dc = window._dragCita;
-  window._dragCita = null;
-  if (!dc || !dc.id) return;
   var fecha = slot.dataset.fecha;
   var hora  = slot.dataset.hora;
-  if (dc.fecha === fecha && dc.hora === hora) return;
+  if (drag.fecha === fecha && drag.hora === hora) return;
   var fmtFecha = new Date(fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
-  if (!confirm('¿Mover la cita de ' + dc.nombre + ' al ' + fmtFecha + ' a las ' + hora + '?')) return;
-  fetch('/api/slots?id=' + dc.id, {
+  if (!confirm('¿Mover la cita de ' + drag.nombre + ' al ' + fmtFecha + ' a las ' + hora + '?')) return;
+  fetch('/api/slots?id=' + drag.id, {
     method: 'PATCH',
     headers: Object.assign({}, _citasH(), {'Content-Type':'application/json'}),
     body: JSON.stringify({ fecha: fecha, hora: hora })
   }).then(function(r) {
     if (!r.ok) return r.json().catch(function(){return{};}).then(function(d){ toastErr(d.error || 'No se pudo reagendar'); });
-    toast('✓ ' + dc.nombre + ' → ' + fmtFecha + ' ' + hora);
+    toast('✓ ' + drag.nombre + ' → ' + fmtFecha + ' ' + hora);
     cargarCitasSupabase();
   }).catch(function() { toastErr('Error al reagendar'); });
 });
+
+function _slotFromPoint(x, y) {
+  var g = document.getElementById('drag-ghost');
+  if (g) g.style.display = 'none';
+  var el = document.elementFromPoint(x, y);
+  if (g) g.style.display = 'block';
+  return el && el.closest && el.closest('.slot[data-fecha]');
+}
+
+function _highlightSlotAt(x, y) {
+  var slot = _slotFromPoint(x, y);
+  document.querySelectorAll('.slot.drag-over').forEach(function(s) {
+    if (s === slot) return;
+    s.classList.remove('drag-over');
+    var p = s.querySelector('.drop-preview'); if (p) p.remove();
+  });
+  if (!slot) return;
+  slot.classList.add('drag-over');
+  if (!slot.querySelector('.drop-preview')) {
+    var prev = document.createElement('div');
+    prev.className = 'drop-preview';
+    prev.textContent = _drag ? _drag.nombre : '';
+    slot.appendChild(prev);
+  }
+}
 
 // ── SELECCIÓN MASIVA ──────────────────────────────────────────────────────────
 let _selectMode = false;
