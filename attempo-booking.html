@@ -1232,6 +1232,23 @@ function descargarICS() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/* ── SELECTOR DE CITA ── */
+function _gcSelCita(idx) {
+  const actions = document.getElementById('gc-actions');
+  if (!actions) return;
+  if (idx === '') { actions.style.display = 'none'; return; }
+  const c = _gc_citas[parseInt(idx)];
+  if (!c) return;
+  const today = new Date(new Date().toDateString());
+  const [y, mo, d] = (c.fecha || '').split('-').map(Number);
+  const isUp = d && new Date(y, mo-1, d) >= today;
+  const link = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
+  actions.style.display = 'flex';
+  actions.innerHTML =
+    (isUp ? `<a href="${link}" style="flex:1;padding:8px;background:var(--a);color:#fff;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;text-align:center">Gestionar →</a>` : '') +
+    `<button onclick="rereservarCita(${idx})" style="flex:1;padding:8px;border:1.5px solid var(--b2);border-radius:7px;background:#fff;font-size:12px;font-weight:600;color:var(--a);cursor:pointer;font-family:inherit">↺ Re-reservar</button>`;
+}
+
 /* ── RE-RESERVA RÁPIDA ── */
 function rereservarCita(idx) {
   const c = _gc_citas[idx];
@@ -1567,38 +1584,20 @@ async function buscarCita() {
     const mesCrt  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     _gc_citas = data.citas;
     const today = new Date(new Date().toDateString());
-    const proximas = [], pasadas = [];
-    _gc_citas.forEach((c, i) => {
+    const opts = _gc_citas.map((c, i) => {
       const [y, mo, d] = (c.fecha || '').split('-').map(Number);
-      const isUpcoming = d && new Date(y, mo-1, d) >= today;
-      (isUpcoming ? proximas : pasadas).push({ c, i, y, mo, d });
-    });
-
-    function renderGrupo(items, titulo) {
-      if (!items.length) return '';
-      const header = `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin:8px 0 6px">${titulo}</div>`;
-      const cards = items.map(({ c, i, y, mo, d }) => {
-        const fechaCrt = d ? `${diasCrt[new Date(y,mo-1,d).getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
-        const label = `${c.servicio || 'Cita'} · ${fechaCrt} · ${(c.hora||'').slice(0,5)}`;
-        const link  = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
-        const estadoColor = c.estado === 'canceled' ? 'var(--red)' : c.estado === 'done' ? 'var(--green)' : 'var(--amber)';
-        const estadoLbl   = c.estado === 'canceled' ? 'Cancelada' : c.estado === 'done' ? 'Realizada' : 'Pendiente';
-        const isUp = d && new Date(y, mo-1, d) >= today;
-        return `<div style="background:var(--adim);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;margin-bottom:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div style="font-size:12px;font-weight:600;color:var(--t1)">${label}</div>
-            <span style="font-size:10px;font-weight:600;color:${estadoColor};padding:2px 7px;border-radius:20px;flex-shrink:0;margin-left:6px">${estadoLbl}</span>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${isUp ? `<a href="${link}" style="padding:5px 11px;background:var(--a);color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">Gestionar →</a>` : ''}
-            <button onclick="rereservarCita(${i})" style="padding:5px 11px;border:1.5px solid var(--b2);border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:var(--a);cursor:pointer;font-family:inherit">↺ Re-reservar</button>
-          </div>
-        </div>`;
-      }).join('');
-      return header + cards;
-    }
-
-    result.innerHTML = renderGrupo(proximas, 'Próximas') + renderGrupo(pasadas, 'Historial');
+      const fechaCrt = d ? `${diasCrt[new Date(y,mo-1,d).getDay()]} ${d} ${mesCrt[mo-1]}` : c.fecha;
+      const isUp = d && new Date(y, mo-1, d) >= today;
+      const estadoLbl = c.estado === 'canceled' ? ' · Cancelada' : c.estado === 'done' ? ' · Realizada' : '';
+      const grupo = isUp ? 'Próximas' : 'Historial';
+      return `<option value="${i}" data-grupo="${grupo}">${c.servicio || 'Cita'} · ${fechaCrt} · ${(c.hora||'').slice(0,5)}${estadoLbl}</option>`;
+    }).join('');
+    result.innerHTML = `
+      <select id="gc-select" onchange="_gcSelCita(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:#fff;outline:none;cursor:pointer;appearance:auto;margin-bottom:8px">
+        <option value="">Selecciona tu cita…</option>
+        ${opts}
+      </select>
+      <div id="gc-actions" style="display:none;gap:6px;flex-wrap:wrap"></div>`;
     result.style.display = 'block';
   } catch(e) {
     result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${e.message}</div>`;
