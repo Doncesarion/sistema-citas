@@ -30,8 +30,9 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 
 /* ── CARD ── */
 .card{background:#fff;border:1px solid var(--b1);border-radius:var(--rx);box-shadow:var(--sh1);overflow:hidden}
-.card-head{padding:24px 28px 0}
-.card-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:6px}
+.card-head{padding:24px 28px 16px;text-align:center}
+.card-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:8px}
+.card-ref{font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:6px;letter-spacing:.02em}
 .card-body{padding:20px 28px 28px}
 .info-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--b1)}
 .info-row:last-child{border-bottom:none}
@@ -206,6 +207,7 @@ function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre })
       <div class="card-head">
         <div class="card-title">Tu cita</div>
         ${estadoBadge(cita.estado)}
+        <div class="card-ref">N° AT-${cita.id.slice(0,8).toUpperCase()}</div>
       </div>
       <div class="card-body">
         <div class="info-row"><span class="info-lbl">Servicio</span><span class="info-val">${cita.servicio || '—'}</span></div>

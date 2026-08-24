@@ -41,9 +41,10 @@ function flowSign(params, secret) {
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
-  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600; // 30 días
-  const hmac = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
-  return expire + '.' + hmac;
+  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+  const expB36 = expire.toString(36); // base36 más corto que decimal
+  const hmac   = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('base64url');
+  return expB36 + '.' + hmac; // ~50 chars vs ~77 del formato anterior
 }
 
 function verifyManageToken(cita_id, token) {
@@ -52,16 +53,28 @@ function verifyManageToken(cita_id, token) {
   if (!token || typeof token !== 'string') return false;
   const dotIdx = token.indexOf('.');
   if (dotIdx === -1) return false;
-  const expire = parseInt(token.slice(0, dotIdx), 10);
-  const hmac = token.slice(dotIdx + 1);
-  if (isNaN(expire) || hmac.length !== 64) return false;
-  if (Math.floor(Date.now() / 1000) > expire) return false; // token expirado
-  const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
-  try {
-    return crypto.timingSafeEqual(Buffer.from(hmac, 'hex'), Buffer.from(expected, 'hex'));
-  } catch {
-    return false;
+  const expStr = token.slice(0, dotIdx);
+  const sig    = token.slice(dotIdx + 1);
+  const now    = Math.floor(Date.now() / 1000);
+
+  if (sig.length === 64) {
+    // Formato antiguo: timestamp decimal + HMAC hex (compatibilidad con links ya enviados)
+    const expire = parseInt(expStr, 10);
+    if (isNaN(expire) || now > expire) return false;
+    const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
+    try { return crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex')); }
+    catch { return false; }
   }
+
+  // Formato nuevo: timestamp base36 + HMAC base64url
+  const expire = parseInt(expStr, 36);
+  if (isNaN(expire) || now > expire) return false;
+  const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('base64url');
+  try {
+    const b1 = Buffer.from(sig, 'base64'), b2 = Buffer.from(expected, 'base64');
+    if (b1.length !== b2.length) return false;
+    return crypto.timingSafeEqual(b1, b2);
+  } catch { return false; }
 }
 
 // Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
