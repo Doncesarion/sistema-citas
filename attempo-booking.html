@@ -1244,9 +1244,9 @@ function _gcSelCita(idx) {
   const isUp = d && new Date(y, mo-1, d) >= today;
   const link = `/gestionar-cita?id=${encodeURIComponent(c.id)}&token=${encodeURIComponent(c.token)}`;
   actions.style.display = 'flex';
-  actions.innerHTML =
-    (isUp ? `<a href="${link}" style="flex:1;padding:8px;background:var(--a);color:#fff;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;text-align:center">Gestionar</a>` : '') +
-    `<button onclick="rereservarCita(${idx})" style="flex:1;padding:8px;border:1.5px solid var(--b2);border-radius:7px;background:#fff;font-size:12px;font-weight:600;color:var(--a);cursor:pointer;font-family:inherit">Agendar de nuevo</button>`;
+  actions.innerHTML = isUp
+    ? `<a href="${link}" style="display:block;width:100%;padding:8px;background:var(--a);color:#fff;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;text-align:center">Gestionar</a>`
+    : `<span style="font-size:12px;color:var(--t3)">Esta cita ya fue realizada.</span>`;
 }
 
 /* ── RE-RESERVA RÁPIDA ── */
