@@ -313,6 +313,8 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .drop-preview{position:absolute;top:4px;left:3px;right:3px;height:44px;border-radius:4px;background:rgba(108,92,228,0.12);border:2px dashed rgba(108,92,228,0.5);color:var(--a);font-size:11px;font-weight:600;padding:4px 7px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #drag-ghost{position:fixed;pointer-events:none;z-index:9999;padding:5px 9px;border-radius:6px;background:#fff;border:2px solid var(--a);color:var(--a);font-size:11px;font-weight:700;box-shadow:0 8px 24px rgba(108,92,228,0.3);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;display:none}
 body.is-dragging,body.is-dragging *{cursor:grabbing!important;user-select:none!important}
+#undo-toast{display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1E1B3A;color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;z-index:800;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
+#undo-toast button{background:rgba(108,92,228,0.9);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer}
 /* Selección masiva */
 .lista-row.sel-mode{cursor:default}
 .lista-row.sel-mode.checked{background:rgba(108,92,228,0.06)}
@@ -8389,9 +8391,15 @@ function renderWeekBody() {
         var ini   = evIniciales(full);
         var hEnd  = (slotH + 1 < 10 ? '0' : '') + (slotH + 1) + ':00';
         var posStyle = nEvs === 1 ? 'left:3px;right:3px' : 'left:calc(' + (ev * 100 / nEvs) + '% + 2px);right:calc(' + ((nEvs - ev - 1) * 100 / nEvs) + '% + 2px)';
-        var _cId = (cur.id||'');
+        var _cId  = (cur.id||'');
+        var _dur  = cur.dur || 0;
+        var _evH  = _dur > 0 ? Math.max(32, Math.round((_dur / 60) * 52) - 8) : 44;
+        var _endM = slotH * 60 + (_dur || 60);
+        var _eHH  = Math.floor(_endM / 60) % 24;
+        var _eMM  = _endM % 60;
+        hEnd = (_eHH < 10 ? '0' : '') + _eHH + ':' + (_eMM < 10 ? '0' : '') + _eMM;
         evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" data-cid="' + _cId + '"' +
-                  ' style="position:absolute;top:4px;' + posStyle + ';height:44px"' +
+                  ' style="position:absolute;top:4px;' + posStyle + ';height:' + _evH + 'px;z-index:' + (3 + ev) + '"' +
                   ' onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + _cId + '\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
@@ -10400,7 +10408,7 @@ async function cargarCitasSupabase() {
       const cls_   = espIdx >= 0 ? (['ev-p','ev-g','ev-a','ev-b','ev-t','ev-r'][espIdx % 6]) : profColor(espNom);
       if (!mesEvents[key]) mesEvents[key] = [];
       if (!mesEvents[key].some(e => e.lbl === lbl)) {
-        mesEvents[key].push({ cls: cls_, lbl, nombre: c.nombre_paciente.trim(), id: c.id, espId, real: true });
+        mesEvents[key].push({ cls: cls_, lbl, nombre: c.nombre_paciente.trim(), id: c.id, espId, real: true, dur: c.duracion || 0 });
       }
     });
 
@@ -16561,7 +16569,7 @@ function _busqKey(e) {
 
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openBusq(); }
-  if (e.key === 'Escape') closeBusq();
+  if (e.key === 'Escape') { closeBusq(); _cancelarReagendar && _cancelarReagendar(); }
 });
 
 // ── REAGENDAMIENTO CON MOUSE (mousedown/mousemove/mouseup) ───────────────────
@@ -16623,18 +16631,82 @@ window.addEventListener('mouseup', function(e) {
   var fecha = slot.dataset.fecha;
   var hora  = slot.dataset.hora;
   if (drag.fecha === fecha && drag.hora === hora) return;
-  var fmtFecha = new Date(fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
-  if (!confirm('¿Mover la cita de ' + drag.nombre + ' al ' + fmtFecha + ' a las ' + hora + '?')) return;
-  fetch('/api/slots?id=' + drag.id, {
+  _abrirModalReagendar(drag, fecha, hora);
+});
+
+// ── MODAL REAGENDAR ───────────────────────────────────────────────────────────
+var _pendingReschedule = null;
+
+function _abrirModalReagendar(drag, fecha, hora) {
+  _pendingReschedule = { drag: drag, fecha: fecha, hora: hora };
+  var fmtDesde = new Date(drag.fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
+  var fmtHacia = new Date(fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
+  document.getElementById('mr-nombre').textContent = drag.nombre;
+  document.getElementById('mr-desde').textContent = fmtDesde + ' · ' + drag.hora;
+  document.getElementById('mr-hacia').textContent = fmtHacia + ' · ' + hora;
+  // Detectar conflicto: ¿hay otra cita en el slot destino?
+  var parts = fecha.split('-').map(Number);
+  var targetKey = parts[0] + '-' + (parts[1]-1) + '-' + parts[2];
+  var targetEvs = (typeof mesEvents !== 'undefined' && mesEvents[targetKey]) || [];
+  var hasConflict = targetEvs.some(function(ev) {
+    var evH = ((ev.lbl||'').match(/\d{2}:\d{2}/) || [''])[0].slice(0,5);
+    return evH === hora && ev.id !== drag.id;
+  });
+  document.getElementById('mr-conflicto').style.display = hasConflict ? '' : 'none';
+  document.getElementById('modal-reagendar').style.display = 'flex';
+}
+
+function _cancelarReagendar() {
+  _pendingReschedule = null;
+  document.getElementById('modal-reagendar').style.display = 'none';
+}
+
+function _confirmarReagendar() {
+  var p = _pendingReschedule;
+  if (!p) return;
+  _pendingReschedule = null;
+  document.getElementById('modal-reagendar').style.display = 'none';
+  var fmtFecha = new Date(p.fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
+  var fechaOrig = p.drag.fecha, horaOrig = p.drag.hora, citaId = p.drag.id, nombre = p.drag.nombre;
+  fetch('/api/slots?id=' + citaId, {
+    method: 'PATCH',
+    headers: Object.assign({}, _citasH(), {'Content-Type':'application/json'}),
+    body: JSON.stringify({ fecha: p.fecha, hora: p.hora })
+  }).then(function(r) {
+    if (!r.ok) return r.json().catch(function(){return{};}).then(function(d){ toastErr(d.error || 'No se pudo reagendar'); });
+    _showUndoToast('Cita movida a ' + fmtFecha + ' ' + p.hora, citaId, fechaOrig, horaOrig);
+    cargarCitasSupabase();
+  }).catch(function() { toastErr('Error al reagendar'); });
+}
+
+// ── UNDO TOAST ────────────────────────────────────────────────────────────────
+var _undoT = null;
+
+function _showUndoToast(msg, citaId, fechaOrig, horaOrig) {
+  var t = document.getElementById('undo-toast');
+  var m = document.getElementById('undo-msg');
+  var b = document.getElementById('undo-btn');
+  if (!t) return;
+  if (m) m.textContent = '✓ ' + msg;
+  if (b) b.onclick = function() { _undoReschedule(citaId, fechaOrig, horaOrig); };
+  t.style.display = 'flex';
+  clearTimeout(_undoT);
+  _undoT = setTimeout(function() { t.style.display = 'none'; }, 7000);
+}
+
+function _undoReschedule(citaId, fecha, hora) {
+  clearTimeout(_undoT);
+  document.getElementById('undo-toast').style.display = 'none';
+  fetch('/api/slots?id=' + citaId, {
     method: 'PATCH',
     headers: Object.assign({}, _citasH(), {'Content-Type':'application/json'}),
     body: JSON.stringify({ fecha: fecha, hora: hora })
   }).then(function(r) {
-    if (!r.ok) return r.json().catch(function(){return{};}).then(function(d){ toastErr(d.error || 'No se pudo reagendar'); });
-    toast('✓ ' + drag.nombre + ' → ' + fmtFecha + ' ' + hora);
+    if (!r.ok) { toastErr('No se pudo deshacer'); return; }
+    toast('↩ Cita restaurada');
     cargarCitasSupabase();
-  }).catch(function() { toastErr('Error al reagendar'); });
-});
+  }).catch(function() { toastErr('Error al deshacer'); });
+}
 
 function _slotFromPoint(x, y) {
   var g = document.getElementById('drag-ghost');
@@ -16759,6 +16831,33 @@ async function registrarPagoManual() {
   }
 }
 </script>
+
+<!-- Modal reagendar cita (reemplaza confirm() del drag) -->
+<div id="modal-reagendar" onclick="if(event.target===this)_cancelarReagendar()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:700;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:28px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.22)">
+    <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:14px">Reagendar cita</div>
+    <div id="mr-nombre" style="font-size:14px;font-weight:600;color:var(--t2);margin-bottom:14px"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="flex:1;background:var(--surface-hi);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Desde</div>
+        <div id="mr-desde" style="font-size:13px;font-weight:600;color:var(--t2)"></div>
+      </div>
+      <div style="font-size:18px;color:var(--t4);flex-shrink:0">→</div>
+      <div style="flex:1;background:rgba(108,92,228,0.07);border-radius:8px;padding:10px 12px;border:1.5px solid rgba(108,92,228,0.25)">
+        <div style="font-size:10px;font-weight:700;color:var(--a);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Nueva hora</div>
+        <div id="mr-hacia" style="font-size:13px;font-weight:600;color:var(--a)"></div>
+      </div>
+    </div>
+    <div id="mr-conflicto" style="display:none;background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.3);border-radius:8px;padding:10px 12px;font-size:12px;color:#B45309;margin-bottom:14px">⚠️ Ya hay una cita en ese horario. Puedes moverla igualmente.</div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="_confirmarReagendar()" style="flex:1;padding:11px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Mover cita</button>
+      <button onclick="_cancelarReagendar()" style="padding:11px 18px;background:none;border:1.5px solid var(--b1);border-radius:8px;font-size:13px;cursor:pointer;color:var(--t2)">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Undo toast post-reagendar -->
+<div id="undo-toast"><span id="undo-msg"></span><button id="undo-btn">↩ Deshacer</button></div>
 
 </body>
 </html>
