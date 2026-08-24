@@ -8407,14 +8407,22 @@ function renderWeekBody() {
     html += '</div>';
   }
 
+  var calBody = document.querySelector('.cal-body');
+  var prevScroll = calBody ? calBody.scrollTop : -1;
+
   body.innerHTML = html;
 
-  // Scroll a la hora actual (o a las 07:00 si no hay hora activa)
-  var scrollH = (nowH > 1 ? nowH - 1 : 0);
-  var scrollIdx = HOURS.findIndex(function(h){ return parseInt(h) >= scrollH; });
-  if (scrollIdx < 0) scrollIdx = 0;
-  var calBody = document.querySelector('.cal-body');
-  if (calBody) calBody.scrollTop = 52 + scrollIdx * 52;
+  // Restaurar scroll previo si el usuario ya había hecho scroll; solo auto-scroll en la primera carga
+  if (calBody) {
+    if (prevScroll > 0) {
+      calBody.scrollTop = prevScroll;
+    } else {
+      var scrollH = (nowH > 1 ? nowH - 1 : 0);
+      var scrollIdx = HOURS.findIndex(function(h){ return parseInt(h) >= scrollH; });
+      if (scrollIdx < 0) scrollIdx = 0;
+      calBody.scrollTop = 52 + scrollIdx * 52;
+    }
+  }
 }
 
 function setCalView(view, btn, skipPush) {
