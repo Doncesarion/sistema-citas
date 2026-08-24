@@ -307,7 +307,7 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
 .ev-r{background:rgba(220,38,38,0.08);color:#B91C1C;border-color:var(--red)}
 .ev-b{background:rgba(37,99,235,0.09);color:#1D4ED8;border-color:var(--blue)}
 .ev-t{background:rgba(13,148,136,0.09);color:#0F766E;border-color:var(--teal)}
-.ev[draggable="true"]{cursor:grab}.ev[draggable="true"]:active{cursor:grabbing}
+.ev[draggable="true"]{cursor:grab;user-select:none;-webkit-user-drag:element}.ev[draggable="true"]:active{cursor:grabbing}
 .ev.dragging{opacity:.35;pointer-events:none}
 .slot.drag-over{background:rgba(108,92,228,0.06)!important}
 .drop-preview{position:absolute;top:4px;left:3px;right:3px;height:44px;border-radius:4px;background:rgba(108,92,228,0.12);border:2px dashed rgba(108,92,228,0.5);color:var(--a);font-size:11px;font-weight:600;padding:4px 7px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1856,10 +1856,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 <!-- ── BULK ACTION BAR ── -->
 <div id="bulk-bar">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><path d="M20 6 9 17l-5-5"/></svg>
   <span id="bulk-count" style="font-size:13px;font-weight:700;color:var(--t1)">0 seleccionadas</span>
-  <button class="btn-a" style="font-size:12px;padding:6px 12px" onclick="_bulkDone()">✓ Marcar realizadas</button>
-  <button class="btn-r" style="font-size:12px;padding:6px 12px" onclick="_bulkCancel()">✕ Cancelar citas</button>
+  <button class="btn-a" style="font-size:12px;padding:6px 12px" onclick="_bulkDone()">Marcar realizadas</button>
+  <button class="btn-r" style="font-size:12px;padding:6px 12px" onclick="_bulkCancel()">Cancelar citas</button>
   <button class="btn-g" style="font-size:12px;padding:6px 12px;margin-left:auto" onclick="_toggleSelectMode()">Salir</button>
 </div>
 
@@ -16562,6 +16561,7 @@ function _startDragEv(e, citaId) {
   if (!cita) { e.preventDefault(); return; }
   window._dragCita = { id: citaId, nombre: cita.nombre_paciente, fecha: cita.fecha, hora: (cita.hora||'').slice(0,5) };
   e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', citaId);
   e.currentTarget.classList.add('dragging');
   e.stopPropagation();
 }
@@ -16573,6 +16573,7 @@ function _endDragEv(e) {
 function _slotDragOver(e) {
   if (!window._dragCita) return;
   e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
   const slot = e.currentTarget;
   slot.classList.add('drag-over');
   if (!slot.querySelector('.drop-preview')) {
