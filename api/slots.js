@@ -500,6 +500,33 @@ export default async function handler(req, res) {
       }
     }
 
+    // — PATCH fecha / hora (reagendamiento) —
+    if (typeof body.fecha !== 'undefined' || typeof body.hora !== 'undefined') {
+      const patch = {};
+      if (body.fecha) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(body.fecha)) return res.status(400).json({ error: 'Fecha inválida' });
+        patch.fecha = body.fecha;
+      }
+      if (body.hora) {
+        if (!/^\d{2}:\d{2}(:\d{2})?$/.test(body.hora)) return res.status(400).json({ error: 'Hora inválida' });
+        patch.hora = body.hora;
+      }
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
+          method: 'PATCH',
+          headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify(patch)
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          return res.status(500).json({ error: `Error al reagendar: ${err?.message || err?.code || r.status}` });
+        }
+        return res.json({ ok: true });
+      } catch(e) {
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
     if (typeof body.notas === 'undefined') return res.status(400).json({ error: 'Campo requerido: notas' });
     const notas = body.notas === null ? null : String(body.notas).slice(0, 10000);
     try {
