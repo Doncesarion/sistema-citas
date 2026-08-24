@@ -8387,10 +8387,8 @@ function renderWeekBody() {
         var hEnd  = (slotH + 1 < 10 ? '0' : '') + (slotH + 1) + ':00';
         var posStyle = nEvs === 1 ? 'left:3px;right:3px' : 'left:calc(' + (ev * 100 / nEvs) + '% + 2px);right:calc(' + ((nEvs - ev - 1) * 100 / nEvs) + '% + 2px)';
         var _cId = (cur.id||'');
-        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" draggable="true"' +
+        evHtml += '<div class="ev ' + cur.cls + '" data-prof="' + (cur.espId||'') + '" data-cid="' + _cId + '" draggable="true"' +
                   ' style="position:absolute;top:4px;' + posStyle + ';height:44px"' +
-                  ' ondragstart="_startDragEv(event,\'' + _cId + '\')"' +
-                  ' ondragend="_endDragEv(event)"' +
                   ' onclick="event.stopPropagation();openFicha(\'' + full.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',\'' + ini + '\',\'\',\'' + _cId + '\')">' +
                   '<div class="evn">' + full + '</div>' +
                   '<div class="evt">' + HOURS[s] + ' – ' + hEnd + '</div>' +
@@ -8402,8 +8400,7 @@ function renderWeekBody() {
         evHtml += '<button class="sobrecupo-btn" onclick="event.stopPropagation();openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="Agregar sobrecupo a las ' + HOURS[s] + '">+</button>';
       }
       var slotClick  = ' onclick="openModalWithTime(\'' + dFecha + '\',\'' + HOURS[s] + '\')" title="+ Nueva reserva a las ' + HOURS[s] + '"';
-      var slotDrag   = ' ondragover="_slotDragOver(event)" ondragleave="_slotDragLeave(event)" ondrop="_dropOnSlot(event,\'' + dFecha + '\',\'' + HOURS[s] + '\')"';
-      html += '<div class="slot"' + slotClick + slotDrag + ' style="cursor:pointer' + (slotIsPast ? ';opacity:.45' : '') + '">' + evHtml + '</div>';
+      html += '<div class="slot" data-fecha="' + dFecha + '" data-hora="' + HOURS[s] + '"' + slotClick + ' style="cursor:pointer' + (slotIsPast ? ';opacity:.45' : '') + '">' + evHtml + '</div>';
     }
     html += '</div>';
   }
@@ -16553,65 +16550,82 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeBusq();
 });
 
-// ── DRAG-AND-DROP REAGENDAMIENTO ─────────────────────────────────────────────
+// ── DRAG-AND-DROP REAGENDAMIENTO (delegación en document) ────────────────────
 window._dragCita = null;
 
-function _startDragEv(e, citaId) {
-  const cita = (window._calCitaById || {})[citaId];
-  if (!cita) { e.preventDefault(); return; }
-  window._dragCita = { id: citaId, nombre: cita.nombre_paciente, fecha: cita.fecha, hora: (cita.hora||'').slice(0,5) };
+document.addEventListener('dragstart', function(e) {
+  var el = e.target.closest && e.target.closest('.ev[data-cid]');
+  if (!el) return;
+  var citaId = el.dataset.cid;
+  if (!citaId) return;
+  var cita = (window._calCitaById || {})[citaId];
+  window._dragCita = {
+    id: citaId,
+    nombre: cita ? cita.nombre_paciente : '—',
+    fecha: cita ? cita.fecha : '',
+    hora: cita ? (cita.hora||'').slice(0,5) : ''
+  };
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', citaId);
-  e.currentTarget.classList.add('dragging');
-  e.stopPropagation();
-}
+  el.classList.add('dragging');
+});
 
-function _endDragEv(e) {
-  e.currentTarget.classList.remove('dragging');
-}
+document.addEventListener('dragend', function(e) {
+  var el = e.target.closest && e.target.closest('.ev[data-cid]');
+  if (el) el.classList.remove('dragging');
+  document.querySelectorAll('.slot.drag-over').forEach(function(s) {
+    s.classList.remove('drag-over');
+    var p = s.querySelector('.drop-preview'); if (p) p.remove();
+  });
+});
 
-function _slotDragOver(e) {
-  if (!window._dragCita) return;
+document.addEventListener('dragover', function(e) {
+  var slot = e.target.closest && e.target.closest('.slot[data-fecha]');
+  if (!slot || !window._dragCita) return;
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
-  const slot = e.currentTarget;
   slot.classList.add('drag-over');
   if (!slot.querySelector('.drop-preview')) {
-    const prev = document.createElement('div');
+    var prev = document.createElement('div');
     prev.className = 'drop-preview';
     prev.textContent = window._dragCita.nombre;
     slot.appendChild(prev);
   }
-}
+});
 
-function _slotDragLeave(e) {
-  const slot = e.currentTarget;
+document.addEventListener('dragleave', function(e) {
+  var slot = e.target.closest && e.target.closest('.slot[data-fecha]');
+  if (!slot) return;
+  if (slot.contains(e.relatedTarget)) return;
   slot.classList.remove('drag-over');
-  slot.querySelector('.drop-preview')?.remove();
-}
+  var p = slot.querySelector('.drop-preview'); if (p) p.remove();
+});
 
-async function _dropOnSlot(e, fecha, hora) {
-  e.preventDefault(); e.stopPropagation();
-  const slot = e.currentTarget;
+document.addEventListener('drop', function(e) {
+  var slot = e.target.closest && e.target.closest('.slot[data-fecha]');
+  if (!slot) return;
+  e.preventDefault();
+  e.stopPropagation();
   slot.classList.remove('drag-over');
-  slot.querySelector('.drop-preview')?.remove();
-  const dc = window._dragCita;
+  var p = slot.querySelector('.drop-preview'); if (p) p.remove();
+  var dc = window._dragCita;
   window._dragCita = null;
-  if (!dc?.id) return;
+  if (!dc || !dc.id) return;
+  var fecha = slot.dataset.fecha;
+  var hora  = slot.dataset.hora;
   if (dc.fecha === fecha && dc.hora === hora) return;
-  const fmtFecha = new Date(fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
-  if (!confirm(`¿Mover la cita de ${dc.nombre} al ${fmtFecha} a las ${hora}?`)) return;
-  try {
-    const r = await fetch(`/api/slots?id=${dc.id}`, {
-      method: 'PATCH',
-      headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fecha, hora })
-    });
-    if (!r.ok) { const d = await r.json().catch(()=>({})); toastErr(d.error || 'No se pudo reagendar'); return; }
-    toast(`✓ ${dc.nombre} → ${fmtFecha} ${hora}`);
+  var fmtFecha = new Date(fecha+'T12:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'});
+  if (!confirm('¿Mover la cita de ' + dc.nombre + ' al ' + fmtFecha + ' a las ' + hora + '?')) return;
+  fetch('/api/slots?id=' + dc.id, {
+    method: 'PATCH',
+    headers: Object.assign({}, _citasH(), {'Content-Type':'application/json'}),
+    body: JSON.stringify({ fecha: fecha, hora: hora })
+  }).then(function(r) {
+    if (!r.ok) return r.json().catch(function(){return{};}).then(function(d){ toastErr(d.error || 'No se pudo reagendar'); });
+    toast('✓ ' + dc.nombre + ' → ' + fmtFecha + ' ' + hora);
     cargarCitasSupabase();
-  } catch(err) { toastErr('Error al reagendar'); }
-}
+  }).catch(function() { toastErr('Error al reagendar'); });
+});
 
 // ── SELECCIÓN MASIVA ──────────────────────────────────────────────────────────
 let _selectMode = false;
