@@ -10321,7 +10321,7 @@ async function cargarCitasSupabase() {
     {
       const _NC = ['cancelada','canceled','cancelled','no-show','inasistencia','no_show','done','completada'];
       const _activeNow = new Set(citas.filter(c => !_NC.includes(c.estado)).map(c => c.id));
-      if (window._prevCitasIds !== null) {
+      if (window._prevCitasIds instanceof Set) {
         const nuevas = [..._activeNow].filter(id => !window._prevCitasIds.has(id));
         if (nuevas.length > 0) {
           toastNew(`🔔 ${nuevas.length === 1 ? 'Nueva reserva recibida' : nuevas.length + ' nuevas reservas recibidas'}`);
