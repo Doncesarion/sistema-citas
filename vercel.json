@@ -60,6 +60,7 @@
     { "source": "/privacidad",                      "destination": "/privacidad.html" },
     { "source": "/terminos",                        "destination": "/terminos.html" },
     { "source": "/gestionar-cita",                 "destination": "/gestionar-cita.html" },
+    { "source": "/gc/:shortId",                    "destination": "/gestionar-cita.html" },
     { "source": "/gc/:shortId/:token",             "destination": "/gestionar-cita.html" },
     { "source": "/accesos",                        "destination": "/accesos.html" },
     { "source": "/cotizacion",                     "destination": "/cotizacion.html" },

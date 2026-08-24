@@ -151,15 +151,16 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 </div>
 
 <script>
-// Soporte para URL corta (/gc/AT-XXXXXXXX/token) y URL legacy (?id=UUID&token=TOKEN)
+// Soporte para URL corta (/gc/AT-XXXXXXXX#token o /gc/AT-XXXXXXXX/token) y URL legacy (?id=UUID&token=TOKEN)
 const _pathParts = location.pathname.split('/').filter(Boolean);
-let shortId    = null;
-let citaId     = null;
+let shortId     = null;
+let citaId      = null;
 let manageToken = '';
 
-if (_pathParts[0] === 'gc' && _pathParts[1] && _pathParts[2]) {
+if (_pathParts[0] === 'gc' && _pathParts[1]) {
   shortId     = _pathParts[1]; // "AT-6A2B2FFF"
-  manageToken = _pathParts[2];
+  // Nuevo formato: token en el hash (#token); backwards compat: token en el path
+  manageToken = location.hash.slice(1) || _pathParts[2] || '';
 } else {
   const _params = new URLSearchParams(location.search);
   citaId       = _params.get('id');
@@ -202,6 +203,8 @@ async function cargar() {
     const data = await r.json();
     if (!r.ok || !data.cita) { mostrarError(data.error || 'Cita no encontrada.'); return; }
     if (shortId) citaId = data.cita.id; // necesario para los POST (cancelar/reagendar/feedback)
+    // Limpiar la URL: mostrar solo /gc/AT-XXXXXXXX sin el token en el hash
+    if (shortId) history.replaceState(null, '', location.pathname);
     renderCita(data);
   } catch (e) {
     mostrarError('Error de conexión. Intenta de nuevo.');

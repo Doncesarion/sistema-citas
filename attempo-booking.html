@@ -153,6 +153,11 @@ body::before{
 .btn-g{padding:11px 20px;background:#fff;color:var(--t2);border:1.5px solid var(--b1);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Geist',sans-serif}
 .btn-g:hover{border-color:var(--b2);color:var(--t1)}
 .foot{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:18px;border-top:1px solid var(--b1)}
+.policy-notice{display:none;align-items:flex-start;gap:9px;background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--t2);line-height:1.55}
+.policy-notice svg{flex-shrink:0;margin-top:1px;color:var(--a)}
+.booking-err{display:none;background:rgba(220,38,38,0.05);border:1px solid rgba(220,38,38,0.2);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.booking-err-msg{font-size:13px;color:#DC2626;margin-bottom:0}
+.booking-err-msg+button{margin-top:10px;padding:8px 16px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif}
 .res-bar{background:#fff;border:1px solid var(--b1);border-radius:var(--rx);padding:16px 20px;margin-bottom:20px;box-shadow:var(--sh1);display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
 .res-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:var(--adim);border-radius:100px;font-size:12px;color:var(--t2);font-weight:500}
 .res-chip .val{color:var(--t1);font-weight:600}
@@ -362,6 +367,14 @@ body::before{
           </div>
           <div class="fg"><label class="fl">Notas <span style="color:var(--t4)">(opcional)</span></label><textarea class="fi" id="d-nota" rows="3" placeholder="Cuéntanos el motivo de tu consulta..." style="resize:vertical;min-height:68px"></textarea></div>
           <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="/terminos" style="color:var(--a)" target="_blank" rel="noopener noreferrer">términos de uso</a> y la <a href="/privacidad" style="color:var(--a)" target="_blank" rel="noopener noreferrer">política de privacidad</a> *</span></label>
+          <div class="policy-notice" id="policy-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="policy-txt"></span>
+          </div>
+          <div class="booking-err" id="booking-err">
+            <div class="booking-err-msg" id="booking-err-msg"></div>
+            <button id="booking-err-btn" onclick="volverAlCalendario()" style="display:none">← Elegir otra hora</button>
+          </div>
           <div class="foot">
             <button class="btn-g" onclick="toggleAcc(3)">← Volver</button>
             <button class="btn-a" id="btn4" onclick="confirmar()" disabled>Confirmar reserva →</button>
@@ -515,6 +528,15 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
     renderServicios(negocioData.servicios || []);
     checkHorario();
     renderCal();
+
+    // Mostrar política de cancelación en el paso 4
+    const policyEl = document.getElementById('policy-notice');
+    const policyTxt = document.getElementById('policy-txt');
+    if (policyEl && policyTxt) {
+      policyTxt.textContent = negocioData.politica_cancelacion ||
+        'Podrás cancelar o reagendar tu cita desde el link que recibirás en tu email de confirmación.';
+      policyEl.style.display = 'flex';
+    }
 
     document.getElementById('loading-wrap').style.display = 'none';
     document.getElementById('content-wrap').style.display = 'block';
@@ -1052,7 +1074,9 @@ async function confirmar() {
 
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      throw new Error(err.error || 'Error al confirmar la reserva');
+      const ex = new Error(err.error || 'Error al confirmar la reserva');
+      ex.conflict = r.status === 409;
+      throw ex;
     }
 
     const data = await r.json().catch(() => ({}));
@@ -1175,8 +1199,28 @@ async function confirmar() {
   } catch(e) {
     btn.disabled = false;
     btn.textContent = 'Confirmar reserva →';
-    alert('No se pudo confirmar: ' + e.message);
+    const errEl  = document.getElementById('booking-err');
+    const errMsg = document.getElementById('booking-err-msg');
+    const errBtn = document.getElementById('booking-err-btn');
+    if (errEl && errMsg) {
+      errMsg.textContent = e.conflict
+        ? 'Este horario acaba de ser reservado por otra persona.'
+        : (e.message || 'Ocurrió un error. Intenta de nuevo.');
+      if (errBtn) errBtn.style.display = e.conflict ? 'block' : 'none';
+      errEl.style.display = 'block';
+      errEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
   }
+}
+
+function volverAlCalendario() {
+  document.getElementById('booking-err').style.display = 'none';
+  // Limpiar caché del mes actual para forzar re-fetch de disponibilidad
+  if (st.fecha) {
+    const key = `${st.fecha.y}-${st.fecha.m}`;
+    delete _citasMes[key];
+  }
+  openAcc(3);
 }
 
 /* ── CALENDARIO ── */

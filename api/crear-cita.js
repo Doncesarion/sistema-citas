@@ -49,7 +49,7 @@ function generateManageToken(cita_id) {
 
 function manageShortUrl(cita_id) {
   const shortId = cita_id.replace(/-/g, '').slice(0, 8).toUpperCase();
-  return `${BASE_URL}/gc/AT-${shortId}/${generateManageToken(cita_id)}`;
+  return `${BASE_URL}/gc/AT-${shortId}#${generateManageToken(cita_id)}`;
 }
 
 function verifyManageToken(cita_id, token) {
