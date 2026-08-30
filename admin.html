@@ -3649,7 +3649,43 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <div style="font-size:13px;font-weight:500;color:var(--t1)">Promociones</div>
             <div style="font-size:12px;color:var(--t3);margin-top:2px">La IA menciona las promociones activas al interactuar con pacientes.</div>
           </div>
-          <button class="btn-a" onclick="addSrvPromo()" style="font-size:12px;padding:5px 12px;white-space:nowrap">+ Agregar</button>
+          <button id="srv-promos-add-btn" class="btn-a" onclick="togglePromoForm()" style="font-size:12px;padding:5px 12px;white-space:nowrap">+ Agregar</button>
+        </div>
+        <!-- Formulario nueva promoción (oculto por defecto) -->
+        <div id="srv-promo-form" style="display:none;border:1px dashed var(--b2);border-radius:var(--rl);padding:14px;background:var(--adim);margin-bottom:12px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <input id="pf-nombre" class="fi" placeholder="Nombre de la promoción" style="font-size:13px;font-weight:500">
+            <textarea id="pf-desc" class="fi" rows="2" placeholder="¿Qué incluye? Ej: Consulta inicial + evaluación psicológica. Solo nuevos pacientes." style="resize:vertical;font-size:12px;line-height:1.5"></textarea>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Precio promocional</label>
+                <div style="display:flex;gap:4px">
+                  <input id="pf-precio" type="number" class="fi" placeholder="$ precio" min="0" style="flex:1">
+                  <button type="button" title="Agregar IVA 19%" onclick="const v=Number(document.getElementById('pf-precio').value);if(v)document.getElementById('pf-precio').value=Math.round(v*1.19)" style="padding:0 8px;border-radius:var(--r);border:1px solid var(--b2);background:var(--bg2);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">+IVA</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Profesional</label>
+                <select id="pf-prof" class="fs">
+                  <option value="">Todos los profesionales</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div>
+                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha de activación</label>
+                <input id="pf-inicio" type="date" class="fi">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha de finalización</label>
+                <input id="pf-fin" type="date" class="fi">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+              <button class="btn-g" onclick="togglePromoForm()">Cancelar</button>
+              <button class="btn-a" onclick="confirmarAddPromo()">Agregar promoción</button>
+            </div>
+          </div>
         </div>
         <div id="srv-promos-list"></div>
         <div id="srv-promos-empty" style="display:none;text-align:center;padding:14px;color:var(--t3);font-size:13px;border:1px dashed var(--b2);border-radius:var(--rl)">Sin promociones activas. Agrega la primera.</div>
@@ -6041,8 +6077,43 @@ function renderSrvPromos() {
   }).join('');
 }
 
-function addSrvPromo() {
-  _srvPromos.push({ nombre: '', descripcion: '', activa: true, fecha_inicio: '', fecha_fin: '' });
+function togglePromoForm() {
+  const form = document.getElementById('srv-promo-form');
+  const btn  = document.getElementById('srv-promos-add-btn');
+  if (!form) return;
+  const open = form.style.display !== 'none';
+  form.style.display = open ? 'none' : '';
+  if (btn) btn.style.display = open ? '' : 'none';
+  if (!open) {
+    // Poblar profesionales y limpiar campos
+    const sel = document.getElementById('pf-prof');
+    if (sel) {
+      sel.innerHTML = '<option value="">Todos los profesionales</option>' +
+        _srvEspsCache.map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+    }
+    ['pf-nombre','pf-desc','pf-precio','pf-inicio','pf-fin'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('pf-nombre')?.focus();
+  }
+}
+
+function confirmarAddPromo() {
+  const nombre = document.getElementById('pf-nombre')?.value.trim();
+  if (!nombre) { toast('Ingresa un nombre para la promoción'); return; }
+  const selEl = document.getElementById('pf-prof');
+  const profId   = selEl?.value || null;
+  const profNom  = profId ? selEl.options[selEl.selectedIndex].text : null;
+  const precio   = Number(document.getElementById('pf-precio')?.value) || null;
+  _srvPromos.push({
+    nombre,
+    descripcion:       document.getElementById('pf-desc')?.value.trim()  || '',
+    activa:            true,
+    precio,
+    profesional_id:    profId,
+    profesional_nombre: profNom,
+    fecha_inicio:      document.getElementById('pf-inicio')?.value || '',
+    fecha_fin:         document.getElementById('pf-fin')?.value    || ''
+  });
+  togglePromoForm();
   renderSrvPromos();
   document.getElementById('srv-promos-list')?.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
 }
