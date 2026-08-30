@@ -329,26 +329,45 @@ HOY ES: ${hoy}`;
     if (!Array.isArray(espLista)) espLista = [];
   } catch(_) { espLista = []; }
 
-  // ── Reconocimiento de paciente recurrente ─────────────────────────────────
+  // ── Reconocimiento de paciente recurrente + citas próximas ───────────────
   let pacienteContexto = '';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if (email_paciente && emailRegex.test(email_paciente)) {
     try {
+      const hoyISO = new Date().toISOString().slice(0,10);
       const hace6m = new Date(Date.now() - 180*24*60*60*1000).toISOString().slice(0,10);
+      const en6m   = new Date(Date.now() + 180*24*60*60*1000).toISOString().slice(0,10);
       const rPac = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email_paciente)}&cliente_id=eq.${cliente_id}&fecha=gte.${hace6m}&order=fecha.desc&limit=3&select=nombre_paciente,fecha,hora,servicio,especialista_id,estado`,
+        `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email_paciente)}&cliente_id=eq.${cliente_id}&fecha=gte.${hace6m}&fecha=lte.${en6m}&order=fecha.desc&limit=5&select=id,nombre_paciente,fecha,hora,servicio,especialista_id,estado`,
         { headers: sh }
       );
       const citasPac = await rPac.json();
       if (Array.isArray(citasPac) && citasPac.length > 0) {
         const nombre = citasPac[0].nombre_paciente || '';
-        const ultima = citasPac[0];
-        const fechaUlt = ultima.fecha ? ultima.fecha.split('-').reverse().join('/') : '';
-        const espUlt = ultima.especialista_id ? (espLista.find(e => e.id === ultima.especialista_id)?.nombre || '') : '';
+        const pasadas  = citasPac.filter(c => c.fecha < hoyISO);
+        const proximas = citasPac.filter(c => c.fecha >= hoyISO && !['cancelada','canceled'].includes(c.estado));
+
         pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial con este negocio. En tu primer mensaje salúdalo por su nombre de forma natural.`;
-        if (ultima.servicio) pacienteContexto += `\nÚltima cita: ${ultima.servicio}${fechaUlt ? ' el ' + fechaUlt : ''}${espUlt ? ' con ' + espUlt : ''}.`;
-        if (citasPac.length > 1) pacienteContexto += `\nHistorial reciente: ${citasPac.length} citas en los últimos 6 meses.`;
-        pacienteContexto += `\nSi quiere agendar, puedes sugerir el mismo servicio${espUlt ? ' y profesional' : ''} de antes.\n`;
+
+        if (pasadas.length > 0) {
+          const ultima = pasadas[0];
+          const fechaUlt = ultima.fecha.split('-').reverse().join('/');
+          const espUlt = ultima.especialista_id ? (espLista.find(e => e.id === ultima.especialista_id)?.nombre || '') : '';
+          if (ultima.servicio) pacienteContexto += `\nÚltima cita: ${ultima.servicio}${fechaUlt ? ' el ' + fechaUlt : ''}${espUlt ? ' con ' + espUlt : ''}.`;
+          if (pasadas.length > 1) pacienteContexto += `\nHistorial reciente: ${pasadas.length} citas en los últimos 6 meses.`;
+          pacienteContexto += `\nSi quiere agendar, puedes sugerir el mismo servicio${espUlt ? ' y profesional' : ''} de antes.`;
+        }
+
+        if (proximas.length > 0) {
+          pacienteContexto += `\nCITAS PRÓXIMAS (usa estos IDs para reagendar o anular):`;
+          proximas.forEach(c => {
+            const fec = c.fecha.split('-').reverse().join('/');
+            const esp = c.especialista_id ? (espLista.find(e => e.id === c.especialista_id)?.nombre || '') : '';
+            pacienteContexto += `\n• ${c.servicio || 'Cita'} el ${fec} a las ${(c.hora||'').slice(0,5)}${esp ? ' con '+esp : ''} (cita_id: ${c.id})`;
+          });
+        }
+
+        pacienteContexto += '\n';
       }
     } catch(e) { console.error('ai-chat paciente-lookup error:', e.message); }
   }
@@ -530,22 +549,35 @@ CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:
 NO uses pedir_fecha — no está disponible en este contexto.
 Una vez que confirmar_reserva fue ejecutado en la conversación, NO lo vuelvas a llamar. Si el paciente pregunta cómo pagar, responde directamente con los métodos de pago disponibles que tienes arriba.
 
+CUANDO EL PACIENTE QUIERE REAGENDAR UNA CITA:
+1. Si tienes sus citas próximas en el contexto, identifica cuál quiere cambiar por lo que describe (día, hora, servicio o profesional).
+2. Si no tienes sus citas, llama buscar_citas_paciente con su email (si aún no lo tienes, pídelo).
+3. Confirma con el paciente: "tienes [servicio] el [fecha] a las [hora] con [profesional]. ¿La reagendamos?" Si tiene varias, lista las opciones numeradas y que elija.
+4. Cuando confirme, llama cancelar_cita con el cita_id correspondiente.
+5. Continúa desde el paso 2 del agendamiento (servicio). NO vuelvas a pedir el nombre — ya lo tienes.
+
+CUANDO EL PACIENTE QUIERE ANULAR UNA CITA:
+1. Mismos pasos 1 y 2 que reagendamiento para identificar la cita.
+2. Confirma: "¿confirmas que quieres anular [servicio] el [fecha] a las [hora]?"
+3. Cuando confirme, llama cancelar_cita. Luego responde: "listo, tu cita quedó anulada."
+
 CUANDO PREGUNTAN OTRA COSA:
 - Horarios generales: responde con el horario de atención que tienes arriba.
 - Dirección: responde con la dirección que tienes arriba. Si no hay, sugiere llamar al negocio.
 - Servicios: presenta el catálogo que tienes arriba.
 - Preguntas frecuentes: si hay una respuesta configurada arriba para esa pregunta, úsala exactamente.
 
-CÓMO ESCRIBIR:
-- Español chileno natural. Escribe en minúsculas como lo haría una persona en WhatsApp, solo mayúscula al inicio de oración y en nombres propios.
-- Sin emojis. La cercanía se transmite con las palabras, no con símbolos.
-- Sin markdown, sin asteriscos, sin listas con guiones.
-- Mensajes cortos. Una sola pregunta por mensaje.
-- Puedes usar conectores naturales como "claro", "por supuesto", "con gusto", "nos alegra ayudarte" — pero sin signos de exclamación (¡!). Evita "perfecto" y "excelente" que suenan a bot.
-- Usa el nombre del paciente cuando ya lo sabes, pero no en cada mensaje — solo cuando sea natural.
-- Si no hay disponibilidad (disponible: false sin sobrecupo_disponible): "ese día no tengo horas disponibles, ¿te acomoda el [día siguiente]?"
-- Si verificar_disponibilidad retorna sobrecupo_disponible: true con slots_sobrecupo: informa que ese día la agenda está completa, pero ofrece una hora especial fuera de agenda. Muestra las horas de slots_sobrecupo para que el paciente elija. Si acepta, confirma la reserva normalmente con esa hora.
-- Si no hay profesionales activos: díselo con naturalidad y sugiere intentar más tarde.
+CÓMO ESCRIBIR (crítico para mantener costos bajos):
+- Español chileno natural. Minúsculas como en WhatsApp, mayúscula solo al inicio de oración y en nombres.
+- Sin emojis, sin markdown, sin asteriscos, sin listas con guiones.
+- Mensajes MUY cortos — máximo 2 oraciones por respuesta. Nunca saludes con párrafos largos.
+- Una sola pregunta por mensaje. Nunca hagas dos preguntas a la vez.
+- Si ya tienes un dato del contexto (nombre, servicio previo, profesional previo), NO lo preguntes — úsalo directamente.
+- Evita frases de relleno: "claro", "por supuesto", "con gusto", "nos alegra", "perfecto", "excelente". Ve directo al punto.
+- Usa el nombre del paciente como máximo una vez por conversación, solo si es natural.
+- Si no hay disponibilidad (disponible: false sin sobrecupo_disponible): "ese día no tengo horas, ¿te acomoda el [día siguiente]?"
+- Si verificar_disponibilidad retorna sobrecupo_disponible: true, ofrece las horas de slots_sobrecupo como fuera de agenda. Si acepta, confirma normalmente.
+- Si no hay profesionales activos: díselo brevemente y sugiere intentar más tarde.
 - Hoy es ${hoy}. Convierte "mañana", "el lunes", etc. a YYYY-MM-DD.
 - El cliente_id para crear_cita es siempre: ${cliente_id}`;
 
@@ -602,6 +634,28 @@ CÓMO ESCRIBIR:
           precio:              { type: 'number', description: 'Valor en pesos sin formato' }
         },
         required: ['especialista_id', 'nombre_paciente', 'fecha', 'hora']
+      }
+    },
+    {
+      name: 'cancelar_cita',
+      description: 'Cancela una cita existente del paciente. Úsala tanto para anulaciones como antes de reagendar. Requiere el cita_id que aparece en el contexto del paciente o que devuelve buscar_citas_paciente.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          cita_id: { type: 'string', description: 'ID UUID de la cita a cancelar' }
+        },
+        required: ['cita_id']
+      }
+    },
+    {
+      name: 'buscar_citas_paciente',
+      description: 'Busca las citas próximas de un paciente por email. Úsala cuando el paciente quiere reagendar o anular pero sus citas no están en el contexto.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', description: 'Email del paciente' }
+        },
+        required: ['email']
       }
     }
   ];
@@ -759,13 +813,60 @@ CÓMO ESCRIBIR:
       return { ok: true, listo: true, cita };
     }
 
+    if (nombre === 'cancelar_cita') {
+      const { cita_id } = params;
+      const _uuidRe3 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!_uuidRe3.test(cita_id || '')) return { error: 'ID de cita inválido' };
+      try {
+        const rCan = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?id=eq.${cita_id}&cliente_id=eq.${cliente_id}`,
+          {
+            method: 'PATCH',
+            headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'canceled' })
+          }
+        );
+        return rCan.ok ? { ok: true, cancelada: true } : { error: 'No se pudo cancelar la cita' };
+      } catch(e) {
+        console.error('cancelar_cita error:', e.message);
+        return { error: 'Error al cancelar la cita' };
+      }
+    }
+
+    if (nombre === 'buscar_citas_paciente') {
+      const { email } = params;
+      if (!email || !emailRegex.test(email)) return { error: 'Email inválido' };
+      try {
+        const hoyISO2 = new Date().toISOString().slice(0,10);
+        const en6m2   = new Date(Date.now() + 180*24*60*60*1000).toISOString().slice(0,10);
+        const rBus = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cliente_id}&fecha=gte.${hoyISO2}&fecha=lte.${en6m2}&estado=not.in.(canceled,cancelada)&order=fecha.asc&limit=5&select=id,nombre_paciente,fecha,hora,servicio,especialista_id`,
+          { headers: sh }
+        );
+        const citas = await rBus.json();
+        if (!Array.isArray(citas) || !citas.length) return { citas: [], mensaje: 'No encontré citas próximas con ese email.' };
+        return {
+          citas: citas.map(c => ({
+            cita_id: c.id,
+            servicio: c.servicio || 'Cita',
+            fecha: c.fecha.split('-').reverse().join('/'),
+            hora: (c.hora || '').slice(0, 5),
+            profesional: c.especialista_id ? (espLista.find(e => e.id === c.especialista_id)?.nombre || '') : ''
+          }))
+        };
+      } catch(e) {
+        console.error('buscar_citas_paciente error:', e.message);
+        return { error: 'Error buscando citas' };
+      }
+    }
+
     return { error: 'Herramienta no reconocida' };
   }
 
   try {
     const safeMessages = messages
-      .slice(-12)
-      .map(m => ({ ...m, content: String(m.content || '').slice(0, 2000) }));
+      .slice(-10)
+      .map(m => ({ ...m, content: String(m.content || '').slice(0, 800) }));
     let msgs = [...safeMessages];
     let slots_disponibles   = null;
     let mostrar_calendario  = false;
@@ -783,7 +884,7 @@ CÓMO ESCRIBIR:
         },
         body: JSON.stringify({
           model:      'claude-haiku-4-5-20251001',
-          max_tokens: 512,
+          max_tokens: 300,
           system:     systemPrompt,
           tools,
           messages:   msgs
