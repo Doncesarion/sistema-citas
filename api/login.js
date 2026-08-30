@@ -446,6 +446,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ mfa_required: true, mfa_token });
     }
 
+    if (!u.cliente_id) {
+      return res.status(403).json({ ok: false, error: 'Usuario sin negocio asociado. Contacta a soporte.' });
+    }
+
     let session_token = null;
     if (SESSION_SECRET && u.cliente_id) {
       const expires = Date.now() + 24 * 60 * 60 * 1000;

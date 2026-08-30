@@ -213,7 +213,8 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { conversacion_id, contenido } = req.body || {};
     const contenidoLimitado = contenido?.trim().slice(0, 4096);
-    if (!conversacion_id || !contenidoLimitado) {
+    const _convIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!conversacion_id || !_convIdRe.test(conversacion_id) || !contenidoLimitado) {
       return res.status(400).json({ error: 'Datos incompletos' });
     }
 

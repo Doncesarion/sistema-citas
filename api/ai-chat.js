@@ -712,7 +712,11 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
       );
       const citasExistentes = await r2.json();
       const ocupadas = new Set((citasExistentes || []).map(c => c.hora?.slice(0, 5)));
-      const disponibles = slots.filter(s => !ocupadas.has(s));
+      const hoyStgo = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+      const slotsLibres = slots.filter(s => !ocupadas.has(s));
+      const disponibles = fecha === hoyStgo
+        ? slotsLibres.filter(s => { const [h, m] = s.split(':').map(Number); const minSlot = h * 60 + m; const now = new Date(); const minNow = now.toLocaleString('en-US', { timeZone: 'America/Santiago', hour: 'numeric', minute: 'numeric', hour12: false }).split(':').reduce((a,b,i) => a + (i===0 ? Number(b)*60 : Number(b)), 0); return minSlot > minNow + 60; })
+        : slotsLibres;
 
       if (!disponibles.length) {
         if (horario.sobrecupos_habilitados) {

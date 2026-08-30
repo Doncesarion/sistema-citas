@@ -488,7 +488,7 @@ HOY ES: ${hoyVentas}`;
     }
 
     if (esPrimerMsg) notificarNuevoMensaje(canal, canal_user_name, mensaje);
-    return res.status(200).json({ respuesta: respuestaVentas, cita_creada: null });
+    return res.status(200).json({ respuesta: respuestaVentas || 'Un momento, intenta de nuevo.', cita_creada: null });
   }
   // ── FIN MODO VENTAS ───────────────────────────────────────────────────────
 
@@ -1304,7 +1304,7 @@ REGLAS GENERALES:
   }
 
   return res.status(200).json({
-    respuesta:    respuestaFinal,
+    respuesta:    respuestaFinal || 'Un momento, intenta de nuevo.',
     cita_creada:  citaCreada || null,
     delay_min_seg: botConfig.delay_min_seg || 0,
     delay_max_seg: botConfig.delay_max_seg || 0,

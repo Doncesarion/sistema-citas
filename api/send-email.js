@@ -55,7 +55,7 @@ function renderTemplate(template, vars) {
 }
 
 // Template HTML para recordatorio
-function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, negocio, intro, mensaje_extra, cita_id }) {
+function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, negocio, intro, mensaje_extra, cita_id, direccion = '' }) {
   const gestionUrl = `${BASE_URL}/gestionar-cita?id=${he(cita_id || '')}`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:600px){.aw{padding:20px 8px!important}.ac{padding:24px 16px!important}.af{padding:12px 16px!important}}</style></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">

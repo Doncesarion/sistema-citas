@@ -667,8 +667,8 @@ export default async function handler(req, res) {
     if (req.query.resource === 'chatbot-knowledge') {
       try {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&order=orden.asc,created_at.desc`, { headers: sh });
-        const data = await r.json();
         if (!r.ok) return res.status(500).json({ error: 'Error al obtener conocimiento' });
+        const data = await r.json();
         return res.status(200).json(data);
       } catch(e) {
         return res.status(500).json({ error: 'Error interno' });
