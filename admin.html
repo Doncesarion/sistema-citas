@@ -5843,6 +5843,7 @@ function renderServicios() {
           ${s.descripcion ? `<span style="font-size:11px;color:var(--t4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${s.descripcion}">${s.descripcion}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <button onclick="editarServicio(${i})" title="Editar" style="color:var(--t3);border:none;background:none;font-size:13px;cursor:pointer;line-height:1;padding:1px 5px" onmouseenter="this.style.color='var(--a)'" onmouseleave="this.style.color='var(--t3)'">✏</button>
           ${_srvEspsCache.length > 0 ? `<button onclick="editarSrvEsps(${i})" style="color:var(--a);border:1px solid rgba(108,92,228,0.25);background:rgba(108,92,228,0.06);border-radius:4px;font-size:10px;cursor:pointer;padding:2px 6px;white-space:nowrap">Profesionales</button>` : ''}
           <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:1px 5px" title="Eliminar">×</button>
         </div>
@@ -5926,16 +5927,38 @@ function agregarServicio() {
   if (!nombre) { toast('Ingresa un nombre para el servicio'); return; }
   const checks = document.querySelectorAll('#srv-esps-form input[type=checkbox]:checked');
   const especialistas_ids = Array.from(checks).map(c => c.value).filter(Boolean);
+  const editIdx = document.getElementById('srv-nombre')?._editIdx ?? -1;
   const srv = { nombre, duracion, precio };
   if (descripcion) srv.descripcion = descripcion;
   if (categoria)   srv.categoria   = categoria;
   if (especialistas_ids.length) srv.especialistas_ids = especialistas_ids;
-  _serviciosCache.push(srv);
+  else if (editIdx >= 0 && _serviciosCache[editIdx]?.especialistas_ids)
+    srv.especialistas_ids = _serviciosCache[editIdx].especialistas_ids;
+  if (editIdx >= 0) { _serviciosCache[editIdx] = srv; delete document.getElementById('srv-nombre')._editIdx; }
+  else _serviciosCache.push(srv);
   actualizarDatalistCat();
   renderServicios();
   renderSrvEspsForm();
   ['srv-nombre','srv-duracion','srv-precio','srv-desc','srv-cat'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   toggleSrvForm();
+}
+
+function editarServicio(idx) {
+  const s = _serviciosCache[idx];
+  if (!s) return;
+  // Abrir formulario si está cerrado
+  const body = document.getElementById('srv-form-body');
+  if (body && body.style.display === 'none') toggleSrvForm();
+  // Precargar campos
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  set('srv-nombre',   s.nombre);
+  set('srv-duracion', s.duracion ?? '');
+  set('srv-precio',   s.precio ?? '');
+  set('srv-desc',     s.descripcion ?? '');
+  set('srv-cat',      s.categoria ?? '');
+  // Marcar como edición en curso (elimina el original al agregar)
+  document.getElementById('srv-nombre')._editIdx = idx;
+  document.getElementById('srv-nombre').focus();
 }
 
 function eliminarServicio(idx) {
