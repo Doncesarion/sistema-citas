@@ -79,7 +79,7 @@ function incUso(supaUrl, supaKey, cliente_id, campo) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { messages, cliente_id, negocio_nombre, type, attia_conv_id: incomingConvId } = req.body || {};
+  const { messages, cliente_id, negocio_nombre, type, attia_conv_id: incomingConvId, email_paciente } = req.body || {};
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Datos incompletos' });
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
@@ -329,6 +329,30 @@ HOY ES: ${hoy}`;
     if (!Array.isArray(espLista)) espLista = [];
   } catch(_) { espLista = []; }
 
+  // ── Reconocimiento de paciente recurrente ─────────────────────────────────
+  let pacienteContexto = '';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (email_paciente && emailRegex.test(email_paciente)) {
+    try {
+      const hace6m = new Date(Date.now() - 180*24*60*60*1000).toISOString().slice(0,10);
+      const rPac = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email_paciente)}&cliente_id=eq.${cliente_id}&fecha=gte.${hace6m}&order=fecha.desc&limit=3&select=nombre_paciente,fecha,hora,servicio,especialista_id,estado`,
+        { headers: sh }
+      );
+      const citasPac = await rPac.json();
+      if (Array.isArray(citasPac) && citasPac.length > 0) {
+        const nombre = citasPac[0].nombre_paciente || '';
+        const ultima = citasPac[0];
+        const fechaUlt = ultima.fecha ? ultima.fecha.split('-').reverse().join('/') : '';
+        const espUlt = ultima.especialista_id ? (espLista.find(e => e.id === ultima.especialista_id)?.nombre || '') : '';
+        pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial con este negocio. En tu primer mensaje salúdalo por su nombre de forma natural.`;
+        if (ultima.servicio) pacienteContexto += `\nÚltima cita: ${ultima.servicio}${fechaUlt ? ' el ' + fechaUlt : ''}${espUlt ? ' con ' + espUlt : ''}.`;
+        if (citasPac.length > 1) pacienteContexto += `\nHistorial reciente: ${citasPac.length} citas en los últimos 6 meses.`;
+        pacienteContexto += `\nSi quiere agendar, puedes sugerir el mismo servicio${espUlt ? ' y profesional' : ''} de antes.\n`;
+      }
+    } catch(e) { console.error('ai-chat paciente-lookup error:', e.message); }
+  }
+
   const espTexto = espLista.length
     ? espLista.map(e => `• ${e.nombre} — ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
@@ -475,7 +499,7 @@ HOY ES: ${hoy}`;
       }).join('\n')}`
     : '';
 
-  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}
+  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}${pacienteContexto}
 ${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
 PROFESIONALES DISPONIBLES (usa el id exacto al llamar las herramientas):
 ${espTexto}

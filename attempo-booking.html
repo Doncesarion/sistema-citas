@@ -1491,7 +1491,7 @@ async function attiaEnviar(texto) {
     const r = await fetch('/api/ai-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: _attiaHist, cliente_id: clienteId, negocio_nombre: negocioData?.nombre_negocio || '', attia_conv_id: _attiaConvId })
+      body: JSON.stringify({ messages: _attiaHist, cliente_id: clienteId, negocio_nombre: negocioData?.nombre_negocio || '', attia_conv_id: _attiaConvId, email_paciente: st.email || '' })
     });
     const d = await r.json();
     typing.remove();
