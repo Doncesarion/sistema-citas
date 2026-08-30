@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, system: ADMIN_HELP_PROMPT, messages: messages.slice(-10) })
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400, system: ADMIN_HELP_PROMPT, messages: messages.slice(-8) })
       });
       if (!r.ok) return res.status(502).json({ error: 'Error AI', detail: await r.text() });
       const data = await r.json();
@@ -546,7 +546,6 @@ CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:
 6. Pide teléfono y email en UN SOLO mensaje. Si solo da el teléfono, está bien.
 7. Llama a confirmar_reserva con TODOS los datos: especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha (YYYY-MM-DD), hora (HH:MM), duracion, precio. NO escribas nada después.
 
-NO uses pedir_fecha — no está disponible en este contexto.
 Una vez que confirmar_reserva fue ejecutado en la conversación, NO lo vuelvas a llamar. Si el paciente pregunta cómo pagar, responde directamente con los métodos de pago disponibles que tienes arriba.
 
 CUANDO EL PACIENTE QUIERE REAGENDAR UNA CITA:
@@ -582,17 +581,6 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
 - El cliente_id para crear_cita es siempre: ${cliente_id}`;
 
   const tools = [
-    {
-      name: 'pedir_fecha',
-      description: 'Muestra un calendario visual al paciente para que elija el día de su cita. SIEMPRE incluye el especialista_id del profesional ya seleccionado.',
-      input_schema: {
-        type: 'object',
-        properties: {
-          especialista_id: { type: 'string', description: 'ID del profesional confirmado (está en el listado del sistema)' }
-        },
-        required: ['especialista_id']
-      }
-    },
     {
       name: 'verificar_disponibilidad',
       description: 'Retorna los horarios disponibles de un profesional en una fecha específica',
@@ -708,8 +696,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
         return { disponible: false, mensaje: 'El profesional no trabaja ese día' };
       }
 
-      const bloque = diaHorario.bloques[0];
-      const slots = generarSlots(bloque.desde, bloque.hasta, 30);
+      const slots = diaHorario.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
 
       const r2 = await fetch(
         `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,

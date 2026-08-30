@@ -65,7 +65,22 @@ export default async function handler(req, res) {
       sessionId = sessions[0].id;
       historial = Array.isArray(sessions[0].messages) ? sessions[0].messages : [];
       if (sessions[0].pausa_bot) {
-        return res.status(200).json({ respuesta: '', pausa: true });
+        // Enviar recordatorio solo si el último mensaje guardado fue la escalación (no hay respuesta humana aún)
+        const ultimoMsg = historial[historial.length - 1];
+        const esperandoRespuesta = ultimoMsg?.role === 'assistant' &&
+          typeof ultimoMsg.content === 'string' &&
+          (ultimoMsg.content.includes('contactar') || ultimoMsg.content.includes('equipo'));
+        const respuesta = esperandoRespuesta ? 'nuestro equipo te va a responder aquí a la brevedad' : '';
+        if (esperandoRespuesta) {
+          // Guardar el recordatorio en historial para no repetirlo
+          const msgsActualizados = [...historial, { role: 'user', content: mensaje }, { role: 'assistant', content: respuesta }];
+          fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
+            method: 'PATCH',
+            headers: { ...shJson, Prefer: 'return=minimal' },
+            body: JSON.stringify({ messages: msgsActualizados })
+          }).catch(() => {});
+        }
+        return res.status(200).json({ respuesta, pausa: true });
       }
     } else {
       // Crear nueva sesión
@@ -300,7 +315,7 @@ export default async function handler(req, res) {
           const detalle = citasAnts.map(c =>
             `- ${c.servicio || 'Consulta'} el ${c.fecha} a las ${c.hora} (${c.estado})`
           ).join('\n');
-          pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial en el sistema. Últimas citas:\n${detalle}\nSaludalo por su nombre en el primer mensaje si aún no lo has hecho.`;
+          pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial. Su nombre es ${nombre} — NO lo pidas. Salúdalo por su nombre en el primer mensaje.\nÚltimas citas:\n${detalle}`;
         }
       }
     } catch(e) { /* silencioso */ }
@@ -652,7 +667,7 @@ INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 
 FLUJO PARA AGENDAR UNA CITA — sigue SIEMPRE este orden exacto, sin saltarte pasos:
 1. Saluda con calidez si es el primer mensaje.
-2. Pregunta el nombre completo del paciente.
+2. Si hay PACIENTE RECURRENTE en el contexto, ya tienes su nombre — NO lo pidas, pasa directamente al paso 3. Si no, pregunta el nombre completo.
 3. Pregunta el servicio. Si hay catálogo, preséntalo así:
    "Contamos con los siguientes servicios:
    - [Servicio 1] (duración · precio)
@@ -1280,10 +1295,7 @@ REGLAS GENERALES:
 
   // ── 10. Guardar historial actualizado en chat_sessions ────────────────────
   if (sessionId) {
-    // Si se creó una cita, limpiar el historial para que la siguiente conversación empiece fresco
-    const mensajesGuardables = citaCreada
-      ? []
-      : msgs.slice(-MAX_MESSAGES);
+    const mensajesGuardables = msgs.slice(-MAX_MESSAGES);
 
     fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
       method: 'PATCH',
