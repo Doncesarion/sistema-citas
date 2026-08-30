@@ -202,9 +202,14 @@
         alert(d.error || 'Error al enviar. Intenta nuevamente.');
         return;
       }
+      const titleEl = document.getElementById('ok-title');
+      const msgEl   = document.getElementById('ok-msg');
       if (espNombre) {
-        document.getElementById('ok-title').textContent = `${espNombre} recibió tu evaluación`;
-        document.getElementById('ok-msg').textContent   = `Gracias por tomarte el tiempo de dejar tu valoración. Significa mucho para ${espNombre} y su crecimiento profesional.`;
+        titleEl.textContent = `${espNombre} recibió tu evaluación`;
+        msgEl.textContent   = `Gracias por tomarte el tiempo de dejar tu valoración. Significa mucho para ${espNombre} y su crecimiento profesional.`;
+      } else {
+        titleEl.textContent = '¡Gracias por tu evaluación!';
+        msgEl.textContent   = 'Tu opinión fue registrada. Significa mucho para el profesional y su equipo.';
       }
       show('screen-ok');
     } catch(_) {
