@@ -5763,7 +5763,7 @@ function renderServicios() {
     const idsAsig  = Array.isArray(s.especialistas_ids) ? s.especialistas_ids : [];
     const espsAsig = idsAsig.length ? _srvEspsCache.filter(e => idsAsig.includes(e.id)) : [];
     let etiqueta = '';
-    if (_srvEspsCache.length > 1) {
+    if (_srvEspsCache.length > 0) {
       etiqueta = idsAsig.length === 0
         ? '<span style="font-size:10px;background:rgba(108,92,228,0.08);color:var(--a);border-radius:4px;padding:1px 6px">Todos los profesionales</span>'
         : espsAsig.map(e => `<span style="font-size:10px;background:var(--adim);color:var(--t2);border-radius:4px;padding:1px 6px;border:1px solid var(--b1)">${e.nombre}</span>`).join(' ');
@@ -5778,7 +5778,7 @@ function renderServicios() {
         ${etiqueta ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px">${etiqueta}</div>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-top:1px">
-        ${_srvEspsCache.length > 1 ? `<button onclick="editarSrvEsps(${i})" style="color:var(--a);border:1px solid rgba(108,92,228,0.25);background:rgba(108,92,228,0.06);border-radius:5px;font-size:11px;cursor:pointer;padding:3px 8px;line-height:1.4;white-space:nowrap">Profesionales</button>` : ''}
+        ${_srvEspsCache.length > 0 ? `<button onclick="editarSrvEsps(${i})" style="color:var(--a);border:1px solid rgba(108,92,228,0.25);background:rgba(108,92,228,0.06);border-radius:5px;font-size:11px;cursor:pointer;padding:3px 8px;line-height:1.4;white-space:nowrap">Profesionales</button>` : ''}
         <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px" title="Eliminar">×</button>
       </div>
     </div>`;
@@ -5789,7 +5789,7 @@ function renderSrvEspsForm() {
   const wrap = document.getElementById('srv-esps-wrap');
   const container = document.getElementById('srv-esps-form');
   if (!wrap || !container) return;
-  if (_srvEspsCache.length <= 1) { wrap.style.display = 'none'; return; }
+  if (!_srvEspsCache.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   container.innerHTML = _srvEspsCache.map(e =>
     `<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t1);cursor:pointer;padding:4px 8px;border:1px solid var(--b1);border-radius:5px;background:var(--bg2)">
