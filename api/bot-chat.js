@@ -242,14 +242,33 @@ export default async function handler(req, res) {
     return { ok: true };
   }
 
-  // ── 2. Cargar configuración del bot ───────────────────────────────────────
+  // ── 2. Carga en paralelo: botConfig + knowledge + negocio/sedes + especialistas + paciente ──
   let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '' };
+  let chatbotKnowledge = [];
+  let sedesContexto = '';
+  let pacienteContexto = '';
+  let negocioNombre = 'el negocio';
+  let serviciosCatalogo = [];
+  let emailNegocio = null;
+  let espLista = [];
+
   try {
-    const rb = await fetch(
-      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`,
-      { headers: sh }
-    );
-    const rawBotCfg = await rb.json();
+    const [rawBotCfg, rawCK, rawCli, rawEsp, rawCitas] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh })
+        .then(r => r.json()).catch(() => []),
+      fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&activo=eq.true&order=orden.asc`, { headers: sh })
+        .then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios,email,promociones,ubicaciones&limit=1`, { headers: sh })
+        .then(r => r.json()).then(d => d[0] || null).catch(() => null),
+      fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad,horario&order=nombre.asc`, { headers: sh })
+        .then(r => r.json()).catch(() => []),
+      canal === 'whatsapp' && canal_user_id
+        ? fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&tel_paciente=eq.${encodeURIComponent(canal_user_id)}&select=nombre_paciente,fecha,hora,servicio,estado&order=fecha.desc,hora.desc&limit=3`, { headers: sh })
+            .then(r => r.ok ? r.json() : []).catch(() => [])
+        : Promise.resolve([]),
+    ]);
+
+    // botConfig
     const [bc] = Array.isArray(rawBotCfg) ? rawBotCfg : [];
     if (bc) {
       botConfig.nombre_bot          = bc.nombre_bot          || 'Valentina';
@@ -262,34 +281,22 @@ export default async function handler(req, res) {
       botConfig.notif_nuevo_mensaje = bc.notif_nuevo_mensaje || false;
       botConfig.notif_email         = bc.notif_email         || '';
     }
-    console.log('bot-chat: promociones cargadas =', JSON.stringify(botConfig.promociones));
     if (process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
       botConfig.tipo_bot = 'ventas';
     }
-  } catch (e) {
-    console.error('bot-chat: error cargando bot_config:', e.message);
-  }
 
-  // ── 2b. Base de conocimiento dinámica ─────────────────────────────────────
-  let chatbotKnowledge = [];
-  try {
-    const ckResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&activo=eq.true&order=orden.asc`,
-      { headers: sh }
-    );
-    if (ckResp.ok) chatbotKnowledge = await ckResp.json();
-  } catch(e) { /* silencioso */ }
+    // knowledge
+    if (Array.isArray(rawCK)) chatbotKnowledge = rawCK;
 
-  // ── 2c. Sedes / ubicaciones del negocio ──────────────────────────────────
-  let sedesContexto = '';
-  try {
-    const sedesResp = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=ubicaciones&limit=1`,
-      { headers: sh }
-    );
-    if (sedesResp.ok) {
-      const sedesData = await sedesResp.json();
-      const sedes = sedesData[0]?.ubicaciones;
+    // negocio + sedes (misma query, un solo round-trip)
+    if (rawCli) {
+      negocioNombre     = rawCli.nombre_negocio || 'el negocio';
+      serviciosCatalogo = Array.isArray(rawCli.servicios) ? rawCli.servicios : [];
+      emailNegocio      = rawCli.email || null;
+      if (Array.isArray(rawCli.promociones)) {
+        botConfig.promociones = [...rawCli.promociones, ...botConfig.promociones];
+      }
+      const sedes = rawCli.ubicaciones;
       if (Array.isArray(sedes) && sedes.length > 0) {
         const lineas = sedes.map((s, i) => {
           const partes = [`Sede ${i + 1}: ${s.nombre}`];
@@ -301,27 +308,21 @@ export default async function handler(req, res) {
         sedesContexto = `\n\nSEDES Y UBICACIONES DEL NEGOCIO:\n${lineas.join('\n')}`;
       }
     }
-  } catch(e) { /* silencioso */ }
+    console.log('bot-chat: promociones cargadas =', JSON.stringify(botConfig.promociones));
 
-  // ── 2d. Reconocimiento de paciente recurrente (solo WhatsApp) ────────────
-  let pacienteContexto = '';
-  if (canal === 'whatsapp' && canal_user_id) {
-    try {
-      const citasResp = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&tel_paciente=eq.${encodeURIComponent(canal_user_id)}&select=nombre_paciente,fecha,hora,servicio,estado&order=fecha.desc,hora.desc&limit=3`,
-        { headers: sh }
-      );
-      if (citasResp.ok) {
-        const citasAnts = await citasResp.json();
-        if (Array.isArray(citasAnts) && citasAnts.length > 0) {
-          const nombre = citasAnts[0].nombre_paciente;
-          const detalle = citasAnts.map(c =>
-            `- ${c.servicio || 'Consulta'} el ${c.fecha} a las ${c.hora} (${c.estado})`
-          ).join('\n');
-          pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial. Su nombre es ${nombre} — NO lo pidas. Salúdalo por su nombre en el primer mensaje.\nÚltimas citas:\n${detalle}`;
-        }
-      }
-    } catch(e) { /* silencioso */ }
+    // especialistas
+    if (Array.isArray(rawEsp)) espLista = rawEsp;
+
+    // paciente recurrente (WhatsApp)
+    if (Array.isArray(rawCitas) && rawCitas.length > 0) {
+      const nombre = rawCitas[0].nombre_paciente;
+      const detalle = rawCitas.map(c =>
+        `- ${c.servicio || 'Consulta'} el ${c.fecha} a las ${c.hora} (${c.estado})`
+      ).join('\n');
+      pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial. Su nombre es ${nombre} — NO lo pidas. Salúdalo por su nombre en el primer mensaje.\nÚltimas citas:\n${detalle}`;
+    }
+  } catch (e) {
+    console.error('bot-chat: error en carga paralela:', e.message);
   }
 
   // ── MODO VENTAS (bot de ventas attempo) ──────────────────────────────────
@@ -478,29 +479,7 @@ HOY ES: ${hoyVentas}`;
   }
   // ── FIN MODO VENTAS ───────────────────────────────────────────────────────
 
-  // ── 3. Cargar datos del negocio ───────────────────────────────────────────
-  let negocioNombre = 'el negocio';
-  let serviciosCatalogo = [];
-  let emailNegocio = null;
-
-  try {
-    const rn = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios,email,promociones&limit=1`,
-      { headers: sh }
-    );
-    const [cli] = await rn.json();
-    negocioNombre     = cli?.nombre_negocio || 'el negocio';
-    serviciosCatalogo = Array.isArray(cli?.servicios) ? cli.servicios : [];
-    emailNegocio      = cli?.email || null;
-    // Promociones de servicios (se anteponen a las de bot_config)
-    if (Array.isArray(cli?.promociones)) {
-      botConfig.promociones = [...cli.promociones, ...botConfig.promociones];
-    }
-  } catch (e) {
-    console.error('bot-chat: error cargando negocio:', e.message);
-  }
-
-  // ── 3b. Detección de escalada humana (keywords + fallos repetidos) ─────────
+  // ── 3. Detección de escalada humana (keywords + fallos repetidos) ─────────
   {
     const KEYWORDS_HUMANO = [
       'hablar con alguien','hablar con una persona','hablar con un humano',
@@ -548,20 +527,7 @@ HOY ES: ${hoyVentas}`;
     }
   }
 
-  // ── 4. Cargar especialistas ───────────────────────────────────────────────
-  let espLista = [];
-  try {
-    const re = await fetch(
-      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad,horario&order=nombre.asc`,
-      { headers: sh }
-    );
-    espLista = await re.json();
-    if (!Array.isArray(espLista)) espLista = [];
-  } catch (e) {
-    console.error('bot-chat: error cargando especialistas:', e.message);
-    espLista = [];
-  }
-
+  // ── 4. Preparar datos de especialistas ───────────────────────────────────
   const espTexto = espLista.length
     ? espLista.map(e => `- ${e.nombre}, ${e.especialidad || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
@@ -677,7 +643,9 @@ FLUJO PARA AGENDAR UNA CITA — sigue SIEMPRE este orden exacto, sin saltarte pa
    - [Servicio 2] ..."
    ¿Cuál necesitas?
 4. Si hay un solo profesional, infórmalo: "Serás atendido/a por [nombre], [especialidad]."
-   Si hay varios, lista sus nombres y pregunta con quién prefiere.
+   Si hay PACIENTE RECURRENTE y sus citas anteriores mencionan un profesional, sugiérelo: "¿Te agendo con [nombre] como la última vez, o prefieres otro profesional?"
+   Si hay 2-3 profesionales, lista sus nombres y pregunta con quién prefiere.
+   Si hay 4 o más profesionales, di: "Tenemos [N] profesionales disponibles. ¿Tienes preferencia por alguno, o te agendo con quien tenga disponibilidad antes?"
 5. Llama a ver_disponibilidad_semana y presenta el resultado línea por línea. Pregunta qué día prefiere. IMPORTANTE: el campo "texto" muestra el horario general del profesional, NO las horas reales libres (puede haber citas ya agendadas). Nunca uses esos horarios para decirle al paciente qué horas hay disponibles en un día concreto.
 6. Cuando el paciente elija un día, SIEMPRE llama a buscar_disponibilidad para ese día antes de mencionar horas. Usa el campo "rangos" para presentar compactamente: "Tenemos disponibilidad de [rangos]. ¿Qué hora te acomoda?" NUNCA listes slots individuales. NUNCA uses los horarios de ver_disponibilidad_semana para responder esto.
 7. Cuando el paciente confirme una hora específica, verifica que esté en el campo "horas" de buscar_disponibilidad. ${telDesdeCanal ? `Ya tienes su teléfono (${telDesdeCanal}). Pide el email: "Para enviarte la confirmación necesito tu email, ¿cuál es?"` : `Pide teléfono y email en un solo mensaje: "Para confirmar necesito tu teléfono y email para enviarte la confirmación."`}
