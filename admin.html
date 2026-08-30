@@ -17326,20 +17326,7 @@ async function loadEvaluaciones() {
   const _evalTok = localStorage.getItem('attempo_session_token') || '';
   const _evalH   = { 'x-session-token': _evalTok };
 
-  // Cargar profesionales en el select si aún no se hizo
-  if (espSelect && espSelect.options.length <= 1) {
-    try {
-      const r = await fetch('/api/slots?action=especialistas', { headers: _evalH });
-      const d = await r.json();
-      const esps = d.especialistas || d || [];
-      esps.forEach(e => {
-        const opt = document.createElement('option');
-        opt.value = e.id;
-        opt.textContent = e.nombre;
-        espSelect.appendChild(opt);
-      });
-    } catch(_) {}
-  }
+  // Los especialistas del select se poblan desde las evaluaciones al cargar sin filtro
 
   const lista = document.getElementById('eval-lista');
   lista.innerHTML = '<div style="color:var(--t3);font-size:14px;text-align:center;padding:40px 0">Cargando...</div>';
@@ -17350,6 +17337,21 @@ async function loadEvaluaciones() {
     const r = await fetch(url, { headers: _evalH });
     const d = await r.json();
     const evs = d.evaluaciones || [];
+
+    // Poblar select de especialistas desde las evaluaciones (solo cuando se ve todo, sin filtro)
+    if (espSelect && !espId && evs.length) {
+      const yaEnSelect = new Set([...espSelect.options].map(o => o.value));
+      const espVistas = {};
+      evs.forEach(ev => {
+        if (ev.especialista_id && ev.especialistas?.nombre && !yaEnSelect.has(ev.especialista_id))
+          espVistas[ev.especialista_id] = ev.especialistas.nombre;
+      });
+      Object.entries(espVistas).forEach(([id, nombre]) => {
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = nombre;
+        espSelect.appendChild(opt);
+      });
+    }
 
     if (!evs.length) {
       lista.innerHTML = '<div style="color:var(--t3);font-size:14px;text-align:center;padding:40px 0">Aún no hay evaluaciones recibidas. Se enviarán automáticamente 1 hora después de cada cita completada.</div>';
