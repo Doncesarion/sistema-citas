@@ -846,6 +846,37 @@ export default async function handler(req, res) {
   }
 }
 
+// ── Rate limiting para evaluar (en memoria + Upstash) ────────────────────────
+const _evaluarFallback = new Map();
+async function isEvaluarRateLimited(ip) {
+  const MAX = 10, WINDOW_S = 3600;
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (url && token) {
+    try {
+      const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
+      const key = `rl:evaluar:${ip}:${bucket}`;
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', key], ['EXPIRE', key, WINDOW_S * 2]])
+      });
+      const data = await r.json();
+      const count = data[0]?.result;
+      if (typeof count === 'number') return count > MAX;
+    } catch {}
+  }
+  const now = Date.now();
+  const entry = _evaluarFallback.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _evaluarFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
+    return false;
+  }
+  if (entry.count >= MAX) return true;
+  entry.count++;
+  return false;
+}
+
 // ── Evaluaciones ─────────────────────────────────────────────────────────────
 // GET  ?action=evaluar&token=xxx  → carga form para paciente (sin sesión)
 // GET  ?action=evaluar_admin      → lista evaluaciones para el panel (con sesión)
@@ -1005,6 +1036,9 @@ export async function handleEvaluar(req, res) {
 
   // POST ?action=evaluar → guardar evaluación del paciente
   if (req.method === 'POST') {
+    const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+    if (await isEvaluarRateLimited(ip)) return res.status(429).json({ error: 'Demasiados intentos. Intenta más tarde.' });
+
     const body     = req.body || {};
     const token    = String(body.token || '').trim();
     const estrellas = parseInt(body.estrellas, 10);
