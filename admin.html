@@ -2251,6 +2251,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
             <div class="sc"><div class="sc-lbl">Ingresos período</div><div class="sc-val"><span style="color:var(--a)">$</span><span class="hi" id="rkpi-ing">—</span></div><div class="sc-delta" id="rkpi-ing-d">—</div><div class="minibars" id="rkpi-ing-bars"></div></div>
             <div class="sc"><div class="sc-lbl">Cancelaciones</div><div class="sc-val"><span class="hi" id="rkpi-cancel">—</span><span style="color:var(--a)">%</span></div><div class="sc-delta dd" id="rkpi-cancel-d">—</div></div>
             <div class="sc"><div class="sc-lbl">Pacientes únicos</div><div class="sc-val"><span class="hi" id="rkpi-nuevos">—</span></div><div class="sc-delta" id="rkpi-nuevos-d">—</div></div>
+            <div class="sc"><div class="sc-lbl">No-shows</div><div class="sc-val"><span class="hi" id="rkpi-noshow">—</span><span style="color:var(--a)">%</span></div><div class="sc-delta dd" id="rkpi-noshow-d">—</div></div>
+            <div class="sc"><div class="sc-lbl">Ing. proyectados</div><div class="sc-val"><span style="color:var(--a)">$</span><span class="hi" id="rkpi-proyectado">—</span></div><div class="sc-delta" id="rkpi-proyectado-d">—</div></div>
           </div>
         </div>
       </div>
@@ -2320,8 +2322,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </div>
         <div class="mod-body">
           <table>
-            <thead><tr><th>Profesional</th><th style="text-align:center">Citas</th><th>Cobrado</th><th>Pendiente</th><th style="min-width:100px">Participación</th></tr></thead>
-            <tbody id="rep-prof-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t3)">Cargando...</td></tr></tbody>
+            <thead><tr><th>Profesional</th><th style="text-align:center">Citas</th><th style="text-align:center">No-shows</th><th>Cobrado</th><th>Pendiente</th><th style="min-width:100px">Participación</th></tr></thead>
+            <tbody id="rep-prof-tbody"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--t3)">Cargando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -4375,6 +4377,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="fptab on" onclick="fpTab(this,'ft-info')">Información</button>
         <button class="fptab" onclick="fpTab(this,'ft-hist')">Historial</button>
         <button class="fptab" onclick="fpTab(this,'ft-notas')">Notas internas</button>
+        <button class="fptab" onclick="fpTab(this,'ft-conv')">Conversaciones</button>
       </div>
       <div id="fp-edit-btn-wrap" style="display:flex;align-items:center;gap:8px;padding:0 10px">
         <button id="fp-edit-btn" onclick="openPacienteEdit()" style="font-size:11px;font-weight:500;color:var(--a);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;font-family:var(--font)">✏ Editar datos</button>
@@ -4449,6 +4452,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div class="tl-lbl">Notas internas del equipo</div>
       <textarea id="fp-notas-txt" class="fp-textarea" rows="5" placeholder="Escribe observaciones sobre este cliente. Solo las ve tu equipo."></textarea>
       <button class="btn-a" style="align-self:flex-end" onclick="saveFichaNota()">Guardar nota</button>
+    </div>
+
+    <!-- Tab: Conversaciones -->
+    <div class="fp-body" id="ft-conv" style="display:none">
+      <div class="tl-lbl">Historial de conversaciones</div>
+      <div id="ft-conv-wrap" style="display:flex;flex-direction:column;gap:0">
+        <div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>
+      </div>
     </div>
 
   </div>
@@ -5109,7 +5120,7 @@ function openFicha(name, initials, rubro, citaId) {
   // Reset to info tab
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.fptab')[0].classList.add('on');
-  ['ft-info','ft-hist','ft-notas'].forEach((id,i) => {
+  ['ft-info','ft-hist','ft-notas','ft-conv'].forEach((id,i) => {
     const el = document.getElementById(id);
     if (el) { el.style.display = i===0?'flex':'none'; if(i===0) el.style.flexDirection='column'; }
   });
@@ -5296,11 +5307,55 @@ function reagendarProxCita() {
 function fpTab(btn, id) {
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   btn.classList.add('on');
-  ['ft-info','ft-hist','ft-notas'].forEach(i => {
+  ['ft-info','ft-hist','ft-notas','ft-conv'].forEach(i => {
     const el = document.getElementById(i);
     if (el) el.style.display = i === id ? 'flex' : 'none';
     if (i === id && el) el.style.flexDirection = 'column';
   });
+  if (id === 'ft-conv') cargarFichaConversaciones();
+}
+
+async function cargarFichaConversaciones() {
+  const wrap = document.getElementById('ft-conv-wrap');
+  if (!wrap) return;
+  const tel   = document.getElementById('fpi-tel')?.textContent?.trim();
+  const email = document.getElementById('fpi-email')?.textContent?.trim();
+  if ((!tel || tel === '—') && (!email || email === '—')) {
+    wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin datos de contacto para buscar conversaciones.</div>';
+    return;
+  }
+  wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando...</div>';
+  try {
+    const params = [];
+    if (tel && tel !== '—') params.push('tel=' + encodeURIComponent(tel));
+    if (email && email !== '—') params.push('email=' + encodeURIComponent(email));
+    const r = await fetch('/api/slots?resource=conversaciones_paciente&' + params.join('&'), { headers: _citasH() });
+    const data = await r.json();
+    if (!r.ok || !Array.isArray(data)) {
+      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">No se pudieron cargar las conversaciones.</div>';
+      return;
+    }
+    if (!data.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin conversaciones registradas.</div>';
+      return;
+    }
+    const CANAL_ICO = { whatsapp:'💬', instagram:'📷', messenger:'💙', email:'📧', web:'🌐' };
+    wrap.innerHTML = data.map(c => {
+      const ico   = CANAL_ICO[c.canal] || '💬';
+      const fecha = c.ultimo_mensaje_at ? new Date(c.ultimo_mensaje_at).toLocaleDateString('es-CL', {day:'numeric',month:'short',year:'numeric'}) : '—';
+      const nombre = c.canal_user_name || c.canal_user_id || '—';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer" onclick="window.open('/bandeja.html','_blank')">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--surface-hi,#f5f3ff);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${ico}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nombre}</div>
+          <div style="font-size:11px;color:var(--t3)">${c.canal || '—'} · ${fecha}</div>
+        </div>
+        <div style="font-size:11px;color:var(--a);flex-shrink:0">Ver →</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Error al cargar conversaciones.</div>';
+  }
 }
 
 async function loadFichaData(nombre) {
@@ -10408,7 +10463,7 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('ficha-ov').classList.add('open');
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.fptab')[0].classList.add('on');
-  ['ft-info','ft-hist','ft-notas'].forEach((id,i) => {
+  ['ft-info','ft-hist','ft-notas','ft-conv'].forEach((id,i) => {
     const el = document.getElementById(id);
     if (el) { el.style.display = i===0?'flex':'none'; if(i===0) el.style.flexDirection='column'; }
   });
@@ -12831,6 +12886,22 @@ function renderRepKPIs(lista) {
   if ($('rkpi-nuevos'))   $('rkpi-nuevos').textContent  = pacientes.size;
   if ($('rkpi-nuevos-d')) $('rkpi-nuevos-d').textContent= 'Pacientes únicos';
 
+  // No-shows
+  const noShowEstados = ['inasistencia','no-show','no_show'];
+  const noShows = lista.filter(c => noShowEstados.includes(c.estado));
+  const tasaNoShow = total > 0 ? Math.round(noShows.length / total * 100) : 0;
+  if ($('rkpi-noshow'))   $('rkpi-noshow').textContent   = tasaNoShow;
+  if ($('rkpi-noshow-d')) $('rkpi-noshow-d').textContent = noShows.length + ' inasistencias en el período';
+
+  // Ingresos proyectados (citas futuras con precio no canceladas)
+  const hoyStr = new Date().toISOString().slice(0,10);
+  const estadosCancelados = ['cancelada','canceled','cancelled','inasistencia','no-show','no_show'];
+  const ingProyectado = _allReportes
+    .filter(c => c.fecha >= hoyStr && !estadosCancelados.includes(c.estado) && Number(c.precio) > 0)
+    .reduce((s,c) => s + (Number(c.precio)||0), 0);
+  if ($('rkpi-proyectado'))   $('rkpi-proyectado').textContent   = ingProyectado.toLocaleString('es-CL');
+  if ($('rkpi-proyectado-d')) $('rkpi-proyectado-d').textContent = 'De citas futuras agendadas';
+
   // Banner de tendencia
   const banner = $('rep-insight');
   if (banner && total > 0) {
@@ -12968,23 +13039,27 @@ function renderRepEstado(lista) {
 function renderRepProfesionales(lista) {
   const tbody = document.getElementById('rep-prof-tbody');
   if (!tbody) return;
+  const noShowEstados = ['inasistencia','no-show','no_show'];
   const profs = {};
   lista.forEach(c => {
     const nom = c.especialistas?.nombre || '—';
-    if (!profs[nom]) profs[nom] = {citas:0,cobrado:0,pendiente:0};
+    if (!profs[nom]) profs[nom] = {citas:0,cobrado:0,pendiente:0,noShows:0};
     profs[nom].citas++;
+    if (noShowEstados.includes(c.estado)) profs[nom].noShows++;
     if (c.estado_pago==='pagado') profs[nom].cobrado += Number(c.precio)||0;
     else profs[nom].pendiente += Number(c.precio)||0;
   });
   const totalCobrado = Object.values(profs).reduce((s,p)=>s+p.cobrado,0) || 1;
   const sorted = Object.entries(profs).sort((a,b)=>b[1].citas-a[1].citas);
-  if (!sorted.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--t3)">Sin datos</td></tr>'; return; }
+  if (!sorted.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--t3)">Sin datos</td></tr>'; return; }
   tbody.innerHTML = sorted.map(([nom,d]) => {
     const pct = Math.round(d.cobrado/totalCobrado*100);
     const ini = nom.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const nsStyle = d.noShows > 0 ? 'color:var(--red);font-weight:500' : 'color:var(--t3)';
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--a),var(--a3));display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0">${ini}</div>${nom}</div></td>
       <td style="text-align:center;font-weight:500">${d.citas}</td>
+      <td style="text-align:center;${nsStyle}">${d.noShows}</td>
       <td style="font-family:var(--mono);color:var(--green)">$${d.cobrado.toLocaleString('es-CL')}</td>
       <td style="font-family:var(--mono);color:var(--amber)">$${d.pendiente.toLocaleString('es-CL')}</td>
       <td><div style="display:flex;align-items:center;gap:6px"><div class="pct-bar"><div class="pct-bar-fill" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--t3);min-width:28px">${pct}%</span></div></td>

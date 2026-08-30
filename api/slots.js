@@ -596,7 +596,7 @@ export default async function handler(req, res) {
     try {
       const [rCita, rCli] = await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}&select=google_event_id,nombre_paciente,email_paciente,fecha,hora,servicio&limit=1`, { headers: sh }),
-        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=google_refresh_token,nombre_negocio&limit=1`, { headers: sh })
+        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=google_refresh_token,nombre_negocio,booking_slug&limit=1`, { headers: sh })
       ]);
       const [cita] = await rCita.json().catch(() => []);
       const [cli]  = await rCli.json().catch(() => []);
@@ -624,7 +624,7 @@ export default async function handler(req, res) {
         const he = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         const fechaFmt = cita.fecha ? new Date(`${cita.fecha}T12:00:00`).toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : '';
         const negocio = cli?.nombre_negocio || 'attempo';
-        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);"><tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;"><img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p></td></tr><tr><td style="padding:28px 24px;text-align:center;"><h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Tu cita fue cancelada</h2><p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(cita.nombre_paciente)}</strong>, te informamos que tu cita en <strong>${he(negocio)}</strong> ha sido cancelada.</p><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">${fechaFmt?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${he(fechaFmt)}</span></td></tr>`:''}<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hora</span><br><span style="color:#2d2d2d;font-size:15px;">${he((cita.hora||'').slice(0,5))}</span></td></tr>${cita.servicio?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Servicio</span><br><span style="color:#2d2d2d;font-size:15px;">${he(cita.servicio)}</span></td></tr>`:''}</table><p style="margin:20px 0 0;color:#9ca3af;font-size:13px;">Si tienes consultas, comunícate directamente con ${he(negocio)}.</p></td></tr><tr><td style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;"><p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a> — Todo a tu tiempo</p></td></tr></table></td></tr></table></body></html>`;
+        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);"><tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;"><img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p></td></tr><tr><td style="padding:28px 24px;text-align:center;"><h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Tu cita fue cancelada</h2><p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(cita.nombre_paciente)}</strong>, te informamos que tu cita en <strong>${he(negocio)}</strong> ha sido cancelada.</p><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">${fechaFmt?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${he(fechaFmt)}</span></td></tr>`:''}<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Hora</span><br><span style="color:#2d2d2d;font-size:15px;">${he((cita.hora||'').slice(0,5))}</span></td></tr>${cita.servicio?`<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Servicio</span><br><span style="color:#2d2d2d;font-size:15px;">${he(cita.servicio)}</span></td></tr>`:''}</table>${cli?.booking_slug ? `<div style="margin:24px 0 8px;text-align:center;"><a href="${BASE_URL}/${he(cli.booking_slug)}" style="display:inline-block;background:#6C5CE4;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;">Reagendar cita →</a></div>` : ''}<p style="margin:20px 0 0;color:#9ca3af;font-size:13px;">Si tienes consultas, comunícate directamente con ${he(negocio)}.</p></td></tr><tr><td style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;"><p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a> — Todo a tu tiempo</p></td></tr></table></td></tr></table></body></html>`;
         fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -735,6 +735,39 @@ export default async function handler(req, res) {
         return res.status(200).json(data[0]?.canales_meta || {});
       } catch(e) {
         console.error('canales_meta GET exception:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
+    // — GET conversaciones del paciente (por teléfono o email) —
+    if (req.query.resource === 'conversaciones_paciente') {
+      const { tel, email } = req.query;
+      if (!tel && !email) return res.status(200).json([]);
+      try {
+        const results = [];
+        const ids = new Set();
+        if (tel) {
+          const digits = String(tel).replace(/\D/g, '').slice(-9);
+          if (digits.length >= 8) {
+            const r = await fetch(
+              `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal_user_id=ilike.*${digits}&order=ultimo_mensaje_at.desc&limit=20&select=id,canal,canal_user_id,canal_user_name,ultimo_mensaje_at`,
+              { headers: sh }
+            );
+            const d = await r.json();
+            if (Array.isArray(d)) d.forEach(c => { if (!ids.has(c.id)) { ids.add(c.id); results.push(c); } });
+          }
+        }
+        if (email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal_user_id=eq.${encodeURIComponent(email)}&order=ultimo_mensaje_at.desc&limit=20&select=id,canal,canal_user_id,canal_user_name,ultimo_mensaje_at`,
+            { headers: sh }
+          );
+          const d = await r.json();
+          if (Array.isArray(d)) d.forEach(c => { if (!ids.has(c.id)) { ids.add(c.id); results.push(c); } });
+        }
+        results.sort((a, b) => (b.ultimo_mensaje_at || '').localeCompare(a.ultimo_mensaje_at || ''));
+        return res.status(200).json(results);
+      } catch(e) {
         return res.status(500).json({ error: 'Error interno' });
       }
     }
