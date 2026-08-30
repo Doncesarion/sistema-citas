@@ -336,7 +336,7 @@ HOY ES: ${hoy}`;
   let serviciosCatalogo = [], metodosPago = {}, datosBanco = {}, horarioNegocio = null, direccionNegocio = null;
   try {
     const rc = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=servicios,metodos_pago,datos_banco,horario_negocio,direccion&limit=1`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=servicios,metodos_pago,datos_banco,horario_negocio,direccion,promociones&limit=1`,
       { headers: sh }
     );
     const [cli] = await rc.json();
@@ -345,6 +345,10 @@ HOY ES: ${hoy}`;
     datosBanco  = cli?.datos_banco  || {};
     horarioNegocio = cli?.horario_negocio || null;
     direccionNegocio = cli?.direccion || null;
+    // Promociones de clientes_sistema (fuente principal)
+    if (Array.isArray(cli?.promociones)) {
+      promocionesBot = [...cli.promociones, ...promocionesBot];
+    }
   } catch(_) {}
 
   let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null;

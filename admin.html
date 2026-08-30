@@ -3641,6 +3641,22 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div style="display:flex;justify-content:flex-end;margin-top:4px">
         <button class="btn-a" onclick="guardarServicios(this)">Guardar catálogo</button>
       </div>
+
+      <!-- ── Promociones ── -->
+      <div class="card" style="padding:20px;margin-top:16px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--t1)">Promociones</div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px">La IA menciona las promociones activas al interactuar con pacientes.</div>
+          </div>
+          <button class="btn-a" onclick="addSrvPromo()" style="font-size:12px;padding:5px 12px;white-space:nowrap">+ Agregar</button>
+        </div>
+        <div id="srv-promos-list"></div>
+        <div id="srv-promos-empty" style="display:none;text-align:center;padding:14px;color:var(--t3);font-size:13px;border:1px dashed var(--b2);border-radius:var(--rl)">Sin promociones activas. Agrega la primera.</div>
+        <div id="srv-promos-save-row" style="display:none;justify-content:flex-end;margin-top:10px">
+          <button class="btn-a" onclick="guardarSrvPromos(this)">Guardar promociones</button>
+        </div>
+      </div>
     </div>
 
     <!-- Panel: Pagos -->
@@ -5746,22 +5762,25 @@ function showBandejaTab(name, btn, skipPush) {
 let _serviciosCache = [];
 let _srvEspsCache   = [];
 let _srvEspsEditIdx = -1;
+let _srvPromos      = [];
 
 async function cargarServicios() {
   const cid = await getClienteId();
   if (!cid) return;
   try {
     const [rSrv, rEsp] = await Promise.all([
-      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios&limit=1`, { headers: _SH }),
+      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios,promociones&limit=1`, { headers: _SH }),
       fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id,nombre&order=nombre.asc`, { headers: _SH })
     ]);
     const [cli] = await rSrv.json();
-    _serviciosCache = Array.isArray(cli?.servicios) ? cli.servicios : [];
-    _srvEspsCache = await rEsp.json().catch(() => []);
+    _serviciosCache = Array.isArray(cli?.servicios)    ? cli.servicios    : [];
+    _srvPromos      = Array.isArray(cli?.promociones)  ? cli.promociones  : [];
+    _srvEspsCache   = await rEsp.json().catch(() => []);
     if (!Array.isArray(_srvEspsCache)) _srvEspsCache = [];
     actualizarDatalistCat();
     renderSrvEspsForm();
     renderServicios();
+    renderSrvPromos();
   } catch(e) { console.error('cargarServicios:', e); }
 }
 
@@ -5964,6 +5983,76 @@ function editarServicio(idx) {
 function eliminarServicio(idx) {
   _serviciosCache.splice(idx, 1);
   renderServicios();
+}
+
+/* ════ PROMOCIONES (servicios) ════ */
+function renderSrvPromos() {
+  const list  = document.getElementById('srv-promos-list');
+  const empty = document.getElementById('srv-promos-empty');
+  const saveRow = document.getElementById('srv-promos-save-row');
+  if (!list) return;
+  const tiene = _srvPromos.length > 0;
+  if (empty) empty.style.display = tiene ? 'none' : 'block';
+  if (saveRow) saveRow.style.display = tiene ? 'flex' : 'none';
+  if (!tiene) { list.innerHTML = ''; return; }
+  const hoy = new Date().toISOString().split('T')[0];
+  list.innerHTML = _srvPromos.map((p, i) => {
+    let estadoTxt = 'Activa', estadoColor = '#10B981';
+    if (!p.activa) { estadoTxt = 'Finalizada'; estadoColor = '#9CA3AF'; }
+    else if (p.fecha_inicio && p.fecha_inicio > hoy) { estadoTxt = 'Programada'; estadoColor = '#6C5CE4'; }
+    else if (p.fecha_fin && p.fecha_fin < hoy) { estadoTxt = 'Vencida'; estadoColor = '#9CA3AF'; }
+    return `<div style="border:1px solid var(--b1);border-radius:var(--rl);padding:12px 14px;margin-bottom:8px;background:var(--bg2)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0" title="${p.activa ? 'Desactivar' : 'Activar'}">
+          <input type="checkbox" ${p.activa ? 'checked' : ''} onchange="_srvPromos[${i}].activa=this.checked;renderSrvPromos()" style="accent-color:var(--a);width:14px;height:14px">
+        </label>
+        <span style="font-size:10px;font-weight:700;color:${estadoColor};background:${estadoColor}18;border-radius:3px;padding:1px 7px;flex-shrink:0">${estadoTxt}</span>
+        <input class="fi" value="${escHtml(p.nombre||'')}" placeholder="Nombre de la promoción" style="flex:1;font-size:13px;font-weight:500;padding:4px 8px" oninput="_srvPromos[${i}].nombre=this.value">
+        <button onclick="removeSrvPromo(${i})" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:1px 5px;flex-shrink:0">×</button>
+      </div>
+      <textarea class="fi" rows="2" placeholder="¿Qué incluye? Ej: Consulta inicial + evaluación psicológica a $35.000 (ahorro $10.000). Solo nuevos pacientes." style="resize:vertical;font-size:12px;line-height:1.5;margin-bottom:8px" oninput="_srvPromos[${i}].descripcion=this.value">${escHtml(p.descripcion||'')}</textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha de activación</label>
+          <input type="date" class="fi" value="${escHtml(p.fecha_inicio||'')}" onchange="_srvPromos[${i}].fecha_inicio=this.value;renderSrvPromos()">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha de finalización</label>
+          <input type="date" class="fi" value="${escHtml(p.fecha_fin||'')}" onchange="_srvPromos[${i}].fecha_fin=this.value;renderSrvPromos()">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addSrvPromo() {
+  _srvPromos.push({ nombre: '', descripcion: '', activa: true, fecha_inicio: '', fecha_fin: '' });
+  renderSrvPromos();
+  document.getElementById('srv-promos-list')?.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function removeSrvPromo(i) {
+  _srvPromos.splice(i, 1);
+  renderSrvPromos();
+}
+
+async function guardarSrvPromos(btn) {
+  const cid = await getClienteId();
+  if (!cid) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  try {
+    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      method: 'PATCH',
+      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ promociones: _srvPromos })
+    });
+    if (!r.ok) throw new Error();
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Guardado'; setTimeout(() => btn.textContent = 'Guardar promociones', 1500); }
+    toast('✓ Promociones guardadas');
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar promociones'; }
+    toast('Error al guardar');
+  }
 }
 
 async function guardarServicios(btn) {

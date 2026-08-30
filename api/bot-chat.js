@@ -466,13 +466,17 @@ HOY ES: ${hoyVentas}`;
 
   try {
     const rn = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios,email&limit=1`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios,email,promociones&limit=1`,
       { headers: sh }
     );
     const [cli] = await rn.json();
     negocioNombre     = cli?.nombre_negocio || 'el negocio';
     serviciosCatalogo = Array.isArray(cli?.servicios) ? cli.servicios : [];
     emailNegocio      = cli?.email || null;
+    // Promociones de servicios (se anteponen a las de bot_config)
+    if (Array.isArray(cli?.promociones)) {
+      botConfig.promociones = [...cli.promociones, ...botConfig.promociones];
+    }
   } catch (e) {
     console.error('bot-chat: error cargando negocio:', e.message);
   }
