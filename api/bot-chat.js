@@ -42,6 +42,9 @@ export default async function handler(req, res) {
   if (!cliente_id || !canal || !canal_user_id || !mensaje) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
+  if (typeof canal_user_id !== 'string' || canal_user_id.length > 128 || typeof mensaje !== 'string' || mensaje.length > 4000) {
+    return res.status(400).json({ error: 'Datos inválidos' });
+  }
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;
@@ -525,7 +528,7 @@ HOY ES: ${hoyVentas}`;
 
       await ejecutarCapturarLead(
         { nombre: canal_user_name || null, telefono: canal === 'whatsapp' ? canal_user_id : null, interes: motivo },
-        emailNegocio || 'cesarsalinasmunoz@gmail.com',
+        emailNegocio,
         [...historial, { role: 'user', content: mensaje }]
       );
 
@@ -1196,7 +1199,7 @@ REGLAS GENERALES:
       return await ejecutarCrearCita(params);
     }
     if (nombre === 'capturar_lead') {
-      return await ejecutarCapturarLead(params, emailNegocio || 'cesarsalinasmunoz@gmail.com', [...historial, { role: 'user', content: mensaje }]);
+      return await ejecutarCapturarLead(params, emailNegocio, [...historial, { role: 'user', content: mensaje }]);
     }
     return { error: 'Herramienta no reconocida' };
   }
@@ -1249,7 +1252,7 @@ REGLAS GENERALES:
         respuestaFinal = data.content.find(b => b.type === 'text')?.text || '';
 
         // Salvaguarda: si Claude dice "confirmada/listo" sin haber llamado al tool, forzar tool call
-        const pareceConfirmacion = /listo|confirmad|agendad/i.test(respuestaFinal);
+        const pareceConfirmacion = /listo|lista|confirmad|agendad|reservad|quedó\s*(agendad|confirmad|reservad)|cita\s+(cread|lista|registrad)|ya\s+quedas|te\s+queda/i.test(respuestaFinal);
         if (pareceConfirmacion && !citaCreada && i < 4) {
           console.log('bot-chat: Claude confirmó sin llamar al tool — forzando crear_cita');
           msgs.push({ role: 'assistant', content: respuestaFinal });

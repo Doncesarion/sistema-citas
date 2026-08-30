@@ -81,6 +81,7 @@ export default async function handler(req, res) {
 
   const { messages, cliente_id, negocio_nombre, type, attia_conv_id: incomingConvId, email_paciente } = req.body || {};
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Datos incompletos' });
+  if (messages.some(m => typeof m?.content !== 'string' || m.content.length > 2000)) return res.status(400).json({ error: 'Mensaje inválido' });
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key no configurada' });
@@ -661,6 +662,8 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
     return slots;
   }
 
+  const _uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   async function ejecutarHerramienta(nombre, params) {
     if (nombre === 'pedir_fecha') return { ok: true };
 
@@ -677,7 +680,6 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
 
     if (nombre === 'verificar_disponibilidad') {
       const { especialista_id, fecha } = params;
-      const _uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!_uuidRe.test(especialista_id || '')) return { error: 'Profesional no válido' };
       if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return { error: 'Fecha inválida' };
       const r1 = await fetch(
@@ -717,8 +719,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
 
     if (nombre === 'confirmar_reserva') {
       const { especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha, hora, duracion, precio } = params;
-      const _uuidRe2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (especialista_id && !_uuidRe2.test(especialista_id)) return { ok: true, listo: true };
+      if (especialista_id && !_uuidRe.test(especialista_id)) return { ok: true, listo: true };
       if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: true, listo: true };
       if (!hora || !/^\d{2}:\d{2}$/.test(hora)) return { ok: true, listo: true };
 
@@ -802,8 +803,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
 
     if (nombre === 'cancelar_cita') {
       const { cita_id } = params;
-      const _uuidRe3 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!_uuidRe3.test(cita_id || '')) return { error: 'ID de cita inválido' };
+      if (!_uuidRe.test(cita_id || '')) return { error: 'ID de cita inválido' };
       try {
         const rCan = await fetch(
           `${SUPABASE_URL}/rest/v1/citas?id=eq.${cita_id}&cliente_id=eq.${cliente_id}`,
