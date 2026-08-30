@@ -211,14 +211,17 @@ async function cargar() {
   }
 }
 
-function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre }) {
+function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre, ya_evaluado, eval_estrellas }) {
   document.getElementById('loading').style.display = 'none';
   const el = document.getElementById('content');
   el.style.display = 'block';
   espId = cita.especialista_id || null;
 
   const esCancelada = cita.estado === 'canceled';
-  const esRealizada = cita.estado === 'done';
+  const hoyD = new Date(); hoyD.setHours(0,0,0,0);
+  const [_fy,_fm,_fd] = (cita.fecha||'').split('-').map(Number);
+  const esRealizada = cita.estado === 'done' ||
+    (cita.estado !== 'canceled' && _fy && new Date(_fy,_fm-1,_fd) < hoyD);
 
   el.innerHTML = `
     <div class="card">
@@ -246,16 +249,24 @@ function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre })
             <div class="msg-title" style="font-size:15px">Esta cita ya fue realizada</div>
           </div>
           <div class="fb-wrap" id="fb-wrap">
-            <div class="fb-title">¿Cómo fue tu experiencia?</div>
-            <div class="fb-stars" id="fb-stars" role="group" aria-label="Calificación">
-              <button class="star-btn" data-v="1" onclick="selStar(1)" aria-label="1 estrella">★</button>
-              <button class="star-btn" data-v="2" onclick="selStar(2)" aria-label="2 estrellas">★</button>
-              <button class="star-btn" data-v="3" onclick="selStar(3)" aria-label="3 estrellas">★</button>
-              <button class="star-btn" data-v="4" onclick="selStar(4)" aria-label="4 estrellas">★</button>
-              <button class="star-btn" data-v="5" onclick="selStar(5)" aria-label="5 estrellas">★</button>
-            </div>
-            <textarea class="fb-textarea" id="fb-comment" placeholder="Cuéntanos más sobre tu experiencia... (opcional)"></textarea>
-            <button class="btn-fb" id="fb-btn" onclick="enviarFeedback()" disabled>Enviar reseña</button>
+            ${ya_evaluado ? `
+              <div style="padding:8px 0;text-align:center">
+                <div style="font-size:24px;color:#F59E0B;margin-bottom:8px">${'★'.repeat(eval_estrellas||0)}${'☆'.repeat(5-(eval_estrellas||0))}</div>
+                <div style="font-size:13px;font-weight:600;color:var(--green)">¡Gracias por tu reseña!</div>
+                <div style="font-size:12px;color:var(--t3);margin-top:4px">Tu opinión fue registrada.</div>
+              </div>
+            ` : `
+              <div class="fb-title">¿Cómo fue tu experiencia?</div>
+              <div class="fb-stars" id="fb-stars" role="group" aria-label="Calificación">
+                <button class="star-btn" data-v="1" onclick="selStar(1)" aria-label="1 estrella">★</button>
+                <button class="star-btn" data-v="2" onclick="selStar(2)" aria-label="2 estrellas">★</button>
+                <button class="star-btn" data-v="3" onclick="selStar(3)" aria-label="3 estrellas">★</button>
+                <button class="star-btn" data-v="4" onclick="selStar(4)" aria-label="4 estrellas">★</button>
+                <button class="star-btn" data-v="5" onclick="selStar(5)" aria-label="5 estrellas">★</button>
+              </div>
+              <textarea class="fb-textarea" id="fb-comment" placeholder="Cuéntanos más sobre tu experiencia... (opcional)"></textarea>
+              <button class="btn-fb" id="fb-btn" onclick="enviarFeedback()" disabled>Enviar reseña</button>
+            `}
           </div>
           ${booking_slug ? `<a href="/${booking_slug}" class="btn-new" style="margin-top:12px">Agendar una nueva cita</a>` : ''}
         ` : `

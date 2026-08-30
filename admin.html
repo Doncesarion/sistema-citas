@@ -3481,6 +3481,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div id="eval-dist-bars"></div>
     </div>
 
+    <!-- Pendientes de evaluar -->
+    <div id="eval-pendientes" style="display:none;margin-bottom:20px;background:var(--surface-hi);border-radius:12px;border:1px solid var(--b1);overflow:hidden">
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;padding:12px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px">
+        <span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block"></span>
+        Esperando evaluación
+      </div>
+      <div id="eval-pendientes-list"></div>
+    </div>
+
     <!-- Lista reseñas -->
     <div id="eval-lista" style="display:flex;flex-direction:column;gap:12px">
       <div style="color:var(--t3);font-size:14px;text-align:center;padding:40px 0" id="eval-empty">Cargando evaluaciones...</div>
@@ -17380,6 +17389,32 @@ async function loadEvaluaciones() {
     }).join('');
     document.getElementById('eval-dist').style.display = '';
 
+    // Pendientes de evaluar
+    try {
+      const rP = await fetch('/api/slots?action=evaluar_pendientes', { headers: _evalH });
+      const dP = await rP.json();
+      const pends = Array.isArray(dP.pendientes) ? dP.pendientes : [];
+      const pendSection = document.getElementById('eval-pendientes');
+      if (pendSection) {
+        if (pends.length) {
+          pendSection.style.display = '';
+          document.getElementById('eval-pendientes-list').innerHTML = pends.map(p => {
+            const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL', { day:'numeric', month:'long' }) : '';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--b1)">
+              <div>
+                <span style="font-size:13px;font-weight:600;color:var(--t1)">${_esc(p.paciente_nombre||'Paciente')}</span>
+                ${p.especialista_nombre ? `<span style="font-size:12px;color:var(--t3);margin-left:8px">· ${_esc(p.especialista_nombre)}</span>` : ''}
+                ${fecha ? `<span style="font-size:11px;color:var(--t4);margin-left:8px">${fecha}</span>` : ''}
+              </div>
+              <button onclick="reenviarEvaluacion('${p.id}',this)" style="font-size:12px;font-weight:600;padding:5px 14px;border-radius:8px;border:1.5px solid var(--a);background:#fff;color:var(--a);cursor:pointer;white-space:nowrap;transition:all .15s" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background='#fff'">↩ Reenviar email</button>
+            </div>`;
+          }).join('');
+        } else {
+          pendSection.style.display = 'none';
+        }
+      }
+    } catch(_) {}
+
     // Lista de reseñas
     lista.innerHTML = evs.map(ev => {
       const nombre    = ev.anonima ? 'Anónimo/a' : (ev.paciente_nombre || 'Paciente');
@@ -17407,6 +17442,34 @@ async function loadEvaluaciones() {
 
 function _esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function reenviarEvaluacion(evalId, btn) {
+  const orig = btn.textContent;
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+  try {
+    const tok = localStorage.getItem('attempo_session_token') || '';
+    const r = await fetch('/api/slots?action=evaluar_reenviar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': tok },
+      body: JSON.stringify({ action: 'evaluar_reenviar', eval_id: evalId })
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) {
+      btn.textContent = orig;
+      btn.disabled = false;
+      alert(d.error || 'Error al reenviar');
+      return;
+    }
+    btn.textContent = '✓ Enviado';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+  } catch(_) {
+    btn.textContent = orig;
+    btn.disabled = false;
+    alert('Error de red');
+  }
 }
 </script>
 

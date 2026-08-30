@@ -101,7 +101,8 @@ export default async function handler(req, res) {
 
   // Delegar evaluaciones a su handler
   const qa = req.query.action;
-  if (qa === 'evaluar' || qa === 'evaluar_admin' || qa === 'evaluar_resumen' || (req.method === 'POST' && req.body?.action === 'evaluar')) return handleEvaluar(req, res);
+  if (qa === 'evaluar' || qa === 'evaluar_admin' || qa === 'evaluar_resumen' || qa === 'evaluar_pendientes' ||
+      (req.method === 'POST' && (req.body?.action === 'evaluar' || req.body?.action === 'evaluar_reenviar'))) return handleEvaluar(req, res);
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
@@ -854,6 +855,78 @@ export async function handleEvaluar(req, res) {
   const KEY    = process.env.SUPABASE_SERVICE_KEY;
   const sh     = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const shJson = { ...sh, 'Content-Type': 'application/json' };
+
+  // GET ?action=evaluar_pendientes → evaluaciones sin completar (admin)
+  if (req.method === 'GET' && req.query.action === 'evaluar_pendientes') {
+    const s = verifySessionToken(req.headers['x-session-token']);
+    if (!s) return res.status(401).json({ error: 'No autorizado' });
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : s.cliente_id;
+
+    const rows = await fetch(
+      `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.false&order=created_at.desc&limit=100&select=id,paciente_nombre,especialista_id,created_at,cita_id`,
+      { headers: sh }
+    ).then(r => r.json()).catch(() => []);
+
+    if (!Array.isArray(rows) || !rows.length) return res.status(200).json({ ok: true, pendientes: [] });
+
+    const espIds = [...new Set(rows.map(r => r.especialista_id).filter(Boolean))];
+    const espMap = {};
+    if (espIds.length) {
+      const esps = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=in.(${espIds.join(',')})&select=id,nombre`, { headers: sh }).then(r => r.json()).catch(() => []);
+      if (Array.isArray(esps)) esps.forEach(e => { espMap[e.id] = e.nombre; });
+    }
+    const pendientes = rows.map(row => ({ ...row, especialista_nombre: row.especialista_id ? (espMap[row.especialista_id] || '') : '' }));
+    return res.status(200).json({ ok: true, pendientes });
+  }
+
+  // POST action=evaluar_reenviar → reenviar email al paciente (admin)
+  if (req.method === 'POST' && req.body?.action === 'evaluar_reenviar') {
+    const s = verifySessionToken(req.headers['x-session-token']);
+    if (!s) return res.status(401).json({ error: 'No autorizado' });
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : s.cliente_id;
+
+    const eval_id = req.body.eval_id || '';
+    if (!eval_id || !/^[0-9a-f-]{36}$/i.test(eval_id)) return res.status(400).json({ error: 'ID inválido' });
+
+    const [ev] = await fetch(
+      `${SUPABASE_URL}/rest/v1/evaluaciones?id=eq.${eval_id}&cliente_id=eq.${cid}&usado=eq.false&select=id,token,paciente_nombre,especialista_id,cita_id&limit=1`,
+      { headers: sh }
+    ).then(r => r.json()).catch(() => []);
+    if (!ev) return res.status(404).json({ error: 'Evaluación no encontrada o ya fue completada' });
+    if (!ev.cita_id) return res.status(400).json({ error: 'Sin cita asociada' });
+
+    const [cita] = await fetch(
+      `${SUPABASE_URL}/rest/v1/citas?id=eq.${ev.cita_id}&select=email_paciente,nombre_paciente&limit=1`,
+      { headers: sh }
+    ).then(r => r.json()).catch(() => []);
+    if (!cita?.email_paciente) return res.status(400).json({ error: 'El paciente no tiene email registrado' });
+    if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: 'Sin configuración de email' });
+
+    let espNombre = 'el profesional';
+    if (ev.especialista_id) {
+      const [esp] = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${ev.especialista_id}&select=nombre&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
+      espNombre = esp?.nombre || espNombre;
+    }
+    const [cli] = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
+    const negocio = cli?.nombre_negocio || 'tu negocio';
+    const evalUrl = `${BASE_URL}/evaluar?token=${ev.token}`;
+    const nombre = ev.paciente_nombre || cita.nombre_paciente || 'Estimado/a';
+
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);"><tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;"><img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p></td></tr><tr><td style="padding:32px 24px;text-align:center;"><h2 style="margin:0 0 12px;color:#2d2d2d;font-size:20px;">¿Cómo fue tu consulta?</h2><p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.6;">Hola <strong>${nombre}</strong>, aún puedes evaluar tu atención con <strong>${espNombre}</strong> en <strong>${negocio}</strong>.</p><a href="${evalUrl}" style="display:inline-block;background:#6C5CE4;color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;">Dejar evaluación</a></td></tr><tr><td style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;"><p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a></p></td></tr></table></td></tr></table></body></html>`;
+
+    const emailRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: `${negocio} vía Attempo <contacto@attempo.cl>`, to: [cita.email_paciente], subject: `¿Cómo fue tu consulta con ${espNombre}? Deja tu evaluación`, html })
+    });
+    if (!emailRes.ok) {
+      const errTxt = await emailRes.text().catch(() => '');
+      return res.status(500).json({ error: 'Error al enviar email' + (errTxt ? ': ' + errTxt.slice(0, 80) : '') });
+    }
+    return res.status(200).json({ ok: true });
+  }
 
   // GET ?action=evaluar_resumen&cliente_id=xxx → resumen público de ratings por especialista
   if (req.method === 'GET' && req.query.action === 'evaluar_resumen') {

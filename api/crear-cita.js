@@ -259,9 +259,13 @@ export default async function handler(req, res) {
           const [esp] = await re.json();
           nombre_especialista = esp?.nombre || null;
         }
-        const rcs = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh });
+        const [rcs, rEv] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh }),
+          fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${cita.id}&usado=eq.true&select=estrellas&limit=1`, { headers: sh })
+        ]);
         const [cliente] = await rcs.json();
-        return res.json({ cita, nombre_especialista, booking_slug: cliente?.booking_slug || null, negocio_nombre: cliente?.nombre_negocio || null });
+        const [evUsada] = await rEv.json().catch(() => []);
+        return res.json({ cita, nombre_especialista, booking_slug: cliente?.booking_slug || null, negocio_nombre: cliente?.nombre_negocio || null, ya_evaluado: !!evUsada, eval_estrellas: evUsada?.estrellas || 0 });
       } catch(e) {
         console.error('gestionar-cita short GET error:', e.message);
         return res.status(500).json({ error: 'Error interno' });
@@ -284,14 +288,19 @@ export default async function handler(req, res) {
         nombre_especialista = esp?.nombre || null;
       }
 
-      const rc = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh });
+      const [rc, rEv] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh }),
+        fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${cita.id}&usado=eq.true&select=estrellas&limit=1`, { headers: sh })
+      ]);
       const [cliente] = await rc.json();
+      const [evUsada] = await rEv.json().catch(() => []);
 
       return res.json({
-        cita,
-        nombre_especialista,
+        cita, nombre_especialista,
         booking_slug: cliente?.booking_slug || null,
-        negocio_nombre: cliente?.nombre_negocio || null
+        negocio_nombre: cliente?.nombre_negocio || null,
+        ya_evaluado: !!evUsada,
+        eval_estrellas: evUsada?.estrellas || 0
       });
     } catch (e) {
       console.error('gestionar-cita GET error:', e.message);
@@ -321,8 +330,41 @@ export default async function handler(req, res) {
       const r = parseInt(rating, 10);
       if (!r || r < 1 || r > 5) return res.status(400).json({ error: 'Rating inválido' });
       try {
-        const rc = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&select=nombre_paciente,servicio,fecha,hora,cliente_id&limit=1`, { headers: sh });
+        const rc = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&select=nombre_paciente,servicio,fecha,hora,cliente_id,especialista_id&limit=1`, { headers: sh });
         const [cita] = await rc.json();
+
+        // Guardar en tabla evaluaciones (crear o actualizar el registro del cron)
+        if (cita?.cliente_id) {
+          const comentTrim = (comentario || '').trim().slice(0, 500) || null;
+          const shJ = { ...sh, 'Content-Type': 'application/json' };
+          const [evPend] = await fetch(
+            `${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${id}&usado=eq.false&select=id&limit=1`,
+            { headers: sh }
+          ).then(x => x.json()).catch(() => []);
+          if (evPend) {
+            fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?id=eq.${evPend.id}`, {
+              method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+              body: JSON.stringify({ estrellas: r, comentario: comentTrim, anonima: false, usado: true })
+            }).catch(() => {});
+          } else {
+            const [evUsed] = await fetch(
+              `${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${id}&usado=eq.true&select=id&limit=1`,
+              { headers: sh }
+            ).then(x => x.json()).catch(() => []);
+            if (!evUsed) {
+              fetch(`${SUPABASE_URL}/rest/v1/evaluaciones`, {
+                method: 'POST', headers: { ...shJ, Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                  cliente_id: cita.cliente_id, cita_id: id,
+                  especialista_id: cita.especialista_id || null,
+                  paciente_nombre: cita.nombre_paciente || '',
+                  token: crypto.randomUUID(), estrellas: r,
+                  comentario: comentTrim, anonima: false, usado: true
+                })
+              }).catch(() => {});
+            }
+          }
+        }
         if (cita?.cliente_id && process.env.RESEND_API_KEY) {
           const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=email,nombre_negocio&limit=1`, { headers: sh });
           const [cli] = await rcli.json();
