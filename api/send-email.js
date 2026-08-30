@@ -4,6 +4,15 @@ import PDFDocument from 'pdfkit';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function generateEvalToken() {
+  const uuid = crypto.randomUUID().replace(/-/g, '');
+  const exp  = Math.floor(Date.now() / 1000) + 90 * 24 * 3600;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return uuid;
+  const sig = crypto.createHmac('sha256', secret).update(`et:${uuid}:${exp}`).digest('base64url').slice(0, 22);
+  return `${uuid}.${exp.toString(36)}.${sig}`;
+}
+
 function verifySessionToken(token) {
   if (!token) return null;
   const SECRET = process.env.SESSION_SECRET;
@@ -537,7 +546,7 @@ async function procesarEvaluaciones(sh, shJson) {
 
       const negocio   = negocioMap[cita.cliente_id] || 'tu negocio';
       const profesional = cita.especialistas?.nombre || 'el profesional';
-      const token     = crypto.randomUUID();
+      const token     = generateEvalToken();
 
       // Crear registro de evaluación en Supabase
       const rInsert = await fetch(`${SUPABASE_URL}/rest/v1/evaluaciones`, {

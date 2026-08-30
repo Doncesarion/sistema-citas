@@ -449,6 +449,7 @@ body::before{
 const SURL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dHFhd3VsdnJ0anZ0Zml4b2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQ4OTgsImV4cCI6MjA5MjI5MDg5OH0.nMxUfN_pR3FImpO6l9MsYo9Z5B-0KU1ZHfbPor2qgu8';
 const SH = { apikey: SKEY, Authorization: `Bearer ${SKEY}` };
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -514,9 +515,9 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
         content.textContent = partes.join(' · ');
       } else {
         content.innerHTML = sedes.map(s => {
-          const partes = [`<strong>${s.nombre}</strong>`];
-          if (s.direccion) partes.push(s.direccion);
-          if (s.ciudad) partes.push(s.ciudad);
+          const partes = [`<strong>${esc(s.nombre)}</strong>`];
+          if (s.direccion) partes.push(esc(s.direccion));
+          if (s.ciudad) partes.push(esc(s.ciudad));
           return `<div style="line-height:1.6">${partes.join(' · ')}</div>`;
         }).join('');
       }
@@ -621,9 +622,9 @@ function renderServicios(servicios) {
     return `<div class="svc-row" data-svc='${dataStr.replace(/'/g,"&#39;")}' onclick="selSvc(this)">
       <div class="svc-icon">${icon}</div>
       <div class="svc-info">
-        <div class="svc-name">${s.nombre}</div>
+        <div class="svc-name">${esc(s.nombre)}</div>
         <div class="svc-meta">${durStr}</div>
-        ${s.descripcion ? `<div class="svc-desc">${s.descripcion}</div>` : ''}
+        ${s.descripcion ? `<div class="svc-desc">${esc(s.descripcion)}</div>` : ''}
       </div>
       ${precioStr ? `<div class="svc-price">${precioStr}</div>` : ''}
       <div class="svc-radio"></div>
@@ -666,8 +667,8 @@ function renderProfs() {
     return `<div class="prof-row${p.isAny ? ' any' : ''}" data-prof='${dataStr}' onclick="selProf(this)">
       <div class="prof-dot"></div>
       <div class="prof-info">
-        <div class="prof-name">${p.nom}</div>
-        <div class="prof-role">${p.cargo}</div>
+        <div class="prof-name">${esc(p.nom)}</div>
+        <div class="prof-role">${esc(p.cargo)}</div>
         ${ratingHtml}
       </div>
       <div class="prof-radio"></div>
@@ -934,8 +935,7 @@ function renderHoras() {
   none.style.display = 'none';
   grid.innerHTML = disponibles.map(s => {
     const isSel = st.hora === s.h;
-    const nom = (s.espNom || '').replace(/'/g,"&#39;");
-    return `<button class="h-btn${isSel ? ' sel' : ''}" onclick="selHora('${s.h}','${s.espId || ''}','${nom}')">${s.h}</button>`;
+    return `<button class="h-btn${isSel ? ' sel' : ''}" data-h="${esc(s.h)}" data-esp-id="${esc(s.espId||'')}" data-esp-nom="${esc(s.espNom||'')}" onclick="selHora(this.dataset.h,this.dataset.espId,this.dataset.espNom)">${esc(s.h)}</button>`;
   }).join('');
 }
 
@@ -1507,7 +1507,7 @@ async function attiaEnviar(texto) {
       div.className = 'am-bot';
       div.innerHTML = '<div style="font-size:11px;color:#8B7CF8;font-weight:600;margin-bottom:6px">Horas disponibles:</div>' +
         d.slots_disponibles.map(h =>
-          `<button onclick="attiaSelHora('${h}',this)" style="margin:3px;padding:5px 11px;border-radius:20px;border:1.5px solid #8B7CF8;background:#fff;color:#6C5CE4;font-size:12px;cursor:pointer;font-family:inherit">${h}</button>`
+          `<button data-h="${esc(h)}" onclick="attiaSelHora(this.dataset.h,this)" style="margin:3px;padding:5px 11px;border-radius:20px;border:1.5px solid #8B7CF8;background:#fff;color:#6C5CE4;font-size:12px;cursor:pointer;font-family:inherit">${esc(h)}</button>`
         ).join('');
       wrap.appendChild(div);
       wrap.scrollTop = wrap.scrollHeight;
@@ -1524,10 +1524,10 @@ async function attiaEnviar(texto) {
         <div style="background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.2);border-radius:10px;padding:12px">
           <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8B7CF8;margin-bottom:8px">Resumen de tu reserva</div>
           <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#1E1B3A">
-            <div>${dr.nombre_paciente || '—'}</div>
-            <div>${dr.servicio || '—'}</div>
-            <div>${dr.nombre_especialista || '—'}</div>
-            <div>${fecha} · ${dr.hora || '—'}</div>
+            <div>${esc(dr.nombre_paciente || '—')}</div>
+            <div>${esc(dr.servicio || '—')}</div>
+            <div>${esc(dr.nombre_especialista || '—')}</div>
+            <div>${esc(fecha)} · ${esc(dr.hora || '—')}</div>
             ${dr.precio ? `<div>$${Number(dr.precio).toLocaleString('es-CL')}</div>` : ''}
           </div>
           <button id="attia-btn-confirmar" onclick="attiaConfirmar()" style="margin-top:10px;width:100%;padding:9px;border-radius:8px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">✓ Confirmar cita</button>
@@ -1594,7 +1594,7 @@ async function attiaConfirmar() {
     const data = await r.json();
     if (data.ok || data.id) {
       const mpBtn = data.mp_url
-        ? `<a href="${data.mp_url}" target="_blank" style="display:inline-block;margin-top:10px;padding:10px 22px;border-radius:8px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:inherit">Pagar con Mercado Pago →</a>`
+        ? `<a href="${esc(data.mp_url)}" target="_blank" style="display:inline-block;margin-top:10px;padding:10px 22px;border-radius:8px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:inherit">Pagar con Mercado Pago →</a>`
         : '';
       document.getElementById('attia-card-reserva').innerHTML =
         `<div style="color:#16a34a;font-weight:600;font-size:13px;padding:4px 0">✓ ¡Cita reservada! Recibirás un email de confirmación.</div>${mpBtn}`;
@@ -1662,7 +1662,7 @@ async function buscarCita() {
       const isUp = d && new Date(y, mo-1, d) >= today;
       const estadoLbl = c.estado === 'canceled' ? ' · Cancelada' : c.estado === 'done' ? ' · Realizada' : '';
       const grupo = isUp ? 'Próximas' : 'Historial';
-      return `<option value="${i}" data-grupo="${grupo}">${c.servicio || 'Cita'} · ${fechaCrt} · ${(c.hora||'').slice(0,5)}${estadoLbl}</option>`;
+      return `<option value="${i}" data-grupo="${grupo}">${esc(c.servicio || 'Cita')} · ${esc(fechaCrt)} · ${esc((c.hora||'').slice(0,5))}${esc(estadoLbl)}</option>`;
     }).join('');
     result.innerHTML = `
       <select id="gc-select" onchange="_gcSelCita(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid var(--b2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--t1);background:#fff;outline:none;cursor:pointer;appearance:auto;margin-bottom:8px">
@@ -1672,7 +1672,7 @@ async function buscarCita() {
       <div id="gc-actions" style="display:none;gap:6px;flex-wrap:wrap"></div>`;
     result.style.display = 'block';
   } catch(e) {
-    result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${e.message}</div>`;
+    result.innerHTML = `<div style="font-size:12px;color:var(--red);padding:6px 0">${esc(e.message)}</div>`;
     result.style.display = 'block';
   } finally {
     btn.disabled = false;

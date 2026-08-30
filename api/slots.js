@@ -846,6 +846,25 @@ export default async function handler(req, res) {
   }
 }
 
+// ── Validación de tokens de evaluación ───────────────────────────────────────
+function validateEvalToken(token) {
+  if (!token) return false;
+  const parts = token.split('.');
+  if (parts.length === 1) return true; // UUID legado — sin expiración, se permite
+  if (parts.length !== 3) return false;
+  const [uuid, expB36, sig] = parts;
+  const exp = parseInt(expB36, 36);
+  if (isNaN(exp) || Math.floor(Date.now() / 1000) > exp) return false;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return true;
+  const expected = crypto.createHmac('sha256', secret).update(`et:${uuid}:${exp}`).digest('base64url').slice(0, 22);
+  try {
+    const b1 = Buffer.from(sig, 'base64'), b2 = Buffer.from(expected, 'base64');
+    if (b1.length !== b2.length) return false;
+    return crypto.timingSafeEqual(b1, b2);
+  } catch { return false; }
+}
+
 // ── Rate limiting para evaluar (en memoria + Upstash) ────────────────────────
 const _evaluarFallback = new Map();
 async function isEvaluarRateLimited(ip) {
@@ -987,7 +1006,7 @@ export async function handleEvaluar(req, res) {
   // GET ?action=evaluar&token=xxx → form del paciente
   if (req.method === 'GET' && req.query.token) {
     const token = String(req.query.token || '').trim();
-    if (!token) return res.status(400).json({ error: 'Token inválido' });
+    if (!token || !validateEvalToken(token)) return res.status(400).json({ error: 'Token inválido o expirado' });
 
     const r = await fetch(
       `${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${encodeURIComponent(token)}&select=id,usado,paciente_nombre,cliente_id,especialista_id&limit=1`,
@@ -1042,7 +1061,7 @@ export async function handleEvaluar(req, res) {
     const body     = req.body || {};
     const token    = String(body.token || '').trim();
     const estrellas = parseInt(body.estrellas, 10);
-    if (!token) return res.status(400).json({ error: 'Token requerido' });
+    if (!token || !validateEvalToken(token)) return res.status(400).json({ error: 'Token inválido o expirado' });
     if (!estrellas || estrellas < 1 || estrellas > 5) return res.status(400).json({ error: 'Calificación inválida' });
 
     const [ev] = await fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${encodeURIComponent(token)}&select=id,usado&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);

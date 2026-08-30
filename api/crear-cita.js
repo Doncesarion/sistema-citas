@@ -38,6 +38,15 @@ function flowSign(params, secret) {
   return crypto.createHmac('sha256', secret || process.env.FLOW_SECRET_KEY).update(str).digest('hex');
 }
 
+function generateEvalToken() {
+  const uuid = crypto.randomUUID().replace(/-/g, '');
+  const exp  = Math.floor(Date.now() / 1000) + 90 * 24 * 3600;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return uuid;
+  const sig = crypto.createHmac('sha256', secret).update(`et:${uuid}:${exp}`).digest('base64url').slice(0, 22);
+  return `${uuid}.${exp.toString(36)}.${sig}`;
+}
+
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
@@ -358,7 +367,7 @@ export default async function handler(req, res) {
                   cliente_id: cita.cliente_id, cita_id: id,
                   especialista_id: cita.especialista_id || null,
                   paciente_nombre: cita.nombre_paciente || '',
-                  token: crypto.randomUUID(), estrellas: r,
+                  token: generateEvalToken(), estrellas: r,
                   comentario: comentTrim, anonima: false, usado: true
                 })
               }).catch(() => {});
