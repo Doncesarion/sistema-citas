@@ -137,7 +137,7 @@ body::before{
 .horas-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:10px}
 .horas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
 @media(max-width:768px){.horas-grid{grid-template-columns:repeat(3,1fr)}}
-.h-btn{padding:10px 4px;border:1.5px solid var(--b1);border-radius:var(--r);background:#fff;cursor:pointer;font-size:12px;font-family:var(--mono);font-weight:500;color:var(--t2);transition:all .12s;text-align:center;}
+.h-btn{padding:10px 4px;min-height:44px;border:1.5px solid var(--b1);border-radius:var(--r);background:#fff;cursor:pointer;font-size:12px;font-family:var(--mono);font-weight:500;color:var(--t2);transition:all .12s;text-align:center;display:flex;align-items:center;justify-content:center;}
 .h-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
 .h-btn.sel{background:var(--a);border-color:var(--a);color:#fff;box-shadow:0 2px 8px rgba(108,92,228,.3)}
 .horas-none{text-align:center;padding:18px 0;font-size:13px;color:var(--t3)}
@@ -187,13 +187,22 @@ body::before{
   .lookup-card{width:auto}
   .biz-logo{width:48px;height:48px;font-size:15px}
   .biz-name{font-size:17px}
-  .sbi-lbl{font-size:8px;overflow:hidden;text-overflow:ellipsis}
+  .sbi-lbl{font-size:10px;overflow:hidden;text-overflow:ellipsis}
   .page{padding:18px 14px 48px}
   .acc-head{padding:15px 16px}
   .acc-body{padding:0 16px 18px}
   .horas-grid{grid-template-columns:repeat(3,1fr)}
   .r2{grid-template-columns:1fr}
   .res-price{margin-left:0;width:100%}
+  .cal-arr{width:44px;height:44px;font-size:18px}
+  .horas-title{font-size:12px}
+  .acc-preview{max-width:130px}
+}
+@media(max-width:430px){
+  .sbi-lbl{font-size:9px}
+  .cal-dh{font-size:9px;letter-spacing:0}
+  .acc-preview{max-width:100px}
+  .biz-name{font-size:15px}
 }
 </style>
 </head>
