@@ -1328,6 +1328,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ntab"     onclick="sv('bandeja',this)"       id="ntab-bandeja" style="position:relative">Mensajes <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"     onclick="sv('reportes',this)"      id="ntab-reportes">Reportes</button>
       <button class="ntab"     onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Mis transferencias</button>
+      <button class="ntab"     onclick="sv('evaluaciones',this)"  id="ntab-evaluaciones">Evaluaciones</button>
       <button class="ntab"     onclick="sv('config',this)"        id="ntab-config">Configuración</button>
     </div>
   </div>
@@ -3444,6 +3445,49 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
 </div><!-- end bandeja -->
 
+<!-- ═══ EVALUACIONES ═══ -->
+<div id="v-evaluaciones" style="display:none">
+  <div class="vp">
+    <div class="vh">
+      Evaluaciones
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="eval-esp-select" class="frm-input" style="font-size:13px;padding:5px 10px;min-width:160px;border-radius:8px;border:1px solid var(--b1)" onchange="loadEvaluaciones()">
+          <option value="">Todos los profesionales</option>
+        </select>
+        <button class="btn-sm" onclick="loadEvaluaciones()">↻ Actualizar</button>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <div id="eval-resumen" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+      <div class="sc" style="flex:1;min-width:140px">
+        <div class="sc-lbl">Promedio</div>
+        <div class="sc-val"><span class="hi" id="eval-stat-prom">—</span></div>
+        <div class="sc-delta du" id="eval-stat-stars" style="color:#FBBF24;font-size:16px"></div>
+      </div>
+      <div class="sc" style="flex:1;min-width:140px">
+        <div class="sc-lbl">Total evaluaciones</div>
+        <div class="sc-val"><span class="hi" id="eval-stat-total">—</span></div>
+      </div>
+      <div class="sc" style="flex:1;min-width:140px">
+        <div class="sc-lbl">Con comentario</div>
+        <div class="sc-val"><span class="hi" id="eval-stat-comentarios">—</span></div>
+      </div>
+    </div>
+
+    <!-- Distribución estrellas -->
+    <div id="eval-dist" style="margin-bottom:24px;background:var(--surface-hi);border-radius:12px;padding:16px 20px;display:none">
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">Distribución</div>
+      <div id="eval-dist-bars"></div>
+    </div>
+
+    <!-- Lista reseñas -->
+    <div id="eval-lista" style="display:flex;flex-direction:column;gap:12px">
+      <div style="color:var(--t3);font-size:14px;text-align:center;padding:40px 0" id="eval-empty">Cargando evaluaciones...</div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ CONFIG ═══ -->
 <div id="v-config" style="display:none">
   <div class="vp">
@@ -4411,7 +4455,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <script>
 /* ════ VIEW SWITCHING ════ */
 function sv(v, btn, skipPush) {
-  const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones'];
+  const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones','evaluaciones'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
     if (!el) return;
@@ -4443,7 +4487,7 @@ function sv(v, btn, skipPush) {
   const _mobActive = document.getElementById('mobt-' + v);
   if (_mobActive) _mobActive.classList.add('on');
 
-  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias'};
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias',evaluaciones:'Evaluaciones'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')        cargarVentas();
@@ -4451,6 +4495,7 @@ function sv(v, btn, skipPush) {
   if (v === 'reportes')     cargarReportes();
   if (v === 'liquidaciones') cargarLiquidaciones();
   if (v === 'clientes')      loadClientesView();
+  if (v === 'evaluaciones')  loadEvaluaciones();
   if (v === 'config')        showCfg('general', document.getElementById('ctab-general'), true);
   if (v === 'bandeja') { initBandeja(); const _bPerms = PLAN_PERMISOS[planActual()] || PLAN_PERMISOS.inicio; showBandejaTab((_bPerms.bsecTabs || ['conversaciones'])[0], null, true); }
   if (!skipPush) {
@@ -9416,19 +9461,19 @@ const PLAN_PERMISOS = {
     defaultView: 'agenda', nuevaReserva: true
   },
   pro: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
     bsecTabs: _BSEC_BASIC, soloWA: true,
     defaultView: 'agenda', nuevaReserva: true
   },
   clinica_ia: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
     bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
   },
   demo: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
     bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
@@ -9475,7 +9520,7 @@ function aplicarRestriccionesPlan() {
   const plan  = planActual();
   const perms = PLAN_PERMISOS[plan] || PLAN_PERMISOS.inicio;
 
-  const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-config'];
+  const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'];
   const todosCfgTabs  = ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'];
   const todosBsecTabs = ['conversaciones','chatbot','canales','recordatorios','widget'];
 
@@ -17258,6 +17303,110 @@ async function registrarPagoManual() {
     toastErr('Error al registrar el pago');
     if (btn) { btn.textContent = '✓ Confirmar'; btn.disabled = false; }
   }
+}
+</script>
+
+<!-- ═══ EVALUACIONES JS ═══ -->
+<script>
+let _evalCargadas = false;
+
+async function loadEvaluaciones() {
+  const espSelect = document.getElementById('eval-esp-select');
+  const espId     = espSelect ? espSelect.value : '';
+
+  const _evalTok = localStorage.getItem('attempo_session_token') || '';
+  const _evalH   = { 'x-session-token': _evalTok };
+
+  // Cargar profesionales en el select si aún no se hizo
+  if (espSelect && espSelect.options.length <= 1) {
+    try {
+      const r = await fetch('/api/slots?action=especialistas', { headers: _evalH });
+      const d = await r.json();
+      const esps = d.especialistas || d || [];
+      esps.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = e.nombre;
+        espSelect.appendChild(opt);
+      });
+    } catch(_) {}
+  }
+
+  const lista = document.getElementById('eval-lista');
+  lista.innerHTML = '<div style="color:var(--t3);font-size:14px;text-align:center;padding:40px 0">Cargando...</div>';
+
+  try {
+    let url = '/api/evaluar';
+    if (espId) url += `?especialista_id=${espId}`;
+    const r = await fetch(url, { headers: _evalH });
+    const d = await r.json();
+    const evs = d.evaluaciones || [];
+
+    if (!evs.length) {
+      lista.innerHTML = '<div style="color:var(--t3);font-size:14px;text-align:center;padding:40px 0">Aún no hay evaluaciones recibidas. Se enviarán automáticamente 1 hora después de cada cita completada.</div>';
+      document.getElementById('eval-stat-prom').textContent   = '—';
+      document.getElementById('eval-stat-total').textContent  = '0';
+      document.getElementById('eval-stat-comentarios').textContent = '0';
+      document.getElementById('eval-stat-stars').textContent  = '';
+      document.getElementById('eval-dist').style.display = 'none';
+      return;
+    }
+
+    // Calcular estadísticas
+    const total    = evs.length;
+    const prom     = (evs.reduce((s, e) => s + (e.estrellas || 0), 0) / total).toFixed(1);
+    const conComentario = evs.filter(e => e.comentario).length;
+
+    document.getElementById('eval-stat-prom').textContent  = prom;
+    document.getElementById('eval-stat-total').textContent = total;
+    document.getElementById('eval-stat-comentarios').textContent = conComentario;
+    document.getElementById('eval-stat-stars').textContent = '★'.repeat(Math.round(parseFloat(prom)));
+
+    // Distribución
+    const dist  = {5:0,4:0,3:0,2:0,1:0};
+    evs.forEach(e => { if (e.estrellas) dist[e.estrellas] = (dist[e.estrellas] || 0) + 1; });
+    const distEl = document.getElementById('eval-dist-bars');
+    const labels = {5:'Genial',4:'Buena',3:'Aceptable',2:'Mala',1:'Pésima'};
+    distEl.innerHTML = [5,4,3,2,1].map(n => {
+      const cnt = dist[n] || 0;
+      const pct = total ? Math.round(cnt / total * 100) : 0;
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="width:60px;font-size:12px;color:var(--t2);text-align:right">${'★'.repeat(n)} ${labels[n]}</span>
+        <div style="flex:1;background:var(--adim);border-radius:4px;height:8px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:#FBBF24;border-radius:4px;transition:width .4s"></div>
+        </div>
+        <span style="width:28px;font-size:12px;color:var(--t3);text-align:right">${cnt}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('eval-dist').style.display = '';
+
+    // Lista de reseñas
+    lista.innerHTML = evs.map(ev => {
+      const nombre    = ev.anonima ? 'Anónimo/a' : (ev.paciente_nombre || 'Paciente');
+      const espNom    = ev.especialistas?.nombre || '';
+      const estrellas = '★'.repeat(ev.estrellas || 0) + '☆'.repeat(5 - (ev.estrellas || 0));
+      const fecha     = ev.created_at ? new Date(ev.created_at).toLocaleDateString('es-CL', { day:'numeric', month:'long', year:'numeric' }) : '';
+      return `<div style="background:var(--surface-hi);border-radius:12px;padding:16px 18px;border:1px solid var(--b1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+          <div>
+            <span style="font-size:14px;font-weight:700;color:var(--t1)">${_esc(nombre)}</span>
+            ${espNom ? `<span style="font-size:12px;color:var(--t3);margin-left:8px">· ${_esc(espNom)}</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:#FBBF24;font-size:16px;letter-spacing:1px">${estrellas}</span>
+            <span style="font-size:12px;color:var(--t3)">${fecha}</span>
+          </div>
+        </div>
+        ${ev.comentario ? `<p style="margin:0;font-size:13px;color:var(--t2);line-height:1.6">${_esc(ev.comentario)}</p>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--danger);font-size:14px;text-align:center;padding:40px 0">Error al cargar evaluaciones</div>';
+  }
+}
+
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
 

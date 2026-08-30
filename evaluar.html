@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evalúa tu atención — attempo</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f5f3ff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+  .card{background:#fff;border-radius:20px;box-shadow:0 4px 32px rgba(108,92,228,0.12);max-width:440px;width:100%;overflow:hidden}
+  .card-header{background:#6C5CE4;padding:28px 32px;text-align:center}
+  .card-header img{height:36px;display:block;margin:0 auto 8px}
+  .card-header p{color:rgba(255,255,255,0.8);font-size:13px;margin:0}
+  .card-body{padding:32px 28px}
+  h2{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:6px;text-align:center}
+  .subtitle{font-size:14px;color:#6b7280;text-align:center;margin-bottom:28px}
+  .stars-row{display:flex;justify-content:center;gap:12px;margin-bottom:10px}
+  .star-btn{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;transition:transform .1s}
+  .star-btn:hover{transform:scale(1.08)}
+  .star-btn svg{width:40px;height:40px;transition:all .15s}
+  .star-btn .star-svg{fill:#e5e7eb}
+  .star-btn.active .star-svg,.star-btn.hovered .star-svg{fill:#FBBF24}
+  .star-label{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  .star-btn.active .star-label,.star-btn.hovered .star-label{color:#6C5CE4}
+  .form-group{margin-top:20px}
+  label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+  textarea{width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:12px;font-size:14px;font-family:inherit;color:#1a1a2e;resize:vertical;min-height:80px;transition:border-color .15s;outline:none}
+  textarea:focus{border-color:#6C5CE4}
+  .anon-row{display:flex;align-items:center;gap:10px;margin-top:16px;cursor:pointer}
+  .anon-row input[type=checkbox]{width:16px;height:16px;accent-color:#6C5CE4;cursor:pointer}
+  .anon-row span{font-size:13px;color:#6b7280}
+  .btn-submit{display:block;width:100%;margin-top:24px;padding:14px;background:#6C5CE4;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s,transform .1s}
+  .btn-submit:hover{background:#5849d4}
+  .btn-submit:active{transform:scale(0.98)}
+  .btn-submit:disabled{opacity:0.55;cursor:not-allowed}
+  .card-footer{background:#f9f8ff;padding:14px 28px;text-align:center;border-top:1px solid #ede9fe}
+  .card-footer p{font-size:11px;color:#9ca3af}
+  .card-footer a{color:#6C5CE4;text-decoration:none}
+
+  /* Confirmación */
+  #screen-ok{display:none}
+  .ok-icon{width:64px;height:64px;background:#10B981;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+  .ok-icon svg{width:32px;height:32px}
+  #screen-ok h2{font-size:20px;margin-bottom:10px}
+  #screen-ok p{font-size:14px;color:#6b7280;line-height:1.6;text-align:center}
+
+  /* Error / ya usado */
+  #screen-err{display:none}
+  .err-icon{font-size:40px;text-align:center;margin-bottom:12px}
+
+  /* Loading */
+  #screen-loading{text-align:center;padding:20px 0}
+  .spinner{width:32px;height:32px;border:3px solid #ede9fe;border-top-color:#6C5CE4;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <img src="/logo_attempo.png" alt="attempo">
+    <p>Todo a tu tiempo</p>
+  </div>
+
+  <!-- LOADING -->
+  <div id="screen-loading" class="card-body">
+    <div class="spinner"></div>
+    <p style="color:#9ca3af;font-size:14px">Cargando...</p>
+  </div>
+
+  <!-- FORMULARIO -->
+  <div id="screen-form" class="card-body" style="display:none">
+    <h2 id="form-title">Evalúa la atención</h2>
+    <p class="subtitle" id="form-subtitle">Tu opinión ayuda a mejorar el servicio.</p>
+
+    <div class="stars-row" id="stars-row">
+      <button class="star-btn" data-val="1" onclick="selectStar(1)" onmouseenter="hoverStar(1)" onmouseleave="unhoverStar()">
+        <svg viewBox="0 0 24 24"><path class="star-svg" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span class="star-label">Pésima</span>
+      </button>
+      <button class="star-btn" data-val="2" onclick="selectStar(2)" onmouseenter="hoverStar(2)" onmouseleave="unhoverStar()">
+        <svg viewBox="0 0 24 24"><path class="star-svg" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span class="star-label">Mala</span>
+      </button>
+      <button class="star-btn" data-val="3" onclick="selectStar(3)" onmouseenter="hoverStar(3)" onmouseleave="unhoverStar()">
+        <svg viewBox="0 0 24 24"><path class="star-svg" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span class="star-label">Aceptable</span>
+      </button>
+      <button class="star-btn" data-val="4" onclick="selectStar(4)" onmouseenter="hoverStar(4)" onmouseleave="unhoverStar()">
+        <svg viewBox="0 0 24 24"><path class="star-svg" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span class="star-label">Buena</span>
+      </button>
+      <button class="star-btn" data-val="5" onclick="selectStar(5)" onmouseenter="hoverStar(5)" onmouseleave="unhoverStar()">
+        <svg viewBox="0 0 24 24"><path class="star-svg" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span class="star-label">Genial</span>
+      </button>
+    </div>
+
+    <div class="form-group">
+      <label for="comentario">Comentario <span style="font-weight:400;color:#9ca3af">(opcional)</span></label>
+      <textarea id="comentario" placeholder="Cuéntanos cómo fue tu experiencia..." maxlength="500"></textarea>
+    </div>
+
+    <label class="anon-row">
+      <input type="checkbox" id="anonima">
+      <span>Quiero que mi evaluación sea anónima</span>
+    </label>
+
+    <button class="btn-submit" id="btn-submit" onclick="enviarEvaluacion()" disabled>Dejar evaluación</button>
+  </div>
+
+  <!-- YA ENVIADA -->
+  <div id="screen-ya-usado" class="card-body" style="display:none;text-align:center">
+    <div class="err-icon">✅</div>
+    <h2 style="margin-bottom:8px">Ya enviaste tu evaluación</h2>
+    <p style="font-size:14px;color:#6b7280">Esta evaluación ya fue registrada. ¡Gracias por tu tiempo!</p>
+  </div>
+
+  <!-- ERROR -->
+  <div id="screen-err" class="card-body" style="display:none;text-align:center">
+    <div class="err-icon">❌</div>
+    <h2 style="margin-bottom:8px">Link inválido</h2>
+    <p style="font-size:14px;color:#6b7280">Este link de evaluación no es válido o expiró.</p>
+  </div>
+
+  <!-- CONFIRMACIÓN OK -->
+  <div id="screen-ok" class="card-body" style="text-align:center">
+    <div class="ok-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h2 id="ok-title">recibió tu evaluación</h2>
+    <p id="ok-msg">Gracias por tomarte el tiempo de dejar tu valoración. Significa mucho para el profesional y su crecimiento.</p>
+  </div>
+
+  <div class="card-footer">
+    <p>Sistema de citas por <a href="https://attempo.cl" target="_blank">attempo</a></p>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const TOKEN  = params.get('token') || '';
+  let selectedStar = 0;
+  let espNombre = '';
+
+  function show(id) {
+    ['screen-loading','screen-form','screen-ya-usado','screen-err','screen-ok'].forEach(s => {
+      document.getElementById(s).style.display = s === id ? '' : 'none';
+    });
+  }
+
+  async function init() {
+    if (!TOKEN) { show('screen-err'); return; }
+    try {
+      const r = await fetch(`/api/evaluar?token=${encodeURIComponent(TOKEN)}`);
+      const d = await r.json();
+      if (!r.ok || d.error) { show('screen-err'); return; }
+      if (d.ya_usado) { show('screen-ya-usado'); return; }
+      espNombre = d.especialista_nombre || '';
+      if (espNombre) {
+        document.getElementById('form-title').textContent = `Evalúa la atención de ${espNombre}`;
+      }
+      show('screen-form');
+    } catch(_) { show('screen-err'); }
+  }
+
+  function hoverStar(val) {
+    document.querySelectorAll('.star-btn').forEach(b => {
+      b.classList.toggle('hovered', parseInt(b.dataset.val) <= val);
+    });
+  }
+  function unhoverStar() {
+    document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('hovered'));
+  }
+  function selectStar(val) {
+    selectedStar = val;
+    document.querySelectorAll('.star-btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.val) <= val);
+    });
+    document.getElementById('btn-submit').disabled = false;
+  }
+
+  async function enviarEvaluacion() {
+    if (!selectedStar) return;
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    try {
+      const r = await fetch('/api/evaluar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token:      TOKEN,
+          estrellas:  selectedStar,
+          comentario: document.getElementById('comentario').value,
+          anonima:    document.getElementById('anonima').checked
+        })
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) {
+        btn.disabled = false;
+        btn.textContent = 'Dejar evaluación';
+        alert(d.error || 'Error al enviar. Intenta nuevamente.');
+        return;
+      }
+      if (espNombre) {
+        document.getElementById('ok-title').textContent = `${espNombre} recibió tu evaluación`;
+        document.getElementById('ok-msg').textContent   = `Gracias por tomarte el tiempo de dejar tu valoración. Significa mucho para ${espNombre} y su crecimiento profesional.`;
+      }
+      show('screen-ok');
+    } catch(_) {
+      btn.disabled = false;
+      btn.textContent = 'Dejar evaluación';
+      alert('Error de red. Intenta nuevamente.');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

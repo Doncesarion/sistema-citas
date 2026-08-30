@@ -436,6 +436,159 @@ async function procesarTrialReminder(sh, shJson) {
   return { enviados };
 }
 
+// ── Email de solicitud de evaluación post-cita ────────────────────────────────
+const BASE_URL_EVAL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
+function emailEvaluacionHtml({ nombre, profesional, negocio, evalUrl }) {
+  const estrellas = [1,2,3,4,5].map(n => {
+    const labels = ['Pésima','Mala','Aceptable','Buena','Genial'];
+    return `<a href="${he(evalUrl)}" style="text-decoration:none;display:inline-block;margin:0 6px;text-align:center">
+      <div style="font-size:32px;line-height:1">⭐</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:3px">${labels[n-1]}</div>
+    </a>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<tr><td style="background:#6C5CE4;padding:28px 24px;text-align:center;">
+  <img src="${BASE_URL_EVAL}/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;">
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+</td></tr>
+<tr><td style="padding:32px 24px;text-align:center;">
+  <h2 style="margin:0 0 8px;color:#2d2d2d;font-size:20px;">¿Cómo fue tu atención?</h2>
+  <p style="margin:0 0 6px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>, esperamos que tu consulta con <strong>${he(profesional)}</strong> haya sido excelente.</p>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Tu opinión ayuda a mejorar el servicio. Solo toma un minuto.</p>
+  <div style="margin:0 0 24px">${estrellas}</div>
+  <a href="${he(evalUrl)}" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;">Dejar evaluación →</a>
+  <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;">Solo pacientes con citas realizadas pueden evaluar al profesional.</p>
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:16px 24px;text-align:center;border-top:1px solid #ede9fe;">
+  <p style="margin:0;color:#9ca3af;font-size:12px;">Enviado por <strong>${he(negocio)}</strong> a través de <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">attempo</a></p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+async function procesarEvaluaciones(sh, shJson) {
+  const resend_key = process.env.RESEND_API_KEY;
+  if (!resend_key) return { enviados: 0, errores: ['Sin RESEND_API_KEY'] };
+
+  let enviados = 0;
+  const errores = [];
+
+  try {
+    // Buscar citas que terminaron hace entre 1h y 48h, no canceladas, con email y sin eval enviada
+    const ahora = new Date();
+    const hace1h  = new Date(ahora.getTime() - 60 * 60 * 1000);
+    const hace48h = new Date(ahora.getTime() - 48 * 60 * 60 * 1000);
+
+    // Convertir a fecha+hora en Santiago para comparar
+    const toStgo = ms => new Date(ms).toLocaleString('en-CA', { timeZone: 'America/Santiago', hour12: false }).replace(', ', 'T');
+    const desde = toStgo(hace48h.getTime()).slice(0, 16); // yyyy-MM-ddTHH:mm
+    const hasta = toStgo(hace1h.getTime()).slice(0, 16);
+
+    // Extraer fecha y hora por separado para filtrar en Supabase
+    // Filtramos solo por fecha para mantener la query simple; la lógica de hora se valida localmente
+    const fechaDesde = desde.slice(0, 10);
+    const fechaHasta = hasta.slice(0, 10);
+
+    const rCitas = await fetch(
+      `${SUPABASE_URL}/rest/v1/citas?estado=neq.canceled&email_paciente=not.is.null&eval_enviado=not.is.true` +
+      `&fecha=gte.${fechaDesde}&fecha=lte.${fechaHasta}` +
+      `&select=id,nombre_paciente,email_paciente,fecha,hora,cliente_id,especialista_id,especialistas(nombre),clientes_sistema(nombre_negocio,eval_activo)` +
+      `&limit=500`,
+      { headers: sh }
+    );
+    const citas = await rCitas.json();
+    if (!Array.isArray(citas)) return { enviados, errores: ['Error al obtener citas'] };
+
+    const ahoraStgo = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+
+    for (const cita of citas) {
+      // Solo clientes con evaluaciones habilitadas
+      if (cita.clientes_sistema?.eval_activo === false) continue;
+
+      // Verificar que la cita ya terminó (fecha+hora en Santiago < hace 1h)
+      const [y, m, d] = (cita.fecha || '').split('-');
+      const [hh, mm] = (cita.hora || '00:00').split(':');
+      const citaMs = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm)).getTime();
+      const citaDate = new Date(citaMs + new Date().getTimezoneOffset() * 60000); // aproximado
+      // Usamos el timestamp UTC equivalente a la hora local de Santiago
+      const citaStgo = new Date(new Date(cita.fecha + 'T' + (cita.hora || '00:00') + ':00').toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+
+      // Omitir si la cita es de hoy pero su hora aún no pasó hace 1h
+      const diffMin = (ahoraStgo - citaStgo) / 60000;
+      if (diffMin < 60) continue;
+
+      const negocio   = cita.clientes_sistema?.nombre_negocio || 'tu negocio';
+      const profesional = cita.especialistas?.nombre || 'el profesional';
+      const token     = crypto.randomUUID();
+
+      // Crear registro de evaluación en Supabase
+      const rInsert = await fetch(`${SUPABASE_URL}/rest/v1/evaluaciones`, {
+        method: 'POST',
+        headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          cliente_id:     cita.cliente_id,
+          cita_id:        cita.id,
+          especialista_id: cita.especialista_id || null,
+          paciente_nombre: cita.nombre_paciente || '',
+          token,
+          usado: false
+        })
+      });
+      if (!rInsert.ok) {
+        const err = await rInsert.text().catch(() => '');
+        // Si ya existe (token duplicado u otro conflicto), no bloqueamos
+        errores.push(`cita ${cita.id} insert: ${err.slice(0, 80)}`);
+        continue;
+      }
+
+      const evalUrl = `${BASE_URL_EVAL}/evaluar?token=${token}`;
+
+      // Enviar email
+      const emailRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resend_key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: `${negocio} vía Attempo <contacto@attempo.cl>`,
+          to: [cita.email_paciente],
+          subject: `¿Cómo fue tu consulta con ${profesional}? Deja tu evaluación`,
+          headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+          html: emailEvaluacionHtml({ nombre: cita.nombre_paciente || 'Estimado/a', profesional, negocio, evalUrl })
+        })
+      });
+
+      if (emailRes.ok) {
+        enviados++;
+        // Marcar cita para no reenviar
+        fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+          method: 'PATCH',
+          headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ eval_enviado: true })
+        }).catch(() => {});
+      } else {
+        const errTxt = await emailRes.text().catch(() => '');
+        console.error('evaluacion email error:', emailRes.status, errTxt);
+        errores.push(`cita ${cita.id} email: ${emailRes.status}`);
+        // Borrar el registro de evaluación si el email falló
+        fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${token}`, {
+          method: 'DELETE', headers: sh
+        }).catch(() => {});
+      }
+    }
+  } catch(e) {
+    console.error('procesarEvaluaciones error:', e.message);
+    errores.push(e.message);
+  }
+
+  return { enviados, errores };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -464,6 +617,8 @@ export default async function handler(req, res) {
     console.log('send-email: cron finalizado —', result.enviados, 'enviados,', result.errores.length, 'errores');
     const trialResult = await procesarTrialReminder(sh, shJson);
     if (trialResult.enviados.length) console.log('send-email: trial reminders —', trialResult.enviados.length, 'enviados');
+    const evalResult = await procesarEvaluaciones(sh, shJson);
+    if (evalResult.enviados) console.log('send-email: evaluaciones —', evalResult.enviados, 'enviadas');
 
     // Reset mensual de cuota WA si cambió el mes
     try {
@@ -478,7 +633,7 @@ export default async function handler(req, res) {
       console.error('send-email: error reset WA mensual:', e.message);
     }
 
-    return res.status(200).json({ ...result, trial_reminders: trialResult.enviados });
+    return res.status(200).json({ ...result, trial_reminders: trialResult.enviados, evaluaciones: evalResult.enviados });
   }
 
   if (req.method !== 'POST') return res.status(405).end();
