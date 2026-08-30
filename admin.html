@@ -17336,8 +17336,8 @@ async function loadEvaluaciones() {
   lista.innerHTML = '<div style="color:var(--t3);font-size:14px;text-align:center;padding:40px 0">Cargando...</div>';
 
   try {
-    let url = '/api/evaluar';
-    if (espId) url += `?especialista_id=${espId}`;
+    let url = '/api/slots?action=evaluar_admin';
+    if (espId) url += `&especialista_id=${espId}`;
     const r = await fetch(url, { headers: _evalH });
     const d = await r.json();
     const evs = d.evaluaciones || [];

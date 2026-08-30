@@ -151,7 +151,7 @@
   async function init() {
     if (!TOKEN) { show('screen-err'); return; }
     try {
-      const r = await fetch(`/api/evaluar?token=${encodeURIComponent(TOKEN)}`);
+      const r = await fetch(`/api/slots?action=evaluar&token=${encodeURIComponent(TOKEN)}`);
       const d = await r.json();
       if (!r.ok || d.error) { show('screen-err'); return; }
       if (d.ya_usado) { show('screen-ya-usado'); return; }
@@ -185,7 +185,7 @@
     btn.disabled = true;
     btn.textContent = 'Enviando...';
     try {
-      const r = await fetch('/api/evaluar', {
+      const r = await fetch('/api/slots?action=evaluar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

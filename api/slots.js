@@ -99,6 +99,10 @@ async function logAudit(KEY, action, actorRole, actorClienteId, targetClienteId,
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'DELETE' && req.method !== 'POST' && req.method !== 'PATCH') return res.status(405).end();
 
+  // Delegar evaluaciones a su handler
+  const qa = req.query.action;
+  if (qa === 'evaluar' || qa === 'evaluar_admin' || (req.method === 'POST' && req.body?.action === 'evaluar')) return handleEvaluar(req, res);
+
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const sessionToken = req.headers['x-session-token'];
@@ -839,4 +843,93 @@ export default async function handler(req, res) {
     console.error('slots error:', e.message);
     res.status(500).json({ error: 'Error interno' });
   }
+}
+
+// ── Evaluaciones ─────────────────────────────────────────────────────────────
+// GET  ?action=evaluar&token=xxx  → carga form para paciente (sin sesión)
+// GET  ?action=evaluar_admin      → lista evaluaciones para el panel (con sesión)
+// POST ?action=evaluar            → guarda evaluación del paciente (sin sesión)
+
+export async function handleEvaluar(req, res) {
+  const KEY    = process.env.SUPABASE_SERVICE_KEY;
+  const sh     = { apikey: KEY, Authorization: `Bearer ${KEY}` };
+  const shJson = { ...sh, 'Content-Type': 'application/json' };
+
+  // GET ?action=evaluar&token=xxx → form del paciente
+  if (req.method === 'GET' && req.query.token) {
+    const token = String(req.query.token || '').trim();
+    if (!token) return res.status(400).json({ error: 'Token inválido' });
+
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${encodeURIComponent(token)}&select=id,usado,paciente_nombre,cliente_id,especialista_id&limit=1`,
+      { headers: sh }
+    );
+    const [ev] = await r.json().catch(() => []);
+    if (!ev) return res.status(404).json({ error: 'Evaluación no encontrada' });
+    if (ev.usado) return res.status(200).json({ ya_usado: true });
+
+    let espNombre = '', negocioNombre = '';
+    if (ev.especialista_id) {
+      const [esp] = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${ev.especialista_id}&select=nombre&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
+      espNombre = esp?.nombre || '';
+    }
+    if (ev.cliente_id) {
+      const [cli] = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${ev.cliente_id}&select=nombre_negocio&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
+      negocioNombre = cli?.nombre_negocio || '';
+    }
+    return res.status(200).json({ ok: true, paciente_nombre: ev.paciente_nombre || '', especialista_nombre: espNombre, negocio_nombre: negocioNombre });
+  }
+
+  // GET ?action=evaluar_admin → lista para el panel admin (requiere sesión)
+  if (req.method === 'GET' && req.query.action === 'evaluar_admin') {
+    const s = verifySessionToken(req.headers['x-session-token']);
+    if (!s) return res.status(401).json({ error: 'No autorizado' });
+    const overrideId = req.headers['x-override-cliente-id'];
+    const cid = (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) ? overrideId : s.cliente_id;
+    if (!cid) return res.status(401).json({ error: 'No autorizado' });
+
+    const espId = req.query.especialista_id || null;
+    let url = `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.true&order=created_at.desc&limit=200&select=id,estrellas,comentario,anonima,paciente_nombre,especialista_id,created_at`;
+    if (espId) url += `&especialista_id=eq.${espId}`;
+
+    const rows = await fetch(url, { headers: sh }).then(r => r.json()).catch(() => []);
+    if (!Array.isArray(rows) || !rows.length) return res.status(200).json({ ok: true, evaluaciones: [] });
+
+    const espIds = [...new Set(rows.map(r => r.especialista_id).filter(Boolean))];
+    const espMap = {};
+    if (espIds.length) {
+      const esps = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=in.(${espIds.join(',')})&select=id,nombre`, { headers: sh }).then(r => r.json()).catch(() => []);
+      if (Array.isArray(esps)) esps.forEach(e => { espMap[e.id] = e.nombre; });
+    }
+    const evaluaciones = rows.map(row => ({ ...row, especialistas: row.especialista_id ? { nombre: espMap[row.especialista_id] || '' } : null }));
+    return res.status(200).json({ ok: true, evaluaciones });
+  }
+
+  // POST ?action=evaluar → guardar evaluación del paciente
+  if (req.method === 'POST') {
+    const body     = req.body || {};
+    const token    = String(body.token || '').trim();
+    const estrellas = parseInt(body.estrellas, 10);
+    if (!token) return res.status(400).json({ error: 'Token requerido' });
+    if (!estrellas || estrellas < 1 || estrellas > 5) return res.status(400).json({ error: 'Calificación inválida' });
+
+    const [ev] = await fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${encodeURIComponent(token)}&select=id,usado&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
+    if (!ev) return res.status(404).json({ error: 'Evaluación no encontrada' });
+    if (ev.usado) return res.status(409).json({ error: 'Esta evaluación ya fue enviada' });
+
+    const rPatch = await fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?id=eq.${ev.id}`, {
+      method: 'PATCH',
+      headers: { ...shJson, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        estrellas,
+        comentario: String(body.comentario || '').trim().slice(0, 500) || null,
+        anonima: body.anonima === true || body.anonima === 'true',
+        usado: true
+      })
+    });
+    if (!rPatch.ok) return res.status(500).json({ error: 'Error al guardar evaluación' });
+    return res.status(200).json({ ok: true });
+  }
+
+  return res.status(405).end();
 }
