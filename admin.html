@@ -5843,7 +5843,7 @@ function renderServicios() {
           ${s.descripcion ? `<span style="font-size:11px;color:var(--t4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${s.descripcion}">${s.descripcion}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          <button onclick="editarServicio(${i})" title="Editar" style="color:var(--t3);border:none;background:none;font-size:13px;cursor:pointer;line-height:1;padding:1px 5px" onmouseenter="this.style.color='var(--a)'" onmouseleave="this.style.color='var(--t3)'">✏</button>
+          <button onclick="editarServicio(${i})" style="color:var(--t2);border:1px solid var(--b2);background:var(--bg2);border-radius:4px;font-size:10px;cursor:pointer;padding:2px 6px;white-space:nowrap">Editar</button>
           ${_srvEspsCache.length > 0 ? `<button onclick="editarSrvEsps(${i})" style="color:var(--a);border:1px solid rgba(108,92,228,0.25);background:rgba(108,92,228,0.06);border-radius:4px;font-size:10px;cursor:pointer;padding:2px 6px;white-space:nowrap">Profesionales</button>` : ''}
           <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:1px 5px" title="Eliminar">×</button>
         </div>
