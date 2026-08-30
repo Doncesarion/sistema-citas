@@ -499,32 +499,43 @@ async function procesarEvaluaciones(sh, shJson) {
     const rCitas = await fetch(
       `${SUPABASE_URL}/rest/v1/citas?estado=neq.canceled&email_paciente=not.is.null&eval_enviado=not.is.true` +
       `&fecha=gte.${fechaDesde}&fecha=lte.${fechaHasta}` +
-      `&select=id,nombre_paciente,email_paciente,fecha,hora,cliente_id,especialista_id,especialistas(nombre),clientes_sistema(nombre_negocio,eval_activo)` +
+      `&select=id,nombre_paciente,email_paciente,fecha,hora,cliente_id,especialista_id,especialistas(nombre)` +
       `&limit=500`,
       { headers: sh }
     );
     const citas = await rCitas.json();
     if (!Array.isArray(citas)) return { enviados, errores: ['Error al obtener citas'] };
 
-    const ahoraStgo = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+    // Cargar nombres de negocios en batch
+    const clienteIds = [...new Set(citas.map(c => c.cliente_id).filter(Boolean))];
+    const negocioMap = {};
+    if (clienteIds.length) {
+      const rClis = await fetch(
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=in.(${clienteIds.join(',')})&select=id,nombre_negocio`,
+        { headers: sh }
+      );
+      const clis = await rClis.json().catch(() => []);
+      if (Array.isArray(clis)) clis.forEach(c => { negocioMap[c.id] = c.nombre_negocio || 'tu negocio'; });
+    }
+
+    // Hora actual en Santiago (como número comparable)
+    const ahoraStgo = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(new Date());
+    const ahoraMin = parseInt(ahoraStgo.find(p=>p.type==='hour')?.value||'0') * 60
+                   + parseInt(ahoraStgo.find(p=>p.type==='minute')?.value||'0');
+    const ahoraFechaStgo = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
 
     for (const cita of citas) {
-      // Solo clientes con evaluaciones habilitadas
-      if (cita.clientes_sistema?.eval_activo === false) continue;
+      // Comparar fecha y hora de la cita con hora actual Santiago
+      const citaFecha = cita.fecha || '';
+      const [citaH, citaM] = (cita.hora || '00:00').split(':').map(Number);
+      const citaMin = (citaH || 0) * 60 + (citaM || 0);
 
-      // Verificar que la cita ya terminó (fecha+hora en Santiago < hace 1h)
-      const [y, m, d] = (cita.fecha || '').split('-');
-      const [hh, mm] = (cita.hora || '00:00').split(':');
-      const citaMs = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm)).getTime();
-      const citaDate = new Date(citaMs + new Date().getTimezoneOffset() * 60000); // aproximado
-      // Usamos el timestamp UTC equivalente a la hora local de Santiago
-      const citaStgo = new Date(new Date(cita.fecha + 'T' + (cita.hora || '00:00') + ':00').toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+      // Omitir si la cita es de hoy y terminó hace menos de 1 hora
+      if (citaFecha === ahoraFechaStgo && ahoraMin - citaMin < 60) continue;
 
-      // Omitir si la cita es de hoy pero su hora aún no pasó hace 1h
-      const diffMin = (ahoraStgo - citaStgo) / 60000;
-      if (diffMin < 60) continue;
-
-      const negocio   = cita.clientes_sistema?.nombre_negocio || 'tu negocio';
+      const negocio   = negocioMap[cita.cliente_id] || 'tu negocio';
       const profesional = cita.especialistas?.nombre || 'el profesional';
       const token     = crypto.randomUUID();
 

@@ -37,18 +37,31 @@ export default async function handler(req, res) {
     if (!token) return res.status(400).json({ error: 'Token inválido' });
 
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${encodeURIComponent(token)}&select=id,usado,paciente_nombre,cliente_id,especialista_id,especialistas(nombre),clientes_sistema(nombre_negocio)&limit=1`,
+      `${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${encodeURIComponent(token)}&select=id,usado,paciente_nombre,cliente_id,especialista_id&limit=1`,
       { headers: sh }
     );
     const [ev] = await r.json().catch(() => []);
     if (!ev) return res.status(404).json({ error: 'Evaluación no encontrada' });
     if (ev.usado) return res.status(200).json({ ya_usado: true });
 
+    // Obtener nombre del especialista y del negocio por separado
+    let espNombre = '', negocioNombre = '';
+    if (ev.especialista_id) {
+      const rEsp = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${ev.especialista_id}&select=nombre&limit=1`, { headers: sh });
+      const [esp] = await rEsp.json().catch(() => []);
+      espNombre = esp?.nombre || '';
+    }
+    if (ev.cliente_id) {
+      const rCli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${ev.cliente_id}&select=nombre_negocio&limit=1`, { headers: sh });
+      const [cli] = await rCli.json().catch(() => []);
+      negocioNombre = cli?.nombre_negocio || '';
+    }
+
     return res.status(200).json({
       ok: true,
       paciente_nombre: ev.paciente_nombre || '',
-      especialista_nombre: ev.especialistas?.nombre || '',
-      negocio_nombre: ev.clientes_sistema?.nombre_negocio || ''
+      especialista_nombre: espNombre,
+      negocio_nombre: negocioNombre
     });
   }
 
@@ -60,12 +73,30 @@ export default async function handler(req, res) {
     if (!cid) return res.status(401).json({ error: 'No autorizado' });
 
     const espId = req.query.especialista_id || null;
-    let url = `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.true&order=created_at.desc&limit=200&select=id,estrellas,comentario,anonima,paciente_nombre,especialista_id,created_at,especialistas(nombre)`;
+    let url = `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.true&order=created_at.desc&limit=200&select=id,estrellas,comentario,anonima,paciente_nombre,especialista_id,created_at`;
     if (espId) url += `&especialista_id=eq.${espId}`;
 
     const r = await fetch(url, { headers: sh });
     const rows = await r.json().catch(() => []);
-    return res.status(200).json({ ok: true, evaluaciones: Array.isArray(rows) ? rows : [] });
+    if (!Array.isArray(rows) || !rows.length) return res.status(200).json({ ok: true, evaluaciones: [] });
+
+    // Enriquecer con nombres de especialistas
+    const espIds = [...new Set(rows.map(r => r.especialista_id).filter(Boolean))];
+    const espMap = {};
+    if (espIds.length) {
+      const rEsps = await fetch(
+        `${SUPABASE_URL}/rest/v1/especialistas?id=in.(${espIds.join(',')})&select=id,nombre`,
+        { headers: sh }
+      );
+      const esps = await rEsps.json().catch(() => []);
+      if (Array.isArray(esps)) esps.forEach(e => { espMap[e.id] = e.nombre; });
+    }
+
+    const evaluaciones = rows.map(row => ({
+      ...row,
+      especialistas: row.especialista_id ? { nombre: espMap[row.especialista_id] || '' } : null
+    }));
+    return res.status(200).json({ ok: true, evaluaciones });
   }
 
   // ── POST { token, estrellas, comentario, anonima } → guardar evaluación ─────
