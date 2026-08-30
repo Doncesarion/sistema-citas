@@ -3602,9 +3602,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div id="srv-list" style="border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden;margin-bottom:14px">
           <div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Cargando servicios...</div>
         </div>
-        <!-- Formulario agregar servicio -->
-        <div style="border:1px dashed var(--b2);border-radius:var(--rl);padding:14px;background:var(--adim)">
-          <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:10px">Agregar servicio</div>
+        <!-- Botón para abrir formulario -->
+        <button onclick="toggleSrvForm()" id="srv-form-toggle" style="display:flex;align-items:center;gap:6px;width:100%;padding:9px 14px;border:1px dashed var(--b2);border-radius:var(--rl);background:var(--adim);cursor:pointer;color:var(--t2);font-size:12px;font-weight:500">
+          <span style="font-size:15px;line-height:1;color:var(--a)">+</span> Agregar servicio
+        </button>
+        <!-- Formulario agregar servicio (oculto por defecto) -->
+        <div id="srv-form-body" style="display:none;border:1px dashed var(--b2);border-radius:var(--rl);padding:14px;background:var(--adim);margin-top:6px">
           <div style="display:flex;flex-direction:column;gap:8px">
             <input id="srv-nombre" type="text" placeholder="Nombre del servicio (ej: Consulta general)" class="fi" style="width:100%">
             <div style="display:flex;gap:8px">
@@ -3628,7 +3631,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 <div style="font-size:10px;color:var(--t3);margin-top:4px">Sin selección = disponible para todos los profesionales</div>
               </div>
             </div>
-            <div style="display:flex;justify-content:flex-end">
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+              <button class="btn-g" onclick="toggleSrvForm()">Cancelar</button>
               <button class="btn-a" onclick="agregarServicio()">Agregar</button>
             </div>
           </div>
@@ -5866,6 +5870,16 @@ function renderSrvEspsForm() {
   if (arrow) arrow.textContent = '▶';
 }
 
+function toggleSrvForm() {
+  const body   = document.getElementById('srv-form-body');
+  const toggle = document.getElementById('srv-form-toggle');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (toggle) toggle.style.display = open ? '' : 'none';
+  if (!open) document.getElementById('srv-nombre')?.focus();
+}
+
 function toggleSrvEspsForm() {
   const inner = document.getElementById('srv-esps-form-inner');
   const arrow = document.getElementById('srv-esps-arrow');
@@ -5921,6 +5935,7 @@ function agregarServicio() {
   renderServicios();
   renderSrvEspsForm();
   ['srv-nombre','srv-duracion','srv-precio','srv-desc','srv-cat'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  toggleSrvForm();
 }
 
 function eliminarServicio(idx) {
