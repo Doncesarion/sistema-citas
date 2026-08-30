@@ -3614,7 +3614,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
                 <button type="button" title="Agregar IVA 19%" onclick="const v=Number(document.getElementById('srv-precio').value);if(v)document.getElementById('srv-precio').value=Math.round(v*1.19);" style="padding:0 10px;border-radius:var(--r);border:1px solid var(--b2);background:var(--bg2);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">+IVA</button>
               </div>
             </div>
-            <textarea id="srv-desc" class="fi" placeholder="Descripción (opcional — visible para tus pacientes al reservar)" rows="2" style="resize:vertical;font-size:12px;line-height:1.5"></textarea>
+            <div style="display:flex;gap:8px">
+              <input id="srv-cat" type="text" placeholder="Categoría (ej: Psicología, Bienestar…)" class="fi" list="srv-cat-list" style="flex:1;font-size:12px">
+              <datalist id="srv-cat-list"></datalist>
+              <textarea id="srv-desc" class="fi" placeholder="Descripción (opcional)" rows="1" style="flex:2;resize:none;font-size:12px;line-height:1.5"></textarea>
+            </div>
             <div id="srv-esps-wrap" style="display:none">
               <button type="button" onclick="toggleSrvEspsForm()" id="srv-esps-toggle" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:11px;color:var(--a);padding:0;margin-bottom:0">
                 <span id="srv-esps-arrow">▶</span> Asignar a profesionales específicos
@@ -5751,41 +5755,96 @@ async function cargarServicios() {
     _serviciosCache = Array.isArray(cli?.servicios) ? cli.servicios : [];
     _srvEspsCache = await rEsp.json().catch(() => []);
     if (!Array.isArray(_srvEspsCache)) _srvEspsCache = [];
+    actualizarDatalistCat();
     renderSrvEspsForm();
     renderServicios();
   } catch(e) { console.error('cargarServicios:', e); }
+}
+
+function actualizarDatalistCat() {
+  const dl = document.getElementById('srv-cat-list');
+  if (!dl) return;
+  const cats = [...new Set(_serviciosCache.map(s => s.categoria?.trim()).filter(Boolean))].sort();
+  dl.innerHTML = cats.map(c => `<option value="${c}">`).join('');
+}
+
+function iniciarRenombreCat(catVieja) {
+  const grupEl = document.querySelector(`[data-cat="${CSS.escape(catVieja)}"] .cat-lbl`);
+  if (!grupEl) return;
+  const input = document.createElement('input');
+  input.value = catVieja;
+  input.placeholder = 'Nombre de categoría';
+  input.style.cssText = 'flex:1;font-size:11px;font-weight:700;color:var(--t1);letter-spacing:.04em;background:none;border:none;border-bottom:1px solid var(--a);outline:none;padding:0 2px;min-width:80px';
+  grupEl.replaceWith(input);
+  input.focus(); input.select();
+  const guardar = () => {
+    const nuevo = input.value.trim();
+    if (nuevo !== catVieja) {
+      _serviciosCache = _serviciosCache.map(s =>
+        ((s.categoria?.trim() || '') === catVieja) ? { ...s, categoria: nuevo || undefined } : s
+      );
+      actualizarDatalistCat();
+      toast('Categoría renombrada — guarda el catálogo para aplicar');
+    }
+    renderServicios();
+  };
+  input.addEventListener('blur', guardar);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') renderServicios();
+  });
 }
 
 function renderServicios() {
   const el = document.getElementById('srv-list');
   if (!el) return;
   if (!_serviciosCache.length) {
-    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Sin servicios. Agrega el primero abajo.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t3);font-size:13px">Sin servicios. Agrega el primero abajo.</div>';
     return;
   }
-  el.innerHTML = _serviciosCache.map((s, i) => {
-    const idsAsig  = Array.isArray(s.especialistas_ids) ? s.especialistas_ids : [];
-    const espsAsig = idsAsig.length ? _srvEspsCache.filter(e => idsAsig.includes(e.id)) : [];
-    let etiqueta = '';
-    if (_srvEspsCache.length > 0) {
-      etiqueta = idsAsig.length === 0
-        ? '<span style="font-size:10px;background:rgba(108,92,228,0.08);color:var(--a);border-radius:4px;padding:1px 6px">Todos los profesionales</span>'
-        : espsAsig.map(e => `<span style="font-size:10px;background:var(--adim);color:var(--t2);border-radius:4px;padding:1px 6px;border:1px solid var(--b1)">${e.nombre}</span>`).join(' ');
-    }
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:11px 16px;${i < _serviciosCache.length-1 ? 'border-bottom:1px solid var(--b1)' : ''}">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:500;color:var(--t1)">${s.nombre}</div>
-        <div style="font-size:11px;color:var(--t3)">
-          ${s.duracion ? s.duracion + ' min' : ''}${s.duracion && s.precio ? ' · ' : ''}${s.precio ? '$' + Number(s.precio).toLocaleString('es-CL') : ''}
+  // Agrupar por categoría
+  const grupos = {};
+  _serviciosCache.forEach((s, i) => {
+    const cat = s.categoria?.trim() || '';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push({ s, i });
+  });
+  // Categorías nombradas primero (alfabético), sin categoría al final
+  const cats = Object.keys(grupos).sort((a, b) => (!a && b) ? 1 : (a && !b) ? -1 : a.localeCompare(b, 'es'));
+  el.innerHTML = cats.map((cat, gi) => {
+    const items = grupos[cat];
+    const catLabel = cat || 'General';
+    const tieneMas = cats.length > 1 || cat;
+    const header = tieneMas
+      ? `<div data-cat="${cat}" style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--adim);border-bottom:1px solid var(--b1);${gi > 0 ? 'border-top:1px solid var(--b1)' : ''}">
+          <span class="cat-lbl" style="flex:1;font-size:11px;font-weight:700;color:var(--t1);letter-spacing:.04em">${catLabel}</span>
+          <button onclick="iniciarRenombreCat('${cat.replace(/'/g,"\\'")}')" title="Renombrar" style="font-size:11px;background:none;border:none;cursor:pointer;color:var(--t3);padding:0 2px;line-height:1" onmouseenter="this.style.color='var(--a)'" onmouseleave="this.style.color='var(--t3)'">✏</button>
+        </div>`
+      : '';
+    const rows = items.map(({ s, i }, ri) => {
+      const idsAsig  = Array.isArray(s.especialistas_ids) ? s.especialistas_ids : [];
+      const espsAsig = idsAsig.length ? _srvEspsCache.filter(e => idsAsig.includes(e.id)) : [];
+      const profTag  = _srvEspsCache.length > 0
+        ? (idsAsig.length === 0
+          ? '<span style="font-size:10px;background:rgba(108,92,228,0.08);color:var(--a);border-radius:3px;padding:1px 5px">Todos</span>'
+          : espsAsig.map(e => `<span style="font-size:10px;background:var(--adim);color:var(--t2);border-radius:3px;padding:1px 5px;border:1px solid var(--b1)">${e.nombre}</span>`).join(' '))
+        : '';
+      const meta = [s.duracion ? s.duracion+' min' : '', s.precio ? '$'+Number(s.precio).toLocaleString('es-CL') : ''].filter(Boolean).join(' · ');
+      const sep = (ri < items.length - 1 || gi < cats.length - 1) ? 'border-bottom:1px solid var(--b1)' : '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;${sep}">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:500;color:var(--t1)">${s.nombre}</span>
+          ${meta ? `<span style="font-size:11px;color:var(--t3)">${meta}</span>` : ''}
+          ${profTag}
+          ${s.descripcion ? `<span style="font-size:11px;color:var(--t4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${s.descripcion}">${s.descripcion}</span>` : ''}
         </div>
-        ${s.descripcion ? `<div style="font-size:11px;color:var(--t4);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px">${s.descripcion}</div>` : ''}
-        ${etiqueta ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px">${etiqueta}</div>` : ''}
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-top:1px">
-        ${_srvEspsCache.length > 0 ? `<button onclick="editarSrvEsps(${i})" style="color:var(--a);border:1px solid rgba(108,92,228,0.25);background:rgba(108,92,228,0.06);border-radius:5px;font-size:11px;cursor:pointer;padding:3px 8px;line-height:1.4;white-space:nowrap">Profesionales</button>` : ''}
-        <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px" title="Eliminar">×</button>
-      </div>
-    </div>`;
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          ${_srvEspsCache.length > 0 ? `<button onclick="editarSrvEsps(${i})" style="color:var(--a);border:1px solid rgba(108,92,228,0.25);background:rgba(108,92,228,0.06);border-radius:4px;font-size:10px;cursor:pointer;padding:2px 6px;white-space:nowrap">Profesionales</button>` : ''}
+          <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:1px 5px" title="Eliminar">×</button>
+        </div>
+      </div>`;
+    }).join('');
+    return header + rows;
   }).join('');
 }
 
@@ -5848,16 +5907,20 @@ function agregarServicio() {
   const nombre      = document.getElementById('srv-nombre')?.value.trim();
   const duracion    = parseInt(document.getElementById('srv-duracion')?.value) || null;
   const precio      = parseInt(document.getElementById('srv-precio')?.value)   || null;
-  const descripcion = document.getElementById('srv-desc')?.value.trim()        || null;
+  const descripcion = document.getElementById('srv-desc')?.value.trim()  || null;
+  const categoria   = document.getElementById('srv-cat')?.value.trim()   || null;
   if (!nombre) { toast('Ingresa un nombre para el servicio'); return; }
   const checks = document.querySelectorAll('#srv-esps-form input[type=checkbox]:checked');
   const especialistas_ids = Array.from(checks).map(c => c.value).filter(Boolean);
-  const srv = { nombre, duracion, precio, ...(descripcion ? { descripcion } : {}) };
+  const srv = { nombre, duracion, precio };
+  if (descripcion) srv.descripcion = descripcion;
+  if (categoria)   srv.categoria   = categoria;
   if (especialistas_ids.length) srv.especialistas_ids = especialistas_ids;
   _serviciosCache.push(srv);
+  actualizarDatalistCat();
   renderServicios();
-  renderSrvEspsForm(); // resetea y colapsa
-  ['srv-nombre','srv-duracion','srv-precio','srv-desc'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  renderSrvEspsForm();
+  ['srv-nombre','srv-duracion','srv-precio','srv-desc','srv-cat'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 }
 
 function eliminarServicio(idx) {
