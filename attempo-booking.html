@@ -108,6 +108,9 @@ body::before{
 .prof-info{flex:1}
 .prof-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px}
 .prof-role{font-size:12px;color:var(--t3)}
+.prof-rating{font-size:11px;margin-top:4px;display:flex;align-items:center;gap:5px}
+.prof-rating .pstars{color:#FBBF24;letter-spacing:0.5px}
+.prof-rating .pcount{color:var(--t3)}
 .prof-radio{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .prof-row.sel .prof-radio{background:var(--a);border-color:var(--a)}
 .prof-row.sel .prof-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
@@ -453,6 +456,7 @@ let negocioData = null;
 let _gc_citas = [];
 let horarioNegocio = null;
 let especialistas = [];
+let ratingsMap = {};
 let citasDelDia = [];
 
 const st = { svc: null, prof: null, fecha: null, hora: null };
@@ -518,12 +522,16 @@ const st = { svc: null, prof: null, fecha: null, hora: null };
       document.getElementById('biz-horario-wrap').style.display = 'flex';
     }
 
-    const rE = await fetch(
-      `${SURL}/rest/v1/especialistas?cliente_id=eq.${clienteId}&activo=eq.true&select=id,nombre,cargo,especialidad,horario,color&order=nombre.asc`,
-      { headers: SH }
-    );
+    const [rE, rRatings] = await Promise.all([
+      fetch(`${SURL}/rest/v1/especialistas?cliente_id=eq.${clienteId}&activo=eq.true&select=id,nombre,cargo,especialidad,horario,color&order=nombre.asc`, { headers: SH }),
+      fetch(`/api/slots?action=evaluar_resumen&cliente_id=${clienteId}`).catch(() => null)
+    ]);
     especialistas = await rE.json();
     if (!Array.isArray(especialistas)) especialistas = [];
+    try {
+      const rd = rRatings ? await rRatings.json() : null;
+      if (rd?.resumen) rd.resumen.forEach(r => { ratingsMap[r.especialista_id] = r; });
+    } catch(_) {}
 
     renderServicios(negocioData.servicios || []);
     checkHorario();
@@ -642,11 +650,16 @@ function renderProfs() {
   ];
   list.innerHTML = rows.map(p => {
     const dataStr = JSON.stringify({ id: p.id, nom: p.nom, cargo: p.cargo }).replace(/'/g,"&#39;");
+    const rating = !p.isAny ? ratingsMap[p.id] : null;
+    const ratingHtml = rating && rating.total >= 1
+      ? `<div class="prof-rating"><span class="pstars">${'★'.repeat(Math.round(rating.promedio))}${'☆'.repeat(5 - Math.round(rating.promedio))}</span><span class="pcount">${rating.promedio.toFixed(1)} (${rating.total})</span></div>`
+      : '';
     return `<div class="prof-row${p.isAny ? ' any' : ''}" data-prof='${dataStr}' onclick="selProf(this)">
       <div class="prof-dot"></div>
       <div class="prof-info">
         <div class="prof-name">${p.nom}</div>
         <div class="prof-role">${p.cargo}</div>
+        ${ratingHtml}
       </div>
       <div class="prof-radio"></div>
     </div>`;

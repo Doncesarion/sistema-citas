@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 
   // Delegar evaluaciones a su handler
   const qa = req.query.action;
-  if (qa === 'evaluar' || qa === 'evaluar_admin' || (req.method === 'POST' && req.body?.action === 'evaluar')) return handleEvaluar(req, res);
+  if (qa === 'evaluar' || qa === 'evaluar_admin' || qa === 'evaluar_resumen' || (req.method === 'POST' && req.body?.action === 'evaluar')) return handleEvaluar(req, res);
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
@@ -854,6 +854,31 @@ export async function handleEvaluar(req, res) {
   const KEY    = process.env.SUPABASE_SERVICE_KEY;
   const sh     = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const shJson = { ...sh, 'Content-Type': 'application/json' };
+
+  // GET ?action=evaluar_resumen&cliente_id=xxx → resumen público de ratings por especialista
+  if (req.method === 'GET' && req.query.action === 'evaluar_resumen') {
+    const cid = req.query.cliente_id || '';
+    if (!cid || !/^[0-9a-f-]{36}$/i.test(cid)) return res.status(400).json({ error: 'cliente_id inválido' });
+    const rows = await fetch(
+      `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.true&select=especialista_id,estrellas`,
+      { headers: sh }
+    ).then(r => r.json()).catch(() => []);
+    const mapa = {};
+    if (Array.isArray(rows)) {
+      rows.forEach(({ especialista_id, estrellas }) => {
+        if (!especialista_id || !estrellas) return;
+        if (!mapa[especialista_id]) mapa[especialista_id] = { sum: 0, count: 0 };
+        mapa[especialista_id].sum += estrellas;
+        mapa[especialista_id].count++;
+      });
+    }
+    const resumen = Object.entries(mapa).map(([id, { sum, count }]) => ({
+      especialista_id: id,
+      promedio: Math.round(sum / count * 10) / 10,
+      total: count
+    }));
+    return res.status(200).json({ ok: true, resumen });
+  }
 
   // GET ?action=evaluar&token=xxx → form del paciente
   if (req.method === 'GET' && req.query.token) {
