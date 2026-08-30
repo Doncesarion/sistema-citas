@@ -629,11 +629,16 @@ function selSvc(el) {
 }
 
 /* ── PROFESIONALES ── */
+function _espsParaSvc() {
+  const ids = Array.isArray(st.svc?.especialistas_ids) ? st.svc.especialistas_ids : [];
+  return ids.length ? especialistas.filter(e => ids.includes(e.id)) : especialistas;
+}
+
 function renderProfs() {
   const list = document.getElementById('prof-list');
   const rows = [
     { id: 'any', nom: 'Sin preferencia', cargo: 'Asignación automática', isAny: true },
-    ...especialistas.map(e => ({ id: e.id, nom: e.nombre, cargo: e.cargo || e.especialidad || '', isAny: false }))
+    ..._espsParaSvc().map(e => ({ id: e.id, nom: e.nombre, cargo: e.cargo || e.especialidad || '', isAny: false }))
   ];
   list.innerHTML = rows.map(p => {
     const dataStr = JSON.stringify({ id: p.id, nom: p.nom, cargo: p.cargo }).replace(/'/g,"&#39;");
@@ -712,7 +717,7 @@ function getSlotsRealesDelDia(y, m, d) {
 }
 
 function getEspsActivos() {
-  if (!st.prof || st.prof.id === 'any') return especialistas;
+  if (!st.prof || st.prof.id === 'any') return _espsParaSvc();
   const e = especialistas.find(e => e.id === st.prof.id);
   return e ? [e] : [];
 }
