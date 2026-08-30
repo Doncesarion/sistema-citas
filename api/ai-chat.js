@@ -457,7 +457,9 @@ HOY ES: ${hoy}`;
   const _hoyAI = new Date();
   const _hoyAIstgo = new Date(_hoyAI.toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }) + 'T12:00:00');
   const promocionesActivasAI = promocionesBot.filter(p => {
-    if (!p.titulo?.trim()) return false;
+    const nombre = p.titulo?.trim() || p.nombre?.trim();
+    if (!nombre) return false;
+    if (p.activa === false) return false;
     const ini = p.fecha_inicio ? new Date(p.fecha_inicio + 'T00:00:00') : null;
     const fin = p.fecha_fin    ? new Date(p.fecha_fin   + 'T23:59:59') : null;
     if (ini && _hoyAIstgo < ini) return false;
@@ -465,7 +467,12 @@ HOY ES: ${hoy}`;
     return true;
   });
   const promosTextoAI = promocionesActivasAI.length
-    ? `\nPROMOCIONES VIGENTES HOY:\n${promocionesActivasAI.map(p => `— ${p.titulo}: ${p.descripcion}`).join('\n')}`
+    ? `\nPROMOCIONES VIGENTES HOY:\n${promocionesActivasAI.map(p => {
+        const nombre = p.titulo?.trim() || p.nombre?.trim();
+        const precio = p.precio ? ` — Precio: $${Number(p.precio).toLocaleString('es-CL')}` : '';
+        const prof   = p.profesional_nombre ? ` — Con: ${p.profesional_nombre}` : '';
+        return `— ${nombre}: ${p.descripcion||''}${precio}${prof}`;
+      }).join('\n')}`
     : '';
 
   const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}

@@ -6010,7 +6010,23 @@ function renderSrvPromos() {
         <input class="fi" value="${escHtml(p.nombre||'')}" placeholder="Nombre de la promoción" style="flex:1;font-size:13px;font-weight:500;padding:4px 8px" oninput="_srvPromos[${i}].nombre=this.value">
         <button onclick="removeSrvPromo(${i})" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:1px 5px;flex-shrink:0">×</button>
       </div>
-      <textarea class="fi" rows="2" placeholder="¿Qué incluye? Ej: Consulta inicial + evaluación psicológica a $35.000 (ahorro $10.000). Solo nuevos pacientes." style="resize:vertical;font-size:12px;line-height:1.5;margin-bottom:8px" oninput="_srvPromos[${i}].descripcion=this.value">${escHtml(p.descripcion||'')}</textarea>
+      <textarea class="fi" rows="2" placeholder="¿Qué incluye? Ej: Consulta inicial + evaluación psicológica. Solo nuevos pacientes." style="resize:vertical;font-size:12px;line-height:1.5;margin-bottom:8px" oninput="_srvPromos[${i}].descripcion=this.value">${escHtml(p.descripcion||'')}</textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Precio promocional</label>
+          <div style="display:flex;gap:4px">
+            <input type="number" class="fi" value="${p.precio||''}" placeholder="$ precio" min="0" style="flex:1" oninput="_srvPromos[${i}].precio=this.value?Number(this.value):null">
+            <button type="button" title="Agregar IVA 19%" onclick="const v=Number(_srvPromos[${i}].precio||0);if(v){_srvPromos[${i}].precio=Math.round(v*1.19);renderSrvPromos();}" style="padding:0 8px;border-radius:var(--r);border:1px solid var(--b2);background:var(--bg2);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">+IVA</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Profesional</label>
+          <select class="fs" onchange="_srvPromos[${i}].profesional_id=this.value||null;_srvPromos[${i}].profesional_nombre=this.options[this.selectedIndex].text==='Todos los profesionales'?null:this.options[this.selectedIndex].text">
+            <option value="">Todos los profesionales</option>
+            ${_srvEspsCache.map(e => `<option value="${e.id}" ${p.profesional_id===e.id?'selected':''}>${e.nombre}</option>`).join('')}
+          </select>
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Fecha de activación</label>
