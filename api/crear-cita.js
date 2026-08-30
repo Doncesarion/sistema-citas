@@ -201,7 +201,7 @@ export default async function handler(req, res) {
 
     // Lookup por email: paciente busca sus citas próximas en la página de reserva
     if (email && cid) {
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
       const UUID_RE_Q = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!UUID_RE_Q.test(cid)) return res.status(400).json({ error: 'Parámetro inválido' });
       const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
@@ -571,7 +571,7 @@ export default async function handler(req, res) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
     return res.status(400).json({ error: 'Fecha inválida' });
   }
-  if (email_paciente && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email_paciente)) {
+  if (email_paciente && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email_paciente)) {
     return res.status(400).json({ error: 'Email inválido' });
   }
   if (String(nombre_paciente).length > 200) {
