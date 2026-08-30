@@ -3560,6 +3560,8 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div class="cfg-row" onclick="openCfgModal('sitio')"><div><div class="cfg-t">Sitio web de reservas</div><div class="cfg-s">Link de reservas en línea y política de cancelación</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
+        <div class="cfg-row" onclick="openAlertasMensajes()"><div><div class="cfg-t">Alertas de mensajes nuevos</div><div class="cfg-s" id="cfg-alertas-sub">Recibe un email cuando llegue un mensaje por WhatsApp, Instagram o Messenger</div></div><div style="display:flex;align-items:center;gap:8px"><span id="cfg-alertas-badge" class="tag" style="display:none"></span><span style="color:var(--t4)">›</span></div></div>
+        <div style="height:1px;background:var(--b1)"></div>
       </div>
 
       <!-- Grupo: Finanzas -->
@@ -9382,6 +9384,78 @@ function closeCfgModal(key) {
   if (ov) ov.classList.remove('open');
 }
 
+/* ════ ALERTAS DE MENSAJES ════ */
+async function openAlertasMensajes() {
+  document.getElementById('cfg-alertas-ov').classList.add('open');
+  const cid = _sesion()?.cliente_id;
+  if (!cid) return;
+  try {
+    const [notifRes, cliRes] = await Promise.all([
+      fetch('/api/bandeja?action=notif-config', { headers: _bandejaH() }).then(r => r.json()),
+      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=email&limit=1`, { headers: _SH }).then(r => r.json())
+    ]);
+    const toggle = document.getElementById('alertas-toggle');
+    const emailInput = document.getElementById('alertas-email');
+    const track = document.getElementById('alertas-track');
+    const thumb = document.getElementById('alertas-thumb');
+    toggle.checked = !!(notifRes?.notif_nuevo_mensaje);
+    emailInput.value = notifRes?.notif_email || cliRes[0]?.email || '';
+    _actualizarToggleAlerta(toggle.checked, track, thumb);
+    actualizarPreviewAlerta();
+  } catch(e) {}
+}
+function _actualizarToggleAlerta(on, track, thumb) {
+  if (!track || !thumb) return;
+  track.style.background = on ? 'var(--a)' : 'var(--b2)';
+  thumb.style.left = on ? '18px' : '2px';
+}
+function actualizarPreviewAlerta() {
+  const toggle = document.getElementById('alertas-toggle');
+  const emailInput = document.getElementById('alertas-email');
+  const track = document.getElementById('alertas-track');
+  const thumb = document.getElementById('alertas-thumb');
+  const preview = document.getElementById('alertas-preview');
+  const previewEmail = document.getElementById('alertas-preview-email');
+  _actualizarToggleAlerta(toggle.checked, track, thumb);
+  if (toggle.checked && emailInput.value.trim()) {
+    preview.style.display = 'block';
+    if (previewEmail) previewEmail.textContent = emailInput.value.trim();
+  } else {
+    preview.style.display = 'none';
+  }
+}
+async function guardarAlertasMensajes() {
+  const toggle = document.getElementById('alertas-toggle');
+  const emailInput = document.getElementById('alertas-email');
+  const activo = toggle.checked;
+  const email = emailInput.value.trim();
+  const cid = _sesion()?.cliente_id;
+  if (!cid) return;
+  try {
+    const r = await fetch('/api/bandeja?action=toggle-notif', {
+      method: 'PATCH',
+      headers: { ..._bandejaH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo, notif_email: email })
+    });
+    if (!r.ok) { toast('Error al guardar', 2500); return; }
+    // Actualizar badge en Configuración
+    const badge = document.getElementById('cfg-alertas-badge');
+    if (badge) {
+      badge.textContent = activo ? 'Activo' : 'Desactivado';
+      badge.className = 'tag ' + (activo ? 'tg' : '');
+      badge.style.display = 'inline-block';
+    }
+    // Sincronizar toggle en bandeja si está cargado
+    _bNotifActiva = activo;
+    actualizarNotifUI(activo);
+    toast(activo ? 'Alertas activadas' : 'Alertas desactivadas', 2000);
+    cerrarAlertasMensajes();
+  } catch(e) { toast('Error al guardar', 2500); }
+}
+function cerrarAlertasMensajes() {
+  document.getElementById('cfg-alertas-ov').classList.remove('open');
+}
+
 /* addBloque — definido en sección loadHorario / saveHorario */
 
 /* ════ FOTO ════ */
@@ -9395,6 +9469,7 @@ document.addEventListener('keydown', e => {
     closeModal(); closeFicha(); closeSearch();
     closeEditProf(); closeEstadoModal(); closeProfile();
     ['negocio','sitio','recordatorios','integraciones'].forEach(k => closeCfgModal(k));
+    cerrarAlertasMensajes();
     document.getElementById('srv-esps-ov')?.classList.remove('open');
   }
   if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
@@ -10687,6 +10762,37 @@ function salirImpersonacion() {
     <div class="mfoot">
       <button class="btn-g" onclick="closeCfgModal('sitio')">Cancelar</button>
       <button class="btn-a" onclick="saveSitio()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Alertas de mensajes -->
+<div class="overlay" id="cfg-alertas-ov" onclick="if(event.target===this)cerrarAlertasMensajes()">
+  <div class="modal" style="width:460px">
+    <div class="modal-head"><span class="modal-title">Alertas de mensajes nuevos</span><button class="mclose" onclick="cerrarAlertasMensajes()">×</button></div>
+    <div class="mbody" style="gap:14px">
+      <div style="font-size:13px;color:var(--t2);line-height:1.55">Recibe un email cada vez que llegue un <strong>primer mensaje</strong> de un paciente por WhatsApp, Instagram o Messenger.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--adim);border-radius:var(--r);border:1px solid var(--b1)">
+        <div><div style="font-size:13px;font-weight:500;color:var(--t1)">Activar alertas</div><div style="font-size:12px;color:var(--t3)">Solo se envía al primer mensaje de cada conversación</div></div>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+          <input type="checkbox" id="alertas-toggle" style="opacity:0;width:0;height:0" onchange="actualizarPreviewAlerta()">
+          <span style="position:absolute;inset:0;background:var(--b2);border-radius:99px;transition:.2s" id="alertas-track"></span>
+          <span style="position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)" id="alertas-thumb"></span>
+        </label>
+      </div>
+      <div id="alertas-email-wrap">
+        <div class="fg"><label class="fl">Email donde quieres recibir las alertas</label>
+          <input class="fi" id="alertas-email" type="email" placeholder="tu@email.com" oninput="actualizarPreviewAlerta()">
+          <div style="font-size:11px;color:var(--t3);margin-top:5px">Si lo dejas vacío, se usa el email de registro de tu cuenta.</div>
+        </div>
+      </div>
+      <div id="alertas-preview" style="display:none;padding:10px 14px;background:var(--adim);border:1px solid var(--b1);border-radius:var(--r);font-size:12px;color:var(--t2)">
+        El sistema enviará un email a <strong id="alertas-preview-email"></strong> cuando llegue el primer mensaje de cada conversación nueva.
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-g" onclick="cerrarAlertasMensajes()">Cancelar</button>
+      <button class="btn-a" onclick="guardarAlertasMensajes()">Guardar</button>
     </div>
   </div>
 </div>

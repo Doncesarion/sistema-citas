@@ -225,7 +225,7 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Cargar configuración del bot ───────────────────────────────────────
-  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false };
+  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '' };
   try {
     const rb = await fetch(
       `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`,
@@ -242,6 +242,7 @@ export default async function handler(req, res) {
       botConfig.conocimiento        = bc.conocimiento        || '';
       botConfig.promociones         = Array.isArray(bc.promociones) ? bc.promociones : [];
       botConfig.notif_nuevo_mensaje = bc.notif_nuevo_mensaje || false;
+      botConfig.notif_email         = bc.notif_email         || '';
     }
     console.log('bot-chat: promociones cargadas =', JSON.stringify(botConfig.promociones));
     if (process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
@@ -612,8 +613,9 @@ HOY ES: ${hoyVentas}`;
   const telDesdeCanal = canal === 'whatsapp' ? canal_user_id : null;
 
   const esPrimerMensaje = historial.length === 0;
-  if (esPrimerMensaje && botConfig.notif_nuevo_mensaje && emailNegocio) {
-    notificarNuevoMensaje(canal, canal_user_name, mensaje, emailNegocio);
+  if (esPrimerMensaje && botConfig.notif_nuevo_mensaje) {
+    const destNotif = botConfig.notif_email || emailNegocio;
+    if (destNotif) notificarNuevoMensaje(canal, canal_user_name, mensaje, destNotif);
   }
 
   const systemPrompt = `Eres ${botConfig.nombre_bot}, la asistente virtual de ${negocioNombre}. Atiendes por ${canal}. Eres chilena, cálida y profesional. Nunca dices que eres una IA.

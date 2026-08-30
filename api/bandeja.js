@@ -530,16 +530,19 @@ export default async function handler(req, res) {
   // ── GET ?action=notif-config — leer estado de notificación ─────────────────
   if (req.method === 'GET' && req.query.action === 'notif-config') {
     const rb = await fetch(
-      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=notif_nuevo_mensaje&limit=1`,
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=notif_nuevo_mensaje,notif_email&limit=1`,
       { headers: sh }
     );
     const [bc] = await rb.json();
-    return res.status(200).json({ notif_nuevo_mensaje: bc?.notif_nuevo_mensaje || false });
+    return res.status(200).json({ notif_nuevo_mensaje: bc?.notif_nuevo_mensaje || false, notif_email: bc?.notif_email || '' });
   }
 
   // ── PATCH ?action=toggle-notif — activar/desactivar notificación ────────────
   if (req.method === 'PATCH' && req.query.action === 'toggle-notif') {
     const activo = req.body?.activo === true;
+    const notif_email = typeof req.body?.notif_email === 'string' ? req.body.notif_email.trim() : null;
+    const payload = { notif_nuevo_mensaje: activo };
+    if (notif_email !== null) payload.notif_email = notif_email || null;
     const rbCheck = await fetch(
       `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=id&limit=1`,
       { headers: sh }
@@ -549,13 +552,13 @@ export default async function handler(req, res) {
       await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}`, {
         method: 'PATCH',
         headers: { ...shJ, Prefer: 'return=minimal' },
-        body: JSON.stringify({ notif_nuevo_mensaje: activo })
+        body: JSON.stringify(payload)
       });
     } else {
       await fetch(`${SUPABASE_URL}/rest/v1/bot_config`, {
         method: 'POST',
         headers: { ...shJ, Prefer: 'return=minimal' },
-        body: JSON.stringify({ cliente_id, notif_nuevo_mensaje: activo })
+        body: JSON.stringify({ cliente_id, ...payload })
       });
     }
     return res.status(200).json({ ok: true, notif_nuevo_mensaje: activo });
