@@ -254,6 +254,9 @@ export default async function handler(req, res) {
   let negocioNombre = 'el negocio';
   let serviciosCatalogo = [];
   let emailNegocio = null;
+  let metodosPagoNegocio = null;
+  let datosBancoNegocio = null;
+  let direccionNegocio = null;
   let espLista = [];
 
   try {
@@ -262,7 +265,7 @@ export default async function handler(req, res) {
         .then(r => r.json()).catch(() => []),
       fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&activo=eq.true&order=orden.asc`, { headers: sh })
         .then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios,email,promociones,ubicaciones&limit=1`, { headers: sh })
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios,email,promociones,ubicaciones,metodos_pago,datos_banco,direccion&limit=1`, { headers: sh })
         .then(r => r.json()).then(d => d[0] || null).catch(() => null),
       fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad,horario&order=nombre.asc`, { headers: sh })
         .then(r => r.json()).catch(() => []),
@@ -294,11 +297,14 @@ export default async function handler(req, res) {
     // knowledge
     if (Array.isArray(rawCK)) chatbotKnowledge = rawCK;
 
-    // negocio + sedes (misma query, un solo round-trip)
+    // negocio + sedes + pago (misma query, un solo round-trip)
     if (rawCli) {
-      negocioNombre     = rawCli.nombre_negocio || 'el negocio';
-      serviciosCatalogo = Array.isArray(rawCli.servicios) ? rawCli.servicios : [];
-      emailNegocio      = rawCli.email || null;
+      negocioNombre        = rawCli.nombre_negocio || 'el negocio';
+      serviciosCatalogo    = Array.isArray(rawCli.servicios) ? rawCli.servicios : [];
+      emailNegocio         = rawCli.email || null;
+      metodosPagoNegocio   = rawCli.metodos_pago || null;
+      datosBancoNegocio    = rawCli.datos_banco || null;
+      direccionNegocio     = rawCli.direccion || null;
       if (Array.isArray(rawCli.promociones)) {
         botConfig.promociones = [...rawCli.promociones, ...botConfig.promociones];
       }
@@ -1020,19 +1026,11 @@ REGLAS GENERALES:
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
 
-    // Traer metodos_pago, datos_banco y email_negocio del negocio
-    let metodos_pago = null, datos_banco = null, email_negocio = null, direccion = null;
-    try {
-      const rn2 = await fetch(
-        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=metodos_pago,datos_banco,email,direccion&limit=1`,
-        { headers: sh }
-      );
-      const [cli2] = await rn2.json();
-      metodos_pago  = cli2?.metodos_pago  || null;
-      datos_banco   = cli2?.datos_banco   || null;
-      email_negocio = cli2?.email         || null;
-      direccion     = cli2?.direccion     || null;
-    } catch (e) { console.error('bot-chat: error cargando negocio extras:', e.message); }
+    // Usar datos del negocio ya cargados en la carga paralela inicial
+    const metodos_pago  = metodosPagoNegocio;
+    const datos_banco   = datosBancoNegocio;
+    const email_negocio = emailNegocio;
+    const direccion     = direccionNegocio;
 
     // Enviar email de confirmación directamente desde aquí
     if (email_paciente && process.env.RESEND_API_KEY) {
@@ -1204,12 +1202,13 @@ REGLAS GENERALES:
         headers: {
           'x-api-key':         ANTHROPIC_KEY,
           'anthropic-version': '2023-06-01',
+          'anthropic-beta':    'prompt-caching-2024-07-31',
           'content-type':      'application/json'
         },
         body: JSON.stringify({
           model:      'claude-haiku-4-5-20251001',
           max_tokens: 400,
-          system:     systemPrompt,
+          system:     [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           tools,
           messages:   msgs
         })

@@ -201,6 +201,11 @@ HOY ES: ${hoy}`;
       }
     ];
 
+    function heLanding(str) {
+      if (!str && str !== 0) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
     async function ejecutarCapturarLeadLanding(params) {
       const { nombre, email, telefono, interes, resumen } = params;
       const clienteIdAttempo = process.env.ATTEMPO_VENTAS_CLIENT_ID;
@@ -220,7 +225,7 @@ HOY ES: ${hoy}`;
             from: 'Attempo <contacto@attempo.cl>',
             to: ['cesarsalinasmunoz@gmail.com'],
             subject: `Lead web — ${nombre || 'Visitante'}`,
-            html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#2d2d2d"><h2 style="color:#6C5CE4;margin:0 0 16px">Lead del sitio web</h2><table style="width:100%;font-size:14px"><tr><td style="color:#666;padding:6px 0;width:90px">Canal</td><td><strong>Sitio web (Attia)</strong></td></tr>${nombre ? `<tr><td style="color:#666;padding:6px 0">Nombre</td><td>${nombre}</td></tr>` : ''}${email ? `<tr><td style="color:#666;padding:6px 0">Email</td><td>${email}</td></tr>` : ''}${telefono ? `<tr><td style="color:#666;padding:6px 0">WhatsApp</td><td>${telefono}</td></tr>` : ''}${interes ? `<tr><td style="color:#666;padding:6px 0">Interés</td><td>${interes}</td></tr>` : ''}</table>${resumen ? `<div style="margin-top:16px;padding:12px;background:#f5f3ff;border-radius:8px;font-size:13px;color:#444">${resumen}</div>` : ''}</div>`
+            html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#2d2d2d"><h2 style="color:#6C5CE4;margin:0 0 16px">Lead del sitio web</h2><table style="width:100%;font-size:14px"><tr><td style="color:#666;padding:6px 0;width:90px">Canal</td><td><strong>Sitio web (Attia)</strong></td></tr>${nombre ? `<tr><td style="color:#666;padding:6px 0">Nombre</td><td>${heLanding(nombre)}</td></tr>` : ''}${email ? `<tr><td style="color:#666;padding:6px 0">Email</td><td>${heLanding(email)}</td></tr>` : ''}${telefono ? `<tr><td style="color:#666;padding:6px 0">WhatsApp</td><td>${heLanding(telefono)}</td></tr>` : ''}${interes ? `<tr><td style="color:#666;padding:6px 0">Interés</td><td>${heLanding(interes)}</td></tr>` : ''}</table>${resumen ? `<div style="margin-top:16px;padding:12px;background:#f5f3ff;border-radius:8px;font-size:13px;color:#444">${heLanding(resumen)}</div>` : ''}</div>`
           })
         }).catch(() => {});
       }
@@ -554,8 +559,8 @@ CUANDO EL PACIENTE QUIERE REAGENDAR UNA CITA:
 1. Si tienes sus citas próximas en el contexto, identifica cuál quiere cambiar por lo que describe (día, hora, servicio o profesional).
 2. Si no tienes sus citas, llama buscar_citas_paciente con su email (si aún no lo tienes, pídelo).
 3. Confirma con el paciente: "tienes [servicio] el [fecha] a las [hora] con [profesional]. ¿La reagendamos?" Si tiene varias, lista las opciones numeradas y que elija.
-4. Cuando confirme, llama cancelar_cita con el cita_id correspondiente.
-5. Continúa desde el paso 2 del agendamiento (servicio). NO vuelvas a pedir el nombre — ya lo tienes.
+4. Sigue el flujo de agendamiento (pasos 3-7) para confirmar el NUEVO día, hora y profesional. NO canceles la cita vieja hasta tener todos los datos nuevos.
+5. Solo después de llamar confirmar_reserva con los datos nuevos y obtener ok:true, llama cancelar_cita con el cita_id de la cita original. NO vuelvas a pedir el nombre — ya lo tienes.
 
 CUANDO EL PACIENTE QUIERE ANULAR UNA CITA:
 1. Mismos pasos 1 y 2 que reagendamiento para identificar la cita.
@@ -868,12 +873,13 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
         headers: {
           'x-api-key':         ANTHROPIC_KEY,
           'anthropic-version': '2023-06-01',
+          'anthropic-beta':    'prompt-caching-2024-07-31',
           'content-type':      'application/json'
         },
         body: JSON.stringify({
           model:      'claude-haiku-4-5-20251001',
           max_tokens: 300,
-          system:     systemPrompt,
+          system:     [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           tools,
           messages:   msgs
         })
