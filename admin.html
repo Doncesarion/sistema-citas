@@ -4718,7 +4718,7 @@ function goStep(n) {
         return ini < cFin && fin > cIni;
       });
       if (conflicto) {
-        warnEl.innerHTML = `⚠️ El profesional ya tiene una cita a las <strong>${(conflicto.hora||'').slice(0,5)}</strong> con <strong>${conflicto.nombre_paciente?.split(' ')[0] || 'otro paciente'}</strong>. Puedes guardar de todas formas si es un sobrecupo.`;
+        warnEl.innerHTML = `⚠️ El profesional ya tiene una cita a las <strong>${escHtml((conflicto.hora||'').slice(0,5))}</strong> con <strong>${escHtml(conflicto.nombre_paciente?.split(' ')[0] || 'otro paciente')}</strong>. Puedes guardar de todas formas si es un sobrecupo.`;
         warnEl.style.display = '';
       } else {
         warnEl.style.display = 'none';
@@ -5519,7 +5519,7 @@ async function loadFichaData(nombre) {
   } catch(e) {
     console.error('loadFichaData:', e);
     const wrap = document.getElementById('ft-hist-wrap');
-    if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">Error: ${e.message}</div>`;
+    if (wrap) wrap.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:12px;border:1px solid #fca5a5;border-radius:var(--r);background:#fff5f5">Error: ${escHtml(e.message)}</div>`;
   }
 }
 

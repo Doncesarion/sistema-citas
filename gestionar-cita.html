@@ -151,6 +151,7 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 </div>
 
 <script>
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 // Soporte para URL corta (/gc/AT-XXXXXXXX#token o /gc/AT-XXXXXXXX/token) y URL legacy (?id=UUID&token=TOKEN)
 const _pathParts = location.pathname.split('/').filter(Boolean);
 let shortId     = null;
@@ -555,7 +556,7 @@ function mostrarError(msg) {
   document.getElementById('loading').style.display = 'none';
   const el = document.getElementById('content');
   el.style.display = 'block';
-  el.innerHTML = `<div class="error-box">${msg}</div>`;
+  el.innerHTML = `<div class="error-box">${esc(msg)}</div>`;
 }
 
 cargar();
