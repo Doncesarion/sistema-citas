@@ -42,6 +42,10 @@ export default async function handler(req, res) {
   if (!cliente_id || !canal || !canal_user_id || !mensaje) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
+  const _clienteIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!_clienteIdRe.test(cliente_id)) {
+    return res.status(400).json({ error: 'cliente_id inválido' });
+  }
   if (typeof canal_user_id !== 'string' || canal_user_id.length > 128 || typeof mensaje !== 'string' || mensaje.length > 4000) {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
@@ -243,7 +247,7 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Carga en paralelo: botConfig + knowledge + negocio/sedes + especialistas + paciente ──
-  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '' };
+  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0 };
   let chatbotKnowledge = [];
   let sedesContexto = '';
   let pacienteContexto = '';
@@ -263,7 +267,7 @@ export default async function handler(req, res) {
       fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad,horario&order=nombre.asc`, { headers: sh })
         .then(r => r.json()).catch(() => []),
       canal === 'whatsapp' && canal_user_id
-        ? fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&tel_paciente=eq.${encodeURIComponent(canal_user_id)}&select=nombre_paciente,fecha,hora,servicio,estado&order=fecha.desc,hora.desc&limit=3`, { headers: sh })
+        ? fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&tel_paciente=eq.${encodeURIComponent(canal_user_id)}&estado=not.in.(canceled,cancelada)&select=nombre_paciente,fecha,hora,servicio,estado&order=fecha.desc,hora.desc&limit=3`, { headers: sh })
             .then(r => r.ok ? r.json() : []).catch(() => [])
         : Promise.resolve([]),
     ]);
@@ -280,6 +284,8 @@ export default async function handler(req, res) {
       botConfig.promociones         = Array.isArray(bc.promociones) ? bc.promociones : [];
       botConfig.notif_nuevo_mensaje = bc.notif_nuevo_mensaje || false;
       botConfig.notif_email         = bc.notif_email         || '';
+      botConfig.delay_min_seg       = bc.delay_min_seg       || 0;
+      botConfig.delay_max_seg       = bc.delay_max_seg       || 0;
     }
     if (process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
       botConfig.tipo_bot = 'ventas';
@@ -762,8 +768,11 @@ REGLAS GENERALES:
   }
 
   async function ejecutarBuscarDisponibilidad(especialista_id, fecha) {
+    const _espUuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!_espUuidRe.test(especialista_id || '')) return { error: 'Profesional no válido' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return { error: 'Fecha inválida' };
     const r1 = await fetch(
-      `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
+      `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&cliente_id=eq.${cliente_id}&select=horario`,
       { headers: sh }
     );
     const [esp] = await r1.json();
@@ -855,15 +864,18 @@ REGLAS GENERALES:
       return d.toISOString().split('T')[0];
     });
 
-    // Traer todas las citas existentes en ese rango de una sola vez por especialista
+    // Traer todas las citas existentes en paralelo (una query por especialista)
     const resultados = [];
-    for (const esp of esps) {
-      const horario = esp.horario || {};
-      const r = await fetch(
+    const citasPorEsp = await Promise.all(esps.map(esp =>
+      fetch(
         `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&estado=neq.canceled&or=(especialista_id.eq.${esp.id},especialista_id.is.null)&select=fecha,hora,servicio`,
         { headers: sh }
-      );
-      const citas = await r.json();
+      ).then(r => r.json()).catch(() => [])
+    ));
+    for (let ei = 0; ei < esps.length; ei++) {
+      const esp = esps[ei];
+      const horario = esp.horario || {};
+      const citas = Array.isArray(citasPorEsp[ei]) ? citasPorEsp[ei] : [];
       const ocupadasMap = {};
       (Array.isArray(citas) ? citas : []).forEach(c => {
         const f = c.fecha;
@@ -1266,7 +1278,18 @@ REGLAS GENERALES:
 
   // ── 10. Guardar historial actualizado en chat_sessions ────────────────────
   if (sessionId) {
-    const mensajesGuardables = msgs.slice(-MAX_MESSAGES);
+    // Normalizar mensajes antes de persistir: eliminar bloques tool_use/tool_result
+    // y mensajes de sistema interno para evitar errores 400 y confundir a Claude
+    const normalizarMsg = (m) => {
+      if (Array.isArray(m.content)) {
+        const textos = m.content.filter(b => b.type === 'text').map(b => b.text);
+        if (!textos.length) return null; // elimina tool_use-only y tool_result
+        return { role: m.role, content: textos.join(' ') };
+      }
+      if (typeof m.content === 'string' && m.content.startsWith('SISTEMA:')) return null;
+      return m;
+    };
+    const mensajesGuardables = msgs.slice(-MAX_MESSAGES).map(normalizarMsg).filter(Boolean);
 
     fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
       method: 'PATCH',

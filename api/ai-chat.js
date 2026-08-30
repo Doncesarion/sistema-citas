@@ -264,6 +264,8 @@ HOY ES: ${hoy}`;
       return res.status(500).json({ error: 'Error interno' });
     }
 
+    if (!reply) reply = 'En este momento no puedo responder. Intenta de nuevo en un momento.';
+
     if (messages.length === 1 && process.env.RESEND_API_KEY) {
       const primerMensaje = messages[0]?.content || '';
       fetch('https://api.resend.com/emails', {
@@ -377,6 +379,7 @@ HOY ES: ${hoy}`;
     ? espLista.map(e => `• ${e.nombre} — ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
 
+  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null;
   let serviciosCatalogo = [], metodosPago = {}, datosBanco = {}, horarioNegocio = null, direccionNegocio = null;
   try {
     const rc = await fetch(
@@ -389,13 +392,11 @@ HOY ES: ${hoy}`;
     datosBanco  = cli?.datos_banco  || {};
     horarioNegocio = cli?.horario_negocio || null;
     direccionNegocio = cli?.direccion || null;
-    // Promociones de clientes_sistema (fuente principal)
     if (Array.isArray(cli?.promociones)) {
       promocionesBot = [...cli.promociones, ...promocionesBot];
     }
   } catch(_) {}
 
-  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null;
   try {
     const rb = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh });
     const [bc] = await rb.json();
@@ -405,7 +406,7 @@ HOY ES: ${hoy}`;
       saludoBot       = bc.saludo       || '';
       faqsBot         = Array.isArray(bc.faqs) ? bc.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
       conocimientoBot = bc.conocimiento || '';
-      promocionesBot  = Array.isArray(bc.promociones) ? bc.promociones : [];
+      if (Array.isArray(bc.promociones)) promocionesBot = [...promocionesBot, ...bc.promociones];
       modosBot        = Array.isArray(bc.modos)        ? bc.modos       : [];
       modoActivoId    = bc.modo_activo  || null;
     }
@@ -683,7 +684,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
       if (!_uuidRe.test(especialista_id || '')) return { error: 'Profesional no válido' };
       if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return { error: 'Fecha inválida' };
       const r1 = await fetch(
-        `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
+        `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&cliente_id=eq.${cliente_id}&select=horario`,
         { headers: sh }
       );
       const [esp] = await r1.json();
@@ -701,7 +702,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
       const slots = diaHorario.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
 
       const r2 = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
+        `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&cliente_id=eq.${cliente_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
         { headers: sh }
       );
       const citasExistentes = await r2.json();
@@ -719,9 +720,9 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
 
     if (nombre === 'confirmar_reserva') {
       const { especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha, hora, duracion, precio } = params;
-      if (especialista_id && !_uuidRe.test(especialista_id)) return { ok: true, listo: true };
-      if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: true, listo: true };
-      if (!hora || !/^\d{2}:\d{2}$/.test(hora)) return { ok: true, listo: true };
+      if (especialista_id && !_uuidRe.test(especialista_id)) return { ok: false, error: 'Profesional inválido' };
+      if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: false, error: 'Fecha inválida' };
+      if (!hora || !/^\d{2}:\d{2}$/.test(hora)) return { ok: false, error: 'Hora inválida' };
 
       // Crear la cita en Supabase
       let cita;
@@ -744,10 +745,10 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
         });
         const rows = await rCita.json();
         cita = Array.isArray(rows) ? rows[0] : rows;
-        if (!cita?.id) return { ok: true, listo: true };
+        if (!cita?.id) return { ok: false, error: 'No se pudo crear la cita' };
       } catch(e) {
         console.error('confirmar_reserva: cita error:', e.message);
-        return { ok: true, listo: true };
+        return { ok: false, error: 'Error al crear la cita' };
       }
 
       // Si el negocio tiene Flow configurado y el servicio tiene precio → generar link de pago
@@ -887,6 +888,19 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
 
       if (data.stop_reason !== 'tool_use') {
         const text = data.content.find(b => b.type === 'text')?.text || '';
+
+        // Salvaguarda: Claude dice "confirmado/listo" sin haber llamado confirmar_reserva
+        const pareceConfirmacion = /listo|lista|confirmad|agendad|reservad|cita\s+(cread|lista|registrad)/i.test(text);
+        if (pareceConfirmacion && !datos_reserva && i < 4) {
+          console.log('ai-chat: Claude confirmó sin tool — forzando confirmar_reserva');
+          msgs = [
+            ...msgs,
+            { role: 'assistant', content: data.content },
+            { role: 'user', content: [{ type: 'text', text: 'SISTEMA: Confirmaste la cita sin llamar al tool confirmar_reserva. Eso es un error. Llama AHORA a confirmar_reserva con los datos del historial. No respondas texto hasta que retorne ok:true.' }] }
+          ];
+          continue;
+        }
+
         const mensaje = datos_reserva ? '' : text;
         incUso(SUPABASE_URL, SUPABASE_KEY, cliente_id, 'mensajes_ia');
 
@@ -928,8 +942,8 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
           else if (result.sobrecupo_disponible) slots_disponibles = result.slots_sobrecupo;
         }
         if (block.name === 'pedir_fecha') { mostrar_calendario = true; especialista_id_cal = block.input?.especialista_id || null; }
-        if (block.name === 'confirmar_reserva') {
-          datos_reserva = { ...block.input, ...(result.cita_id ? { cita_id: result.cita_id } : {}) };
+        if (block.name === 'confirmar_reserva' && result.ok) {
+          datos_reserva = { ...block.input, cita_id: result.cita?.id || result.cita_id || null };
           if (result.flow_url) cita_flow_url = result.flow_url;
         }
         toolResults.push({
