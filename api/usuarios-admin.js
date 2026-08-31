@@ -711,10 +711,12 @@ export default async function handler(req, res) {
   // ── COTIZACIONES ──────────────────────────────────────════════════
   // ══════════════════════════════════════════════════════════════════
   if (req.query.action && req.query.action.startsWith('cot-')) {
+    const _isUuid = s => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
     const _cotClienteId = () => {
       const override = req.headers['x-override-cliente-id'];
-      if (override && verifyToken(req.headers['x-sa-impersona'])) return override;
-      return getClienteIdFromToken(req.headers['x-session-token']);
+      if (override && _isUuid(override) && verifyToken(req.headers['x-sa-impersona'])) return override;
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      return _isUuid(cid) ? cid : null;
     };
     try {
     const _CKEY = process.env.SUPABASE_SERVICE_KEY;

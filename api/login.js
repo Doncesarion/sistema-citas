@@ -222,8 +222,10 @@ export default async function handler(req, res) {
     if (!rows2.length) return res.status(401).json({ error: 'Usuario no encontrado' });
     const u2 = rows2[0];
     const saExpires = Date.now() + 24 * 60 * 60 * 1000;
-    const sesPayload = `${u2.cliente_id || 'sa'}:${u2.rol}:${saExpires}`;
-    const sesSig = crypto.createHmac('sha256', SECRET).update(sesPayload).digest('hex');
+    // Superadmin no tiene cliente_id — no incluir session_token estándar (usa x-sa-token propio)
+    const session_token = u2.cliente_id
+      ? (() => { const p = `${u2.cliente_id}:${u2.rol}:${saExpires}`; return `${p}.${crypto.createHmac('sha256', SECRET).update(p).digest('hex')}`; })()
+      : null;
     return res.status(200).json({
       ok: true,
       usuario: u2.email || u2.username,
@@ -231,7 +233,7 @@ export default async function handler(req, res) {
       rol: u2.rol,
       destino: u2.destino,
       cliente_id: u2.cliente_id,
-      session_token: `${sesPayload}.${sesSig}`,
+      session_token,
     });
   }
 

@@ -1442,6 +1442,7 @@ async function verCuentaCliente(clienteId, nombreNegocio) {
     if (session_token) localStorage.setItem('attempo_session_token', session_token);
     localStorage.setItem('attempo_user', JSON.stringify({
       ...u,
+      cliente_id: clienteId,
       nombre_negocio: nombreNegocio,
       tipo_plan,
       _impersonando: true
