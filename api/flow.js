@@ -60,13 +60,49 @@ function generateManageToken(cita_id) {
 function generateSubToken(cid, plan, monto, tipo_plan = '') {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
-  return crypto.createHmac('sha256', secret).update(`sub:${cid}:${plan}:${monto}:${tipo_plan}`).digest('hex').slice(0, 16);
+  const exp = Math.floor(Date.now() / 1000) + 72 * 3600;
+  const hmac = crypto.createHmac('sha256', secret).update(`sub:${cid}:${plan}:${monto}:${tipo_plan}:${exp}`).digest('hex').slice(0, 24);
+  return `${hmac}.${exp.toString(36)}`;
+}
+
+function verifySubToken(t, cid, plan, monto, tipo_plan = '') {
+  if (!t) return false;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return true;
+  const dot = t.lastIndexOf('.');
+  if (dot === -1) return false;
+  const hmac = t.slice(0, dot);
+  const exp = parseInt(t.slice(dot + 1), 36);
+  if (isNaN(exp) || Math.floor(Date.now() / 1000) > exp) return false;
+  const expected = crypto.createHmac('sha256', secret).update(`sub:${cid}:${plan}:${monto}:${tipo_plan}:${exp}`).digest('hex').slice(0, 24);
+  try {
+    const b1 = Buffer.from(hmac, 'hex'), b2 = Buffer.from(expected, 'hex');
+    return b1.length === b2.length && crypto.timingSafeEqual(b1, b2);
+  } catch { return false; }
 }
 
 function generateRecToken(cid, subtipo, codigo, monto) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
-  return crypto.createHmac('sha256', secret).update(`rec:${cid}:${subtipo}:${codigo}:${monto}`).digest('hex').slice(0, 16);
+  const exp = Math.floor(Date.now() / 1000) + 72 * 3600;
+  const hmac = crypto.createHmac('sha256', secret).update(`rec:${cid}:${subtipo}:${codigo}:${monto}:${exp}`).digest('hex').slice(0, 24);
+  return `${hmac}.${exp.toString(36)}`;
+}
+
+function verifyRecToken(t, cid, subtipo, codigo, monto) {
+  if (!t) return false;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return true;
+  const dot = t.lastIndexOf('.');
+  if (dot === -1) return false;
+  const hmac = t.slice(0, dot);
+  const exp = parseInt(t.slice(dot + 1), 36);
+  if (isNaN(exp) || Math.floor(Date.now() / 1000) > exp) return false;
+  const expected = crypto.createHmac('sha256', secret).update(`rec:${cid}:${subtipo}:${codigo}:${monto}:${exp}`).digest('hex').slice(0, 24);
+  try {
+    const b1 = Buffer.from(hmac, 'hex'), b2 = Buffer.from(expected, 'hex');
+    return b1.length === b2.length && crypto.timingSafeEqual(b1, b2);
+  } catch { return false; }
 }
 
 function webpayHeaders(code, secret) {
@@ -827,7 +863,7 @@ async function handleWebpaySubCreate(req, res) {
   const { cid, plan, monto, tipo_plan = '', t } = req.body || {};
   const errHtml = msg => { res.setHeader('Content-Type','text/html;charset=utf-8'); return res.status(400).send(`<!DOCTYPE html><html><body><p>${htmlEscape(msg)}</p></body></html>`); };
   if (!cid || !plan || !monto || !t) return errHtml('Parámetros inválidos.');
-  if (t !== generateSubToken(cid, plan, monto, tipo_plan)) return errHtml('Token inválido.');
+  if (!verifySubToken(t, cid, plan, monto, tipo_plan)) return errHtml('Token inválido o expirado.');
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
@@ -1011,7 +1047,7 @@ async function handleWebpayRecCreate(req, res) {
   const { cid, subtipo, codigo, monto, t } = req.body || {};
   const errHtml = msg => { res.setHeader('Content-Type','text/html;charset=utf-8'); return res.status(400).send(`<!DOCTYPE html><html><body><p>${htmlEscape(msg)}</p></body></html>`); };
   if (!cid || !subtipo || !codigo || !monto || !t) return errHtml('Parámetros inválidos.');
-  if (t !== generateRecToken(cid, subtipo, codigo, monto)) return errHtml('Token inválido.');
+  if (!verifyRecToken(t, cid, subtipo, codigo, monto)) return errHtml('Token inválido o expirado.');
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
@@ -1357,6 +1393,24 @@ async function confirmMPPaymentCot(paymentId, cotId) {
 async function handleMPWebhook(req, res) {
   const paymentId = req.query.id || req.query['data.id'] || req.body?.data?.id;
   const topic = req.query.topic || req.query.type || req.body?.type;
+
+  // Verificar firma x-signature si MP_WEBHOOK_SECRET está configurado
+  const mpWebhookSecret = process.env.MP_WEBHOOK_SECRET;
+  if (mpWebhookSecret) {
+    const xSig = req.headers['x-signature'] || '';
+    const xReqId = req.headers['x-request-id'] || '';
+    const tsMatch = xSig.match(/ts=([^,]+)/);
+    const v1Match = xSig.match(/v1=([^,]+)/);
+    if (!tsMatch || !v1Match) { res.status(200).end(); return; }
+    const ts = tsMatch[1], v1 = v1Match[1];
+    const manifest = `id:${paymentId || ''};request-id:${xReqId};ts:${ts};`;
+    const expected = crypto.createHmac('sha256', mpWebhookSecret).update(manifest).digest('hex');
+    try {
+      const b1 = Buffer.from(v1, 'hex'), b2 = Buffer.from(expected, 'hex');
+      if (b1.length !== b2.length || !crypto.timingSafeEqual(b1, b2)) { res.status(200).end(); return; }
+    } catch { res.status(200).end(); return; }
+  }
+
   res.status(200).end();
   if ((topic !== 'payment' && topic !== 'payments') || !paymentId) return;
   try {

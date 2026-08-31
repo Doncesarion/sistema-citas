@@ -1015,6 +1015,8 @@ export async function handleEvaluar(req, res) {
   if (req.method === 'GET' && req.query.action === 'evaluar_resumen') {
     const cid = req.query.cliente_id || '';
     if (!cid || !/^[0-9a-f-]{36}$/i.test(cid)) return res.status(400).json({ error: 'cliente_id inválido' });
+    const ipR = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    if (await isEvaluarRateLimited(ipR)) return res.status(429).json({ error: 'Demasiadas solicitudes' });
     const rows = await fetch(
       `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.true&select=especialista_id,estrellas`,
       { headers: sh }
