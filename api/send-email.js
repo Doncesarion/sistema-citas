@@ -548,6 +548,15 @@ async function procesarEvaluaciones(sh, shJson) {
       const profesional = cita.especialistas?.nombre || 'el profesional';
       const token     = generateEvalToken();
 
+      // Marcar cita ANTES de enviar para evitar duplicados en cron paralelos
+      const rMark = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}&eval_enviado=not.is.true`, {
+        method: 'PATCH',
+        headers: { ...shJson, Prefer: 'return=representation', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eval_enviado: true })
+      });
+      const marked = await rMark.json().catch(() => []);
+      if (!Array.isArray(marked) || !marked.length) continue; // otra instancia ya marcó esta cita
+
       // Crear registro de evaluación en Supabase
       const rInsert = await fetch(`${SUPABASE_URL}/rest/v1/evaluaciones`, {
         method: 'POST',
@@ -563,8 +572,12 @@ async function procesarEvaluaciones(sh, shJson) {
       });
       if (!rInsert.ok) {
         const err = await rInsert.text().catch(() => '');
-        // Si ya existe (token duplicado u otro conflicto), no bloqueamos
         errores.push(`cita ${cita.id} insert: ${err.slice(0, 80)}`);
+        // Revertir marca para que el próximo cron lo reintente
+        fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+          method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ eval_enviado: false })
+        }).catch(() => {});
         continue;
       }
 
@@ -585,17 +598,15 @@ async function procesarEvaluaciones(sh, shJson) {
 
       if (emailRes.ok) {
         enviados++;
-        // Marcar cita para no reenviar
-        fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
-          method: 'PATCH',
-          headers: { ...shJson, Prefer: 'return=minimal' },
-          body: JSON.stringify({ eval_enviado: true })
-        }).catch(() => {});
       } else {
         const errTxt = await emailRes.text().catch(() => '');
         console.error('evaluacion email error:', emailRes.status, errTxt);
         errores.push(`cita ${cita.id} email: ${emailRes.status}`);
-        // Borrar el registro de evaluación si el email falló
+        // Revertir para que el próximo cron reintente el envío
+        fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+          method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ eval_enviado: false })
+        }).catch(() => {});
         fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?token=eq.${token}`, {
           method: 'DELETE', headers: sh
         }).catch(() => {});

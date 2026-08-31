@@ -733,6 +733,17 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
       if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: false, error: 'Fecha inválida' };
       if (!hora || !/^\d{2}:\d{2}$/.test(hora)) return { ok: false, error: 'Hora inválida' };
 
+      // Pre-check: verificar que el slot sigue libre antes de insertar
+      try {
+        const estadosCancelados = ['cancelada','canceled','cancelled','inasistencia','no-show','no_show'];
+        const qCheck = `especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&hora=eq.${hora}:00&not.estado=in.(${estadosCancelados.join(',')})&limit=1`;
+        const rCheck = await fetch(`${SUPABASE_URL}/rest/v1/citas?${qCheck}&select=id`, { headers: sh });
+        const existing = await rCheck.json();
+        if (Array.isArray(existing) && existing.length > 0) {
+          return { ok: false, error: 'Ese horario ya fue tomado. Propone otro horario disponible.' };
+        }
+      } catch(_) {}
+
       // Crear la cita en Supabase
       let cita;
       try {
