@@ -1,4 +1,4 @@
-const crypto  = require('crypto');
+import crypto from 'crypto';
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
 function generateManageToken(cita_id) {
