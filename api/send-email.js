@@ -962,9 +962,9 @@ export default async function handler(req, res) {
     const [cliDte] = await rCli.json().catch(() => []);
     const mp = cliDte?.metodos_pago || {};
 
-    const dtemiteSistema = mp.dtemite_sistema || '';
-    const dtemiteUsuario = mp.dtemite_usuario || '';
-    const dtemiteClave   = mp.dtemite_clave   || '';
+    const dtemiteSistema = process.env.DTEMITE_SISTEMA || mp.dtemite_sistema || '';
+    const dtemiteUsuario = process.env.DTEMITE_USUARIO || mp.dtemite_usuario || '';
+    const dtemiteClave   = process.env.DTEMITE_CLAVE   || mp.dtemite_clave   || '';
 
     if (!dtemiteUsuario || !dtemiteClave) {
       return res.status(400).json({ error: 'No hay credenciales DTemite. Configúralas en Configuración → Facturación.' });
