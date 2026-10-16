@@ -553,7 +553,7 @@ CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:
 6. Pide teléfono y email en UN SOLO mensaje. Si solo da el teléfono, está bien.
 7. Llama a confirmar_reserva con TODOS los datos: especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha (YYYY-MM-DD), hora (HH:MM), duracion, precio. NO escribas nada después.
 
-Una vez que confirmar_reserva fue ejecutado en la conversación, NO lo vuelvas a llamar. Si el paciente pregunta cómo pagar, responde directamente con los métodos de pago disponibles que tienes arriba.
+Una vez que confirmar_reserva fue ejecutado en la conversación, NO lo vuelvas a llamar. Si retorna mp_url o flow_url, el sistema redirige al pago automáticamente — NO digas "cita confirmada", di solo "te redirigiremos al pago en un momento". Si no hay pago requerido, ahí sí puedes confirmar la reserva.
 
 CUANDO EL PACIENTE QUIERE REAGENDAR UNA CITA:
 1. Si tienes sus citas próximas en el contexto, identifica cuál quiere cambiar por lo que describe (día, hora, servicio o profesional).
@@ -771,11 +771,12 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
         return { ok: false, error: 'Error al crear la cita' };
       }
 
+      const BASE_URL_CF = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
       // Si el negocio tiene Flow configurado y el servicio tiene precio → generar link de pago
       const useFlow = !!(metodosPago.flow && metodosPago.flow_api_key && metodosPago.flow_secret_key && precio > 0);
       if (useFlow) {
         try {
-          const BASE_URL_CF = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
           const flowApiUrl  = metodosPago.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
           const signFlow    = (p, s) => {
             const keys = Object.keys(p).sort();
@@ -804,6 +805,61 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
           console.error('confirmar_reserva: flow create error:', JSON.stringify(flowData));
         } catch(e) {
           console.error('confirmar_reserva: flow error:', e.message);
+        }
+      }
+
+      // Mercado Pago — si está conectado y el servicio tiene precio → redirigir al pago antes de confirmar
+      const useMP = !!(metodosPago.mp_connected && metodosPago.mp_access_token && precio > 0);
+      if (useMP) {
+        try {
+          let mpToken = metodosPago.mp_access_token;
+          const prefBody = {
+            items: [{ title: (servicio || 'Cita').slice(0, 255), quantity: 1, currency_id: 'CLP', unit_price: Math.round(Number(precio)) }],
+            back_urls: {
+              success: `${BASE_URL_CF}/pago-mp.html?status=success&cita=${cita.id}`,
+              failure: `${BASE_URL_CF}/pago-mp.html?status=failure&cita=${cita.id}`,
+              pending: `${BASE_URL_CF}/pago-mp.html?status=pending&cita=${cita.id}`
+            },
+            auto_return: 'approved',
+            external_reference: cita.id,
+            notification_url: `${BASE_URL_CF}/api/flow?tipo=mp_webhook`
+          };
+          let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+            body: JSON.stringify(prefBody)
+          });
+          if (prefResp.status === 401 && metodosPago.mp_refresh_token) {
+            const tr = await fetch('https://api.mercadopago.com/oauth/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ grant_type: 'refresh_token', client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, refresh_token: metodosPago.mp_refresh_token })
+            });
+            const td = await tr.json();
+            if (td.access_token) {
+              metodosPago.mp_access_token = td.access_token;
+              if (td.refresh_token) metodosPago.mp_refresh_token = td.refresh_token;
+              await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, { method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ metodos_pago: metodosPago }) });
+              mpToken = td.access_token;
+              prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+                body: JSON.stringify(prefBody)
+              });
+            }
+          }
+          const prefData = await prefResp.json();
+          if (prefData.init_point) {
+            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+              method: 'PATCH',
+              headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
+            }).catch(e => console.error('confirmar_reserva: patch mp pending_payment:', e.message));
+            return { ok: true, listo: true, mp_url: prefData.init_point, cita_id: cita.id };
+          }
+          console.error('confirmar_reserva: mp pref error:', JSON.stringify(prefData));
+        } catch(e) {
+          console.error('confirmar_reserva: mp error:', e.message);
         }
       }
 
@@ -881,6 +937,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
     let especialista_id_cal = null;
     let datos_reserva       = null;
     let cita_flow_url       = null;
+    let cita_mp_url         = null;
 
     for (let i = 0; i < 5; i++) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -950,7 +1007,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
           }).catch(e => console.error('ai-chat conv-update error:', e.message));
         }
 
-        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva, cita_flow_url, attia_conv_id: attiaConvId });
+        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva, cita_flow_url, cita_mp_url, attia_conv_id: attiaConvId });
       }
 
       const toolBlocks = data.content.filter(b => b.type === 'tool_use');
@@ -966,6 +1023,7 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
         if (block.name === 'confirmar_reserva' && result.ok) {
           datos_reserva = { ...block.input, cita_id: result.cita?.id || result.cita_id || null };
           if (result.flow_url) cita_flow_url = result.flow_url;
+          if (result.mp_url)   cita_mp_url   = result.mp_url;
         }
         toolResults.push({
           type:        'tool_result',

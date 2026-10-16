@@ -276,6 +276,9 @@ async function enviar(textoDirecto) {
     } else if (respuesta.cita_flow_url) {
       agregarMensaje('ai', 'Tu cita fue reservada con éxito. En un momento te redirigimos al pago seguro con Flow para completar tu reserva...', null, []);
       setTimeout(() => { window.location.href = respuesta.cita_flow_url; }, 2000);
+    } else if (respuesta.cita_mp_url) {
+      agregarMensaje('ai', 'Hora apartada. En un momento te redirigimos al pago seguro con Mercado Pago para confirmar tu reserva...', null, []);
+      setTimeout(() => { window.location.href = respuesta.cita_mp_url; }, 2000);
     } else {
       const chips = respuesta.datos_reserva ? [] : getChips(respuesta.mensaje);
       agregarMensaje('ai', respuesta.mensaje, respuesta.datos_reserva, chips);
