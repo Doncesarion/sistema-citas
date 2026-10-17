@@ -628,15 +628,29 @@ export default async function handler(req, res) {
       cita = data[0];
 
       // Conflict check: si otro request creó el mismo slot en paralelo, rechazar el duplicado
+      // Las citas pending_payment de MP con más de 15 min se consideran expiradas y se cancelan
       if (especialista_id) {
+        const cutoff15 = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         const rConflict = await fetch(
-          `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&especialista_id=eq.${especialista_id}&fecha=eq.${encodeURIComponent(fecha)}&hora=eq.${encodeURIComponent(hora)}&estado=neq.canceled&select=id&limit=2`,
+          `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&especialista_id=eq.${especialista_id}&fecha=eq.${encodeURIComponent(fecha)}&hora=eq.${encodeURIComponent(hora)}&estado=neq.canceled&select=id,estado,metodo_pago,created_at&limit=5`,
           { headers: sh }
         );
         const conflictos = await rConflict.json().catch(() => []);
         if (Array.isArray(conflictos) && conflictos.length > 1) {
-          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, { method: 'DELETE', headers: sh }).catch(() => {});
-          return res.status(409).json({ error: 'Este horario ya fue reservado. Por favor elige otro.' });
+          const otros = conflictos.filter(c => c.id !== cita.id);
+          const expirados = otros.filter(c => c.estado === 'pending_payment' && c.metodo_pago === 'mercadopago' && c.created_at < cutoff15);
+          if (expirados.length > 0 && expirados.length === otros.length) {
+            // Todos los conflictos son pagos MP expirados → cancelarlos y continuar
+            await Promise.all(expirados.map(c =>
+              fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${c.id}`, {
+                method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+                body: JSON.stringify({ estado: 'canceled', notas: 'Cancelada automáticamente: pago no completado en 15 minutos' })
+              }).catch(() => {})
+            ));
+          } else {
+            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, { method: 'DELETE', headers: sh }).catch(() => {});
+            return res.status(409).json({ error: 'Este horario ya fue reservado. Por favor elige otro.' });
+          }
         }
       }
     }

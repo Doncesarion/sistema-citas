@@ -1525,6 +1525,34 @@ export default async function handler(req, res) {
   if (req.query?.tipo === 'mp_webhook')   return handleMPWebhook(req, res);
   if (req.query?.tipo === 'mp_confirm')   return handleMPConfirm(req, res);
 
+  // — Limpieza automática de citas MP no pagadas (llamado por cron-job.org cada 5 min) —
+  if (req.query?.tipo === 'limpiar_pendientes') {
+    const cronKey = req.headers['x-cron-key'] || req.query.key || '';
+    const KEY = process.env.SUPABASE_SERVICE_KEY || '';
+    if (!cronKey || (cronKey !== process.env.CRON_SECRET && cronKey !== KEY.slice(0, 32))) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    try {
+      const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const sh = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?estado=eq.pending_payment&metodo_pago=eq.mercadopago&created_at=lt.${encodeURIComponent(cutoff)}`,
+        {
+          method: 'PATCH',
+          headers: { ...sh, Prefer: 'return=representation' },
+          body: JSON.stringify({ estado: 'canceled', notas: 'Cancelada automáticamente: pago no completado en 15 minutos' })
+        }
+      );
+      const canceladas = await r.json().catch(() => []);
+      const n = Array.isArray(canceladas) ? canceladas.length : 0;
+      if (n > 0) console.log(`limpiar_pendientes: ${n} cita(s) canceladas por pago no completado`);
+      return res.status(200).json({ ok: true, canceladas: n });
+    } catch(e) {
+      console.error('limpiar_pendientes error:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
   if (req.method !== 'POST') return res.status(405).end();
 
   if (req.query?.tipo === 'webpay_create')     return handleWebpayCreate(req, res);
