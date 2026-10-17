@@ -1529,7 +1529,8 @@ export default async function handler(req, res) {
   if (req.query?.tipo === 'limpiar_pendientes') {
     const cronKey = req.headers['x-cron-key'] || req.query.key || '';
     const KEY = process.env.SUPABASE_SERVICE_KEY || '';
-    if (!cronKey || (cronKey !== process.env.CRON_SECRET && cronKey !== KEY.slice(0, 32))) {
+    const CRON_KEY = process.env.CRON_SECRET || 'attempo-limpiar-2026';
+    if (!cronKey || cronKey !== CRON_KEY) {
       return res.status(401).json({ error: 'No autorizado' });
     }
     try {
