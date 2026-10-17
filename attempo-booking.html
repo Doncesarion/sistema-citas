@@ -1114,8 +1114,8 @@ async function confirmar() {
       document.getElementById('cf-ref-wrap').style.display = '';
     }
 
-    // Botones de calendario (se ocultan si es flujo solo-MP)
-    if (!data.solo_mp) {
+    // Botones de calendario (se ocultan si hay pago MP pendiente)
+    if (!data.mp_url) {
       _actualizarCalButtons(y, m, d, st.hora, st.svc.duracion, negocioData.nombre_negocio, negocioData.direccion, espNom);
     } else {
       const calWrap = document.getElementById('cf-calendar-wrap');
@@ -1154,8 +1154,8 @@ async function confirmar() {
       document.getElementById('cf-pagos')?.before(warn);
     }
 
-    // Solo mostrar "Completa tu pago" cuando MP es el único método
-    if (soloMP) {
+    // "Completa tu pago" siempre que haya mp_url (pago requerido antes de confirmar)
+    if (tieneMP) {
       document.getElementById('cf-icon').textContent  = '→';
       document.getElementById('cf-title').textContent = 'Completa tu pago';
       document.getElementById('cf-sub').textContent   = 'Tu hora está reservada. Paga ahora para confirmar tu cita.';
@@ -1167,12 +1167,7 @@ async function confirmar() {
       document.getElementById('cf-sub').textContent   = precio && tienePago
         ? 'Te enviamos los detalles de pago y el resumen a tu correo.'
         : 'Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.';
-      if (tieneMP) {
-        document.getElementById('cf-mp-btn').href = data.mp_url;
-        document.getElementById('cf-mp-wrap').style.display = 'block';
-      } else {
-        document.getElementById('cf-mp-wrap').style.display = 'none';
-      }
+      document.getElementById('cf-mp-wrap').style.display = 'none';
     }
 
     if (precio && tienePago) {

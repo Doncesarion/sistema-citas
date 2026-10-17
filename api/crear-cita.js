@@ -771,14 +771,11 @@ export default async function handler(req, res) {
         const prefData = await prefResp.json();
         if (prefData.init_point) {
           mp_url = prefData.init_point;
-          const soloMP = !metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo;
-          if (soloMP) {
-            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
-              method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
-              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
-            }).catch(e => console.error('crear-cita: patch mp pending_payment:', e.message));
-          }
-          console.log('crear-cita: mp_url generado OK, soloMP:', soloMP);
+          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+            method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
+          }).catch(e => console.error('crear-cita: patch mp pending_payment:', e.message));
+          console.log('crear-cita: mp_url generado OK');
         } else {
           mp_error = prefData.message || prefData.error || JSON.stringify(prefData).slice(0, 120);
           console.error('crear-cita: mp error:', mp_error);
@@ -846,8 +843,8 @@ export default async function handler(req, res) {
       console.log('crear-cita: email omitido — RESEND_KEY:', !!process.env.RESEND_API_KEY);
     }
 
-    // Confirmar la cita si es booking público y no requiere pago Flow ni MP obligatorio
-    if (confirmarDespues && !soloFlow && !soloMP) {
+    // Confirmar la cita si es booking público y no requiere pago Flow ni MP
+    if (confirmarDespues && !soloFlow && !mp_url) {
       await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
         method: 'PATCH',
         headers: { ...sh, Prefer: 'return=minimal' },
