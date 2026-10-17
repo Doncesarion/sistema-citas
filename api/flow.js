@@ -1538,16 +1538,12 @@ export default async function handler(req, res) {
       const sh = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
       const r = await fetch(
         `${SUPABASE_URL}/rest/v1/citas?estado=eq.pending_payment&metodo_pago=eq.mercadopago&created_at=lt.${encodeURIComponent(cutoff)}`,
-        {
-          method: 'PATCH',
-          headers: { ...sh, Prefer: 'return=representation' },
-          body: JSON.stringify({ estado: 'canceled', notas: 'Cancelada automáticamente: pago no completado en 15 minutos' })
-        }
+        { method: 'DELETE', headers: { ...sh, Prefer: 'return=representation' } }
       );
-      const canceladas = await r.json().catch(() => []);
-      const n = Array.isArray(canceladas) ? canceladas.length : 0;
-      if (n > 0) console.log(`limpiar_pendientes: ${n} cita(s) canceladas por pago no completado`);
-      return res.status(200).json({ ok: true, canceladas: n });
+      const eliminadas = await r.json().catch(() => []);
+      const n = Array.isArray(eliminadas) ? eliminadas.length : 0;
+      if (n > 0) console.log(`limpiar_pendientes: ${n} cita(s) eliminadas por pago no completado`);
+      return res.status(200).json({ ok: true, eliminadas: n });
     } catch(e) {
       console.error('limpiar_pendientes error:', e.message);
       return res.status(500).json({ error: 'Error interno' });
