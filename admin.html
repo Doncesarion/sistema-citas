@@ -5416,9 +5416,10 @@ async function loadFichaData(nombre) {
       return false;
     }).sort((a,b) => a.fecha.localeCompare(b.fecha)||(a.hora||'').localeCompare(b.hora||''))[0];
     window._fichaProxCitaId = prox ? prox.id : null;
-    // Estado reserva
+    // Estado reserva — usar la cita seleccionada (si hay) o la próxima
     const _dbToEstado = { pending:'reservada', confirmed:'confirmada', pending_payment:'pendiente', done:'completada', canceled:'cancelada', 'no-show':'inasistencia' };
-    const estadoKey = prox ? (_dbToEstado[prox.estado] || 'reservada') : null;
+    const _citaEstado = window._fichaDetalleCita || prox;
+    const estadoKey = _citaEstado ? (_dbToEstado[_citaEstado.estado] || 'reservada') : null;
     if (estadoKey) { currentEstado = estadoKey; }
     const edot = document.getElementById('fpi-estado-dot'), elbl = document.getElementById('fpi-estado-lbl');
     if (edot && elbl) {
