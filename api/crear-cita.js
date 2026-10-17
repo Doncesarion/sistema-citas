@@ -823,12 +823,14 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,
+            subject: soloMP
+              ? `Completa tu pago para confirmar tu hora en ${negocio_nombre || 'la clínica'}`
+              : `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,
             headers: {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
             },
-            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, logo_negocio })
+            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio })
           })
         });
         if (!emailRes.ok) {
@@ -844,8 +846,8 @@ export default async function handler(req, res) {
       console.log('crear-cita: email omitido — RESEND_KEY:', !!process.env.RESEND_API_KEY);
     }
 
-    // Confirmar la cita si es booking público y no requiere pago Flow obligatorio
-    if (confirmarDespues && !soloFlow) {
+    // Confirmar la cita si es booking público y no requiere pago Flow ni MP obligatorio
+    if (confirmarDespues && !soloFlow && !soloMP) {
       await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
         method: 'PATCH',
         headers: { ...sh, Prefer: 'return=minimal' },
@@ -1011,7 +1013,7 @@ function buildPagoHtml(metodos_pago, datos_banco) {
   return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
 }
 
-function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, logo_negocio }) {
+function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
@@ -1033,8 +1035,8 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
   ${logoHdr}
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
-  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">¡Cita confirmada! 🎉</h2>
-  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, tu hora está reservada.</p>
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">${mp_url ? '¡Hora apartada! Completa tu pago' : '¡Cita confirmada! 🎉'}</h2>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, ${mp_url ? 'tu hora está reservada. Paga ahora para confirmarla.' : 'tu hora está reservada.'}</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${ne}</span></td></tr>
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${htmlEscape(fechaFmt)}</span></td></tr>
@@ -1050,6 +1052,13 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
       <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Paga online para confirmar tu reserva</p>\
       <a href="${htmlEscape(flow_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Pagar ahora con Flow →</a>\
       <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este link es de uso único y expira en 24 horas</p>\
+    </td></tr>\
+  </table>` : ''}
+  ${mp_url ? `\
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
+    <tr><td style="text-align:center;">\
+      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Paga de forma segura para confirmar tu hora</p>\
+      <a href="${htmlEscape(mp_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Pagar con Mercado Pago →</a>\
     </td></tr>\
   </table>` : ''}
   ${dir ? `

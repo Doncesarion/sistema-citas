@@ -11238,6 +11238,21 @@ let _ventasCid = null;
 cargarCitasSupabase();
 setInterval(cargarCitasSupabase, 10000);
 
+// Verificación periódica de trial demo (cada 10 minutos)
+setInterval(function() {
+  try {
+    var _u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
+    if ((_u.plan || '') === 'demo' && _u.fecha_expiracion) {
+      var _today = new Date().toISOString().split('T')[0];
+      if (_u.fecha_expiracion < _today) {
+        localStorage.removeItem('attempo_session_token');
+        localStorage.removeItem('attempo_user');
+        window.location.replace('/trial-expirada');
+      }
+    }
+  } catch(_e) {}
+}, 10 * 60 * 1000);
+
 async function manualRefresh() {
   const btn = document.getElementById('btn-refresh');
   if (!btn) return;
