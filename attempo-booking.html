@@ -97,9 +97,9 @@ body::before{
 .wd-name{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .wd-num{font-size:22px;font-weight:700;color:var(--t1);line-height:1}
 .wd-mes{font-size:9px;color:var(--t4);margin-top:3px}
-.horas-ampm-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.horas-ampm-wrap{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .horas-panel-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
-.horas-sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:220px;overflow-y:auto;padding-right:2px}
+.horas-sub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-height:220px;overflow-y:auto;padding-right:2px}
 @media(max-width:400px){.horas-sub-grid{grid-template-columns:repeat(2,1fr)}}
 .acc-body-pad{padding-top:18px}
 .svc-list{display:flex;flex-direction:column;gap:7px}
