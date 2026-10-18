@@ -675,12 +675,14 @@ export default async function handler(req, res) {
     } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
 
     let gc_debug = { token: !!google_refresh_token, client_id: !!process.env.GOOGLE_CLIENT_ID };
+    let video_url = null;
     if (google_refresh_token && process.env.GOOGLE_CLIENT_ID) {
       gc_debug.resultado = await gcCrearEvento({
         supabaseUrl: SUPABASE_URL, sh, cita_id: cita.id, cliente_id,
         nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion,
-        refresh_token: decryptToken(google_refresh_token), google_calendar_id
+        refresh_token: decryptToken(google_refresh_token), google_calendar_id, modalidad
       });
+      video_url = gc_debug.resultado?.video_url || null;
     }
 
     console.log('crear-cita gc_debug:', JSON.stringify(gc_debug));
@@ -900,7 +902,7 @@ export default async function handler(req, res) {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
             },
-            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio })
+            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio, video_url })
           })
         });
         if (!emailRes.ok) {
@@ -952,7 +954,7 @@ async function gcGetAccessToken(refresh_token) {
   return data.access_token;
 }
 
-function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion }) {
+function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, modalidad, cita_id }) {
   const [y, m, d] = fecha.split('-').map(Number);
   const [hh, mm]  = hora.split(':').map(Number);
   const pad = n => String(n).padStart(2, '0');
@@ -960,17 +962,22 @@ function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, h
   const endMins = hh * 60 + mm + durMin;
   const startDt = `${y}-${pad(m)}-${pad(d)}T${pad(hh)}:${pad(mm)}:00`;
   const endDt   = `${y}-${pad(m)}-${pad(d)}T${pad(Math.floor(endMins/60))}:${pad(endMins%60)}:00`;
-  return {
+  const event = {
     summary: `Cita: ${nombre_paciente}${nombre_especialista ? ' — ' + nombre_especialista : ''}`,
     description: [
       `Paciente: ${nombre_paciente}`,
       nombre_especialista ? `Profesional: ${nombre_especialista}` : '',
-      servicio            ? `Motivo: ${servicio}`                 : ''
+      servicio            ? `Motivo: ${servicio}`                 : '',
+      modalidad === 'online' ? 'Modalidad: Online (videollamada)' : ''
     ].filter(Boolean).join('\n'),
-    location: direccion || undefined,
+    location: modalidad === 'online' ? undefined : (direccion || undefined),
     start: { dateTime: startDt, timeZone: 'America/Santiago' },
     end:   { dateTime: endDt,   timeZone: 'America/Santiago' }
   };
+  if (modalidad === 'online') {
+    event.conferenceData = { createRequest: { requestId: cita_id || startDt, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
+  }
+  return event;
 }
 
 async function gcGestionarEvento({ supabaseUrl, sh, accion, cliente_id, google_event_id, refresh_token, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion }) {
@@ -1021,25 +1028,34 @@ async function gcGetOrCreateCalendar(access_token, supabaseUrl, sh, cliente_id, 
   return cal.id;
 }
 
-async function gcCrearEvento({ supabaseUrl, sh, cita_id, cliente_id, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, refresh_token, google_calendar_id }) {
+async function gcCrearEvento({ supabaseUrl, sh, cita_id, cliente_id, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, refresh_token, google_calendar_id, modalidad }) {
   try {
     const access_token = await gcGetAccessToken(refresh_token);
     const calendar_id  = await gcGetOrCreateCalendar(access_token, supabaseUrl, sh, cliente_id, google_calendar_id);
-    const event = gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion });
-    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}/events`, {
+    const esOnline = modalidad === 'online';
+    const event = gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, modalidad, cita_id });
+    const urlParams = esOnline ? '?conferenceDataVersion=1' : '';
+    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}/events${urlParams}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(event)
     });
     const rText = await r.text();
     if (!r.ok) return { error: 'GC POST failed', status: r.status, body: rText };
-    const { id: google_event_id } = JSON.parse(rText);
+    const eventData = JSON.parse(rText);
+    const google_event_id = eventData.id;
+    // Extraer link de Google Meet si se creó
+    const video_url = esOnline
+      ? (eventData.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri || null)
+      : null;
+    const patch = { google_event_id };
+    if (video_url) patch.video_url = video_url;
     await fetch(`${supabaseUrl}/rest/v1/citas?id=eq.${cita_id}`, {
       method: 'PATCH',
       headers: { ...sh, Prefer: 'return=minimal' },
-      body: JSON.stringify({ google_event_id })
+      body: JSON.stringify(patch)
     });
-    return { ok: true, google_event_id, calendar_id };
+    return { ok: true, google_event_id, calendar_id, video_url };
   } catch(e) {
     if (e.invalid) {
       await fetch(`${supabaseUrl}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
@@ -1083,7 +1099,7 @@ function buildPagoHtml(metodos_pago, datos_banco) {
   return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
 }
 
-function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio }) {
+function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio, video_url }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
@@ -1116,6 +1132,14 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     ${precioStr ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total</span><br><span style="color:#6C5CE4;font-size:16px;font-weight:700;">${precioStr}</span></td></tr>` : ''}
     ${buildPagoHtml(metodos_pago, datos_banco)}
   </table>
+  ${video_url ? `\
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
+    <tr><td style="text-align:center;">\
+      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Tu consulta es <strong>online</strong> — únete a la videollamada en el horario de tu cita</p>\
+      <a href="${htmlEscape(video_url)}" target="_blank" style="display:inline-block;padding:13px 28px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Unirse a Google Meet →</a>\
+      <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">${htmlEscape(video_url)}</p>\
+    </td></tr>\
+  </table>` : ''}
   ${flow_url ? `\
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
     <tr><td style="text-align:center;">\

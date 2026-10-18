@@ -4435,6 +4435,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
           <div><div class="fp-info-lbl">Servicio</div><div class="fp-info-val" id="fpi-servicio-prox">—</div></div>
           <div id="fpi-modalidad-wrap" style="display:none"><div class="fp-info-lbl">Modalidad</div><div class="fp-info-val" id="fpi-modalidad">—</div></div>
+          <div id="fpi-video-wrap" style="display:none"><div class="fp-info-lbl">Videollamada</div><div id="fpi-video-val" style="margin-top:2px"></div></div>
           <div><div class="fp-info-lbl">Profesional</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
           <div><div class="fp-info-lbl">Más reservado</div><div class="fp-info-val" id="fpi-serv-top">—</div><div style="font-size:11px;color:var(--t3);margin-top:1px" id="fpi-serv-top-sub"></div></div>
         </div>
@@ -5535,6 +5536,15 @@ async function loadFichaData(nombre) {
         _modEl.textContent = _mod === 'online' ? 'Online' : 'Presencial · Online';
         _modEl.style.color = _mod === 'online' ? '#007a9e' : 'var(--a)';
       } else { _modWrap.style.display = 'none'; }
+    }
+    // Link videollamada (solo citas online con Google Meet generado)
+    const _vidWrap = document.getElementById('fpi-video-wrap');
+    const _vidVal  = document.getElementById('fpi-video-val');
+    if (_vidWrap && _vidVal) {
+      if (_pc?.video_url) {
+        _vidWrap.style.display = '';
+        _vidVal.innerHTML = `<a href="${_pc.video_url}" target="_blank" style="font-size:11px;padding:3px 9px;color:#1a73e8;border:1px solid rgba(26,115,232,.3);background:#e8f0fe;border-radius:4px;text-decoration:none;display:inline-block">Abrir Google Meet ↗</a>`;
+      } else { _vidWrap.style.display = 'none'; }
     }
     // Botones de pago y estado pago — usar cita específica si se abrió desde Ventas, si no la próxima
     const _pc = window._fichaDetalleCita || prox;

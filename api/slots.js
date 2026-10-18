@@ -518,6 +518,9 @@ export default async function handler(req, res) {
       if (typeof body.voucher_manual !== 'undefined') {
         patch.voucher_manual = body.voucher_manual || null;
       }
+      if (typeof body.video_url !== 'undefined') {
+        patch.video_url = body.video_url || null;
+      }
       try {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
           method: 'PATCH',
