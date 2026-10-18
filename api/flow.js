@@ -121,12 +121,12 @@ function htmlEscape(str) {
 }
 
 function validateKlapApikey(headerApikey, order, apikey) {
-  if (!apikey || !headerApikey) return false;
-  const key  = order.reference_id + order.order_id + apikey;
-  const hash = crypto.createHash('sha256').update(key).digest('hex');
+  if (!apikey) return false;
+  if (!headerApikey) return false;
+  // Klap envía el API key directamente en el header apikey
   try {
-    const a = Buffer.from(hash, 'hex');
-    const b = Buffer.from(headerApikey, 'hex');
+    const a = Buffer.from(headerApikey);
+    const b = Buffer.from(apikey);
     return a.length === b.length && crypto.timingSafeEqual(a, b);
   } catch { return false; }
 }
@@ -1818,7 +1818,7 @@ async function handleKlapInit(req, res, session) {
   if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
   if (cita.cliente_id !== session.cliente_id && session.rol !== 'superadmin') return res.status(403).json({ error: 'Sin acceso' });
   if (cita.estado_pago === 'pagado') return res.status(409).json({ error: 'La cita ya fue pagada' });
-  const rCli  = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+  const rCli  = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago,booking_slug&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
   const cli   = Array.isArray(rCli) ? rCli[0] : null;
   const mp    = cli?.metodos_pago || {};
   const apiKey   = mp.klap_api_key || process.env.KLAP_API_KEY;
@@ -1826,6 +1826,7 @@ async function handleKlapInit(req, res, session) {
   if (!apiKey) return res.status(400).json({ error: 'No hay credenciales Klap configuradas' });
   const precio = cita.precio || cita.monto;
   if (!precio || Number(precio) < 50) return res.status(400).json({ error: 'Monto inválido (mínimo $50)' });
+  const klapSlug = cli?.booking_slug || null;
   let nombre_especialista = '';
   if (cita.especialista_id) {
     const rE = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${encodeURIComponent(cita.especialista_id)}&select=nombre&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
@@ -1843,7 +1844,7 @@ async function handleKlapInit(req, res, session) {
         methods: ['tarjetas'],
         user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: (cita.tel_paciente || '').replace(/^\+/, '') || undefined },
         customs: [{ key: 'tarjetas_expiration_minutes', value: '20' }, { key: 'tarjetas_payment_indicator', value: 'typed' }, { key: 'notify_payment_user', value: 'true' }],
-        urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` },
+        urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita${klapSlug ? '&slug=' + encodeURIComponent(klapSlug) : ''}`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` },
         webhooks: { webhook_validation: `${BASE_URL}/api/klap-validate`, webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` }
       }),
       signal: AbortSignal.timeout(15000)
@@ -1877,8 +1878,9 @@ async function handleEnviarLinkPago(req, res, session) {
   if (!cita.precio) return res.status(400).json({ error: 'La cita no tiene precio asignado' });
   if (cita.estado_pago === 'pagado') return res.status(409).json({ error: 'La cita ya fue pagada' });
 
-  const [cli] = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago&limit=1`, { headers: sh }).then(r => r.json());
+  const [cli] = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago,booking_slug&limit=1`, { headers: sh }).then(r => r.json());
   const mp = cli?.metodos_pago || {};
+  const envioSlug = cli?.booking_slug || null;
 
   let nombre_especialista = '';
   if (cita.especialista_id) {
@@ -1893,7 +1895,7 @@ async function handleEnviarLinkPago(req, res, session) {
       const apiKey  = mp.klap_api_key || process.env.KLAP_API_KEY;
       if (!apiKey) throw new Error('no_klap_key');
       const klapBase = (mp.klap_sandbox !== false && !process.env.KLAP_PROD) ? KLAP_SAND_URL : KLAP_PROD_URL;
-      const kr = await fetch(`${klapBase}/payment-gateway/v1/orders`, { method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: cita_id, amount: { currency: 'CLP', total: Math.round(Number(precio)) }, description: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`, methods: ['tarjetas'], user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: (cita.tel_paciente || '').replace(/^\+/, '') || undefined }, customs: [{ key: 'tarjetas_expiration_minutes', value: '20' }, { key: 'tarjetas_payment_indicator', value: 'typed' }, { key: 'notify_payment_user', value: 'true' }], urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` }, webhooks: { webhook_validation: `${BASE_URL}/api/klap-validate`, webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` } }), signal: AbortSignal.timeout(15000) });
+      const kr = await fetch(`${klapBase}/payment-gateway/v1/orders`, { method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: cita_id, amount: { currency: 'CLP', total: Math.round(Number(precio)) }, description: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`, methods: ['tarjetas'], user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: (cita.tel_paciente || '').replace(/^\+/, '') || undefined }, customs: [{ key: 'tarjetas_expiration_minutes', value: '20' }, { key: 'tarjetas_payment_indicator', value: 'typed' }, { key: 'notify_payment_user', value: 'true' }], urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita${envioSlug ? '&slug=' + encodeURIComponent(envioSlug) : ''}`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` }, webhooks: { webhook_validation: `${BASE_URL}/api/klap-validate`, webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` } }), signal: AbortSignal.timeout(15000) });
       const order = await kr.json();
       if (!kr.ok || !order?.redirect_url) throw new Error('klap_api_error');
       return order;

@@ -5526,26 +5526,6 @@ async function loadFichaData(nombre) {
     window._fichaProxHora   = prox ? (prox.hora||'').slice(0,5) : null;
     const srvProxEl = document.getElementById('fpi-servicio-prox');
     if (srvProxEl) srvProxEl.textContent = (window._fichaDetalleCita || prox)?.servicio || '—';
-    // Modalidad
-    const _modEl = document.getElementById('fpi-modalidad');
-    const _modWrap = document.getElementById('fpi-modalidad-wrap');
-    if (_modEl && _modWrap) {
-      const _mod = _pc?.modalidad;
-      if (_pc && _mod && _mod !== 'presencial') {
-        _modWrap.style.display = '';
-        _modEl.textContent = _mod === 'online' ? 'Online' : 'Presencial · Online';
-        _modEl.style.color = _mod === 'online' ? '#007a9e' : 'var(--a)';
-      } else { _modWrap.style.display = 'none'; }
-    }
-    // Link videollamada (solo citas online con Google Meet generado)
-    const _vidWrap = document.getElementById('fpi-video-wrap');
-    const _vidVal  = document.getElementById('fpi-video-val');
-    if (_vidWrap && _vidVal) {
-      if (_pc?.video_url) {
-        _vidWrap.style.display = '';
-        _vidVal.innerHTML = `<a href="${_pc.video_url}" target="_blank" style="font-size:11px;padding:3px 9px;color:#1a73e8;border:1px solid rgba(26,115,232,.3);background:#e8f0fe;border-radius:4px;text-decoration:none;display:inline-block">Abrir Google Meet ↗</a>`;
-      } else { _vidWrap.style.display = 'none'; }
-    }
     // Botones de pago y estado pago — usar cita específica si se abrió desde Ventas, si no la próxima
     const _pc = window._fichaDetalleCita || prox;
     _currentBoletaCita = _pc || null;
@@ -5555,6 +5535,24 @@ async function loadFichaData(nombre) {
     const _esPendKlap    = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'klap';
     const _esPagado = _pc?.estado_pago === 'pagado';
     const _tienePrecio = !!_pc?.precio;
+    // Modalidad
+    const _modEl = document.getElementById('fpi-modalidad');
+    const _modWrap = document.getElementById('fpi-modalidad-wrap');
+    if (_modEl && _modWrap) {
+      const _mod = _pc?.modalidad;
+      if (_pc && _mod && _mod !== 'presencial') {
+        _modWrap.style.display = ''; _modEl.textContent = _mod === 'online' ? 'Online' : 'Presencial · Online'; _modEl.style.color = _mod === 'online' ? '#007a9e' : 'var(--a)';
+      } else { _modWrap.style.display = 'none'; }
+    }
+    // Link Google Meet (solo citas online)
+    const _vidWrap = document.getElementById('fpi-video-wrap');
+    const _vidVal  = document.getElementById('fpi-video-val');
+    if (_vidWrap && _vidVal) {
+      if (_pc?.video_url) {
+        _vidWrap.style.display = '';
+        _vidVal.innerHTML = `<a href="${_pc.video_url}" target="_blank" style="font-size:11px;padding:3px 9px;color:#1a73e8;border:1px solid rgba(26,115,232,.3);background:#e8f0fe;border-radius:4px;text-decoration:none;display:inline-block">Abrir Google Meet ↗</a>`;
+      } else { _vidWrap.style.display = 'none'; }
+    }
     const _boletaRow = document.getElementById('fp-boleta-row');
     const _linksRow = document.getElementById('fp-links-pago');
     if (_boletaRow) _boletaRow.style.display = _tienePrecio ? 'block' : 'none';
