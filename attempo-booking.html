@@ -1052,8 +1052,7 @@ function toggleAcc(n) {
 /* ── RESUMEN ── */
 function updateResumen() {
   const bar = document.getElementById('res-bar');
-  const any = st.svc || st.prof || st.fecha || st.hora;
-  bar.style.display = any ? 'flex' : 'none';
+  bar.style.display = 'none';
 
   const show = (id, sepId, val) => {
     const el  = document.getElementById(id);
