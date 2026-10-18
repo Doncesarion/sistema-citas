@@ -85,21 +85,21 @@ body::before{
 .acc-body{display:none;padding:0 22px 22px;border-top:1px solid var(--b1)}
 .acc.open .acc-body{display:block}
 .acc.future,.acc.done{display:none}
-.week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:18px}
-.week-day{text-align:center;border-radius:10px;padding:10px 2px;border:2px solid var(--b1);transition:all .15s;background:#fff}
+.week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:20px}
+.week-day{text-align:center;border-radius:12px;padding:14px 2px;border:1.5px solid var(--b1);transition:all .15s;background:#fff;cursor:default}
 .week-day.avail{border-color:var(--b2);cursor:pointer}
 .week-day.avail:hover{border-color:var(--a);background:rgba(108,92,228,.04)}
 .week-day.sel{background:var(--a);border-color:var(--a)}
-.week-day.past,.week-day.no-avail{opacity:.28;cursor:default}
+.week-day.past,.week-day.no-avail{opacity:.25}
 .week-day.today .wd-num{color:var(--a)}
 .week-day.sel .wd-name,.week-day.sel .wd-num,.week-day.sel .wd-mes{color:#fff}
 .week-day.sel.today .wd-num{color:#fff}
-.wd-name{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
-.wd-num{font-size:19px;font-weight:700;color:var(--t1);line-height:1}
-.wd-mes{font-size:9px;color:var(--t4);margin-top:2px}
-.horas-sec-lbl{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 7px;display:flex;align-items:center;gap:5px}
-.horas-sec-lbl:first-child{margin-top:0}
-.horas-sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:4px}
+.wd-name{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.wd-num{font-size:22px;font-weight:700;color:var(--t1);line-height:1}
+.wd-mes{font-size:9px;color:var(--t4);margin-top:3px}
+.horas-ampm-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.horas-panel-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.horas-sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 @media(max-width:400px){.horas-sub-grid{grid-template-columns:repeat(2,1fr)}}
 .acc-body-pad{padding-top:18px}
 .svc-list{display:flex;flex-direction:column;gap:7px}
@@ -151,7 +151,7 @@ body::before{
 .horas-wrap{animation:fadeUp .2s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .horas-sep{height:1px;background:var(--b1);margin-bottom:18px}
-.horas-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:10px}
+.horas-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:16px}
 .horas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
 @media(max-width:768px){.horas-grid{grid-template-columns:repeat(3,1fr)}}
 .h-btn{padding:11px 6px;min-height:44px;border:1.5px solid var(--b1);border-radius:var(--r);background:#fff;cursor:pointer;font-size:13px;font-family:var(--mono);font-weight:500;color:var(--t2);transition:all .12s;text-align:center;display:flex;align-items:center;justify-content:center;width:100%;}
@@ -873,7 +873,18 @@ function renderSemana() {
   });
 
   // Auto-avanzar si no hay disponibles (máx 26 semanas)
-  if (!hayDisp && calWeekOffset < 26) setTimeout(() => { calWeekOffset++; renderSemana(); }, 120);
+  if (!hayDisp && calWeekOffset < 26) { setTimeout(() => { calWeekOffset++; renderSemana(); }, 120); return; }
+
+  // Auto-seleccionar primer día disponible si no hay fecha elegida
+  if (!st.fecha && hayDisp) {
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(lunes); day.setDate(day.getDate() + i);
+      if (day >= todayDate && isDiaDisponible(day)) {
+        selDia(day.getDate(), day.getMonth(), day.getFullYear());
+        break;
+      }
+    }
+  }
 }
 
 function renderCal() { renderSemana(); }
@@ -934,8 +945,9 @@ function renderHoras() {
   const ahoraMin  = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
   const dur       = st.svc.duracion || 60;
 
-  const diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-  document.getElementById('horas-lbl').textContent = `Horas para el ${diasNom[new Date(y,m,d).getDay()]} ${d} de ${MESES[m].toLowerCase()}`;
+  const diasNomFull = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const mesesFull = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  document.getElementById('horas-lbl').textContent = `Horas para el ${diasNomFull[new Date(y,m,d).getDay()]} ${d} de ${mesesFull[m]}`;
   document.getElementById('horas-wrap').style.display = 'block';
 
   const disponibles = slots.filter(s => {
@@ -955,9 +967,9 @@ function renderHoras() {
   const btnHtml = s => { const isSel = st.hora === s.h; return `<button class="h-btn${isSel?' sel':''}" data-h="${esc(s.h)}" data-esp-id="${esc(s.espId||'')}" data-esp-nom="${esc(s.espNom||'')}" onclick="selHora(this.dataset.h,this.dataset.espId,this.dataset.espNom)">${esc(s.h)}</button>`; };
   const am = disponibles.filter(s => hToMin(s.h) < 720);
   const pm = disponibles.filter(s => hToMin(s.h) >= 720);
-  grid.innerHTML =
-    (am.length ? `<div class="horas-sec-lbl">🌅 Horarios AM</div><div class="horas-sub-grid">${am.map(btnHtml).join('')}</div>` : '') +
-    (pm.length ? `<div class="horas-sec-lbl">☀️ Horarios PM</div><div class="horas-sub-grid">${pm.map(btnHtml).join('')}</div>` : '');
+  const amHtml = am.length ? `<div><div class="horas-panel-lbl">🌅 Horarios AM</div><div class="horas-sub-grid">${am.map(btnHtml).join('')}</div></div>` : '<div></div>';
+  const pmHtml = pm.length ? `<div><div class="horas-panel-lbl">🌤 Horarios PM</div><div class="horas-sub-grid">${pm.map(btnHtml).join('')}</div></div>` : '<div></div>';
+  grid.innerHTML = `<div class="horas-ampm-wrap">${amHtml}${pmHtml}</div>`;
 }
 
 function selHora(h, espId, espNom) {
