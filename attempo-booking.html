@@ -85,6 +85,22 @@ body::before{
 .acc-body{display:none;padding:0 22px 22px;border-top:1px solid var(--b1)}
 .acc.open .acc-body{display:block}
 .acc.future,.acc.done{display:none}
+.week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:18px}
+.week-day{text-align:center;border-radius:10px;padding:10px 2px;border:2px solid var(--b1);transition:all .15s;background:#fff}
+.week-day.avail{border-color:var(--b2);cursor:pointer}
+.week-day.avail:hover{border-color:var(--a);background:rgba(108,92,228,.04)}
+.week-day.sel{background:var(--a);border-color:var(--a)}
+.week-day.past,.week-day.no-avail{opacity:.28;cursor:default}
+.week-day.today .wd-num{color:var(--a)}
+.week-day.sel .wd-name,.week-day.sel .wd-num,.week-day.sel .wd-mes{color:#fff}
+.week-day.sel.today .wd-num{color:#fff}
+.wd-name{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.wd-num{font-size:19px;font-weight:700;color:var(--t1);line-height:1}
+.wd-mes{font-size:9px;color:var(--t4);margin-top:2px}
+.horas-sec-lbl{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 7px;display:flex;align-items:center;gap:5px}
+.horas-sec-lbl:first-child{margin-top:0}
+.horas-sub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:4px}
+@media(max-width:768px){.horas-sub-grid{grid-template-columns:repeat(3,1fr)}}
 .acc-body-pad{padding-top:18px}
 .svc-list{display:flex;flex-direction:column;gap:7px}
 .svc-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;}
@@ -339,11 +355,11 @@ body::before{
       <div class="acc-body">
         <div class="acc-body-pad">
           <div class="cal-nav">
-            <button class="cal-arr" onclick="prevMes()" aria-label="Mes anterior">‹</button>
+            <button class="cal-arr" onclick="prevSemana()" aria-label="Semana anterior">‹</button>
             <div class="cal-month-lbl" id="cal-lbl" aria-live="polite"></div>
-            <button class="cal-arr" onclick="nextMes()" aria-label="Mes siguiente">›</button>
+            <button class="cal-arr" onclick="nextSemana()" aria-label="Semana siguiente">›</button>
           </div>
-          <div class="cal-grid" id="cal-grid"></div>
+          <div class="week-strip" id="week-strip"></div>
           <div id="horas-wrap" style="display:none" class="horas-wrap">
             <div class="horas-sep"></div>
             <div class="horas-title" id="horas-lbl">Horas disponibles</div>
@@ -405,15 +421,17 @@ body::before{
           <div class="c-sub" id="cf-sub">Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.</div>
 
           <!-- Botón Mercado Pago (solo cuando hay pago pendiente) -->
-          <div id="cf-mp-wrap" style="display:none;margin-bottom:16px">
-            <a id="cf-mp-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
-              Pagar con Mercado Pago →
+          <div id="cf-mp-wrap" style="display:none;margin-bottom:12px">
+            <a id="cf-mp-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 20px;background:#009EE3;color:#fff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px rgba(0,158,227,.4);letter-spacing:-.01em">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.2)"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="800" fill="white" font-family="Arial,sans-serif">MP</text></svg>
+              Pagar con Mercado Pago
             </a>
           </div>
           <!-- Botón Klap (solo cuando hay pago pendiente Klap) -->
-          <div id="cf-klap-wrap" style="display:none;margin-bottom:16px">
-            <a id="cf-klap-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,#6C5CE4,#4834d4);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
-              Pagar con Klap →
+          <div id="cf-klap-wrap" style="display:none;margin-bottom:12px">
+            <a id="cf-klap-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 20px;background:linear-gradient(135deg,#6C3AFA,#4834D4);color:#fff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px rgba(108,58,250,.4);letter-spacing:-.01em">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.2)"/><text x="12" y="16" text-anchor="middle" font-size="11" font-weight="800" fill="white" font-family="Arial,sans-serif">K</text></svg>
+              Pagar con Klap
             </a>
           </div>
 
@@ -465,6 +483,7 @@ const DOW_KEY = ['dom','lun','mar','mie','jue','vie','sab'];
 const NOW = new Date();
 let calY = NOW.getFullYear();
 let calM = NOW.getMonth();
+let calWeekOffset = 0;
 const _citasMes = {};
 
 let clienteId = null;
@@ -819,55 +838,50 @@ function isCitaOcupada(hStr, espId) {
 }
 
 /* ── CALENDARIO ── */
-function renderCal() {
-  document.getElementById('cal-lbl').textContent = MESES[calM] + ' ' + calY;
-  const grid  = document.getElementById('cal-grid');
-  let html    = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => `<div class="cal-dh">${d}</div>`).join('');
+function renderSemana() {
+  const mesesShort = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const lunes = getLunesSemana(calWeekOffset);
+  const domingo = new Date(lunes); domingo.setDate(domingo.getDate() + 6);
+  const mismoMes = lunes.getMonth() === domingo.getMonth();
+  document.getElementById('cal-lbl').textContent = mismoMes
+    ? `${lunes.getDate()}–${domingo.getDate()} ${mesesShort[lunes.getMonth()]} ${lunes.getFullYear()}`
+    : `${lunes.getDate()} ${mesesShort[lunes.getMonth()]}–${domingo.getDate()} ${mesesShort[domingo.getMonth()]} ${lunes.getFullYear()}`;
 
-  const first   = new Date(calY, calM, 1);
-  let startDow  = first.getDay();
-  startDow = startDow === 0 ? 6 : startDow - 1;
-  const lastDay = new Date(calY, calM + 1, 0).getDate();
-  const prevLast = new Date(calY, calM, 0).getDate();
   const todayDate = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+  const diasNom = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  let html = ''; let hayDisp = false;
 
-  for (let i = startDow - 1; i >= 0; i--) html += `<div class="cal-day other">${prevLast - i}</div>`;
-
-  for (let d = 1; d <= lastDay; d++) {
-    const date   = new Date(calY, calM, d);
-    const isPast = date < todayDate;
-    const isToday = date.toDateString() === todayDate.toDateString();
-    const isAvail = !isPast && isDiaDisponible(date);
-    const isSel  = st.fecha && st.fecha.d === d && st.fecha.m === calM && st.fecha.y === calY;
-
-    let cls = 'cal-day';
-    if (isToday) cls += ' today';
-    if (isPast)  cls += ' past';
-    if (isAvail) cls += ' avail';
-    if (isSel)   cls += ' sel';
-    const click = isAvail ? `onclick="selDia(${d},${calM},${calY})"` : '';
-    const slotCnt = isAvail ? getSlotsRealesDelDia(calY, calM, d).length : 0;
-    html += `<div class="${cls}" ${click}${isAvail ? ` data-slots="${slotCnt}"` : ''}>${d}</div>`;
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(lunes); day.setDate(day.getDate() + i);
+    const y = day.getFullYear(), m = day.getMonth(), d = day.getDate();
+    const isPast = day < todayDate;
+    const isToday = day.toDateString() === todayDate.toDateString();
+    const isAvail = !isPast && isDiaDisponible(day);
+    const isSel = st.fecha && st.fecha.d === d && st.fecha.m === m && st.fecha.y === y;
+    if (isAvail) hayDisp = true;
+    let cls = 'week-day' + (isToday ? ' today' : '') + (isPast ? ' past' : (!isAvail ? ' no-avail' : ' avail')) + (isSel ? ' sel' : '');
+    const mesLbl = day.getMonth() !== lunes.getMonth() ? `<div class="wd-mes">${mesesShort[m]}</div>` : '';
+    const click = isAvail ? `onclick="selDia(${d},${m},${y})"` : '';
+    html += `<div class="${cls}" ${click}><div class="wd-name">${diasNom[i]}</div><div class="wd-num">${d}</div>${mesLbl}</div>`;
   }
+  document.getElementById('week-strip').innerHTML = html;
 
-  const total = startDow + lastDay;
-  const rows  = Math.ceil(total / 7);
-  for (let d = 1; d <= rows * 7 - total; d++) html += `<div class="cal-day other">${d}</div>`;
-  grid.innerHTML = html;
+  // Cargar disponibilidad de los meses que abarca la semana
+  [lunes, domingo].forEach(date => {
+    const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+    if (clienteId && !(key in _citasMes)) cargarCitasMes(date.getFullYear(), date.getMonth()).then(() => renderSemana()).catch(()=>{});
+  });
 
-  // Si no hay días disponibles este mes, auto-navegar al siguiente (máx 6 meses)
-  const limiteMax = new Date(NOW.getFullYear(), NOW.getMonth() + 6, 1);
-  if (!html.includes('avail') && new Date(calY, calM, 1) < limiteMax) {
-    setTimeout(() => nextMes(), 120);
-  }
+  // Auto-avanzar si no hay disponibles (máx 26 semanas)
+  if (!hayDisp && calWeekOffset < 26) setTimeout(() => { calWeekOffset++; renderSemana(); }, 120);
+}
 
-  // Cargar disponibilidad real del mes si aún no está en caché
-  const _mesKey = `${calY}-${String(calM+1).padStart(2,'0')}`;
-  if (clienteId && !(_mesKey in _citasMes)) {
-    cargarCitasMes(calY, calM).then(() => {
-      if (`${calY}-${String(calM+1).padStart(2,'0')}` === _mesKey) renderCal();
-    }).catch(() => {});
-  }
+function renderCal() { renderSemana(); }
+
+function getLunesSemana(offset) {
+  const d = new Date(NOW); d.setHours(0,0,0,0);
+  const dow = d.getDay(); d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow) + offset * 7);
+  return d;
 }
 
 async function selDia(d, m, y) {
@@ -890,20 +904,18 @@ async function selDia(d, m, y) {
   renderHoras();
 }
 
-function prevMes() {
-  calM--; if (calM < 0) { calM = 11; calY--; }
-  if (calY < NOW.getFullYear() || (calY === NOW.getFullYear() && calM < NOW.getMonth())) {
-    calM++; if (calM > 11) { calM = 0; calY++; }
-    return;
-  }
-  st.fecha = null; st.hora = null;
-  renderCal(); hideHoras(); updateResumen();
+function prevMes() { prevSemana(); }
+function nextMes() { nextSemana(); }
+function prevSemana() {
+  if (calWeekOffset <= 0) return;
+  calWeekOffset--; st.fecha = null; st.hora = null;
+  renderSemana(); hideHoras(); updateResumen();
   document.getElementById('btn3').disabled = true;
 }
-function nextMes() {
-  calM++; if (calM > 11) { calM = 0; calY++; }
-  st.fecha = null; st.hora = null;
-  renderCal(); hideHoras(); updateResumen();
+function nextSemana() {
+  if (calWeekOffset >= 26) return;
+  calWeekOffset++; st.fecha = null; st.hora = null;
+  renderSemana(); hideHoras(); updateResumen();
   document.getElementById('btn3').disabled = true;
 }
 
@@ -940,10 +952,12 @@ function renderHoras() {
     return;
   }
   none.style.display = 'none';
-  grid.innerHTML = disponibles.map(s => {
-    const isSel = st.hora === s.h;
-    return `<button class="h-btn${isSel ? ' sel' : ''}" data-h="${esc(s.h)}" data-esp-id="${esc(s.espId||'')}" data-esp-nom="${esc(s.espNom||'')}" onclick="selHora(this.dataset.h,this.dataset.espId,this.dataset.espNom)">${esc(s.h)}</button>`;
-  }).join('');
+  const btnHtml = s => { const isSel = st.hora === s.h; return `<button class="h-btn${isSel?' sel':''}" data-h="${esc(s.h)}" data-esp-id="${esc(s.espId||'')}" data-esp-nom="${esc(s.espNom||'')}" onclick="selHora(this.dataset.h,this.dataset.espId,this.dataset.espNom)">${esc(s.h)}</button>`; };
+  const am = disponibles.filter(s => hToMin(s.h) < 720);
+  const pm = disponibles.filter(s => hToMin(s.h) >= 720);
+  grid.innerHTML =
+    (am.length ? `<div class="horas-sec-lbl">☀ Mañana</div><div class="horas-sub-grid">${am.map(btnHtml).join('')}</div>` : '') +
+    (pm.length ? `<div class="horas-sec-lbl">🌤 Tarde</div><div class="horas-sub-grid">${pm.map(btnHtml).join('')}</div>` : '');
 }
 
 function selHora(h, espId, espNom) {
@@ -1376,6 +1390,7 @@ function resetear() {
   citasDelDia = [];
   calY = NOW.getFullYear();
   calM = NOW.getMonth();
+  calWeekOffset = 0;
   document.querySelectorAll('.svc-row,.prof-row').forEach(r => r.classList.remove('sel'));
   ['d-nom','d-ap','d-em','d-tel','d-nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('chk-t').checked = false;
