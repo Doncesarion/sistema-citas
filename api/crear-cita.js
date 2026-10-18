@@ -849,7 +849,7 @@ export default async function handler(req, res) {
           }
           console.log('crear-cita: klap_url generado OK', 'coexiste con mp:', !!mp_url);
         } else {
-          klap_error = `HTTP ${klapRes.status} — ` + JSON.stringify(klapData).slice(0, 300);
+          klap_error = klapData.message || JSON.stringify(klapData).slice(0, 120);
           console.error('crear-cita: klap error:', klap_error);
         }
       } catch(e) {
