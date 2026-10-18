@@ -84,6 +84,7 @@ body::before{
 .acc.open .acc-chevron{transform:rotate(180deg);color:var(--a)}
 .acc-body{display:none;padding:0 22px 22px;border-top:1px solid var(--b1)}
 .acc.open .acc-body{display:block}
+.acc.future{display:none}
 .acc-body-pad{padding-top:18px}
 .svc-list{display:flex;flex-direction:column;gap:7px}
 .svc-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;}
@@ -309,7 +310,7 @@ body::before{
     </div>
 
     <!-- ACCORDION 2: PROFESIONAL -->
-    <div class="acc" id="acc2">
+    <div class="acc future" id="acc2">
       <div class="acc-head" onclick="toggleAcc(2)">
         <div class="acc-num">2</div>
         <div class="acc-title">Elige el profesional</div>
@@ -328,7 +329,7 @@ body::before{
     </div>
 
     <!-- ACCORDION 3: FECHA Y HORA -->
-    <div class="acc" id="acc3">
+    <div class="acc future" id="acc3">
       <div class="acc-head" onclick="toggleAcc(3)">
         <div class="acc-num">3</div>
         <div class="acc-title">Elige fecha y hora</div>
@@ -358,7 +359,7 @@ body::before{
     </div>
 
     <!-- ACCORDION 4: DATOS -->
-    <div class="acc" id="acc4">
+    <div class="acc future" id="acc4">
       <div class="acc-head" onclick="toggleAcc(4)">
         <div class="acc-num">4</div>
         <div class="acc-title">Tus datos de contacto</div>
@@ -957,8 +958,9 @@ function selHora(h, espId, espNom) {
 function openAcc(n) {
   for (let i = 1; i <= 4; i++) {
     const acc = document.getElementById('acc' + i);
-    acc.classList.remove('open');
+    acc.classList.remove('open', 'future');
     if (i < n) acc.classList.add('done'); else acc.classList.remove('done');
+    if (i > n) acc.classList.add('future');
   }
   document.getElementById('acc' + n).classList.add('open');
   for (let i = 1; i <= 5; i++) {
