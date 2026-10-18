@@ -5,6 +5,8 @@ const FLOW_API_URL    = (process.env.FLOW_API_URL || 'https://www.flow.cl/api').
 const BASE_URL        = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 const WEBPAY_INT_URL  = 'https://webpay3gint.transbank.cl/rswebpaytransaction/api/webpay/v1.2';
 const WEBPAY_PROD_URL = 'https://webpay3g.transbank.cl/rswebpaytransaction/api/webpay/v1.2';
+const KLAP_SAND_URL   = 'https://api-pasarela-sandbox.mcdesaqa.cl';
+const KLAP_PROD_URL   = 'https://api.pasarela.multicaja.cl';
 
 function verifySessionToken(token) {
   if (!token) return null;
@@ -116,6 +118,17 @@ function htmlEscape(str) {
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function validateKlapApikey(headerApikey, order, apikey) {
+  if (!apikey || !headerApikey) return false;
+  const key  = order.reference_id + order.order_id + apikey;
+  const hash = crypto.createHash('sha256').update(key).digest('hex');
+  try {
+    const a = Buffer.from(hash, 'hex');
+    const b = Buffer.from(headerApikey, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch { return false; }
 }
 
 function emailPendientePagoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, precio, payment_url, cita_id }) {
@@ -1550,6 +1563,10 @@ export default async function handler(req, res) {
     }
   }
 
+  // Klap webhooks (POST público, sin sesión)
+  if (req.query?.tipo === 'klap_confirm') return handleKlapConfirm(req, res);
+  if (req.query?.tipo === 'klap_reject')  return handleKlapReject(req, res);
+
   if (req.method !== 'POST') return res.status(405).end();
 
   if (req.query?.tipo === 'webpay_create')     return handleWebpayCreate(req, res);
@@ -1586,8 +1603,9 @@ export default async function handler(req, res) {
   const session = verifySessionToken(req.headers['x-session-token']);
   if (!session) return res.status(401).json({ error: 'No autorizado' });
 
-  if (req.body?.tipo === 'webpay_init') return handleWebpayInit(req, res, session);
-  if (req.body?.tipo === 'mp_create')   return handleMPCreate(req, res, session);
+  if (req.body?.tipo === 'webpay_init')    return handleWebpayInit(req, res, session);
+  if (req.body?.tipo === 'mp_create')      return handleMPCreate(req, res, session);
+  if (req.query?.tipo === 'klap_init')     return handleKlapInit(req, res, session);
 
   const { cita_id, enviar_email = true } = req.body || {};
   if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });
@@ -1727,4 +1745,107 @@ export default async function handler(req, res) {
   }
 
   return res.json({ ok: true, payment_url, email_ok, email_error });
+}
+
+// ── Klap / Multicaja ─────────────────────────────────────────────────────────
+
+async function handleKlapInit(req, res, session) {
+  const { cita_id } = req.body || {};
+  if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const rCita = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=*&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+  const cita  = Array.isArray(rCita) ? rCita[0] : null;
+  if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
+  if (cita.cliente_id !== session.cliente_id && session.rol !== 'superadmin') return res.status(403).json({ error: 'Sin acceso' });
+  if (cita.estado_pago === 'pagado') return res.status(409).json({ error: 'La cita ya fue pagada' });
+  const rCli  = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+  const cli   = Array.isArray(rCli) ? rCli[0] : null;
+  const mp    = cli?.metodos_pago || {};
+  const apiKey   = mp.klap_api_key || process.env.KLAP_API_KEY;
+  const klapBase = (mp.klap_sandbox !== false && !process.env.KLAP_PROD) ? KLAP_SAND_URL : KLAP_PROD_URL;
+  if (!apiKey) return res.status(400).json({ error: 'No hay credenciales Klap configuradas' });
+  const precio = cita.precio || cita.monto;
+  if (!precio || Number(precio) < 50) return res.status(400).json({ error: 'Monto inválido (mínimo $50)' });
+  let nombre_especialista = '';
+  if (cita.especialista_id) {
+    const rE = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${encodeURIComponent(cita.especialista_id)}&select=nombre&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+    nombre_especialista = (Array.isArray(rE) ? rE[0]?.nombre : null) || '';
+  }
+  let klapOrder;
+  try {
+    const kr = await fetch(`${klapBase}/payment-gateway/v1/orders`, {
+      method: 'POST',
+      headers: { apikey: apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reference_id: cita_id,
+        amount: { currency: 'CLP', total: Math.round(Number(precio)) },
+        methods: ['tarjetas'],
+        description: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`,
+        urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` },
+        webhooks: { webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` }
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+    klapOrder = await kr.json();
+    if (!kr.ok || !klapOrder?.redirect_url) { console.error('klap_init: API error', kr.status, JSON.stringify(klapOrder)); return res.status(502).json({ error: 'Error al crear orden en Klap', detail: klapOrder }); }
+  } catch(e) { console.error('klap_init: fetch error', e.message); return res.status(502).json({ error: 'No se pudo conectar con Klap' }); }
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'klap', klap_order_id: klapOrder.order_id }) }).catch(e => console.error('klap_init: patch error', e.message));
+  let email_ok = false;
+  if (cita.email_paciente && process.env.RESEND_API_KEY) {
+    try {
+      const fechaFmt = cita.fecha ? new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+      const er = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'Attempo <contacto@attempo.cl>', to: [cita.email_paciente], subject: 'Completa el pago de tu cita', html: emailPendientePagoHtml({ nombre_paciente: cita.nombre_paciente || 'Paciente', nombre_especialista, fechaFmt, hora: cita.hora || '', servicio: cita.servicio || '', negocio_nombre: cli?.nombre_negocio || '', precio, payment_url: klapOrder.redirect_url, cita_id }) }) });
+      email_ok = er.ok;
+      if (!er.ok) console.error('klap_init: email error', er.status);
+    } catch(e) { console.error('klap_init: email error', e.message); }
+  }
+  return res.status(200).json({ ok: true, redirect_url: klapOrder.redirect_url, order_id: klapOrder.order_id, email_ok });
+}
+
+async function handleKlapConfirm(req, res) {
+  const order        = req.body || {};
+  const headerApikey = req.headers['apikey'] || req.headers['Apikey'];
+  const cita_id      = order.reference_id;
+  if (!cita_id) { console.error('klap_confirm: falta reference_id'); return res.status(200).json({ status: 'ok' }); }
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const rCita = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=cliente_id,estado_pago,email_paciente,nombre_paciente,especialista_id,fecha,hora,servicio,precio,monto&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+  const cita  = Array.isArray(rCita) ? rCita[0] : null;
+  if (!cita) { console.error('klap_confirm: cita no encontrada', cita_id); return res.status(200).json({ status: 'ok' }); }
+  const rCli  = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+  const cli   = Array.isArray(rCli) ? rCli[0] : null;
+  const apiKey = cli?.metodos_pago?.klap_api_key || process.env.KLAP_API_KEY;
+  if (!validateKlapApikey(headerApikey, order, apiKey)) { console.error('klap_confirm: Apikey inválida', cita_id); return res.status(200).json({ status: 'ok' }); }
+  if (cita.estado_pago === 'pagado') return res.status(200).json({ status: 'ok' });
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'confirmed', estado_pago: 'pagado', metodo_pago: 'klap' }) }).catch(e => console.error('klap_confirm: patch error', e.message));
+  console.log('klap_confirm: cita pagada', cita_id);
+  if (cita.email_paciente && process.env.RESEND_API_KEY) {
+    try {
+      let nombre_especialista = '';
+      if (cita.especialista_id) { const rE = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${encodeURIComponent(cita.especialista_id)}&select=nombre&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null); nombre_especialista = (Array.isArray(rE) ? rE[0]?.nombre : null) || ''; }
+      const fechaFmt = cita.fecha ? new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+      const er = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'Attempo <contacto@attempo.cl>', to: [cita.email_paciente], subject: `Pago confirmado — tu cita en ${cli?.nombre_negocio || 'la clínica'} está reservada ✓`, html: emailConfirmadoHtml({ nombre_paciente: cita.nombre_paciente || 'Paciente', nombre_especialista, fechaFmt, hora: cita.hora || '', servicio: cita.servicio || '', negocio_nombre: cli?.nombre_negocio || '', precio: cita.precio || cita.monto, direccion: null, email_negocio: cli?.email || null, cita_id }) }) });
+      if (!er.ok) console.error('klap_confirm: email error', er.status);
+    } catch(e) { console.error('klap_confirm: email error', e.message); }
+  }
+  return res.status(200).json({ status: 'ok' });
+}
+
+async function handleKlapReject(req, res) {
+  const order        = req.body || {};
+  const headerApikey = req.headers['apikey'] || req.headers['Apikey'];
+  const cita_id      = order.reference_id;
+  if (!cita_id) return res.status(200).json({ status: 'ok' });
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  const rCita = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=cliente_id&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+  const cita  = Array.isArray(rCita) ? rCita[0] : null;
+  if (!cita) return res.status(200).json({ status: 'ok' });
+  const rCli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=metodos_pago&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
+  const apiKey = rCli?.[0]?.metodos_pago?.klap_api_key || process.env.KLAP_API_KEY;
+  if (!validateKlapApikey(headerApikey, order, apiKey)) { console.error('klap_reject: Apikey inválida', cita_id); return res.status(200).json({ status: 'ok' }); }
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'pending', estado_pago: 'rechazado', metodo_pago: 'klap' }) }).catch(e => console.error('klap_reject: patch error', e.message));
+  console.log('klap_reject: pago rechazado cita', cita_id);
+  return res.status(200).json({ status: 'ok' });
 }
