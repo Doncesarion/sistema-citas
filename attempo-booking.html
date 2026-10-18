@@ -99,8 +99,7 @@ body::before{
 .wd-mes{font-size:9px;color:var(--t4);margin-top:3px}
 .horas-ampm-wrap{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .horas-panel-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
-.horas-sub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-height:220px;overflow-y:auto;padding-right:2px}
-@media(max-width:400px){.horas-sub-grid{grid-template-columns:repeat(2,1fr)}}
+.horas-sub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;margin-bottom:4px}
 .acc-body-pad{padding-top:18px}
 .svc-list{display:flex;flex-direction:column;gap:7px}
 .svc-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;}
@@ -972,9 +971,9 @@ function renderHoras() {
   const btnHtml = s => { const isSel = st.hora === s.h; return `<button class="h-btn${isSel?' sel':''}" data-h="${esc(s.h)}" data-esp-id="${esc(s.espId||'')}" data-esp-nom="${esc(s.espNom||'')}" onclick="selHora(this.dataset.h,this.dataset.espId,this.dataset.espNom)">${esc(s.h)}</button>`; };
   const am = disponibles.filter(s => hToMin(s.h) < 720);
   const pm = disponibles.filter(s => hToMin(s.h) >= 720);
-  const amHtml = am.length ? `<div><div class="horas-panel-lbl">🌅 Horarios AM</div><div class="horas-sub-grid">${am.map(btnHtml).join('')}</div></div>` : '<div></div>';
-  const pmHtml = pm.length ? `<div><div class="horas-panel-lbl">🌤 Horarios PM</div><div class="horas-sub-grid">${pm.map(btnHtml).join('')}</div></div>` : '<div></div>';
-  grid.innerHTML = `<div class="horas-ampm-wrap">${amHtml}${pmHtml}</div>`;
+  grid.innerHTML =
+    (am.length ? `<div class="horas-sec-lbl">🌅 Horarios AM</div><div class="horas-sub-grid">${am.map(btnHtml).join('')}</div>` : '') +
+    (pm.length ? `<div class="horas-sec-lbl">🌤 Horarios PM</div><div class="horas-sub-grid">${pm.map(btnHtml).join('')}</div>` : '');
 }
 
 function selHora(h, espId, espNom) {
