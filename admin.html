@@ -661,6 +661,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .fp-info-val{font-size:13px;color:var(--t1);font-weight:500}
 .fp-info-val.mono{font-family:var(--mono)}
 .fp-info-val.accent{color:var(--a)}
+.fp-section-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
 
 /* Timeline */
 .tl-lbl{font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:10px}
@@ -4404,60 +4405,72 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
     <!-- Tab: Información -->
     <div class="fp-body" id="ft-info">
-      <div class="fp-info-grid">
-        <div><div class="fp-info-lbl">Email</div><div class="fp-info-val" id="fpi-email">—</div></div>
-        <div><div class="fp-info-lbl">Teléfono</div><div class="fp-info-val mono" id="fpi-tel">—</div></div>
-        <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
-        <div><div class="fp-info-lbl">Ciudad</div><div class="fp-info-val" id="fpi-ciudad">—</div></div>
-        <div><div class="fp-info-lbl">Región</div><div class="fp-info-val" id="fpi-region">—</div></div>
-        <div>
-          <div class="fp-info-lbl">Estado reserva</div>
-          <div id="fpi-estado-reserva" onclick="openEstadoModal()" title="Cambiar estado" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:1px">
-            <span id="fpi-estado-dot" style="width:7px;height:7px;border-radius:50%;background:var(--t3);flex-shrink:0"></span>
-            <span id="fpi-estado-lbl" class="fp-info-val" style="margin:0">—</span>
-            <span style="font-size:10px;color:var(--t3)">▾</span>
-          </div>
-        </div>
-        <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
-        <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
-        <div id="fpi-voucher-row" style="display:none"><div class="fp-info-lbl">Voucher</div><div id="fpi-voucher-val" style="margin-top:2px"></div></div>
-        <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
-        <div><div class="fp-info-lbl">Servicio reservado</div><div class="fp-info-val" id="fpi-servicio-prox">—</div></div>
-        <div><div class="fp-info-lbl">Profesional habitual</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
-      </div>
-      <div style="height:1px;background:var(--b1)"></div>
+
+      <!-- Datos personales -->
       <div>
-        <div class="fp-info-lbl" style="margin-bottom:9px">Servicio más reservado</div>
-        <div id="fpi-serv-top-wrap" style="background:rgba(108,92,228,0.06);border:1px solid var(--b1);border-radius:var(--rl);padding:11px 14px;display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:13px;font-weight:500;color:var(--t1)" id="fpi-serv-top">—</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:2px" id="fpi-serv-top-sub">Sin citas</div>
-          </div>
-          <span class="tag tg" id="fpi-serv-top-tag">0</span>
+        <div class="fp-section-lbl">Cliente</div>
+        <div class="fp-info-grid">
+          <div><div class="fp-info-lbl">Email</div><div class="fp-info-val" id="fpi-email">—</div></div>
+          <div><div class="fp-info-lbl">Teléfono</div><div class="fp-info-val mono" id="fpi-tel">—</div></div>
+          <div><div class="fp-info-lbl">RUT</div><div class="fp-info-val mono" id="fpi-rut">—</div></div>
+          <div><div class="fp-info-lbl">Ciudad</div><div class="fp-info-val" id="fpi-ciudad">—</div></div>
+          <div><div class="fp-info-lbl">Región</div><div class="fp-info-val" id="fpi-region">—</div></div>
         </div>
       </div>
-      <div id="fp-btn-realizada-wrap" style="display:none;margin-bottom:8px">
+
+      <!-- Cita actual -->
+      <div>
+        <div class="fp-section-lbl">Cita actual</div>
+        <div class="fp-info-grid">
+          <div>
+            <div class="fp-info-lbl">Estado reserva</div>
+            <div id="fpi-estado-reserva" onclick="openEstadoModal()" title="Cambiar estado" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:1px">
+              <span id="fpi-estado-dot" style="width:7px;height:7px;border-radius:50%;background:var(--t3);flex-shrink:0"></span>
+              <span id="fpi-estado-lbl" class="fp-info-val" style="margin:0">—</span>
+              <span style="font-size:10px;color:var(--t3)">▾</span>
+            </div>
+          </div>
+          <div><div class="fp-info-lbl">Estado pago</div><div class="fp-info-val" id="fpi-estado-pago">—</div></div>
+          <div><div class="fp-info-lbl">Método de pago</div><div class="fp-info-val" id="fpi-metodo-pago">—</div></div>
+          <div id="fpi-voucher-row" style="display:none"><div class="fp-info-lbl">Voucher</div><div id="fpi-voucher-val" style="margin-top:2px"></div></div>
+          <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
+          <div><div class="fp-info-lbl">Servicio</div><div class="fp-info-val" id="fpi-servicio-prox">—</div></div>
+          <div><div class="fp-info-lbl">Profesional</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
+          <div><div class="fp-info-lbl">Más reservado</div><div class="fp-info-val" id="fpi-serv-top">—</div><div style="font-size:11px;color:var(--t3);margin-top:1px" id="fpi-serv-top-sub"></div></div>
+        </div>
+      </div>
+
+      <!-- Nodo oculto para compatibilidad JS -->
+      <div id="fpi-serv-top-wrap" style="display:none"><span id="fpi-serv-top-tag"></span></div>
+
+      <div style="height:1px;background:var(--b1)"></div>
+
+      <!-- Acciones principales -->
+      <div id="fp-btn-realizada-wrap" style="display:none">
         <button class="btn-g" id="fp-btn-realizada" style="width:100%;background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.3);color:#10b981;font-weight:600" onclick="marcarCitaRealizada()">✓ Marcar como realizada</button>
       </div>
-      <div class="fp-actions">
-        <button class="btn-a" style="flex:1" onclick="closeFicha();openModal()">+ Nueva cita</button>
-        <button class="btn-g" style="flex:1" onclick="reagendarProxCita()" title="Reagendar la próxima cita">↺ Reagendar</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button class="btn-a" style="font-size:12px;padding:8px 6px" onclick="closeFicha();openModal()">+ Nueva cita</button>
+        <button class="btn-g" style="font-size:12px;padding:8px 6px" onclick="reagendarProxCita()">↺ Reagendar</button>
+        <button class="btn-r" id="fp-cancelar-btn" onclick="cancelarProxCita()" style="font-size:12px;padding:8px 6px">✕ Cancelar</button>
       </div>
-      <div style="margin-top:8px">
-        <button class="btn-r" id="fp-cancelar-btn" onclick="cancelarProxCita()">✕ Cancelar próxima cita</button>
+
+      <!-- Boleta y links de pago compactos -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <div id="fp-boleta-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
+          <button class="btn-g" style="width:100%;font-size:11px;padding:7px 8px" onclick="openBoletaModal(_currentBoletaCita)">📄 Emitir boleta</button>
+        </div>
+        <div id="fp-webpay-row" style="display:none!important;flex:1;min-width:calc(50% - 4px)">
+          <button class="btn-a" style="width:100%;font-size:11px;padding:7px 8px;background:#005BBB" onclick="enviarLinkWebpayPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">Webpay</button>
+        </div>
+        <div id="fp-mp-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
+          <button class="btn-a" style="width:100%;font-size:11px;padding:7px 8px;background:#009ee3" onclick="enviarLinkMPPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">💙 Mercado Pago</button>
+        </div>
+        <div id="fp-klap-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
+          <button class="btn-a" style="width:100%;font-size:11px;padding:7px 8px;background:#6C5CE4" onclick="enviarLinkKlapPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">🟣 Klap</button>
+        </div>
       </div>
-      <div id="fp-boleta-row" style="display:none;margin-top:8px">
-        <button class="btn-a" style="width:100%" onclick="openBoletaModal(_currentBoletaCita)">Emitir boleta</button>
-      </div>
-      <div id="fp-webpay-row" style="display:none!important;margin-top:8px">
-        <button class="btn-a" style="width:100%;background:#005BBB" onclick="enviarLinkWebpayPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Webpay</button>
-      </div>
-      <div id="fp-mp-row" style="display:none;margin-top:8px">
-        <button class="btn-a" style="width:100%;background:#009ee3" onclick="enviarLinkMPPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Mercado Pago</button>
-      </div>
-      <div id="fp-klap-row" style="display:none;margin-top:8px">
-        <button class="btn-a" style="width:100%;background:#6C5CE4" onclick="enviarLinkKlapPago(_currentBoletaCita?.id, _currentBoletaCita?.nombre_paciente)">Enviar link de pago Klap</button>
-      </div>
+
     </div>
 
     <!-- Tab: Historial -->
