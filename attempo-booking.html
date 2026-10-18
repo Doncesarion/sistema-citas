@@ -437,19 +437,25 @@ body::before{
           <div class="c-title" id="cf-title">¡Reserva confirmada!</div>
           <div class="c-sub" id="cf-sub">Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.</div>
 
-          <!-- Botón Mercado Pago (solo cuando hay pago pendiente) -->
-          <div id="cf-mp-wrap" style="display:none;margin-bottom:12px">
-            <a id="cf-mp-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 20px;background:#009EE3;color:#fff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px rgba(0,158,227,.4);letter-spacing:-.01em">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.2)"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="800" fill="white" font-family="Arial,sans-serif">MP</text></svg>
-              Pagar con Mercado Pago
-            </a>
-          </div>
-          <!-- Botón Klap (solo cuando hay pago pendiente Klap) -->
-          <div id="cf-klap-wrap" style="display:none;margin-bottom:12px">
-            <a id="cf-klap-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 20px;background:linear-gradient(135deg,#6C3AFA,#4834D4);color:#fff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px rgba(108,58,250,.4);letter-spacing:-.01em">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.2)"/><text x="12" y="16" text-anchor="middle" font-size="11" font-weight="800" fill="white" font-family="Arial,sans-serif">K</text></svg>
-              Pagar con Klap
-            </a>
+          <!-- Opciones de pago pendiente -->
+          <div id="cf-pay-opts" style="display:none;width:100%;margin-bottom:16px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--t3);margin-bottom:10px;text-align:left">Elige cómo pagar</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div id="cf-mp-wrap" style="display:none">
+                <a id="cf-mp-btn" href="#" target="_blank" style="display:flex;align-items:center;gap:12px;width:100%;padding:13px 15px;background:#fff;color:#1a1a2e;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none;border:1.5px solid var(--b1);box-sizing:border-box;transition:border-color .15s" onmouseover="this.style.borderColor='#009EE3'" onmouseout="this.style.borderColor='var(--b1)'">
+                  <span style="width:32px;height:32px;border-radius:7px;background:#009EE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:800;color:#fff;font-family:Arial,sans-serif">MP</span>
+                  <span style="flex:1;text-align:left">Mercado Pago</span>
+                  <span style="color:var(--t3);font-size:13px">→</span>
+                </a>
+              </div>
+              <div id="cf-klap-wrap" style="display:none">
+                <a id="cf-klap-btn" href="#" target="_blank" style="display:flex;align-items:center;gap:12px;width:100%;padding:13px 15px;background:#fff;color:#1a1a2e;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none;border:1.5px solid var(--b1);box-sizing:border-box;transition:border-color .15s" onmouseover="this.style.borderColor='#6C3AFA'" onmouseout="this.style.borderColor='var(--b1)'">
+                  <span style="width:32px;height:32px;border-radius:7px;background:#6C3AFA;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:800;color:#fff;font-family:Arial,sans-serif">K</span>
+                  <span style="flex:1;text-align:left">Klap</span>
+                  <span style="color:var(--t3);font-size:13px">→</span>
+                </a>
+              </div>
+            </div>
           </div>
 
           <div class="c-card">
@@ -1236,13 +1242,15 @@ async function confirmar() {
       document.getElementById('cf-icon').textContent  = '→';
       document.getElementById('cf-title').textContent = 'Completa tu pago';
       document.getElementById('cf-sub').textContent   = 'Tu hora está reservada. Paga ahora para confirmar tu cita.';
+      const payOpts = document.getElementById('cf-pay-opts');
+      if (payOpts) payOpts.style.display = '';
       if (tieneMP) {
         document.getElementById('cf-mp-btn').href = data.mp_url;
-        document.getElementById('cf-mp-wrap').style.display = 'block';
+        document.getElementById('cf-mp-wrap').style.display = '';
       }
       if (tieneKlap) {
         document.getElementById('cf-klap-btn').href = data.klap_url;
-        document.getElementById('cf-klap-wrap').style.display = 'block';
+        document.getElementById('cf-klap-wrap').style.display = '';
       }
     } else {
       document.getElementById('cf-icon').textContent  = '✓';
@@ -1250,6 +1258,8 @@ async function confirmar() {
       document.getElementById('cf-sub').textContent   = precio && tienePago
         ? 'Te enviamos los detalles de pago y el resumen a tu correo.'
         : 'Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.';
+      const payOpts = document.getElementById('cf-pay-opts');
+      if (payOpts) payOpts.style.display = 'none';
       document.getElementById('cf-mp-wrap').style.display = 'none';
       document.getElementById('cf-klap-wrap').style.display = 'none';
     }
