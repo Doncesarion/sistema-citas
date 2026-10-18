@@ -151,6 +151,7 @@ body::before{
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .horas-sep{height:1px;background:var(--b1);margin-bottom:18px}
 .horas-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:16px}
+.horas-sec-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:7px;margin-bottom:10px}
 .horas-grid{display:block}
 .h-btn{padding:11px 6px;min-height:44px;border:1.5px solid var(--b1);border-radius:var(--r);background:#fff;cursor:pointer;font-size:13px;font-family:var(--mono);font-weight:500;color:var(--t2);transition:all .12s;text-align:center;display:flex;align-items:center;justify-content:center;width:100%;}
 .h-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
@@ -971,8 +972,8 @@ function renderHoras() {
   const am = disponibles.filter(s => hToMin(s.h) < 720);
   const pm = disponibles.filter(s => hToMin(s.h) >= 720);
   grid.innerHTML =
-    (am.length ? `<div style="margin-bottom:16px"><div class="horas-sec-lbl">🌅 Horarios AM</div><div class="horas-sub-grid">${am.map(btnHtml).join('')}</div></div>` : '') +
-    (pm.length ? `<div><div class="horas-sec-lbl">🌤 Horarios PM</div><div class="horas-sub-grid">${pm.map(btnHtml).join('')}</div></div>` : '');
+    (am.length ? `<div style="margin-bottom:22px"><div class="horas-sec-lbl"><span style="width:8px;height:8px;border-radius:50%;background:var(--a);display:inline-block;flex-shrink:0"></span>Horarios AM</div><div class="horas-sub-grid">${am.map(btnHtml).join('')}</div></div>` : '') +
+    (pm.length ? `<div><div class="horas-sec-lbl"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;flex-shrink:0"></span>Horarios PM</div><div class="horas-sub-grid">${pm.map(btnHtml).join('')}</div></div>` : '');
 }
 
 function selHora(h, espId, espNom) {
