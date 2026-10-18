@@ -801,6 +801,54 @@ export default async function handler(req, res) {
     }
     const soloMP = !!(mp_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
 
+    // Klap checkout — booking público cuando hay API key configurada y no hay MP
+    let klap_url = null;
+    let klap_error = null;
+    const klapApiKey = metodos_pago?.klap_api_key || process.env.KLAP_API_KEY;
+    const generarKlap = !esPagoPresencial && !esLinkWebpay && !esLinkFlow && !esLinkMP &&
+                        !mp_url && klapApiKey && precioNum > 0;
+    if (generarKlap) {
+      const klapSandbox = metodos_pago?.klap_sandbox !== false && !process.env.KLAP_PROD;
+      const klapBase = klapSandbox ? 'https://api-pasarela-sandbox.mcdesaqa.cl' : 'https://api.pasarela.multicaja.cl';
+      try {
+        const klapRes = await fetch(`${klapBase}/payment-gateway/v1/orders`, {
+          method: 'POST',
+          headers: { apikey: klapApiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reference_id: cita.id,
+            amount: { currency: 'CLP', total: precioNum },
+            methods: ['tarjetas'],
+            description: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
+            urls: {
+              return_url: `${BASE_URL}/pago-exitoso?tipo=cita`,
+              cancel_url: manageShortUrl(cita.id)
+            },
+            webhooks: {
+              webhook_confirm: `${BASE_URL}/api/klap-confirm`,
+              webhook_reject:  `${BASE_URL}/api/klap-reject`
+            }
+          }),
+          signal: AbortSignal.timeout(12000)
+        });
+        const klapData = await klapRes.json();
+        if (klapData.redirect_url) {
+          klap_url = klapData.redirect_url;
+          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+            method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'klap', klap_order_id: klapData.order_id })
+          }).catch(e => console.error('crear-cita: patch klap pending_payment:', e.message));
+          console.log('crear-cita: klap_url generado OK');
+        } else {
+          klap_error = klapData.message || JSON.stringify(klapData).slice(0, 120);
+          console.error('crear-cita: klap error:', klap_error);
+        }
+      } catch(e) {
+        klap_error = e.name === 'TimeoutError' ? 'timeout conectando con Klap' : e.message;
+        console.error('crear-cita: klap exception:', klap_error);
+      }
+    }
+    const soloKlap = !!(klap_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+
     // Link MP desde admin → marcar pending_payment con metodo_pago='mercadopago'
     if (esLinkMP && !mp_url) {
       await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
@@ -834,7 +882,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            subject: soloMP
+            subject: (soloMP || soloKlap)
               ? `Completa tu pago para confirmar tu hora en ${negocio_nombre || 'la clínica'}`
               : `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,
             headers: {
@@ -857,8 +905,8 @@ export default async function handler(req, res) {
       console.log('crear-cita: email omitido — RESEND_KEY:', !!process.env.RESEND_API_KEY);
     }
 
-    // Confirmar la cita si es booking público y no requiere pago Flow ni MP
-    if (confirmarDespues && !soloFlow && !mp_url) {
+    // Confirmar la cita si es booking público y no requiere pago Flow, MP ni Klap
+    if (confirmarDespues && !soloFlow && !mp_url && !klap_url) {
       await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
         method: 'PATCH',
         headers: { ...sh, Prefer: 'return=minimal' },
@@ -866,7 +914,7 @@ export default async function handler(req, res) {
       }).catch(e => console.error('crear-cita: patch confirmed error:', e.message));
     }
 
-    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, mp_url, solo_mp: soloMP, mp_error, manage_token: cita?.id ? generateManageToken(cita.id) : null, manage_url: cita?.id ? manageShortUrl(cita.id) : null });
+    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, mp_url, solo_mp: soloMP, mp_error, klap_url, solo_klap: soloKlap, klap_error, manage_token: cita?.id ? generateManageToken(cita.id) : null, manage_url: cita?.id ? manageShortUrl(cita.id) : null });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });

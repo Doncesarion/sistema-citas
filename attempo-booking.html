@@ -409,6 +409,12 @@ body::before{
               Pagar con Mercado Pago →
             </a>
           </div>
+          <!-- Botón Klap (solo cuando hay pago pendiente Klap) -->
+          <div id="cf-klap-wrap" style="display:none;margin-bottom:16px">
+            <a id="cf-klap-btn" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,#6C5CE4,#4834d4);color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none">
+              Pagar con Klap →
+            </a>
+          </div>
 
           <div class="c-card">
             <div class="c-row"><b>Servicio</b><span id="cf-svc">—</span></div>
@@ -1114,8 +1120,8 @@ async function confirmar() {
       document.getElementById('cf-ref-wrap').style.display = '';
     }
 
-    // Botones de calendario (se ocultan si hay pago MP pendiente)
-    if (!data.mp_url) {
+    // Botones de calendario (se ocultan si hay pago pendiente online)
+    if (!data.mp_url && !data.klap_url) {
       _actualizarCalButtons(y, m, d, st.hora, st.svc.duracion, negocioData.nombre_negocio, negocioData.direccion, espNom);
     } else {
       const calWrap = document.getElementById('cf-calendar-wrap');
@@ -1142,9 +1148,11 @@ async function confirmar() {
     // Métodos de pago
     const mp  = negocioData.metodos_pago || {};
     const db  = negocioData.datos_banco  || {};
-    const tieneMP  = !!data.mp_url;
-    const soloMP   = !!data.solo_mp;
-    const tienePago = tieneMP || mp.transferencia || mp.webpay || mp.efectivo;
+    const tieneMP   = !!data.mp_url;
+    const soloMP    = !!data.solo_mp;
+    const tieneKlap = !!data.klap_url;
+    const soloKlap  = !!data.solo_klap;
+    const tienePago = tieneMP || tieneKlap || mp.transferencia || mp.webpay || mp.efectivo;
 
     // Advertencia si MP falló pero hay otros métodos
     if (data.mp_error && mp.mp_connected && !tieneMP) {
@@ -1154,13 +1162,19 @@ async function confirmar() {
       document.getElementById('cf-pagos')?.before(warn);
     }
 
-    // "Completa tu pago" siempre que haya mp_url (pago requerido antes de confirmar)
-    if (tieneMP) {
+    // "Completa tu pago" cuando hay pago online pendiente (MP o Klap)
+    if (tieneMP || tieneKlap) {
       document.getElementById('cf-icon').textContent  = '→';
       document.getElementById('cf-title').textContent = 'Completa tu pago';
       document.getElementById('cf-sub').textContent   = 'Tu hora está reservada. Paga ahora para confirmar tu cita.';
-      document.getElementById('cf-mp-btn').href = data.mp_url;
-      document.getElementById('cf-mp-wrap').style.display = 'block';
+      if (tieneMP) {
+        document.getElementById('cf-mp-btn').href = data.mp_url;
+        document.getElementById('cf-mp-wrap').style.display = 'block';
+      }
+      if (tieneKlap) {
+        document.getElementById('cf-klap-btn').href = data.klap_url;
+        document.getElementById('cf-klap-wrap').style.display = 'block';
+      }
     } else {
       document.getElementById('cf-icon').textContent  = '✓';
       document.getElementById('cf-title').textContent = '¡Reserva confirmada!';
@@ -1168,6 +1182,7 @@ async function confirmar() {
         ? 'Te enviamos los detalles de pago y el resumen a tu correo.'
         : 'Te enviamos un resumen a tu correo. Puedes gestionar tu cita desde el link que recibirás.';
       document.getElementById('cf-mp-wrap').style.display = 'none';
+      document.getElementById('cf-klap-wrap').style.display = 'none';
     }
 
     if (precio && tienePago) {
