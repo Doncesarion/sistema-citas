@@ -99,7 +99,7 @@ body::before{
 .wd-mes{font-size:9px;color:var(--t4);margin-top:3px}
 .horas-ampm-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .horas-panel-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
-.horas-sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.horas-sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:220px;overflow-y:auto;padding-right:2px}
 @media(max-width:400px){.horas-sub-grid{grid-template-columns:repeat(2,1fr)}}
 .acc-body-pad{padding-top:18px}
 .svc-list{display:flex;flex-direction:column;gap:7px}
@@ -871,6 +871,11 @@ function renderSemana() {
     const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
     if (clienteId && !(key in _citasMes)) cargarCitasMes(date.getFullYear(), date.getMonth()).then(() => renderSemana()).catch(()=>{});
   });
+
+  // Esperar a que los datos estén cargados antes de auto-avanzar o auto-seleccionar
+  const key1 = `${lunes.getFullYear()}-${String(lunes.getMonth()+1).padStart(2,'0')}`;
+  const key2 = `${domingo.getFullYear()}-${String(domingo.getMonth()+1).padStart(2,'0')}`;
+  if (!(key1 in _citasMes) || !(key2 in _citasMes)) return;
 
   // Auto-avanzar si no hay disponibles (máx 26 semanas)
   if (!hayDisp && calWeekOffset < 26) { setTimeout(() => { calWeekOffset++; renderSemana(); }, 120); return; }
