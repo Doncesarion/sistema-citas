@@ -1780,8 +1780,9 @@ async function handleKlapInit(req, res, session) {
       body: JSON.stringify({
         reference_id: cita_id,
         amount: { currency: 'CLP', total: Math.round(Number(precio)) },
-        methods: ['tarjetas'],
-        description: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`,
+        subject: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`,
+        methods: ['klap_efectivo'],
+        custom_values: {},
         urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` },
         webhooks: { webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` }
       }),

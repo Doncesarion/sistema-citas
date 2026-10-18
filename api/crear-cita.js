@@ -817,8 +817,9 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             reference_id: cita.id,
             amount: { currency: 'CLP', total: precioNum },
-            methods: ['tarjetas'],
-            description: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
+            subject: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
+            methods: ['klap_efectivo'],
+            custom_values: {},
             urls: {
               return_url: `${BASE_URL}/pago-exitoso?tipo=cita`,
               cancel_url: manageShortUrl(cita.id)
