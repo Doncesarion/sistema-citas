@@ -4469,13 +4469,9 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div id="fp-boleta-row" style="display:none">
           <button class="btn-g" style="width:100%;font-size:11px;padding:7px 8px" onclick="openBoletaModal(_currentBoletaCita)">Emitir boleta</button>
         </div>
-        <!-- Klap: primario (mejor tasa) -->
-        <div id="fp-klap-row" style="display:none">
-          <button class="btn-a" style="width:100%;font-size:13px;font-weight:600;padding:10px 12px;background:#6C5CE4;border-color:#5a4bc4;letter-spacing:-.01em" onclick="enviarLinkKlapPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">Enviar link de pago Klap →</button>
-        </div>
-        <!-- MP: secundario -->
-        <div id="fp-mp-row" style="display:none">
-          <button class="btn-g" style="width:100%;font-size:12px;padding:8px 12px;color:#007bbd;border-color:rgba(0,123,189,.28)" onclick="enviarLinkMPPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">Enviar link Mercado Pago</button>
+        <!-- Link de pago combinado (Klap + MP en un solo email) -->
+        <div id="fp-links-pago" style="display:none">
+          <button class="btn-a" style="width:100%;font-size:13px;font-weight:600;padding:11px 12px;background:#6C5CE4;border-color:#5a4bc4" onclick="enviarLinkPago()">Enviar link de pago al paciente →</button>
         </div>
       </div>
 
@@ -5489,11 +5485,9 @@ async function loadFichaData(nombre) {
     const _esPagado = _pc?.estado_pago === 'pagado';
     const _tienePrecio = !!_pc?.precio;
     const _boletaRow = document.getElementById('fp-boleta-row');
-    const _mpRow = document.getElementById('fp-mp-row');
-    const _klapRow = document.getElementById('fp-klap-row');
+    const _linksRow = document.getElementById('fp-links-pago');
     if (_boletaRow) _boletaRow.style.display = _tienePrecio ? 'block' : 'none';
-    if (_mpRow)     _mpRow.style.display     = (_tienePrecio && !_esPagado) ? 'block' : 'none';
-    if (_klapRow)   _klapRow.style.display   = (_tienePrecio && !_esPagado) ? 'block' : 'none';
+    if (_linksRow)  _linksRow.style.display  = (_tienePrecio && !_esPagado) ? 'block' : 'none';
     // Pago manual: mostrar cuando hay precio y no está pagado
     const _pagManual = document.getElementById('fp-pago-manual');
     if (_pagManual) _pagManual.style.display = (_tienePrecio && !_esPagado) ? '' : 'none';
@@ -10522,10 +10516,8 @@ function openVentaDetalle(jsonStr) {
   // Guardar cita para boleta y mostrar botones
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
-  const mpRow = document.getElementById('fp-mp-row');
-  if (mpRow) mpRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
-  const klapRow = document.getElementById('fp-klap-row');
-  if (klapRow) klapRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
+  const linksRow2 = document.getElementById('fp-links-pago');
+  if (linksRow2) linksRow2.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   _fichaCurrentNombre = c.nombre_paciente || '';
   window._fichaDetalleCita = c;
   const hw = document.getElementById('ft-hist-wrap');
@@ -10605,36 +10597,47 @@ async function desconectarMP() {
   } catch(e) { toast('Error de conexión'); }
 }
 
-async function enviarLinkMPPago(cita_id, nombre) {
+async function enviarLinkPago() {
+  const cita_id = _currentBoletaCita?.id;
+  const nombre  = _currentBoletaCita?.nombre_paciente;
   if (!cita_id) return;
-  if (!confirm('¿Enviar link de pago Mercado Pago a ' + (nombre || 'el paciente') + '?\n\nEl paciente recibirá un email con el botón de pago MP.')) return;
+  if (!confirm('¿Enviar link de pago a ' + (nombre || 'el paciente') + '?\n\nRecibirá un email con opciones de pago Klap y Mercado Pago.')) return;
+  const btn = document.querySelector('#fp-links-pago button');
+  if (btn) { btn.textContent = 'Enviando…'; btn.disabled = true; }
   try {
     const r = await fetch('/api/flow', {
       method: 'POST',
       headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo: 'mp_create', cita_id })
+      body: JSON.stringify({ tipo: 'enviar_link_pago', cita_id })
     });
     const d = await r.json();
-    if (!r.ok || !d.ok) { toast('Error: ' + (d.error || 'No se pudo crear el pago')); return; }
-    toast('Link de pago Mercado Pago enviado al paciente ✓');
+    if (!r.ok || !d.ok) { toastErr(d.error || 'No se pudo enviar el link de pago'); return; }
+    toast('Link de pago enviado al paciente');
     cargarVentas();
-  } catch(e) { toast('Error de conexión'); }
+  } catch(e) { toastErr('Error de conexión'); }
+  finally { if (btn) { btn.textContent = 'Enviar link de pago al paciente →'; btn.disabled = false; } }
 }
 
+// Funciones legacy mantenidas para los tags en la lista de citas
+async function enviarLinkMPPago(cita_id, nombre) {
+  if (!cita_id) return;
+  try {
+    const r = await fetch('/api/flow', { method: 'POST', headers: { ..._citasH(), 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo: 'mp_create', cita_id }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) { toastErr(d.error || 'Error MP'); return; }
+    toast('Link Mercado Pago enviado');
+    cargarVentas();
+  } catch(e) { toastErr('Error de conexión'); }
+}
 async function enviarLinkKlapPago(cita_id, nombre) {
   if (!cita_id) return;
-  if (!confirm('¿Enviar link de pago Klap a ' + (nombre || 'el paciente') + '?\n\nEl paciente recibirá un email con el botón de pago Klap.')) return;
   try {
-    const r = await fetch('/api/klap-init', {
-      method: 'POST',
-      headers: { ..._citasH(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cita_id })
-    });
+    const r = await fetch('/api/klap-init', { method: 'POST', headers: { ..._citasH(), 'Content-Type': 'application/json' }, body: JSON.stringify({ cita_id }) });
     const d = await r.json();
-    if (!r.ok || !d.ok) { toast('Error: ' + (d.error || 'No se pudo crear el pago Klap')); return; }
-    toast('Link de pago Klap enviado al paciente ✓');
+    if (!r.ok || !d.ok) { toastErr(d.error || 'Error Klap'); return; }
+    toast('Link Klap enviado');
     cargarVentas();
-  } catch(e) { toast('Error de conexión'); }
+  } catch(e) { toastErr('Error de conexión'); }
 }
 
 /* ════ NUEVO CLIENTE ════ */
@@ -17595,8 +17598,7 @@ async function registrarPagoManual() {
     const _rev = document.getElementById('fp-revertir-row');
     if (_rev) _rev.style.display = '';
     // Ocultar botones de link
-    const _mr = document.getElementById('fp-mp-row'); if (_mr) _mr.style.display = 'none';
-    const _kr = document.getElementById('fp-klap-row'); if (_kr) _kr.style.display = 'none';
+    const _lr = document.getElementById('fp-links-pago'); if (_lr) _lr.style.display = 'none';
     // Actualizar badge
     const badge = document.getElementById('fp-pago-badge');
     const _dotEl = document.getElementById('fp-pago-dot');
@@ -17636,8 +17638,7 @@ async function revertirPagoManual() {
     // UI: ocultar revertir, mostrar registro + links
     document.getElementById('fp-revertir-row').style.display = 'none';
     document.getElementById('fp-pago-manual').style.display = '';
-    const _mr = document.getElementById('fp-mp-row'); if (_mr) _mr.style.display = 'block';
-    const _kr = document.getElementById('fp-klap-row'); if (_kr) _kr.style.display = 'block';
+    const _lr2 = document.getElementById('fp-links-pago'); if (_lr2) _lr2.style.display = 'block';
     // Badge: pendiente
     const badge = document.getElementById('fp-pago-badge');
     const _dotEl = document.getElementById('fp-pago-dot');

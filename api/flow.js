@@ -176,6 +176,61 @@ function emailPendientePagoHtml({ nombre_paciente, nombre_especialista, fechaFmt
 </body></html>`;
 }
 
+function emailDosPagoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, precio, klap_url, mp_url, cita_id }) {
+  const np = htmlEscape(nombre_paciente);
+  const ne = htmlEscape(nombre_especialista || 'Profesional');
+  const sv = htmlEscape(servicio || '');
+  const nn = htmlEscape(negocio_nombre || 'la clínica');
+  const precioStr = precio ? '$' + Number(precio).toLocaleString('es-CL') : '';
+  const cancelUrl = `${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}&token=${generateManageToken(cita_id)}`;
+
+  const klapBtn = klap_url ? `
+    <a href="${htmlEscape(klap_url)}" target="_blank" style="display:block;text-align:center;background:#6C5CE4;color:#fff;padding:15px 24px;border-radius:10px;text-decoration:none;font-size:16px;font-weight:700;letter-spacing:0.2px;margin-bottom:6px;">Pagar con Klap</a>
+    <p style="margin:0 0 ${mp_url ? '22px' : '0'};font-size:11px;color:#9ca3af;text-align:center;">Tarjeta de débito o crédito · Link válido 20 min</p>` : '';
+
+  const divider = (klap_url && mp_url) ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;"><tr>
+      <td style="border-bottom:1px solid #e5e7eb;"></td>
+      <td style="white-space:nowrap;padding:0 14px;font-size:12px;color:#9ca3af;vertical-align:middle;">o también</td>
+      <td style="border-bottom:1px solid #e5e7eb;"></td>
+    </tr></table>` : '';
+
+  const mpBtn = mp_url ? `
+    <a href="${htmlEscape(mp_url)}" target="_blank" style="display:block;text-align:center;background:#fff;color:#009ee3;border:2px solid #009ee3;padding:12px 24px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;margin-bottom:6px;">Pagar con Mercado Pago</a>
+    <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Tarjetas, transferencia y más opciones</p>` : '';
+
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
+<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
+  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
+  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+</td></tr>
+<tr><td style="padding:32px;">
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;text-align:center;">Completa el pago de tu cita</h2>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;text-align:center;">Hola <strong>${np}</strong>, tu hora está separada. Completa el pago para confirmarla.</p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;margin-bottom:28px;">
+  <tr><td style="padding:20px;"><table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td style="padding:5px 0;text-align:center;"><span style="color:#6C5CE4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Centro</span><br><span style="color:#2d2d2d;font-size:14px;">${nn}</span></td></tr>
+    <tr><td style="padding:5px 0;text-align:center;"><span style="color:#6C5CE4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Profesional</span><br><span style="color:#2d2d2d;font-size:14px;">${ne}</span></td></tr>
+    <tr><td style="padding:5px 0;text-align:center;"><span style="color:#6C5CE4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Fecha</span><br><span style="color:#2d2d2d;font-size:14px;">${htmlEscape(fechaFmt)}</span></td></tr>
+    <tr><td style="padding:5px 0;text-align:center;"><span style="color:#6C5CE4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Hora</span><br><span style="color:#2d2d2d;font-size:14px;">${htmlEscape(hora)}</span></td></tr>
+    ${sv ? `<tr><td style="padding:5px 0;text-align:center;"><span style="color:#6C5CE4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Motivo</span><br><span style="color:#2d2d2d;font-size:14px;">${sv}</span></td></tr>` : ''}
+    ${precioStr ? `<tr><td style="padding:12px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Total a pagar</span><br><span style="color:#6C5CE4;font-size:26px;font-weight:700;">${htmlEscape(precioStr)}</span></td></tr>` : ''}
+  </table></td></tr>
+  </table>
+  <p style="margin:0 0 18px;font-size:13px;font-weight:600;color:#374151;text-align:center;">Elige cómo quieres pagar</p>
+  ${klapBtn}${divider}${mpBtn}
+  <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;text-align:center;">Si no puedes asistir, <a href="${cancelUrl}" style="color:#6C5CE4;text-decoration:none;">cancela tu cita aquí</a>.</p>
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe;">
+  <p style="margin:0;color:#9ca3af;font-size:12px;">Agendado con <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none;">Attempo</a> — Todo a tu tiempo</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 function emailWebpayPendienteHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, precio, payment_url, cita_id }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
@@ -1604,9 +1659,10 @@ export default async function handler(req, res) {
   const session = verifySessionToken(req.headers['x-session-token']);
   if (!session) return res.status(401).json({ error: 'No autorizado' });
 
-  if (req.body?.tipo === 'webpay_init')    return handleWebpayInit(req, res, session);
-  if (req.body?.tipo === 'mp_create')      return handleMPCreate(req, res, session);
-  if (req.query?.tipo === 'klap_init')     return handleKlapInit(req, res, session);
+  if (req.body?.tipo === 'webpay_init')      return handleWebpayInit(req, res, session);
+  if (req.body?.tipo === 'mp_create')        return handleMPCreate(req, res, session);
+  if (req.body?.tipo === 'enviar_link_pago') return handleEnviarLinkPago(req, res, session);
+  if (req.query?.tipo === 'klap_init')       return handleKlapInit(req, res, session);
 
   const { cita_id, enviar_email = true } = req.body || {};
   if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });
@@ -1804,6 +1860,78 @@ async function handleKlapInit(req, res, session) {
     } catch(e) { console.error('klap_init: email error', e.message); }
   }
   return res.status(200).json({ ok: true, redirect_url: klapOrder.redirect_url, order_id: klapOrder.order_id, email_ok });
+}
+
+async function handleEnviarLinkPago(req, res, session) {
+  const { cita_id } = req.body || {};
+  if (!cita_id) return res.status(400).json({ error: 'Falta cita_id' });
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const [cita] = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}&select=*&limit=1`, { headers: sh }).then(r => r.json());
+  if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
+  if (session.rol !== 'superadmin' && cita.cliente_id !== session.cliente_id) return res.status(403).json({ error: 'Sin permiso' });
+  if (!cita.email_paciente) return res.status(400).json({ error: 'La cita no tiene email del paciente' });
+  if (!cita.precio) return res.status(400).json({ error: 'La cita no tiene precio asignado' });
+  if (cita.estado_pago === 'pagado') return res.status(409).json({ error: 'La cita ya fue pagada' });
+
+  const [cli] = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago&limit=1`, { headers: sh }).then(r => r.json());
+  const mp = cli?.metodos_pago || {};
+
+  let nombre_especialista = '';
+  if (cita.especialista_id) {
+    try { const [e] = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${encodeURIComponent(cita.especialista_id)}&select=nombre&limit=1`, { headers: sh }).then(r => r.json()); nombre_especialista = e?.nombre || ''; } catch(_) {}
+  }
+  const fechaFmt = cita.fecha ? new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+  const precio = cita.precio || cita.monto;
+
+  const [klapResult, mpResult] = await Promise.allSettled([
+    // Klap
+    (async () => {
+      const apiKey  = mp.klap_api_key || process.env.KLAP_API_KEY;
+      if (!apiKey) throw new Error('no_klap_key');
+      const klapBase = (mp.klap_sandbox !== false && !process.env.KLAP_PROD) ? KLAP_SAND_URL : KLAP_PROD_URL;
+      const kr = await fetch(`${klapBase}/payment-gateway/v1/orders`, { method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: cita_id, amount: { currency: 'CLP', total: Math.round(Number(precio)) }, description: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`, methods: ['tarjetas'], user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: (cita.tel_paciente || '').replace(/^\+/, '') || undefined }, customs: [{ key: 'tarjetas_expiration_minutes', value: '20' }, { key: 'tarjetas_payment_indicator', value: 'typed' }, { key: 'notify_payment_user', value: 'true' }], urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` }, webhooks: { webhook_validation: `${BASE_URL}/api/klap-validate`, webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` } }), signal: AbortSignal.timeout(15000) });
+      const order = await kr.json();
+      if (!kr.ok || !order?.redirect_url) throw new Error('klap_api_error');
+      return order;
+    })(),
+    // Mercado Pago
+    (async () => {
+      const mpToken = mp.mp_access_token;
+      if (!mpToken) throw new Error('no_mp_token');
+      const preference = { items: [{ id: cita_id, title: `${cita.servicio || 'Consulta'}${fechaFmt ? ' — ' + fechaFmt : ''}`, quantity: 1, currency_id: 'CLP', unit_price: Number(precio) }], payer: { name: (cita.nombre_paciente || '').split(' ')[0] || '', email: cita.email_paciente }, back_urls: { success: `${BASE_URL}/pago-mp.html?cita=${cita_id}&status=success`, failure: `${BASE_URL}/pago-mp.html?cita=${cita_id}&status=failure`, pending: `${BASE_URL}/pago-mp.html?cita=${cita_id}&status=pending` }, auto_return: 'approved', external_reference: cita_id, marketplace: process.env.MP_CLIENT_ID, marketplace_fee: 0, notification_url: `${BASE_URL}/api/flow?tipo=mp_webhook` };
+      let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${mpToken}` }, body: JSON.stringify(preference) });
+      let prefData = await prefResp.json();
+      if (prefResp.status === 401 || prefData?.error === 'invalid_token') {
+        const newToken = await refreshMPToken(cita.cliente_id, mp, sh);
+        if (!newToken) throw new Error('mp_token_expired');
+        prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${newToken}` }, body: JSON.stringify(preference) });
+        prefData = await prefResp.json();
+      }
+      if (!prefData.init_point) throw new Error('mp_no_init_point');
+      return { init_point: mp.mp_sandbox ? prefData.sandbox_init_point : prefData.init_point };
+    })()
+  ]);
+
+  const klap_url      = klapResult.status  === 'fulfilled' ? klapResult.value.redirect_url : null;
+  const klap_order_id = klapResult.status  === 'fulfilled' ? klapResult.value.order_id     : null;
+  const mp_url        = mpResult.status    === 'fulfilled' ? mpResult.value.init_point      : null;
+  if (!klap_url && !mp_url) return res.status(400).json({ error: 'No se pudo generar ningún link de pago. Verifica la configuración de Klap y Mercado Pago en Ajustes.' });
+
+  const patch = { estado: 'pending_payment' };
+  if (klap_order_id) patch.klap_order_id = klap_order_id;
+  await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${encodeURIComponent(cita_id)}`, { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify(patch) }).catch(() => {});
+
+  let email_error = null;
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const html = emailDosPagoHtml({ nombre_paciente: cita.nombre_paciente || 'Paciente', nombre_especialista, fechaFmt, hora: (cita.hora || '').slice(0, 5), servicio: cita.servicio || '', negocio_nombre: cli?.nombre_negocio || '', precio, klap_url, mp_url, cita_id });
+      const er = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'Attempo <contacto@attempo.cl>', to: [cita.email_paciente], subject: `Tu link de pago — ${cli?.nombre_negocio || 'attempo'}`, html }) });
+      if (!er.ok) { const ed = await er.json(); email_error = ed?.message; console.error('enviar_link_pago email:', email_error); }
+    } catch(e) { email_error = e.message; }
+  }
+  return res.json({ ok: true, klap_url, mp_url, email_error: email_error || null });
 }
 
 async function handleKlapValidate(req, res) {
