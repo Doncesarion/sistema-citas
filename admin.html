@@ -5574,16 +5574,14 @@ async function loadFichaData(nombre) {
     const _mpEl = document.getElementById('fpi-metodo-pago');
     const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago', klap:'Klap' };
     if (_epEl) {
-      if (!_tienePrecio)    { _epEl.textContent = '—'; _epEl.style.color = 'var(--t3)'; }
-      else if (_esPagado)   { _epEl.textContent = 'Pagado'; _epEl.style.color = 'var(--green)'; }
-      else if (_esPendMP)   { _epEl.textContent = 'Pendiente · Mercado Pago'; _epEl.style.color = '#b45309'; }
-      else if (_esPendKlap) { _epEl.textContent = 'Pendiente · Klap'; _epEl.style.color = '#b45309'; }
-      else                  { _epEl.textContent = 'Pendiente'; _epEl.style.color = '#b45309'; }
+      if (!_tienePrecio) { _epEl.textContent = '—'; _epEl.style.color = 'var(--t3)'; }
+      else if (_esPagado) { _epEl.textContent = 'Pagado'; _epEl.style.color = 'var(--green)'; }
+      else                { _epEl.textContent = 'Pendiente'; _epEl.style.color = '#b45309'; }
     }
     if (_mpEl) {
-      if (_esPagado && _pc?.metodo_pago)  { _mpEl.textContent = _METODO[_pc.metodo_pago] || _pc.metodo_pago; _mpEl.style.color = 'var(--t1)'; }
-      else if (_tienePrecio)              { _mpEl.textContent = 'Pendiente'; _mpEl.style.color = '#b45309'; }
-      else                                { _mpEl.textContent = '—'; _mpEl.style.color = 'var(--t3)'; }
+      if (_pc?.metodo_pago && _tienePrecio) { _mpEl.textContent = _METODO[_pc.metodo_pago] || _pc.metodo_pago; _mpEl.style.color = _esPagado ? 'var(--t1)' : '#b45309'; }
+      else if (_tienePrecio)                { _mpEl.textContent = 'Pendiente'; _mpEl.style.color = '#b45309'; }
+      else                                  { _mpEl.textContent = '—'; _mpEl.style.color = 'var(--t3)'; }
     }
     // — Badge de pago —
     const _pagBadge = document.getElementById('fp-pago-badge');
@@ -10560,17 +10558,15 @@ function openVentaDetalle(jsonStr) {
   const esPendienteKlap2  = c.estado === 'pending_payment' && c.metodo_pago === 'klap';
   const epEl = document.getElementById('fpi-estado-pago');
   if (epEl) {
-    if (!_tienePrecioD)        { epEl.textContent = '—'; epEl.style.color = 'var(--t3)'; }
-    else if (_esPagadoD)       { epEl.textContent = 'Pagado'; epEl.style.color = 'var(--green)'; }
-    else if (esPendienteMP2)   { epEl.textContent = 'Pendiente · Mercado Pago'; epEl.style.color = '#b45309'; }
-    else if (esPendienteKlap2) { epEl.textContent = 'Pendiente · Klap'; epEl.style.color = '#b45309'; }
-    else                       { epEl.textContent = 'Pendiente'; epEl.style.color = '#b45309'; }
+    if (!_tienePrecioD) { epEl.textContent = '—'; epEl.style.color = 'var(--t3)'; }
+    else if (_esPagadoD) { epEl.textContent = 'Pagado'; epEl.style.color = 'var(--green)'; }
+    else                 { epEl.textContent = 'Pendiente'; epEl.style.color = '#b45309'; }
   }
   const mpEl = document.getElementById('fpi-metodo-pago');
   if (mpEl) {
-    if (_esPagadoD && c.metodo_pago) { mpEl.textContent = METODO_LABEL[c.metodo_pago] || c.metodo_pago; mpEl.style.color = 'var(--t1)'; }
-    else if (_tienePrecioD)          { mpEl.textContent = 'Pendiente'; mpEl.style.color = '#b45309'; }
-    else                             { mpEl.textContent = '—'; mpEl.style.color = 'var(--t3)'; }
+    if (c.metodo_pago && _tienePrecioD) { mpEl.textContent = METODO_LABEL[c.metodo_pago] || c.metodo_pago; mpEl.style.color = _esPagadoD ? 'var(--t1)' : '#b45309'; }
+    else if (_tienePrecioD)             { mpEl.textContent = 'Pendiente'; mpEl.style.color = '#b45309'; }
+    else                                { mpEl.textContent = '—'; mpEl.style.color = 'var(--t3)'; }
   }
   const vRow2 = document.getElementById('fpi-voucher-row');
   const vVal2 = document.getElementById('fpi-voucher-val');
