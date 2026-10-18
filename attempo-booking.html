@@ -102,6 +102,9 @@ body::before{
 .horas-sub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;margin-bottom:4px}
 .acc-body-pad{padding-top:18px}
 .svc-list{display:flex;flex-direction:column;gap:7px}
+.mod-choice{padding:14px 10px;border-radius:10px;border:2px solid var(--b1);background:var(--bg2);cursor:pointer;text-align:center;transition:border-color .15s,background .15s;font-family:var(--font);width:100%}
+.mod-choice:hover{border-color:var(--b2)}
+.mod-choice.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
 .svc-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;}
 .svc-row:hover{border-color:var(--b2);background:rgba(108,92,228,0.03)}
 .svc-row.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
@@ -320,6 +323,21 @@ body::before{
           <div class="svc-list" id="svc-list">
             <div style="text-align:center;padding:20px 0;color:var(--t3);font-size:13px">Cargando servicios...</div>
           </div>
+          <div id="mod-chooser" style="display:none;margin-top:16px;padding:14px 16px;background:rgba(108,92,228,0.04);border-radius:12px;border:1px solid rgba(108,92,228,0.12)">
+            <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:10px;text-align:center">¿Cómo prefieres la atención?</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <button class="mod-choice" id="mc-pres" onclick="selModalidad('presencial')">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin-bottom:5px;color:var(--a)"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <div style="font-size:13px;font-weight:600">Presencial</div>
+                <div style="font-size:11px;color:var(--t3);margin-top:2px">En el centro</div>
+              </button>
+              <button class="mod-choice" id="mc-onl" onclick="selModalidad('online')">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="margin-bottom:5px;color:var(--a)"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                <div style="font-size:13px;font-weight:600">Online</div>
+                <div style="font-size:11px;color:var(--t3);margin-top:2px">Videollamada</div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -494,7 +512,7 @@ let especialistas = [];
 let ratingsMap = {};
 let citasDelDia = [];
 
-const st = { svc: null, prof: null, fecha: null, hora: null };
+const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
 
 /* ── INIT ── */
 (async function init() {
@@ -643,7 +661,7 @@ function renderServicios(servicios) {
     const durStr  = s.duracion ? `${s.duracion} min` : '';
     const precioBase = s.precio ? Number(s.precio) : 0;
     const precioStr = precioBase ? `$${precioBase.toLocaleString('es-CL')}` : '';
-    const dataStr = JSON.stringify({ nom: s.nombre, duracion: s.duracion || 60, precio: s.precio || 0, icon });
+    const dataStr = JSON.stringify({ nom: s.nombre, duracion: s.duracion || 60, precio: s.precio || 0, icon, modalidad: s.modalidad || 'presencial' });
     return `<div class="svc-row" data-svc='${dataStr.replace(/'/g,"&#39;")}' onclick="selSvc(this)">
       <div class="svc-icon">${icon}</div>
       <div class="svc-info">
@@ -668,7 +686,23 @@ function selSvc(el) {
   hideHoras();
   updateResumen();
   renderProfs();
-  setTimeout(() => openAcc(2), 250);
+  const mod = data.modalidad || 'presencial';
+  const chooser = document.getElementById('mod-chooser');
+  if (mod === 'ambos') {
+    st.modalidad = null;
+    if (chooser) { chooser.style.display = ''; document.querySelectorAll('.mod-choice').forEach(b => b.classList.remove('sel')); }
+  } else {
+    st.modalidad = mod;
+    if (chooser) chooser.style.display = 'none';
+    setTimeout(() => openAcc(2), 250);
+  }
+}
+
+function selModalidad(mod) {
+  st.modalidad = mod;
+  document.querySelectorAll('.mod-choice').forEach(b => b.classList.remove('sel'));
+  document.getElementById(mod === 'presencial' ? 'mc-pres' : 'mc-onl')?.classList.add('sel');
+  setTimeout(() => openAcc(2), 280);
 }
 
 /* ── PROFESIONALES ── */
@@ -1132,6 +1166,7 @@ async function confirmar() {
       negocio_nombre:    negocioData.nombre_negocio,
       notas:             nota || null,
       slug:              slug || null,
+      modalidad:         st.modalidad || 'presencial',
     };
 
     const r = await fetch('/api/crear-cita', {

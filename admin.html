@@ -3682,6 +3682,14 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
               <datalist id="srv-cat-list"></datalist>
               <textarea id="srv-desc" class="fi" placeholder="Descripción (opcional)" rows="1" style="flex:2;resize:none;font-size:12px;line-height:1.5"></textarea>
             </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:12px;color:var(--t2);white-space:nowrap;flex-shrink:0">Modalidad</label>
+              <select id="srv-modalidad" class="fs" style="flex:1;font-size:12px">
+                <option value="presencial">Presencial</option>
+                <option value="online">Online</option>
+                <option value="ambos">Ambas (paciente elige)</option>
+              </select>
+            </div>
             <div id="srv-esps-wrap" style="display:none">
               <button type="button" onclick="toggleSrvEspsForm()" id="srv-esps-toggle" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:11px;color:var(--a);padding:0;margin-bottom:0">
                 <span id="srv-esps-arrow">▶</span> Asignar a profesionales específicos
@@ -4278,6 +4286,13 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <label class="fl">Servicio</label>
         <select class="fs" id="ms-servicio" onchange="updatePrice(this)"><option value="0" data-nombre="Consulta" data-dur="30">Cargando...</option></select>
       </div>
+      <div class="fg" id="ms-modalidad-row" style="display:none">
+        <label class="fl">Modalidad</label>
+        <div style="display:flex;gap:6px">
+          <button type="button" id="mb-pres" onclick="setModalidadBtn('presencial')" style="flex:1;padding:8px;border-radius:7px;border:2px solid var(--a);background:rgba(108,92,228,0.08);color:var(--a);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)">Presencial</button>
+          <button type="button" id="mb-onl" onclick="setModalidadBtn('online')" style="flex:1;padding:8px;border-radius:7px;border:2px solid var(--b2);background:var(--bg2);color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--font)">Online</button>
+        </div>
+      </div>
       <div class="fg">
         <label class="fl">Método de pago</label>
         <div class="pay-grid">
@@ -4308,6 +4323,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div class="sum-row"><span class="sum-lbl">Cliente</span><span class="sum-val" id="s-cli">—</span></div>
         <div class="sum-row"><span class="sum-lbl">Profesional</span><span class="sum-val" id="s-prof">—</span></div>
         <div class="sum-row"><span class="sum-lbl">Servicio</span><span class="sum-val" id="s-srv">Consulta Médica</span></div>
+        <div class="sum-row" id="s-modalidad-row" style="display:none"><span class="sum-lbl">Modalidad</span><span class="sum-val" id="s-modalidad">Presencial</span></div>
         <div class="sum-sep"></div>
         <div class="sum-row" style="margin-top:4px">
           <span class="sum-total-lbl">Total</span>
@@ -4418,6 +4434,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div id="fpi-voucher-row" style="display:none"><div class="fp-info-lbl">Voucher</div><div id="fpi-voucher-val" style="margin-top:2px"></div></div>
           <div><div class="fp-info-lbl" id="fpi-proxima-lbl">Próxima cita</div><div class="fp-info-val accent" id="fpi-proxima">—</div></div>
           <div><div class="fp-info-lbl">Servicio</div><div class="fp-info-val" id="fpi-servicio-prox">—</div></div>
+          <div id="fpi-modalidad-wrap" style="display:none"><div class="fp-info-lbl">Modalidad</div><div class="fp-info-val" id="fpi-modalidad">—</div></div>
           <div><div class="fp-info-lbl">Profesional</div><div class="fp-info-val" id="fpi-prof-habitual">—</div></div>
           <div><div class="fp-info-lbl">Más reservado</div><div class="fp-info-val" id="fpi-serv-top">—</div><div style="font-size:11px;color:var(--t3);margin-top:1px" id="fpi-serv-top-sub"></div></div>
         </div>
@@ -4570,6 +4587,7 @@ function sv(v, btn, skipPush) {
 
 /* ════ MODAL — 3 STEPS ════ */
 let curStep = 1;
+let _currentModalidad = 'presencial';
 
 function openModal() {
   document.getElementById('modal-ov').classList.add('open');
@@ -4621,7 +4639,7 @@ async function _loadModalServicios() {
     const [cli] = await r.json();
     const srvs = Array.isArray(cli?.servicios) ? cli.servicios : [];
     sel.innerHTML = srvs.length
-      ? srvs.map(s => `<option value="${s.precio||0}" data-nombre="${s.nombre}" data-dur="${s.duracion||30}">${s.nombre}${s.duracion?' · '+s.duracion+' min':''}${s.precio?' · $'+Number(s.precio).toLocaleString('es-CL'):''}</option>`).join('')
+      ? srvs.map(s => `<option value="${s.precio||0}" data-nombre="${s.nombre}" data-dur="${s.duracion||30}" data-modalidad="${s.modalidad||'presencial'}">${s.nombre}${s.duracion?' · '+s.duracion+' min':''}${s.precio?' · $'+Number(s.precio).toLocaleString('es-CL'):''}</option>`).join('')
       : '<option value="0" data-nombre="Consulta" data-dur="30">Consulta</option>';
     updatePrice(sel);
   } catch(_) {}
@@ -4892,6 +4910,34 @@ function updatePrice(sel) {
   const opt = sel.options[sel.selectedIndex];
   const nombre = opt?.dataset?.nombre || opt?.text?.split('·')[0]?.trim() || 'Consulta';
   document.getElementById('s-srv').textContent = nombre;
+  // Modalidad
+  const mod = opt?.dataset?.modalidad || 'presencial';
+  const modRow = document.getElementById('ms-modalidad-row');
+  const sModRow = document.getElementById('s-modalidad-row');
+  if (mod === 'ambos') {
+    if (modRow) modRow.style.display = '';
+    setModalidadBtn('presencial');
+  } else {
+    if (modRow) modRow.style.display = 'none';
+    _currentModalidad = mod;
+    if (sModRow) sModRow.style.display = mod === 'online' ? '' : 'none';
+    const sModEl = document.getElementById('s-modalidad');
+    if (sModEl) sModEl.textContent = mod === 'online' ? 'Online' : 'Presencial';
+  }
+}
+
+function setModalidadBtn(mod) {
+  _currentModalidad = mod;
+  const presBtn = document.getElementById('mb-pres');
+  const onlBtn  = document.getElementById('mb-onl');
+  if (!presBtn || !onlBtn) return;
+  const [actBtn, inactBtn] = mod === 'presencial' ? [presBtn, onlBtn] : [onlBtn, presBtn];
+  actBtn.style.borderColor  = 'var(--a)';   actBtn.style.background  = 'rgba(108,92,228,0.08)'; actBtn.style.color  = 'var(--a)';   actBtn.style.fontWeight = '600';
+  inactBtn.style.borderColor = 'var(--b2)'; inactBtn.style.background = 'var(--bg2)';            inactBtn.style.color = 'var(--t2)'; inactBtn.style.fontWeight = '500';
+  const sModRow = document.getElementById('s-modalidad-row');
+  const sModEl  = document.getElementById('s-modalidad');
+  if (sModRow) sModRow.style.display = '';
+  if (sModEl)  sModEl.textContent = mod === 'presencial' ? 'Presencial' : 'Online';
 }
 
 /* Client search */
@@ -5063,7 +5109,7 @@ async function saveReservation() {
           : _payProvider === 'webpay' ? 'link_webpay' : _payProvider === 'mp' ? 'link_mp' : 'link_flow';
         // link_webpay / link_mp: no enviar email de confirmación desde crear-cita (el handler de pago envía el suyo propio)
         const envEmail = (mp === 'link_webpay' || mp === 'link_mp') ? false : document.getElementById('email-check')?.checked !== false;
-        return { cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, from_admin: true, estado_admin: currentEstado, enviar_email: envEmail, metodo_pago_admin: mp };
+        return { cliente_id: cid, especialista_id, nombre_especialista, nombre_paciente, email_paciente, tel_paciente, servicio, fecha, hora, precio, duracion, modalidad: _currentModalidad || 'presencial', from_admin: true, estado_admin: currentEstado, enviar_email: envEmail, metodo_pago_admin: mp };
       })())
     });
     const d = await r.json();
@@ -5479,6 +5525,17 @@ async function loadFichaData(nombre) {
     window._fichaProxHora   = prox ? (prox.hora||'').slice(0,5) : null;
     const srvProxEl = document.getElementById('fpi-servicio-prox');
     if (srvProxEl) srvProxEl.textContent = (window._fichaDetalleCita || prox)?.servicio || '—';
+    // Modalidad
+    const _modEl = document.getElementById('fpi-modalidad');
+    const _modWrap = document.getElementById('fpi-modalidad-wrap');
+    if (_modEl && _modWrap) {
+      const _mod = _pc?.modalidad;
+      if (_pc && _mod && _mod !== 'presencial') {
+        _modWrap.style.display = '';
+        _modEl.textContent = _mod === 'online' ? 'Online' : 'Presencial · Online';
+        _modEl.style.color = _mod === 'online' ? '#007a9e' : 'var(--a)';
+      } else { _modWrap.style.display = 'none'; }
+    }
     // Botones de pago y estado pago — usar cita específica si se abrió desde Ventas, si no la próxima
     const _pc = window._fichaDetalleCita || prox;
     _currentBoletaCita = _pc || null;
@@ -6060,11 +6117,13 @@ function renderServicios() {
           : espsAsig.map(e => `<span style="font-size:10px;background:var(--adim);color:var(--t2);border-radius:3px;padding:1px 5px;border:1px solid var(--b1)">${e.nombre}</span>`).join(' '))
         : '';
       const meta = [s.duracion ? s.duracion+' min' : '', s.precio ? '$'+Number(s.precio).toLocaleString('es-CL') : ''].filter(Boolean).join(' · ');
+      const modBadge = s.modalidad === 'online' ? '<span style="font-size:10px;background:rgba(0,177,234,0.1);color:#007a9e;border-radius:3px;padding:1px 6px;border:1px solid rgba(0,177,234,0.2)">Online</span>' : s.modalidad === 'ambos' ? '<span style="font-size:10px;background:rgba(108,92,228,0.08);color:var(--a);border-radius:3px;padding:1px 6px;border:1px solid rgba(108,92,228,0.15)">Presencial · Online</span>' : '';
       const sep = (ri < items.length - 1 || gi < cats.length - 1) ? 'border-bottom:1px solid var(--b1)' : '';
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;${sep}">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:500;color:var(--t1)">${s.nombre}</span>
           ${meta ? `<span style="font-size:11px;color:var(--t3)">${meta}</span>` : ''}
+          ${modBadge}
           ${profTag}
           ${s.descripcion ? `<span style="font-size:11px;color:var(--t4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="${s.descripcion}">${s.descripcion}</span>` : ''}
         </div>
@@ -6150,11 +6209,12 @@ function agregarServicio() {
   const precio      = parseInt(document.getElementById('srv-precio')?.value)   || null;
   const descripcion = document.getElementById('srv-desc')?.value.trim()  || null;
   const categoria   = document.getElementById('srv-cat')?.value.trim()   || null;
+  const modalidad   = document.getElementById('srv-modalidad')?.value    || 'presencial';
   if (!nombre) { toast('Ingresa un nombre para el servicio'); return; }
   const checks = document.querySelectorAll('#srv-esps-form input[type=checkbox]:checked');
   const especialistas_ids = Array.from(checks).map(c => c.value).filter(Boolean);
   const editIdx = document.getElementById('srv-nombre')?._editIdx ?? -1;
-  const srv = { nombre, duracion, precio };
+  const srv = { nombre, duracion, precio, modalidad };
   if (descripcion) srv.descripcion = descripcion;
   if (categoria)   srv.categoria   = categoria;
   if (especialistas_ids.length) srv.especialistas_ids = especialistas_ids;
@@ -6166,6 +6226,7 @@ function agregarServicio() {
   renderServicios();
   renderSrvEspsForm();
   ['srv-nombre','srv-duracion','srv-precio','srv-desc','srv-cat'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const _modSel = document.getElementById('srv-modalidad'); if (_modSel) _modSel.value = 'presencial';
   toggleSrvForm();
 }
 
@@ -6182,6 +6243,7 @@ function editarServicio(idx) {
   set('srv-precio',   s.precio ?? '');
   set('srv-desc',     s.descripcion ?? '');
   set('srv-cat',      s.categoria ?? '');
+  set('srv-modalidad', s.modalidad ?? 'presencial');
   // Marcar como edición en curso (elimina el original al agregar)
   document.getElementById('srv-nombre')._editIdx = idx;
   document.getElementById('srv-nombre').focus();

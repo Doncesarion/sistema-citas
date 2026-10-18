@@ -1,0 +1,320 @@
+{
+  "api/ai-chat.js": {
+    "mtime": 1788134356.2817442,
+    "seen": 1789947320.1297371,
+    "ast_hash": "6887384657c87c375cf3496994fdb0ec",
+    "semantic_hash": "6887384657c87c375cf3496994fdb0ec"
+  },
+  "api/bandeja.js": {
+    "mtime": 1788134050.5739074,
+    "seen": 1789947320.1297512,
+    "ast_hash": "214f13c137e2078dd94a11ad9374ed86",
+    "semantic_hash": "214f13c137e2078dd94a11ad9374ed86"
+  },
+  "api/bot-chat.js": {
+    "mtime": 1788136204.947608,
+    "seen": 1789947320.1297576,
+    "ast_hash": "9dbc4f06bcdf05c1cfe6deea88be0df4",
+    "semantic_hash": "9dbc4f06bcdf05c1cfe6deea88be0df4"
+  },
+  "api/crear-cita.js": {
+    "mtime": 1788115873.400138,
+    "seen": 1789947320.1297615,
+    "ast_hash": "6ecb0f30c98e77f0a5a4376dd6e1b317",
+    "semantic_hash": "6ecb0f30c98e77f0a5a4376dd6e1b317"
+  },
+  "api/flow.js": {
+    "mtime": 1788134774.674089,
+    "seen": 1789947320.1297648,
+    "ast_hash": "1d771e221e4e0d790a8d405dc4b496bd",
+    "semantic_hash": "1d771e221e4e0d790a8d405dc4b496bd"
+  },
+  "api/google-auth.js": {
+    "mtime": 1787349206.810934,
+    "seen": 1789947320.1297674,
+    "ast_hash": "d11be3dbeedc87927de943cbe550748e",
+    "semantic_hash": "d11be3dbeedc87927de943cbe550748e"
+  },
+  "api/liquidaciones.js": {
+    "mtime": 1787499052.686991,
+    "seen": 1789947320.1297705,
+    "ast_hash": "6f0fce7e17dfffeef75e325f4bb8372e",
+    "semantic_hash": "6f0fce7e17dfffeef75e325f4bb8372e"
+  },
+  "api/login.js": {
+    "mtime": 1788135652.720036,
+    "seen": 1789947320.1297727,
+    "ast_hash": "7506039ea676ba54a1672744aa947aa9",
+    "semantic_hash": "7506039ea676ba54a1672744aa947aa9"
+  },
+  "api/meta-webhook.js": {
+    "mtime": 1787349869.946984,
+    "seen": 1789947320.129775,
+    "ast_hash": "2d4b45a7fc2db75c000390e9a8ef79c4",
+    "semantic_hash": "2d4b45a7fc2db75c000390e9a8ef79c4"
+  },
+  "api/send-email.js": {
+    "mtime": 1788135852.8852632,
+    "seen": 1789947320.1297774,
+    "ast_hash": "b1bb4c8ddc2e936663db3037d9f35e58",
+    "semantic_hash": "b1bb4c8ddc2e936663db3037d9f35e58"
+  },
+  "api/slots.js": {
+    "mtime": 1788134781.3574035,
+    "seen": 1789947320.1297798,
+    "ast_hash": "d7d5f490827759e42c31c702a054a77a",
+    "semantic_hash": "d7d5f490827759e42c31c702a054a77a"
+  },
+  "api/usuarios-admin.js": {
+    "mtime": 1788135666.725414,
+    "seen": 1789947320.1297832,
+    "ast_hash": "36a61b4b47b5b00d0c3c6b27a9272f15",
+    "semantic_hash": "36a61b4b47b5b00d0c3c6b27a9272f15"
+  },
+  "files/supabase_tablas.sql": {
+    "mtime": 1782177022.0853853,
+    "seen": 1789947320.1297855,
+    "ast_hash": "f23373b00903dea159aa4654b17d17f0",
+    "semantic_hash": "f23373b00903dea159aa4654b17d17f0"
+  },
+  "package.json": {
+    "mtime": 1784773158.474659,
+    "seen": 1789947320.129788,
+    "ast_hash": "601c28f242400765d5682ad959889a58",
+    "semantic_hash": "601c28f242400765d5682ad959889a58"
+  },
+  "supabase/bot_config_delay.sql": {
+    "mtime": 1786926963.5035799,
+    "seen": 1789947320.1297908,
+    "ast_hash": "4b7f92c2218fd854b1e996eba9b14368",
+    "semantic_hash": "4b7f92c2218fd854b1e996eba9b14368"
+  },
+  "supabase/bot_tables.sql": {
+    "mtime": 1782177022.0938303,
+    "seen": 1789947320.129793,
+    "ast_hash": "14e3514ea12cb9fbbd84db61df81f531",
+    "semantic_hash": "14e3514ea12cb9fbbd84db61df81f531"
+  },
+  "supabase/functions/admin-clientes/index.ts": {
+    "mtime": 1786836700.68544,
+    "seen": 1789947320.1297953,
+    "ast_hash": "7a5272f8490444701cfb3ac343abd43b",
+    "semantic_hash": "7a5272f8490444701cfb3ac343abd43b"
+  },
+  "supabase/knowledge_gaps_tables.sql": {
+    "mtime": 1786924676.4416652,
+    "seen": 1789947320.129798,
+    "ast_hash": "f6cc20211f593c2532d0a84ddd727364",
+    "semantic_hash": "f6cc20211f593c2532d0a84ddd727364"
+  },
+  "supabase/leads_table.sql": {
+    "mtime": 1786908778.0276003,
+    "seen": 1789947320.1298006,
+    "ast_hash": "fa3a1c2aeff457e3de9f64cf47fab5f6",
+    "semantic_hash": "fa3a1c2aeff457e3de9f64cf47fab5f6"
+  },
+  "supabase/supabase_tablas_negocio.sql": {
+    "mtime": 1782177022.0938303,
+    "seen": 1789947320.1298027,
+    "ast_hash": "38e3a44a35a4c706b20f68b895b58104",
+    "semantic_hash": "38e3a44a35a4c706b20f68b895b58104"
+  },
+  "supabase/ubicaciones_column.sql": {
+    "mtime": 1786925874.6211767,
+    "seen": 1789947320.1298053,
+    "ast_hash": "5136429c7d9d3b37670dc44cd1737f1c",
+    "semantic_hash": "5136429c7d9d3b37670dc44cd1737f1c"
+  },
+  "supabase/unique_slot_constraint.sql": {
+    "mtime": 1788134909.211297,
+    "seen": 1789947320.129808,
+    "ast_hash": "0c44c768847d60bb519e2c04f62c6a35",
+    "semantic_hash": "0c44c768847d60bb519e2c04f62c6a35"
+  },
+  "supabase/web_leads_soporte_mensajes.sql": {
+    "mtime": 1784415418.4529865,
+    "seen": 1789947320.129811,
+    "ast_hash": "900c95d303327b2ddbe8575f6449a487",
+    "semantic_hash": "900c95d303327b2ddbe8575f6449a487"
+  },
+  "vercel.json": {
+    "mtime": 1788115768.1728647,
+    "seen": 1789947320.1298132,
+    "ast_hash": "03eed1b7d151c6e5f6c2163e940c085f",
+    "semantic_hash": "03eed1b7d151c6e5f6c2163e940c085f"
+  },
+  "widget.js": {
+    "mtime": 1783815719.7740502,
+    "seen": 1789947320.1298158,
+    "ast_hash": "38eb5c464c39f479f6270e9ce84d414f",
+    "semantic_hash": "38eb5c464c39f479f6270e9ce84d414f"
+  },
+  "404.html": {
+    "mtime": 1782177022.0642726,
+    "seen": 1789947320.1298182,
+    "ast_hash": "bc853d951a5dca6786d642558f2b91b3",
+    "semantic_hash": "bc853d951a5dca6786d642558f2b91b3"
+  },
+  "accesos.html": {
+    "mtime": 1784410024.1024785,
+    "seen": 1789947320.1298203,
+    "ast_hash": "ac078efd930382eec5400c0e951b9b42",
+    "semantic_hash": "ac078efd930382eec5400c0e951b9b42"
+  },
+  "admin.html": {
+    "mtime": 1788135942.5199757,
+    "seen": 1789947320.1298227,
+    "ast_hash": "8832a8cc7f5b23dc742a919471aa9e3f",
+    "semantic_hash": "8832a8cc7f5b23dc742a919471aa9e3f"
+  },
+  "attempo-booking.html": {
+    "mtime": 1788116815.1509037,
+    "seen": 1789947320.129825,
+    "ast_hash": "67ac224d465d3762f4083002f4ddc3cb",
+    "semantic_hash": "67ac224d465d3762f4083002f4ddc3cb"
+  },
+  "attempo-dashboard.html": {
+    "mtime": 1782177022.0853853,
+    "seen": 1789947320.1298275,
+    "ast_hash": "a825c76707754ccbf582921ea00d1266",
+    "semantic_hash": "a825c76707754ccbf582921ea00d1266"
+  },
+  "booking.html": {
+    "mtime": 1782773558.844813,
+    "seen": 1789947320.12983,
+    "ast_hash": "35c510e8202feef48f02c75cd8bb7d42",
+    "semantic_hash": "35c510e8202feef48f02c75cd8bb7d42"
+  },
+  "chat-frame.html": {
+    "mtime": 1782177022.0853853,
+    "seen": 1789947320.1298325,
+    "ast_hash": "6b9c90c5c921abe848956a3769d24604",
+    "semantic_hash": "6b9c90c5c921abe848956a3769d24604"
+  },
+  "cotizacion.html": {
+    "mtime": 1785082813.4641669,
+    "seen": 1789947320.1298347,
+    "ast_hash": "5ec9629e20251297b214b36770503c6d",
+    "semantic_hash": "5ec9629e20251297b214b36770503c6d"
+  },
+  "editor.html": {
+    "mtime": 1782177022.0853853,
+    "seen": 1789947320.1298368,
+    "ast_hash": "2245b05bd86d6ff975de77fd1089b4bf",
+    "semantic_hash": "2245b05bd86d6ff975de77fd1089b4bf"
+  },
+  "evaluar.html": {
+    "mtime": 1788098631.763022,
+    "seen": 1789947320.1298394,
+    "ast_hash": "37924576b2c4fba260a8cd3aeeeb32fb",
+    "semantic_hash": "37924576b2c4fba260a8cd3aeeeb32fb"
+  },
+  "gc-callback.html": {
+    "mtime": 1782177022.0853853,
+    "seen": 1789947320.1298416,
+    "ast_hash": "769176d632abe0ebeaf010e6920accab",
+    "semantic_hash": "769176d632abe0ebeaf010e6920accab"
+  },
+  "gestionar-cita.html": {
+    "mtime": 1788116035.083903,
+    "seen": 1789947320.129844,
+    "ast_hash": "8678bd15ad9fcd4c8a2c68b263524409",
+    "semantic_hash": "8678bd15ad9fcd4c8a2c68b263524409"
+  },
+  "index.html": {
+    "mtime": 1784409835.9119823,
+    "seen": 1789947320.129846,
+    "ast_hash": "8aa847fc8ba6c38d11fb2dada6db4a1d",
+    "semantic_hash": "8aa847fc8ba6c38d11fb2dada6db4a1d"
+  },
+  "landing.html": {
+    "mtime": 1782177022.0853853,
+    "seen": 1789947320.1298478,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "login.html": {
+    "mtime": 1785549943.5819914,
+    "seen": 1789947320.1298506,
+    "ast_hash": "545d0c5fc0e2d68cdfc20f0756000071",
+    "semantic_hash": "545d0c5fc0e2d68cdfc20f0756000071"
+  },
+  "pago-exitoso.html": {
+    "mtime": 1787538608.4211109,
+    "seen": 1789947320.129853,
+    "ast_hash": "718ca3f2eb7f95e2374cebf3a718c83b",
+    "semantic_hash": "718ca3f2eb7f95e2374cebf3a718c83b"
+  },
+  "pago-mp.html": {
+    "mtime": 1785723819.3314762,
+    "seen": 1789947320.1298552,
+    "ast_hash": "5176c87b08b9fc192b2d4598a571ae80",
+    "semantic_hash": "5176c87b08b9fc192b2d4598a571ae80"
+  },
+  "privacidad.html": {
+    "mtime": 1784081453.9943085,
+    "seen": 1789947320.1298578,
+    "ast_hash": "cf3f8b9fd76c8f2259cbe1b1e02ea0ac",
+    "semantic_hash": "cf3f8b9fd76c8f2259cbe1b1e02ea0ac"
+  },
+  "registro.html": {
+    "mtime": 1785549948.603882,
+    "seen": 1789947320.1298623,
+    "ast_hash": "7952011320193680ad899a69e4fd716c",
+    "semantic_hash": "7952011320193680ad899a69e4fd716c"
+  },
+  "robots.txt": {
+    "mtime": 1782177022.0938303,
+    "seen": 1789947320.1298647,
+    "ast_hash": "f71d20196d4caf35b6a670db8c70b03d",
+    "semantic_hash": "f71d20196d4caf35b6a670db8c70b03d"
+  },
+  "superadmin.html": {
+    "mtime": 1788135658.2051315,
+    "seen": 1789947320.1298668,
+    "ast_hash": "e3dcb016aef15d78ddd331f56d8f9ba8",
+    "semantic_hash": "e3dcb016aef15d78ddd331f56d8f9ba8"
+  },
+  "terminos.html": {
+    "mtime": 1782177022.0938303,
+    "seen": 1789947320.1298687,
+    "ast_hash": "a0fc46cc96b069f34c99e98e4199074f",
+    "semantic_hash": "a0fc46cc96b069f34c99e98e4199074f"
+  },
+  "trial-expirada.html": {
+    "mtime": 1785550744.2116292,
+    "seen": 1789947320.129871,
+    "ast_hash": "eb3eba89fe1642a485391d45a7bb7a14",
+    "semantic_hash": "eb3eba89fe1642a485391d45a7bb7a14"
+  },
+  "webpay-pagar.html": {
+    "mtime": 1785807495.753504,
+    "seen": 1789947320.1298726,
+    "ast_hash": "882b960ee54cc2d0cabbd4f71fa8a474",
+    "semantic_hash": "882b960ee54cc2d0cabbd4f71fa8a474"
+  },
+  "webpay-plan.html": {
+    "mtime": 1785895326.465598,
+    "seen": 1789947320.129875,
+    "ast_hash": "553c5563153eccc65a321f579b422c85",
+    "semantic_hash": "553c5563153eccc65a321f579b422c85"
+  },
+  "webpay-rec.html": {
+    "mtime": 1785895348.2315865,
+    "seen": 1789947320.1298773,
+    "ast_hash": "079006c4bf60542be863e43587be3d05",
+    "semantic_hash": "079006c4bf60542be863e43587be3d05"
+  },
+  "logo_attempo.png": {
+    "mtime": 1782177022.0896077,
+    "seen": 1789947320.1298792,
+    "ast_hash": "4e52188c98a246cb12962225abc6efaf",
+    "semantic_hash": "4e52188c98a246cb12962225abc6efaf"
+  },
+  "logo_attempo_v2.png": {
+    "mtime": 1782177022.0938303,
+    "seen": 1789947320.1298811,
+    "ast_hash": "4e52188c98a246cb12962225abc6efaf",
+    "semantic_hash": "4e52188c98a246cb12962225abc6efaf"
+  }
+}

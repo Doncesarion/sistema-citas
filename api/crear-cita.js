@@ -525,7 +525,7 @@ export default async function handler(req, res) {
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
     enviar_email, estado_admin, slug,
-    metodo_pago_admin
+    metodo_pago_admin, modalidad
   } = req.body || {};
 
   // Validar que from_admin solo sea true si el request tiene sesión válida de admin
@@ -605,6 +605,7 @@ export default async function handler(req, res) {
           duracion:       duracion ? (parseInt(duracion) || null) : null,
           precio:         precio         || null,
           estado: estadoFinal,
+          modalidad:      ['presencial','online','ambos'].includes(modalidad) ? modalidad : 'presencial',
           ...(esPagoPresencial ? { metodo_pago: metodo_pago_admin } : {})
         })
       });
