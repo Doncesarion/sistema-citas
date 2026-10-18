@@ -871,27 +871,30 @@ function renderSemana() {
     if (clienteId && !(key in _citasMes)) cargarCitasMes(date.getFullYear(), date.getMonth()).then(() => renderSemana()).catch(()=>{});
   });
 
-  // Esperar a que los datos estén cargados antes de auto-avanzar o auto-seleccionar
-  const key1 = `${lunes.getFullYear()}-${String(lunes.getMonth()+1).padStart(2,'0')}`;
-  const key2 = `${domingo.getFullYear()}-${String(domingo.getMonth()+1).padStart(2,'0')}`;
-  if (!(key1 in _citasMes) || !(key2 in _citasMes)) return;
+}
 
-  // Auto-avanzar si no hay disponibles (máx 26 semanas)
-  if (!hayDisp && calWeekOffset < 26) { setTimeout(() => { calWeekOffset++; renderSemana(); }, 120); return; }
-
-  // Auto-seleccionar primer día disponible si no hay fecha elegida
-  if (!st.fecha && hayDisp) {
+// Calcula sincrónicamente el primer día con horario disponible y lo selecciona
+function autoNavigarPrimerDia() {
+  const todayDate = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
+  for (let offset = 0; offset < 26; offset++) {
+    const lunes = getLunesSemana(offset);
     for (let i = 0; i < 7; i++) {
       const day = new Date(lunes); day.setDate(day.getDate() + i);
       if (day >= todayDate && isDiaDisponible(day)) {
+        calWeekOffset = offset;
+        renderSemana();
         selDia(day.getDate(), day.getMonth(), day.getFullYear());
-        break;
+        return;
       }
     }
   }
+  // Sin disponibilidad en 26 semanas: solo renderizar semana actual
+  renderSemana();
 }
 
-function renderCal() { renderSemana(); }
+function renderCal() {
+  if (!st.fecha) { autoNavigarPrimerDia(); } else { renderSemana(); }
+}
 
 function getLunesSemana(offset) {
   const d = new Date(NOW); d.setHours(0,0,0,0);
