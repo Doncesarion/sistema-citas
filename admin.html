@@ -4427,23 +4427,29 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <div id="fpi-serv-top-wrap" style="display:none"><span id="fpi-serv-top-tag"></span></div>
 
       <!-- Badge de pago -->
-      <div id="fp-pago-badge" style="display:none;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500">
-        <span id="fp-pago-ico" style="font-size:14px">💳</span>
+      <div id="fp-pago-badge" style="display:none;padding:9px 13px;border-radius:8px;align-items:center;gap:8px;font-size:12px;font-weight:500">
+        <span id="fp-pago-dot" style="width:7px;height:7px;border-radius:50%;background:var(--t3);flex-shrink:0"></span>
         <span id="fp-pago-txt" style="color:inherit">—</span>
         <span id="fp-pago-monto" style="margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:700">—</span>
       </div>
 
       <!-- Registrar pago manual -->
       <div id="fp-pago-manual" style="display:none;padding:12px;background:var(--surface-hi);border-radius:8px;border:1px solid var(--b1)">
-        <div class="fp-section-lbl" style="margin-bottom:10px">Registrar pago</div>
-        <div style="display:flex;gap:8px">
+        <div class="fp-section-lbl" style="margin-bottom:10px">Registrar pago recibido</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
           <select id="fp-pago-metodo-sel" style="flex:1;padding:6px 9px;border:1px solid var(--b2);border-radius:6px;font-size:12px;font-family:var(--font);background:#fff;color:var(--t1)">
-            <option value="efectivo">💵 Efectivo</option>
-            <option value="transferencia">🏦 Transferencia</option>
-            <option value="tarjeta">💳 Tarjeta</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="tarjeta">Tarjeta</option>
           </select>
-          <button id="fp-pago-manual-btn" onclick="registrarPagoManual()" class="btn-a" style="font-size:12px;padding:6px 12px;flex-shrink:0">✓ Confirmar</button>
+          <button id="fp-pago-manual-btn" onclick="registrarPagoManual()" class="btn-a" style="font-size:12px;padding:6px 12px;flex-shrink:0">Confirmar</button>
         </div>
+        <input id="fp-pago-ref" type="text" placeholder="N° referencia o voucher (opcional)" style="width:100%;padding:6px 9px;border:1px solid var(--b2);border-radius:6px;font-size:11px;font-family:var(--font);background:#fff;color:var(--t1);box-sizing:border-box">
+      </div>
+
+      <!-- Revertir pago manual -->
+      <div id="fp-revertir-row" style="display:none;text-align:right">
+        <button onclick="revertirPagoManual()" style="font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font);text-decoration:underline;text-decoration-style:dotted">Revertir a pendiente de pago</button>
       </div>
 
       <div style="height:1px;background:var(--b1)"></div>
@@ -4458,16 +4464,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="btn-r" id="fp-cancelar-btn" onclick="cancelarProxCita()" style="font-size:12px;padding:8px 6px">✕ Cancelar</button>
       </div>
 
-      <!-- Boleta y links de pago compactos -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <div id="fp-boleta-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
-          <button class="btn-g" style="width:100%;font-size:11px;padding:7px 8px" onclick="openBoletaModal(_currentBoletaCita)">📄 Emitir boleta</button>
+      <!-- Boleta + links de pago -->
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div id="fp-boleta-row" style="display:none">
+          <button class="btn-g" style="width:100%;font-size:11px;padding:7px 8px" onclick="openBoletaModal(_currentBoletaCita)">Emitir boleta</button>
         </div>
-<div id="fp-mp-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
-          <button class="btn-a" style="width:100%;font-size:11px;padding:7px 8px;background:#009ee3" onclick="enviarLinkMPPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">💙 Mercado Pago</button>
+        <!-- Klap: primario (mejor tasa) -->
+        <div id="fp-klap-row" style="display:none">
+          <button class="btn-a" style="width:100%;font-size:13px;font-weight:600;padding:10px 12px;background:#6C5CE4;border-color:#5a4bc4;letter-spacing:-.01em" onclick="enviarLinkKlapPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">Enviar link de pago Klap →</button>
         </div>
-        <div id="fp-klap-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
-          <button class="btn-a" style="width:100%;font-size:11px;padding:7px 8px;background:#6C5CE4" onclick="enviarLinkKlapPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">🟣 Klap</button>
+        <!-- MP: secundario -->
+        <div id="fp-mp-row" style="display:none">
+          <button class="btn-g" style="width:100%;font-size:12px;padding:8px 12px;color:#007bbd;border-color:rgba(0,123,189,.28)" onclick="enviarLinkMPPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">Enviar link Mercado Pago</button>
         </div>
       </div>
 
@@ -5478,16 +5486,21 @@ async function loadFichaData(nombre) {
     const _esPendWebpay  = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'webpay';
     const _esPendMP      = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'mercadopago';
     const _esPendKlap    = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'klap';
+    const _esPagado = _pc?.estado_pago === 'pagado';
+    const _tienePrecio = !!_pc?.precio;
     const _boletaRow = document.getElementById('fp-boleta-row');
     const _mpRow = document.getElementById('fp-mp-row');
     const _klapRow = document.getElementById('fp-klap-row');
-    if (_boletaRow) _boletaRow.style.display = _pc?.precio ? 'block' : 'none';
-    if (_mpRow)     _mpRow.style.display     = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
-    if (_klapRow)   _klapRow.style.display   = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
-    // Pago manual: mostrar cuando hay precio, no está pagado, y el método no es online
+    if (_boletaRow) _boletaRow.style.display = _tienePrecio ? 'block' : 'none';
+    if (_mpRow)     _mpRow.style.display     = (_tienePrecio && !_esPagado) ? 'block' : 'none';
+    if (_klapRow)   _klapRow.style.display   = (_tienePrecio && !_esPagado) ? 'block' : 'none';
+    // Pago manual: mostrar cuando hay precio y no está pagado
     const _pagManual = document.getElementById('fp-pago-manual');
-    const _metOnline = ['webpay','mercadopago','flow','klap'].includes(_pc?.metodo_pago);
-    if (_pagManual) _pagManual.style.display = (_pc?.precio && _pc?.estado_pago !== 'pagado' && !_metOnline) ? '' : 'none';
+    if (_pagManual) _pagManual.style.display = (_tienePrecio && !_esPagado) ? '' : 'none';
+    // Revertir: solo para pagos manuales (no online)
+    const _revertirRow = document.getElementById('fp-revertir-row');
+    const _esOnline = ['webpay','mercadopago','flow','klap'].includes(_pc?.metodo_pago);
+    if (_revertirRow) _revertirRow.style.display = (_tienePrecio && _esPagado && !_esOnline) ? '' : 'none';
     const _cancelBtn = document.getElementById('fp-cancelar-btn');
     if (_cancelBtn) _cancelBtn.textContent = window._fichaDetalleCita ? '✕ Cancelar reserva' : '✕ Cancelar próxima cita';
     // Botón "Marcar realizada": visible solo si hay cita activa no completada
@@ -5497,25 +5510,32 @@ async function loadFichaData(nombre) {
     const _epEl = document.getElementById('fpi-estado-pago');
     const _mpEl = document.getElementById('fpi-metodo-pago');
     const _METODO = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago', klap:'Klap' };
-    if (_epEl) { _epEl.textContent = _esPendFlow ? 'Esperando pago Flow' : _esPendWebpay ? 'Esperando pago Webpay' : _esPendMP ? 'Esperando pago MP' : _esPendKlap ? 'Esperando pago Klap' : _pc?.estado_pago === 'pagado' ? 'Pagado ✓' : '—'; _epEl.style.color = (_esPendFlow || _esPendWebpay || _esPendMP || _esPendKlap) ? 'var(--a)' : _pc?.estado_pago === 'pagado' ? 'var(--green)' : 'var(--t3)'; }
-    if (_mpEl) _mpEl.textContent = _METODO[_pc?.metodo_pago] || '—';
-    // — Badge de pago prominente —
+    if (_epEl) {
+      if (!_tienePrecio)    { _epEl.textContent = '—'; _epEl.style.color = 'var(--t3)'; }
+      else if (_esPagado)   { _epEl.textContent = 'Pagado'; _epEl.style.color = 'var(--green)'; }
+      else if (_esPendMP)   { _epEl.textContent = 'Pendiente · Mercado Pago'; _epEl.style.color = '#b45309'; }
+      else if (_esPendKlap) { _epEl.textContent = 'Pendiente · Klap'; _epEl.style.color = '#b45309'; }
+      else                  { _epEl.textContent = 'Pendiente'; _epEl.style.color = '#b45309'; }
+    }
+    if (_mpEl) {
+      if (_esPagado && _pc?.metodo_pago)  { _mpEl.textContent = _METODO[_pc.metodo_pago] || _pc.metodo_pago; _mpEl.style.color = 'var(--t1)'; }
+      else if (_tienePrecio)              { _mpEl.textContent = 'Pendiente'; _mpEl.style.color = '#b45309'; }
+      else                                { _mpEl.textContent = '—'; _mpEl.style.color = 'var(--t3)'; }
+    }
+    // — Badge de pago —
     const _pagBadge = document.getElementById('fp-pago-badge');
     if (_pagBadge) {
-      if (_pc?.precio) {
-        const _pagado  = _pc.estado_pago === 'pagado';
-        const _pend    = _esPendFlow || _esPendWebpay || _esPendMP;
-        const _txt     = _pagado ? '✓ Pagado' : _pend ? 'Pago pendiente' : 'Sin cobro registrado';
-        const _ico     = _pagado ? '✅' : _pend ? '⏳' : '💳';
-        const _bg      = _pagado ? 'rgba(16,185,129,0.08)' : _pend ? 'rgba(217,119,6,0.08)' : 'rgba(108,92,228,0.06)';
-        const _border  = _pagado ? 'rgba(16,185,129,0.2)' : _pend ? 'rgba(217,119,6,0.22)' : 'rgba(108,92,228,0.12)';
-        const _color   = _pagado ? '#10b981' : _pend ? '#b45309' : 'var(--t2)';
-        _pagBadge.style.cssText = `display:flex;margin:0 16px 10px;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500;background:${_bg};border:1px solid ${_border};color:${_color}`;
-        const _ico_el  = document.getElementById('fp-pago-ico');
-        const _txt_el  = document.getElementById('fp-pago-txt');
-        const _mon_el  = document.getElementById('fp-pago-monto');
-        if (_ico_el) _ico_el.textContent = _ico;
-        if (_txt_el) _txt_el.textContent = _txt;
+      if (_tienePrecio) {
+        const _bg     = _esPagado ? 'rgba(16,185,129,0.08)' : 'rgba(217,119,6,0.06)';
+        const _border = _esPagado ? 'rgba(16,185,129,0.2)'  : 'rgba(217,119,6,0.2)';
+        const _color  = _esPagado ? '#10b981' : '#b45309';
+        const _dot    = _esPagado ? '#10b981' : '#d97706';
+        _pagBadge.style.cssText = `display:flex;padding:9px 13px;border-radius:8px;align-items:center;gap:8px;font-size:12px;font-weight:500;background:${_bg};border:1px solid ${_border};color:${_color}`;
+        const _dot_el = document.getElementById('fp-pago-dot');
+        const _txt_el = document.getElementById('fp-pago-txt');
+        const _mon_el = document.getElementById('fp-pago-monto');
+        if (_dot_el) _dot_el.style.background = _dot;
+        if (_txt_el) _txt_el.textContent = _esPagado ? 'Pagado' : 'Pago pendiente';
         if (_mon_el) _mon_el.textContent = '$' + Number(_pc.precio).toLocaleString('es-CL');
       } else {
         _pagBadge.style.display = 'none';
@@ -10461,17 +10481,25 @@ function openVentaDetalle(jsonStr) {
   document.getElementById('fpi-email').textContent = c.email_paciente || '—';
   document.getElementById('fpi-tel').textContent   = c.tel_paciente   || '—';
   document.getElementById('fpi-rut').textContent   = '—';
-  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago' };
-  const esPendienteFlow   = c.estado === 'pending_payment' && c.metodo_pago !== 'webpay' && c.metodo_pago !== 'mercadopago';
-  const esPendienteWebpay = c.estado === 'pending_payment' && c.metodo_pago === 'webpay';
+  const METODO_LABEL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta', flow:'Flow', webpay:'Webpay', mercadopago:'Mercado Pago', klap:'Klap' };
+  const _esPagadoD = c.estado_pago === 'pagado';
+  const _tienePrecioD = !!c.precio;
   const esPendienteMP2    = c.estado === 'pending_payment' && c.metodo_pago === 'mercadopago';
+  const esPendienteKlap2  = c.estado === 'pending_payment' && c.metodo_pago === 'klap';
   const epEl = document.getElementById('fpi-estado-pago');
   if (epEl) {
-    epEl.textContent  = esPendienteFlow ? 'Esperando pago Flow' : esPendienteWebpay ? 'Esperando pago Webpay' : esPendienteMP2 ? 'Esperando pago MP' : c.estado_pago === 'pagado' ? 'Pagado ✓' : 'Pendiente';
-    epEl.style.color  = (esPendienteFlow || esPendienteWebpay || esPendienteMP2) ? 'var(--a)' : c.estado_pago === 'pagado' ? 'var(--green)' : 'var(--amber)';
+    if (!_tienePrecioD)        { epEl.textContent = '—'; epEl.style.color = 'var(--t3)'; }
+    else if (_esPagadoD)       { epEl.textContent = 'Pagado'; epEl.style.color = 'var(--green)'; }
+    else if (esPendienteMP2)   { epEl.textContent = 'Pendiente · Mercado Pago'; epEl.style.color = '#b45309'; }
+    else if (esPendienteKlap2) { epEl.textContent = 'Pendiente · Klap'; epEl.style.color = '#b45309'; }
+    else                       { epEl.textContent = 'Pendiente'; epEl.style.color = '#b45309'; }
   }
   const mpEl = document.getElementById('fpi-metodo-pago');
-  if (mpEl) mpEl.textContent = METODO_LABEL[c.metodo_pago] || '—';
+  if (mpEl) {
+    if (_esPagadoD && c.metodo_pago) { mpEl.textContent = METODO_LABEL[c.metodo_pago] || c.metodo_pago; mpEl.style.color = 'var(--t1)'; }
+    else if (_tienePrecioD)          { mpEl.textContent = 'Pendiente'; mpEl.style.color = '#b45309'; }
+    else                             { mpEl.textContent = '—'; mpEl.style.color = 'var(--t3)'; }
+  }
   const vRow2 = document.getElementById('fpi-voucher-row');
   const vVal2 = document.getElementById('fpi-voucher-val');
   if (vRow2 && vVal2) {
@@ -17549,6 +17577,7 @@ async function registrarPagoManual() {
   const id = window._fichaDetalleCita?.id || window._fichaProxCitaId;
   if (!id) { toastErr('No hay cita activa'); return; }
   const metodo = document.getElementById('fp-pago-metodo-sel')?.value || 'efectivo';
+  const ref = document.getElementById('fp-pago-ref')?.value.trim() || '';
   const btn = document.getElementById('fp-pago-manual-btn');
   if (btn) { btn.textContent = 'Guardando…'; btn.disabled = true; }
   try {
@@ -17558,23 +17587,72 @@ async function registrarPagoManual() {
       body: JSON.stringify({ estado_pago: 'pagado', metodo_pago: metodo })
     });
     if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'Error');
-    const _metLbl = { efectivo:'💵 Efectivo', transferencia:'🏦 Transferencia', tarjeta:'💳 Tarjeta' };
-    toast('✓ Pago registrado');
+    const _MLBL = { efectivo:'Efectivo', transferencia:'Transferencia', tarjeta:'Tarjeta' };
+    const _metNombre = _MLBL[metodo] || metodo;
+    toast('Pago registrado · ' + _metNombre);
     document.getElementById('fp-pago-manual').style.display = 'none';
+    // Mostrar revertir
+    const _rev = document.getElementById('fp-revertir-row');
+    if (_rev) _rev.style.display = '';
+    // Ocultar botones de link
+    const _mr = document.getElementById('fp-mp-row'); if (_mr) _mr.style.display = 'none';
+    const _kr = document.getElementById('fp-klap-row'); if (_kr) _kr.style.display = 'none';
+    // Actualizar badge
     const badge = document.getElementById('fp-pago-badge');
-    const _icoEl = document.getElementById('fp-pago-ico');
+    const _dotEl = document.getElementById('fp-pago-dot');
     const _txtEl = document.getElementById('fp-pago-txt');
-    if (badge) badge.style.cssText = 'display:flex;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#10b981';
-    if (_icoEl) _icoEl.textContent = '✅';
-    if (_txtEl) _txtEl.textContent = `✓ Pagado · ${_metLbl[metodo] || metodo}`;
+    if (badge) badge.style.cssText = 'display:flex;padding:9px 13px;border-radius:8px;align-items:center;gap:8px;font-size:12px;font-weight:500;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#10b981';
+    if (_dotEl) _dotEl.style.background = '#10b981';
+    if (_txtEl) _txtEl.textContent = ref ? `Pagado · ${_metNombre} · Ref. ${ref}` : `Pagado · ${_metNombre}`;
+    // Actualizar campos info
+    const _epEl2 = document.getElementById('fpi-estado-pago');
     const _mpEl2 = document.getElementById('fpi-metodo-pago');
-    if (_mpEl2) _mpEl2.textContent = _metLbl[metodo]?.replace(/^\S+\s/,'') || metodo;
+    if (_epEl2) { _epEl2.textContent = 'Pagado'; _epEl2.style.color = 'var(--green)'; }
+    if (_mpEl2) { _mpEl2.textContent = _metNombre; _mpEl2.style.color = 'var(--t1)'; }
     const _pc = window._fichaDetalleCita;
     if (_pc) { _pc.estado_pago = 'pagado'; _pc.metodo_pago = metodo; }
     cargarCitasSupabase();
   } catch(e) {
     toastErr('Error al registrar el pago');
-    if (btn) { btn.textContent = '✓ Confirmar'; btn.disabled = false; }
+    if (btn) { btn.textContent = 'Confirmar'; btn.disabled = false; }
+  }
+}
+
+async function revertirPagoManual() {
+  const id = window._fichaDetalleCita?.id || window._fichaProxCitaId;
+  if (!id) return;
+  if (!confirm('¿Revertir el estado de pago a pendiente?')) return;
+  try {
+    const r = await fetch(`/api/slots?id=${id}`, {
+      method: 'PATCH',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado_pago: null, metodo_pago: null })
+    });
+    if (!r.ok) throw new Error();
+    toast('Pago revertido a pendiente');
+    // Actualizar estado local
+    const _pc = window._fichaDetalleCita;
+    if (_pc) { _pc.estado_pago = null; _pc.metodo_pago = null; }
+    // UI: ocultar revertir, mostrar registro + links
+    document.getElementById('fp-revertir-row').style.display = 'none';
+    document.getElementById('fp-pago-manual').style.display = '';
+    const _mr = document.getElementById('fp-mp-row'); if (_mr) _mr.style.display = 'block';
+    const _kr = document.getElementById('fp-klap-row'); if (_kr) _kr.style.display = 'block';
+    // Badge: pendiente
+    const badge = document.getElementById('fp-pago-badge');
+    const _dotEl = document.getElementById('fp-pago-dot');
+    const _txtEl = document.getElementById('fp-pago-txt');
+    if (badge) badge.style.cssText = 'display:flex;padding:9px 13px;border-radius:8px;align-items:center;gap:8px;font-size:12px;font-weight:500;background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.2);color:#b45309';
+    if (_dotEl) _dotEl.style.background = '#d97706';
+    if (_txtEl) _txtEl.textContent = 'Pago pendiente';
+    // Campos info
+    const _epEl = document.getElementById('fpi-estado-pago');
+    const _mpEl = document.getElementById('fpi-metodo-pago');
+    if (_epEl) { _epEl.textContent = 'Pendiente'; _epEl.style.color = '#b45309'; }
+    if (_mpEl) { _mpEl.textContent = 'Pendiente'; _mpEl.style.color = '#b45309'; }
+    cargarCitasSupabase();
+  } catch(e) {
+    toastErr('Error al revertir el pago');
   }
 }
 </script>
