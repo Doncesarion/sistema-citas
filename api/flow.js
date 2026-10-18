@@ -189,14 +189,16 @@ function emailDosPagoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora
     <p style="margin:0 0 ${mp_url ? '22px' : '0'};font-size:11px;color:#9ca3af;text-align:center;">Tarjeta de débito o crédito · Link válido 20 min</p>` : '';
 
   const divider = (klap_url && mp_url) ? `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;"><tr>
-      <td style="border-bottom:1px solid #e5e7eb;"></td>
-      <td style="white-space:nowrap;padding:0 14px;font-size:12px;color:#9ca3af;vertical-align:middle;">o también</td>
-      <td style="border-bottom:1px solid #e5e7eb;"></td>
-    </tr></table>` : '';
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <tr>
+        <td width="45%" style="border-bottom:1px solid #e5e7eb;line-height:0;">&nbsp;</td>
+        <td width="10%" style="text-align:center;font-size:12px;color:#9ca3af;padding:8px 0;white-space:nowrap;">o también</td>
+        <td width="45%" style="border-bottom:1px solid #e5e7eb;line-height:0;">&nbsp;</td>
+      </tr>
+    </table>` : '';
 
   const mpBtn = mp_url ? `
-    <a href="${htmlEscape(mp_url)}" target="_blank" style="display:block;text-align:center;background:#fff;color:#009ee3;border:2px solid #009ee3;padding:12px 24px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;margin-bottom:6px;">Pagar con Mercado Pago</a>
+    <a href="${htmlEscape(mp_url)}" target="_blank" style="display:block;text-align:center;background:#00b1ea;color:#fff;padding:13px 24px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:700;margin-bottom:6px;">Pagar con Mercado Pago</a>
     <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Tarjetas, transferencia y más opciones</p>` : '';
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -1927,7 +1929,7 @@ async function handleEnviarLinkPago(req, res, session) {
   if (process.env.RESEND_API_KEY) {
     try {
       const html = emailDosPagoHtml({ nombre_paciente: cita.nombre_paciente || 'Paciente', nombre_especialista, fechaFmt, hora: (cita.hora || '').slice(0, 5), servicio: cita.servicio || '', negocio_nombre: cli?.nombre_negocio || '', precio, klap_url, mp_url, cita_id });
-      const er = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'Attempo <contacto@attempo.cl>', to: [cita.email_paciente], subject: `Tu link de pago — ${cli?.nombre_negocio || 'attempo'}`, html }) });
+      const er = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'Attempo <contacto@attempo.cl>', to: [cita.email_paciente], subject: `Link de pago${cita.servicio ? ' ' + cita.servicio : ''} — ${cli?.nombre_negocio || 'attempo'}`, html }) });
       if (!er.ok) { const ed = await er.json(); email_error = ed?.message; console.error('enviar_link_pago email:', email_error); }
     } catch(e) { email_error = e.message; }
   }

@@ -104,6 +104,32 @@ export default async function handler(req, res) {
   if (qa === 'evaluar' || qa === 'evaluar_admin' || qa === 'evaluar_resumen' || qa === 'evaluar_pendientes' ||
       (req.method === 'POST' && (req.body?.action === 'evaluar' || req.body?.action === 'evaluar_reenviar'))) return handleEvaluar(req, res);
 
+  if (qa === 'upload_voucher' && req.method === 'POST') {
+    const KEY2 = process.env.SUPABASE_SERVICE_KEY;
+    const sh2  = { apikey: KEY2, Authorization: `Bearer ${KEY2}` };
+    const session2 = verifySessionToken(req.headers['x-session-token']);
+    if (!session2) return res.status(401).json({ error: 'No autorizado' });
+    const { cita_id, file_b64, file_ext, mime_type } = req.body || {};
+    if (!cita_id || !file_b64) return res.status(400).json({ error: 'Faltan datos' });
+    const ALLOWED = ['jpg','jpeg','png','gif','webp','pdf'];
+    const ext = String(file_ext || 'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+    if (!ALLOWED.includes(ext)) return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+    const buf = Buffer.from(file_b64, 'base64');
+    if (buf.length > 5 * 1024 * 1024) return res.status(400).json({ error: 'Máximo 5MB' });
+    const mime = mime_type || (ext === 'pdf' ? 'application/pdf' : `image/${ext === 'jpg' ? 'jpeg' : ext}`);
+    const BUCKET = 'vouchers-manual';
+    const fname  = `${session2.cliente_id}/${cita_id}_${Date.now()}.${ext}`;
+    const storageBase = `${SUPABASE_URL}/storage/v1`;
+    const doUpload = () => fetch(`${storageBase}/object/${BUCKET}/${fname}`, { method:'POST', headers:{ ...sh2, 'Content-Type': mime, 'x-upsert':'true' }, body: buf });
+    let up = await doUpload();
+    if (up.status === 404 || up.status === 400) {
+      await fetch(`${storageBase}/bucket`, { method:'POST', headers:{ ...sh2, 'Content-Type':'application/json' }, body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true }) }).catch(()=>{});
+      up = await doUpload();
+    }
+    if (!up.ok) { const e = await up.json().catch(()=>{}); return res.status(500).json({ error: `Error al subir: ${e?.error || up.status}` }); }
+    return res.json({ ok: true, url: `${storageBase}/object/public/${BUCKET}/${fname}` });
+  }
+
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const sessionToken = req.headers['x-session-token'];
@@ -471,8 +497,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // — PATCH metodo_pago / precio / estado_pago —
-    if (typeof body.metodo_pago !== 'undefined' || typeof body.precio !== 'undefined' || typeof body.estado_pago !== 'undefined') {
+    // — PATCH metodo_pago / precio / estado_pago / voucher_manual —
+    if (typeof body.metodo_pago !== 'undefined' || typeof body.precio !== 'undefined' || typeof body.estado_pago !== 'undefined' || typeof body.voucher_manual !== 'undefined') {
       const VALID_METODOS = ['efectivo', 'transferencia', 'tarjeta', 'flow', 'webpay', ''];
       const patch = {};
       if (typeof body.metodo_pago !== 'undefined') {
@@ -488,6 +514,9 @@ export default async function handler(req, res) {
         const ep = String(body.estado_pago || '');
         if (!VALID_EP.includes(ep)) return res.status(400).json({ error: 'Estado de pago inválido' });
         patch.estado_pago = ep || null;
+      }
+      if (typeof body.voucher_manual !== 'undefined') {
+        patch.voucher_manual = body.voucher_manual || null;
       }
       try {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&cliente_id=eq.${cliente_id}`, {
