@@ -829,13 +829,13 @@ export default async function handler(req, res) {
               { key: 'notify_payment_user', value: 'true' }
             ],
             urls: {
-              return_url: `${BASE_URL}/pago-exitoso?tipo=cita`,
+              return_url: `${BASE_URL}/pago-exitoso?tipo=cita${slug ? '&slug=' + encodeURIComponent(slug) : ''}`,
               cancel_url: manageShortUrl(cita.id)
             },
             webhooks: {
-              webhook_validation: `${BASE_URL}/api/klap-validate`,
-              webhook_confirm:    `${BASE_URL}/api/klap-confirm`,
-              webhook_reject:     `${BASE_URL}/api/klap-reject`
+              webhook_validation: `${BASE_URL}/api/flow?tipo=klap_validate`,
+              webhook_confirm:    `${BASE_URL}/api/flow?tipo=klap_confirm`,
+              webhook_reject:     `${BASE_URL}/api/flow?tipo=klap_reject`
             }
           }),
           signal: AbortSignal.timeout(12000)
@@ -843,13 +843,11 @@ export default async function handler(req, res) {
         const klapData = await klapRes.json();
         if (klapData.redirect_url) {
           klap_url = klapData.redirect_url;
-          // Solo marcar pending_payment para Klap si MP no lo hizo primero
-          if (!mp_url) {
-            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
-              method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
-              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'klap' })
-            }).catch(e => console.error('crear-cita: patch klap pending_payment:', e.message));
-          }
+          // Siempre marcar klap como metodo_pago (el webhook lo confirma al pagar)
+          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+            method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'klap' })
+          }).catch(e => console.error('crear-cita: patch klap pending_payment:', e.message));
           console.log('crear-cita: klap_url generado OK', 'coexiste con mp:', !!mp_url);
         } else {
           klap_error = klapData.message || JSON.stringify(klapData).slice(0, 120);
