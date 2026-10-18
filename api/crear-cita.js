@@ -806,7 +806,7 @@ export default async function handler(req, res) {
     let klap_error = null;
     const klapApiKey = metodos_pago?.klap_api_key || process.env.KLAP_API_KEY;
     const generarKlap = !esPagoPresencial && !esLinkWebpay && !esLinkFlow && !esLinkMP &&
-                        !mp_url && klapApiKey && precioNum > 0;
+                        klapApiKey && precioNum > 0;
     if (generarKlap) {
       const klapSandbox = metodos_pago?.klap_sandbox !== false && !process.env.KLAP_PROD;
       const klapBase = klapSandbox ? 'https://api-pasarela-sandbox.mcdesaqa.cl' : 'https://api.pasarela.multicaja.cl';
@@ -833,11 +833,14 @@ export default async function handler(req, res) {
         const klapData = await klapRes.json();
         if (klapData.redirect_url) {
           klap_url = klapData.redirect_url;
-          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
-            method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
-            body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'klap', klap_order_id: klapData.order_id })
-          }).catch(e => console.error('crear-cita: patch klap pending_payment:', e.message));
-          console.log('crear-cita: klap_url generado OK');
+          // Solo marcar pending_payment para Klap si MP no lo hizo primero
+          if (!mp_url) {
+            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+              method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'klap' })
+            }).catch(e => console.error('crear-cita: patch klap pending_payment:', e.message));
+          }
+          console.log('crear-cita: klap_url generado OK', 'coexiste con mp:', !!mp_url);
         } else {
           klap_error = klapData.message || JSON.stringify(klapData).slice(0, 120);
           console.error('crear-cita: klap error:', klap_error);
@@ -847,7 +850,7 @@ export default async function handler(req, res) {
         console.error('crear-cita: klap exception:', klap_error);
       }
     }
-    const soloKlap = !!(klap_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+    const soloKlap = !!(klap_url && !mp_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
 
     // Link MP desde admin → marcar pending_payment con metodo_pago='mercadopago'
     if (esLinkMP && !mp_url) {
