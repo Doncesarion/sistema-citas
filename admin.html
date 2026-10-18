@@ -4356,7 +4356,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <div class="fp-since" id="fp-since">Cliente desde enero 2026</div>
         </div>
       </div>
-      <button class="fp-close" onclick="closeFicha()">×</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="fp-edit-btn-wrap">
+          <button id="fp-edit-btn" onclick="openPacienteEdit()" style="font-size:11px;font-weight:500;color:var(--a);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;font-family:var(--font)">✏ Editar</button>
+        </div>
+        <button class="fp-close" onclick="closeFicha()">×</button>
+      </div>
     </div>
 
     <div class="fp-stats">
@@ -4374,35 +4379,11 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       </div>
     </div>
 
-    <!-- Badge de pago: visible siempre que la cita tenga precio -->
-    <div id="fp-pago-badge" style="display:none;margin:0 16px 6px;padding:8px 13px;border-radius:8px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:500">
-      <span id="fp-pago-ico" style="font-size:14px">💳</span>
-      <span id="fp-pago-txt" style="color:inherit">—</span>
-      <span id="fp-pago-monto" style="margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:700">—</span>
-    </div>
-    <!-- Registro de pago manual: mostrado cuando hay precio y no está pagado -->
-    <div id="fp-pago-manual" style="display:none;margin:0 16px 10px;padding:8px 12px;background:var(--surface-hi);border-radius:8px;border:1px solid var(--b1)">
-      <div style="font-size:10px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Registrar pago</div>
-      <div style="display:flex;gap:8px">
-        <select id="fp-pago-metodo-sel" style="flex:1;padding:6px 9px;border:1px solid var(--b2);border-radius:6px;font-size:12px;font-family:var(--font);background:#fff;color:var(--t1)">
-          <option value="efectivo">💵 Efectivo</option>
-          <option value="transferencia">🏦 Transferencia</option>
-          <option value="tarjeta">💳 Tarjeta</option>
-        </select>
-        <button id="fp-pago-manual-btn" onclick="registrarPagoManual()" class="btn-a" style="font-size:12px;padding:6px 12px;flex-shrink:0">✓ Confirmar</button>
-      </div>
-    </div>
-
-    <div class="fp-tabs" style="justify-content:space-between">
-      <div style="display:flex">
-        <button class="fptab on" onclick="fpTab(this,'ft-info')">Información</button>
-        <button class="fptab" onclick="fpTab(this,'ft-hist')">Historial</button>
-        <button class="fptab" onclick="fpTab(this,'ft-notas')">Notas internas</button>
-        <button class="fptab" onclick="fpTab(this,'ft-conv')">Conversaciones</button>
-      </div>
-      <div id="fp-edit-btn-wrap" style="display:flex;align-items:center;gap:8px;padding:0 10px">
-        <button id="fp-edit-btn" onclick="openPacienteEdit()" style="font-size:11px;font-weight:500;color:var(--a);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;font-family:var(--font)">✏ Editar datos</button>
-      </div>
+    <div class="fp-tabs">
+      <button class="fptab on" onclick="fpTab(this,'ft-info')">Información</button>
+      <button class="fptab" onclick="fpTab(this,'ft-hist')">Historial</button>
+      <button class="fptab" onclick="fpTab(this,'ft-notas')">Notas internas</button>
+      <button class="fptab" onclick="fpTab(this,'ft-conv')">Conversaciones</button>
     </div>
 
     <!-- Tab: Información -->
@@ -4444,6 +4425,26 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 
       <!-- Nodo oculto para compatibilidad JS -->
       <div id="fpi-serv-top-wrap" style="display:none"><span id="fpi-serv-top-tag"></span></div>
+
+      <!-- Badge de pago -->
+      <div id="fp-pago-badge" style="display:none;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500">
+        <span id="fp-pago-ico" style="font-size:14px">💳</span>
+        <span id="fp-pago-txt" style="color:inherit">—</span>
+        <span id="fp-pago-monto" style="margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:700">—</span>
+      </div>
+
+      <!-- Registrar pago manual -->
+      <div id="fp-pago-manual" style="display:none;padding:12px;background:var(--surface-hi);border-radius:8px;border:1px solid var(--b1)">
+        <div class="fp-section-lbl" style="margin-bottom:10px">Registrar pago</div>
+        <div style="display:flex;gap:8px">
+          <select id="fp-pago-metodo-sel" style="flex:1;padding:6px 9px;border:1px solid var(--b2);border-radius:6px;font-size:12px;font-family:var(--font);background:#fff;color:var(--t1)">
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="transferencia">🏦 Transferencia</option>
+            <option value="tarjeta">💳 Tarjeta</option>
+          </select>
+          <button id="fp-pago-manual-btn" onclick="registrarPagoManual()" class="btn-a" style="font-size:12px;padding:6px 12px;flex-shrink:0">✓ Confirmar</button>
+        </div>
+      </div>
 
       <div style="height:1px;background:var(--b1)"></div>
 
@@ -17555,14 +17556,17 @@ async function registrarPagoManual() {
       body: JSON.stringify({ estado_pago: 'pagado', metodo_pago: metodo })
     });
     if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'Error');
+    const _metLbl = { efectivo:'💵 Efectivo', transferencia:'🏦 Transferencia', tarjeta:'💳 Tarjeta' };
     toast('✓ Pago registrado');
     document.getElementById('fp-pago-manual').style.display = 'none';
     const badge = document.getElementById('fp-pago-badge');
     const _icoEl = document.getElementById('fp-pago-ico');
     const _txtEl = document.getElementById('fp-pago-txt');
-    if (badge) badge.style.cssText = 'display:flex;margin:0 16px 6px;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#10b981';
+    if (badge) badge.style.cssText = 'display:flex;padding:8px 13px;border-radius:8px;align-items:center;gap:9px;font-size:12px;font-weight:500;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#10b981';
     if (_icoEl) _icoEl.textContent = '✅';
-    if (_txtEl) _txtEl.textContent = '✓ Pagado';
+    if (_txtEl) _txtEl.textContent = `✓ Pagado · ${_metLbl[metodo] || metodo}`;
+    const _mpEl2 = document.getElementById('fpi-metodo-pago');
+    if (_mpEl2) _mpEl2.textContent = _metLbl[metodo]?.replace(/^\S+\s/,'') || metodo;
     const _pc = window._fichaDetalleCita;
     if (_pc) { _pc.estado_pago = 'pagado'; _pc.metodo_pago = metodo; }
     cargarCitasSupabase();
