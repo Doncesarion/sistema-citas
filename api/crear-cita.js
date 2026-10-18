@@ -819,7 +819,7 @@ export default async function handler(req, res) {
             amount: { currency: 'CLP', total: precioNum },
             subject: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
             methods: ['tarjetas'],
-            custom_values: {},
+            custom_values: { email: cita.email_paciente || '', nombre: cita.nombre_paciente || '' },
             urls: {
               return_url: `${BASE_URL}/pago-exitoso?tipo=cita`,
               cancel_url: manageShortUrl(cita.id)

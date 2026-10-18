@@ -1782,7 +1782,7 @@ async function handleKlapInit(req, res, session) {
         amount: { currency: 'CLP', total: Math.round(Number(precio)) },
         subject: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`,
         methods: ['tarjetas'],
-        custom_values: {},
+        custom_values: { email: cita.email_paciente || '', nombre: cita.nombre_paciente || '' },
         urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` },
         webhooks: { webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` }
       }),
