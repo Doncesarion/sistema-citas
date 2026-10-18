@@ -817,16 +817,22 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             reference_id: cita.id,
             amount: { currency: 'CLP', total: precioNum },
-            subject: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
+            description: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
             methods: ['tarjetas'],
-            custom_values: { email: cita.email_paciente || '', nombre: cita.nombre_paciente || '' },
+            user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: cita.tel_paciente || undefined },
+            customs: [
+              { key: 'tarjetas_expiration_minutes', value: '20' },
+              { key: 'tarjetas_payment_indicator', value: 'typed' },
+              { key: 'notify_payment_user', value: 'true' }
+            ],
             urls: {
               return_url: `${BASE_URL}/pago-exitoso?tipo=cita`,
               cancel_url: manageShortUrl(cita.id)
             },
             webhooks: {
-              webhook_confirm: `${BASE_URL}/api/klap-confirm`,
-              webhook_reject:  `${BASE_URL}/api/klap-reject`
+              webhook_validation: `${BASE_URL}/api/klap-validate`,
+              webhook_confirm:    `${BASE_URL}/api/klap-confirm`,
+              webhook_reject:     `${BASE_URL}/api/klap-reject`
             }
           }),
           signal: AbortSignal.timeout(12000)

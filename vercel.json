@@ -32,6 +32,7 @@
     { "source": "/api/gestionar-cita",             "destination": "/api/crear-cita" },
     { "source": "/api/flow-confirm",               "destination": "/api/flow" },
     { "source": "/api/flow-return",               "destination": "/api/flow?ret=1" },
+    { "source": "/api/klap-validate",             "destination": "/api/flow?tipo=klap_validate" },
     { "source": "/api/klap-confirm",              "destination": "/api/flow?tipo=klap_confirm" },
     { "source": "/api/klap-reject",               "destination": "/api/flow?tipo=klap_reject" },
     { "source": "/api/klap-init",                 "destination": "/api/flow?tipo=klap_init" },

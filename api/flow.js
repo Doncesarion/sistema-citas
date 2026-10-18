@@ -1564,8 +1564,9 @@ export default async function handler(req, res) {
   }
 
   // Klap webhooks (POST público, sin sesión)
-  if (req.query?.tipo === 'klap_confirm') return handleKlapConfirm(req, res);
-  if (req.query?.tipo === 'klap_reject')  return handleKlapReject(req, res);
+  if (req.query?.tipo === 'klap_validate') return handleKlapValidate(req, res);
+  if (req.query?.tipo === 'klap_confirm')  return handleKlapConfirm(req, res);
+  if (req.query?.tipo === 'klap_reject')   return handleKlapReject(req, res);
 
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -1780,11 +1781,12 @@ async function handleKlapInit(req, res, session) {
       body: JSON.stringify({
         reference_id: cita_id,
         amount: { currency: 'CLP', total: Math.round(Number(precio)) },
-        subject: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`,
+        description: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`,
         methods: ['tarjetas'],
-        custom_values: { email: cita.email_paciente || '', nombre: cita.nombre_paciente || '' },
+        user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: cita.tel_paciente || undefined },
+        customs: [{ key: 'tarjetas_expiration_minutes', value: '20' }, { key: 'tarjetas_payment_indicator', value: 'typed' }, { key: 'notify_payment_user', value: 'true' }],
         urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` },
-        webhooks: { webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` }
+        webhooks: { webhook_validation: `${BASE_URL}/api/klap-validate`, webhook_confirm: `${BASE_URL}/api/klap-confirm`, webhook_reject: `${BASE_URL}/api/klap-reject` }
       }),
       signal: AbortSignal.timeout(15000)
     });
@@ -1802,6 +1804,12 @@ async function handleKlapInit(req, res, session) {
     } catch(e) { console.error('klap_init: email error', e.message); }
   }
   return res.status(200).json({ ok: true, redirect_url: klapOrder.redirect_url, order_id: klapOrder.order_id, email_ok });
+}
+
+async function handleKlapValidate(req, res) {
+  const order = req.body || {};
+  console.log('klap_validate: reference_id', order.reference_id);
+  return res.status(200).json(order);
 }
 
 async function handleKlapConfirm(req, res) {
