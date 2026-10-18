@@ -818,7 +818,7 @@ export default async function handler(req, res) {
             reference_id: cita.id,
             amount: { currency: 'CLP', total: precioNum },
             subject: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
-            methods: ['klap_efectivo'],
+            methods: ['tarjetas'],
             custom_values: {},
             urls: {
               return_url: `${BASE_URL}/pago-exitoso?tipo=cita`,
