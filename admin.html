@@ -608,13 +608,15 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .ficha-bd{position:absolute;inset:0;background:rgba(22,20,58,0.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0;transition:opacity .25s}
 .ficha-ov.open .ficha-bd{opacity:1}
 .ficha-panel{
-  position:absolute;top:0;right:0;bottom:0;width:460px;
-  background:#fff;border-left:1px solid var(--b1);
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-46%) scale(0.97);
+  width:min(480px,92vw);max-height:90vh;
+  background:#fff;border-radius:16px;border:1px solid var(--b1);
   display:flex;flex-direction:column;overflow:hidden;
-  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-  box-shadow:-8px 0 40px rgba(108,92,228,0.14);
+  opacity:0;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .25s;
+  box-shadow:0 20px 60px rgba(108,92,228,0.22);
 }
-.ficha-ov.open .ficha-panel{transform:none}
+.ficha-ov.open .ficha-panel{transform:translate(-50%,-50%) scale(1);opacity:1}
 
 /* Panel header */
 .fp-hd{
@@ -4460,10 +4462,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <div id="fp-boleta-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
           <button class="btn-g" style="width:100%;font-size:11px;padding:7px 8px" onclick="openBoletaModal(_currentBoletaCita)">📄 Emitir boleta</button>
         </div>
-        <div id="fp-webpay-row" style="display:none!important;flex:1;min-width:calc(50% - 4px)">
-          <button class="btn-a" style="width:100%;font-size:11px;padding:7px 8px;background:#005BBB" onclick="enviarLinkWebpayPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">Webpay</button>
-        </div>
-        <div id="fp-mp-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
+<div id="fp-mp-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
           <button class="btn-a" style="width:100%;font-size:11px;padding:7px 8px;background:#009ee3" onclick="enviarLinkMPPago(_currentBoletaCita?.id,_currentBoletaCita?.nombre_paciente)">💙 Mercado Pago</button>
         </div>
         <div id="fp-klap-row" style="display:none;flex:1;min-width:calc(50% - 4px)">
@@ -5477,11 +5476,9 @@ async function loadFichaData(nombre) {
     const _esPendMP      = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'mercadopago';
     const _esPendKlap    = _pc?.estado === 'pending_payment' && _pc?.metodo_pago === 'klap';
     const _boletaRow = document.getElementById('fp-boleta-row');
-    const _webpayRow = document.getElementById('fp-webpay-row');
     const _mpRow = document.getElementById('fp-mp-row');
     const _klapRow = document.getElementById('fp-klap-row');
     if (_boletaRow) _boletaRow.style.display = _pc?.precio ? 'block' : 'none';
-    if (_webpayRow) _webpayRow.style.display = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     if (_mpRow)     _mpRow.style.display     = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     if (_klapRow)   _klapRow.style.display   = (_pc?.precio && _pc?.estado_pago !== 'pagado') ? 'block' : 'none';
     // Pago manual: mostrar cuando hay precio, no está pagado, y el método no es online
@@ -10494,8 +10491,6 @@ function openVentaDetalle(jsonStr) {
   // Guardar cita para boleta y mostrar botones
   _currentBoletaCita = c;
   document.getElementById('fp-boleta-row').style.display = c.precio ? 'block' : 'none';
-  const webpayRow = document.getElementById('fp-webpay-row');
-  if (webpayRow) webpayRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   const mpRow = document.getElementById('fp-mp-row');
   if (mpRow) mpRow.style.display = (c.precio && c.estado_pago !== 'pagado') ? 'block' : 'none';
   const klapRow = document.getElementById('fp-klap-row');
