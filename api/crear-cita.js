@@ -819,7 +819,7 @@ export default async function handler(req, res) {
             amount: { currency: 'CLP', total: precioNum },
             description: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
             methods: ['tarjetas'],
-            user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: cita.tel_paciente || undefined },
+            user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: (cita.tel_paciente || '').replace(/^\+/, '') || undefined},
             customs: [
               { key: 'tarjetas_expiration_minutes', value: '20' },
               { key: 'tarjetas_payment_indicator', value: 'typed' },
