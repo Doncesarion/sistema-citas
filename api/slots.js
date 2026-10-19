@@ -232,7 +232,7 @@ export default async function handler(req, res) {
 
     // — POST notificaciones_config —
     if (body.resource === 'notificaciones_config') {
-      const TIEMPOS = ['24h', '12h', '2h', '1h'];
+      const TIEMPOS = ['96h', '72h', '48h', '24h', '12h', '2h', '1h'];
       const cfg = {
         wa_confirmacion:         body.wa_confirmacion         !== false,
         wa_recordatorio:         body.wa_recordatorio         !== false,
@@ -264,7 +264,7 @@ export default async function handler(req, res) {
 
     // — POST recordatorios_config —
     if (body.resource === 'recordatorios_config') {
-      const TIEMPOS = ['24h', '12h', '2h', '1h', '30m'];
+      const TIEMPOS = ['96h', '72h', '48h', '24h', '12h', '2h', '1h', '30m'];
       let cfg;
       if (Array.isArray(body.lista)) {
         const lista = body.lista.slice(0, 20).map(r => ({

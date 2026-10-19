@@ -212,7 +212,7 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
   if (!resend_key) return { enviados: 0, errores: ['Sin RESEND_API_KEY'] };
 
   const ahoraMs = Date.now();
-  const minutosAnticipacion = { '30m': 30, '1h': 60, '2h': 120, '12h': 720, '24h': 1440 };
+  const minutosAnticipacion = { '30m': 30, '1h': 60, '2h': 120, '12h': 720, '24h': 1440, '48h': 2880, '72h': 4320, '96h': 5760 };
 
   // Extrae la hora (0-23) de un timestamp en zona Santiago
   function horaStgo(ms) {
