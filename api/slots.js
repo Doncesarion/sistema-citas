@@ -595,6 +595,7 @@ export default async function handler(req, res) {
       }
     }
 
+    if (!['admin','staff'].includes(s.rol)) return res.status(403).json({ error: 'Sin permiso para modificar notas' });
     if (typeof body.notas === 'undefined') return res.status(400).json({ error: 'Campo requerido: notas' });
     const notas = body.notas === null ? null : String(body.notas).slice(0, 10000);
     try {

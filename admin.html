@@ -5218,10 +5218,17 @@ function openFicha(name, initials, rubro, citaId) {
   if (epw) epw.style.display = 'none';
   document.getElementById('fp-boleta-row').style.display = 'none';
   document.getElementById('ficha-ov').classList.add('open');
+  // Restricciones por rol
+  const _uRol = (JSON.parse(localStorage.getItem('attempo_user') || '{}')).rol || 'staff';
+  const _puedeNotas = ['admin','staff'].includes(_uRol);
+  const tabNotas = document.querySelector('.fptab[onclick*="ft-notas"]');
+  if (tabNotas) tabNotas.style.display = _puedeNotas ? '' : 'none';
+  const panelNotas = document.getElementById('ft-notas');
+  if (panelNotas) panelNotas.style.display = 'none';
   // Reset to info tab
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.fptab')[0].classList.add('on');
-  ['ft-info','ft-hist','ft-notas','ft-conv'].forEach((id,i) => {
+  ['ft-info','ft-hist','ft-conv'].forEach((id,i) => {
     const el = document.getElementById(id);
     if (el) { el.style.display = i===0?'flex':'none'; if(i===0) el.style.flexDirection='column'; }
   });
@@ -5408,6 +5415,10 @@ function reagendarProxCita() {
   }
 }
 function fpTab(btn, id) {
+  if (id === 'ft-notas') {
+    const _r = (JSON.parse(localStorage.getItem('attempo_user') || '{}')).rol || 'staff';
+    if (!['admin','staff'].includes(_r)) return;
+  }
   document.querySelectorAll('.fptab').forEach(t => t.classList.remove('on'));
   btn.classList.add('on');
   ['ft-info','ft-hist','ft-notas','ft-conv'].forEach(i => {
@@ -5861,6 +5872,8 @@ async function fichaGuardar(btn, citaId) {
 }
 
 async function saveFichaNota() {
+  const _r = (JSON.parse(localStorage.getItem('attempo_user') || '{}')).rol || 'staff';
+  if (!['admin','staff'].includes(_r)) { toast('Sin permiso para guardar notas'); return; }
   const txt = document.getElementById('fp-notas-txt')?.value?.trim() || '';
   const nombre = _fichaCurrentNombre;
   if (!nombre) return;
