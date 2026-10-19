@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
   // ── GET sin code: iniciar flujo OAuth ──────────────────────────────────────
   if (req.method === 'GET' && !req.query.code) {
-    const sessionToken = req.headers['x-session-token'];
+    const sessionToken = req.headers['x-session-token'] || req.query.tok;
     const session = verifySessionToken(sessionToken);
     if (!session) return res.status(401).json({ error: 'No autorizado' });
     const { cliente_id } = req.query;

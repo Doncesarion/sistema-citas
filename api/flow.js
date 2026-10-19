@@ -922,10 +922,11 @@ async function handleWebpayReturn(req, res) {
    ════════════════════════════════════════════ */
 
 async function getAttempoWebpayCredentials() {
+  const sandbox = process.env.ATTEMPO_WEBPAY_SANDBOX === 'true';
   return {
-    webpay_commerce_code: process.env.ATTEMPO_WEBPAY_COMMERCE_CODE,
-    webpay_api_key_secret: process.env.ATTEMPO_WEBPAY_API_KEY_SECRET,
-    webpay_sandbox: process.env.ATTEMPO_WEBPAY_SANDBOX === 'true'
+    webpay_commerce_code: sandbox ? '597055555532' : process.env.ATTEMPO_WEBPAY_COMMERCE_CODE,
+    webpay_api_key_secret: sandbox ? '579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C' : process.env.ATTEMPO_WEBPAY_API_KEY_SECRET,
+    webpay_sandbox: sandbox
   };
 }
 
