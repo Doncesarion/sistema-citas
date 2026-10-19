@@ -72,14 +72,20 @@ export default async function handler(req, res) {
       sessionId = sessions[0].id;
       historial = Array.isArray(sessions[0].messages) ? sessions[0].messages : [];
       if (sessions[0].pausa_bot) {
-        // Enviar recordatorio solo si el último mensaje guardado fue la escalación (no hay respuesta humana aún)
+        // Cargar protocolo_urgencia desde bot_config
+        let protocoloUrgencia = '';
+        try {
+          const rbp = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=protocolo_urgencia&limit=1`, { headers: sh });
+          const [bpc] = await rbp.json();
+          protocoloUrgencia = bpc?.protocolo_urgencia || '';
+        } catch(_) {}
+
         const ultimoMsg = historial[historial.length - 1];
         const esperandoRespuesta = ultimoMsg?.role === 'assistant' &&
           typeof ultimoMsg.content === 'string' &&
           (ultimoMsg.content.includes('contactar') || ultimoMsg.content.includes('equipo'));
-        const respuesta = esperandoRespuesta ? 'nuestro equipo te va a responder aquí a la brevedad' : '';
-        if (esperandoRespuesta) {
-          // Guardar el recordatorio en historial para no repetirlo
+        const respuesta = protocoloUrgencia || (esperandoRespuesta ? 'nuestro equipo te va a responder aquí a la brevedad' : '');
+        if (respuesta) {
           const msgsActualizados = [...historial, { role: 'user', content: mensaje }, { role: 'assistant', content: respuesta }];
           fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
             method: 'PATCH',
@@ -247,7 +253,7 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Carga en paralelo: botConfig + knowledge + negocio/sedes + especialistas + paciente ──
-  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0 };
+  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '' };
   let chatbotKnowledge = [];
   let sedesContexto = '';
   let pacienteContexto = '';
@@ -289,6 +295,8 @@ export default async function handler(req, res) {
       botConfig.notif_email         = bc.notif_email         || '';
       botConfig.delay_min_seg       = bc.delay_min_seg       || 0;
       botConfig.delay_max_seg       = bc.delay_max_seg       || 0;
+      botConfig.mensaje_traspaso    = bc.mensaje_traspaso    || '';
+      botConfig.protocolo_urgencia  = bc.protocolo_urgencia  || '';
     }
     if (process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
       botConfig.tipo_bot = 'ventas';
@@ -381,7 +389,7 @@ Nunca prometas integraciones que no existen. Nunca adivines.
 
 CUANDO ALGUIEN PIDE HABLAR CON UN HUMANO:
 Usa de inmediato la herramienta capturar_lead con los datos que tengas (nombre, teléfono si es WhatsApp, lo que contó sobre su negocio).
-Después di únicamente: "Listo [nombre], ya avisé al equipo. Te van a escribir aquí mismo a la brevedad."
+Después di únicamente: "${botConfig.mensaje_traspaso || 'Listo [nombre], ya avisé al equipo. Te van a escribir aquí mismo a la brevedad.'}"
 No prometas horas ni plazos. No sigas intentando responder tú.
 
 OBJECIONES FRECUENTES:
@@ -672,7 +680,7 @@ RESPUESTA TRAS CREAR CITA (solo después de que crear_cita retorne ok:true):
 ESCALACIÓN A HUMANO:
 Si el paciente pide hablar directamente con una persona del equipo o dice explícitamente que no quiere seguir con el bot:
 - Usa INMEDIATAMENTE la herramienta capturar_lead con los datos disponibles (nombre, teléfono si es WhatsApp, motivo).
-- Después di únicamente: "Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad."
+- Después di únicamente: "${botConfig.mensaje_traspaso || 'Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad.'}"
 - No ofrezcas más alternativas ni hagas preguntas adicionales.
 
 REGLAS GENERALES:

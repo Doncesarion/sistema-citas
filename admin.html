@@ -2784,6 +2784,18 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         <button class="btn-sm" onclick="resetBotTest()" style="margin-top:8px;font-size:11px;color:var(--t3)">Reiniciar conversación</button>
       </div>
 
+      <div class="cfg-row-block" style="margin-bottom:16px">
+        <div class="cfg-lbl" style="margin-bottom:4px">Mensaje al traspasar a un humano</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">Lo que el bot dice justo después de avisar al equipo. Puedes incluir indicaciones de urgencia.</div>
+        <textarea class="fi" id="bot-mensaje-traspaso" rows="2" placeholder="Ej: Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad. Si es urgente, llama al 131 o acude a urgencias." style="resize:vertical"></textarea>
+      </div>
+
+      <div class="cfg-row-block" style="margin-bottom:16px">
+        <div class="cfg-lbl" style="margin-bottom:4px">Protocolo de urgencia (bot pausado)</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">Cuando el bot está pausado esperando respuesta del equipo, este texto reemplaza el mensaje genérico. Ideal para incluir protocolos de seguridad o números de emergencia.</div>
+        <textarea class="fi" id="bot-protocolo-urgencia" rows="3" placeholder="Ej: Nuestro equipo te va a responder a la brevedad. Si estás en una situación de emergencia, llama al 131 o acude al servicio de urgencias más cercano." style="resize:vertical"></textarea>
+      </div>
+
       <div style="display:flex;justify-content:flex-end">
         <button class="btn-a" onclick="saveBotConfig()">Guardar configuración del bot</button>
       </div>
@@ -6534,6 +6546,10 @@ async function loadBotConfig() {
         if (cfg.saludo) document.getElementById('bot-saludo').value = cfg.saludo;
         const conocEl = document.getElementById('bot-conocimiento');
         if (conocEl) conocEl.value = cfg.conocimiento || '';
+        const trasEl = document.getElementById('bot-mensaje-traspaso');
+        if (trasEl) trasEl.value = cfg.mensaje_traspaso || '';
+        const urgEl = document.getElementById('bot-protocolo-urgencia');
+        if (urgEl) urgEl.value = cfg.protocolo_urgencia || '';
         _botFaqs      = Array.isArray(cfg.faqs)       ? cfg.faqs       : [];
         _botPromos    = Array.isArray(cfg.promociones) ? cfg.promociones : [];
         _botModos     = Array.isArray(cfg.modos)       ? cfg.modos      : [];
@@ -6807,8 +6823,10 @@ async function saveBotConfig() {
     promociones:  _botPromos.filter(p => p.titulo?.trim()),
     modos:        _botModos.filter(m => m.nombre?.trim()),
     modo_activo:  _modoActivoId || null,
-    delay_min_seg: document.getElementById('delay-rango').checked ? (parseInt(document.getElementById('delay-min').value) || 2) * 60 : 0,
-    delay_max_seg: document.getElementById('delay-rango').checked ? (parseInt(document.getElementById('delay-max').value) || 5) * 60 : 0,
+    delay_min_seg:       document.getElementById('delay-rango').checked ? (parseInt(document.getElementById('delay-min').value) || 2) * 60 : 0,
+    delay_max_seg:       document.getElementById('delay-rango').checked ? (parseInt(document.getElementById('delay-max').value) || 5) * 60 : 0,
+    mensaje_traspaso:    (document.getElementById('bot-mensaje-traspaso')?.value || '').trim(),
+    protocolo_urgencia:  (document.getElementById('bot-protocolo-urgencia')?.value || '').trim(),
   };
   try {
     const r = await fetch('/api/slots', {

@@ -321,8 +321,10 @@ export default async function handler(req, res) {
         respuesta: String(f.respuesta || '').slice(0, 1000)
       })) : [],
       conocimiento:  String(body.conocimiento || '').slice(0, 6000),
-      delay_min_seg: Math.min(Math.max(parseInt(body.delay_min_seg) || 0, 0), 300),
-      delay_max_seg: Math.min(Math.max(parseInt(body.delay_max_seg) || 0, 0), 300),
+      delay_min_seg:      Math.min(Math.max(parseInt(body.delay_min_seg) || 0, 0), 300),
+      delay_max_seg:      Math.min(Math.max(parseInt(body.delay_max_seg) || 0, 0), 300),
+      mensaje_traspaso:   String(body.mensaje_traspaso   || '').slice(0, 500),
+      protocolo_urgencia: String(body.protocolo_urgencia || '').slice(0, 1000),
       promociones: Array.isArray(body.promociones) ? body.promociones.slice(0, 20).map(p => ({
         titulo:       String(p.titulo       || '').slice(0, 200),
         descripcion:  String(p.descripcion  || '').slice(0, 1000),
