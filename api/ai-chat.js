@@ -313,7 +313,7 @@ HOY ES: ${hoy}`;
   const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 
   // ── Verificar límite de mensajes para planes chatbot ──────────────────────
-  const LIMITES_CHATBOT = { chatbot_2k: 2000, chatbot_5k: 5000, chatbot_8k: 8000 };
+  const LIMITES_CHATBOT = { inicio: 100, pro: 200, chatbot_2k: 2000, chatbot_5k: 5000, chatbot_8k: 8000 };
   try {
     const mes = new Date().toISOString().slice(0, 7);
     const [planRow, usoRow] = await Promise.all([
