@@ -229,7 +229,7 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
   try {
     const filtroIdParam = soloClienteId ? `&id=eq.${soloClienteId}` : '';
     const rCli = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,nombre_negocio,direccion,recordatorios_config,canales_meta,tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual${filtroIdParam}`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?select=id,email,nombre_negocio,direccion,recordatorios_config,canales_meta,tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual${filtroIdParam}`,
       { headers: sh }
     );
     const clientes = await rCli.json();
@@ -304,7 +304,8 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${resend_key}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  from: `${negocioNombre} vía Attempo <contacto@attempo.cl>`,
+                  from: `${negocioNombre} vía attempo <contacto@attempo.cl>`,
+                  reply_to: cli.email ? [cli.email] : undefined,
                   to: [cita.email_paciente],
                   subject: asunto,
                   headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
