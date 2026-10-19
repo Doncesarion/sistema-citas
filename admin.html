@@ -7871,16 +7871,17 @@ window.addEventListener('message', function(e) {
   }
 });
 
-async function syncCitasGoogleCalendar() {
-  const btn = document.getElementById('gc-sync-btn');
+async function syncCitasGoogleCalendar(reset = false) {
+  const btn = reset ? document.getElementById('gc-reset-btn') : document.getElementById('gc-sync-btn');
   const cid = await getClienteId();
   if (!cid) return;
-  if (btn) { btn.textContent = 'Sincronizando...'; btn.disabled = true; }
+  if (reset && !confirm('Esto borrará TODOS los eventos del calendario Attempo en Google Calendar y los recreará solo con las citas activas. ¿Continuar?')) return;
+  if (btn) { btn.textContent = reset ? 'Limpiando...' : 'Sincronizando...'; btn.disabled = true; }
   try {
     const r = await fetch('/api/google-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
-      body: JSON.stringify({ cliente_id: cid })
+      body: JSON.stringify({ cliente_id: cid, reset })
     });
     const data = await r.json();
     if (data.ok) {
@@ -7889,7 +7890,13 @@ async function syncCitasGoogleCalendar() {
       toast('Error: ' + (data.error || 'No se pudo sincronizar'));
     }
   } catch(e) { toast('Error de conexión: ' + e.message); }
-  finally { if (btn) { btn.textContent = '↺ Sincronizar citas existentes'; btn.disabled = false; } }
+  finally {
+    if (btn) { btn.textContent = reset ? '🗑 Limpiar y resincronizar' : '↺ Sincronizar citas existentes'; btn.disabled = false; }
+  }
+}
+
+async function resetSyncGoogleCalendar() {
+  return syncCitasGoogleCalendar(true);
 }
 
 async function desconectarGoogleCalendar() {
@@ -11115,7 +11122,10 @@ function salirImpersonacion() {
         </div>
         <div style="padding:12px 14px;background:var(--adim);border-top:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div style="font-size:12px;color:var(--t3);line-height:1.6;flex:1">Las citas nuevas se agregan automáticamente al calendario <strong>Attempo</strong> en tu Google Calendar.</div>
-          <button id="gc-sync-btn" onclick="syncCitasGoogleCalendar()" style="font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--b2);background:var(--surface);color:var(--t2);cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0">↺ Sincronizar citas existentes</button>
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            <button id="gc-sync-btn" onclick="syncCitasGoogleCalendar()" style="font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--b2);background:var(--surface);color:var(--t2);cursor:pointer;font-family:var(--font);white-space:nowrap">↺ Sincronizar citas existentes</button>
+            <button id="gc-reset-btn" onclick="resetSyncGoogleCalendar()" style="font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--red,#ef4444);background:var(--surface);color:var(--red,#ef4444);cursor:pointer;font-family:var(--font);white-space:nowrap">🗑 Limpiar y resincronizar</button>
+          </div>
         </div>
       </div>
     </div>

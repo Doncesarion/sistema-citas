@@ -187,6 +187,8 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Acceso denegado' });
     }
 
+    const { reset } = req.body || {};
+
     try {
       const rc = await fetch(
         `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=google_refresh_token,google_calendar_id,direccion&limit=1`,
@@ -198,6 +200,36 @@ export default async function handler(req, res) {
       const access_token = await gcGetAccessToken(decryptToken(cli.google_refresh_token), CLIENT_ID, CLIENT_SECRET);
       const calendar_id  = await gcGetOrCreateCalendar(access_token, sh, cliente_id, cli.google_calendar_id);
 
+      // ── Modo reset: borrar todos los eventos del calendario y limpiar google_event_id ──
+      if (reset) {
+        let pageToken = null;
+        let eliminados = 0;
+        do {
+          const listUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}/events?maxResults=250&singleEvents=true${pageToken ? '&pageToken=' + pageToken : ''}`;
+          const lr = await fetch(listUrl, { headers: { Authorization: `Bearer ${access_token}` } });
+          if (!lr.ok) break;
+          const listData = await lr.json();
+          const items = listData.items || [];
+          for (const ev of items) {
+            if (ev.status === 'cancelled') continue;
+            await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}/events/${encodeURIComponent(ev.id)}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${access_token}` }
+            }).catch(() => {});
+            eliminados++;
+          }
+          pageToken = listData.nextPageToken || null;
+        } while (pageToken);
+
+        // Limpiar google_event_id en todas las citas del cliente
+        await fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}`, {
+          method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+          body: JSON.stringify({ google_event_id: null })
+        });
+        console.log(`gc reset: eliminados ${eliminados} eventos para cliente ${cliente_id}`);
+      }
+
+      // ── Sincronizar citas activas sin evento vinculado ──
       const rc2 = await fetch(
         `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&google_event_id=is.null&estado=neq.canceled&select=id,nombre_paciente,servicio,fecha,hora,especialistas(nombre)&order=fecha.asc&limit=200`,
         { headers: sh }
@@ -228,7 +260,7 @@ export default async function handler(req, res) {
           ok++;
         } catch(_) { errors++; }
       }
-      return res.json({ ok: true, sincronizadas: ok, errores: errors, total: citas.length, calendar_id });
+      return res.json({ ok: true, sincronizadas: ok, errores: errors, total: citas.length, calendar_id, reset: !!reset });
     } catch(e) {
       console.error('google-auth sync error:', e.message);
       return res.status(500).json({ error: 'Error al sincronizar calendario' });
