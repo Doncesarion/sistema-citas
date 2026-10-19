@@ -116,8 +116,10 @@
         setOk('¡Suscripción activada!', 'Tu plan de attempo está activo. Ya puedes acceder a todas las funciones.', planLabel);
         btn.href = '/admin';
         btn.textContent = 'Ir al panel de administración';
+      } else if (resultado === 'pendiente') {
+        setError('Pago en revisión', 'Tu pago está siendo procesado. Te enviaremos un email cuando se confirme. Si tienes dudas escríbenos a contacto@attempo.cl.', 'Pago pendiente', true);
       } else if (resultado === 'cancelado') {
-        setError('Pago cancelado', 'Cancelaste el pago en Webpay. Tu suscripción no fue renovada. Escríbenos a contacto@attempo.cl si necesitas ayuda.', 'Pago cancelado', false);
+        setError('Pago cancelado', 'Cancelaste el proceso de pago. Tu suscripción no fue renovada. Escríbenos a contacto@attempo.cl si necesitas ayuda.', 'Pago cancelado', false);
       } else if (resultado === 'rechazado') {
         setError('Pago rechazado', 'Tu tarjeta fue rechazada. Intenta con otra tarjeta o contacta a contacto@attempo.cl.', 'Tarjeta rechazada', false);
       } else if (resultado === 'timeout') {

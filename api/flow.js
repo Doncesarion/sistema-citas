@@ -385,18 +385,48 @@ async function handleSubPayment(req, res, clienteIdOverride = null) {
     pro:       { mensual: 44990,  anual: 431900  },
     clinica_ia:{ mensual: 119990, anual: 1151900 }
   };
+  const PLAN_LABELS_SUB = { inicio: 'Plan Inicio', pro: 'Plan Pro', clinica_ia: 'Plan Clínica IA' };
   const tipoPlanKey = (req.body?.tipo_plan || 'inicio').toLowerCase().replace(/ /g,'_');
   const montoDefault = (PRECIOS[tipoPlanKey] || PRECIOS.inicio)[plan] || 24990;
   const montoReq = req.body.monto ? parseInt(req.body.monto) : null;
   const monto = (montoReq && montoReq > 0) ? montoReq : montoDefault;
   const tipo_plan = req.body?.tipo_plan || '';
 
-  const t = generateSubToken(cliente_id, plan, monto, tipo_plan);
-  const qs = new URLSearchParams({ cid: cliente_id, plan, monto: String(monto), t });
-  if (tipo_plan) qs.set('tipo_plan', tipo_plan);
+  const appToken = process.env.MP_ACCESS_TOKEN;
+  if (!appToken) return res.status(503).json({ error: 'Pago no disponible en este momento' });
 
-  const payment_url = `${BASE_URL}/webpay-plan.html?${qs.toString()}`;
-  return res.json({ ok: true, payment_url });
+  const extRef = `SUB-${cliente_id}-${plan}-${tipoPlanKey}`;
+  const titulo = `${PLAN_LABELS_SUB[tipoPlanKey] || 'attempo'} ${plan === 'anual' ? 'anual' : 'mensual'}`;
+  const planQs = encodeURIComponent(plan);
+
+  const prefBody = {
+    items: [{ title: titulo, quantity: 1, unit_price: monto, currency_id: 'CLP' }],
+    external_reference: extRef,
+    back_urls: {
+      success: `${BASE_URL}/pago-exitoso?tipo=plan&resultado=ok&plan=${planQs}`,
+      failure: `${BASE_URL}/pago-exitoso?tipo=plan&resultado=cancelado&plan=${planQs}`,
+      pending: `${BASE_URL}/pago-exitoso?tipo=plan&resultado=pendiente&plan=${planQs}`
+    },
+    auto_return: 'approved',
+    notification_url: `${BASE_URL}/api/flow?tipo=mp_webhook`
+  };
+
+  try {
+    const pr = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${appToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(prefBody)
+    });
+    const prefData = await pr.json();
+    if (!pr.ok || !prefData.init_point) {
+      console.error('mp_sub_create error:', JSON.stringify(prefData));
+      return res.status(502).json({ error: 'Error al iniciar pago: ' + (prefData.message || JSON.stringify(prefData)) });
+    }
+    return res.json({ ok: true, payment_url: prefData.init_point });
+  } catch(e) {
+    console.error('mp_sub_create fetch error:', e.message);
+    return res.status(500).json({ error: 'No se pudo conectar con Mercado Pago' });
+  }
 }
 
 // Precios y códigos de recordatorio
@@ -1382,6 +1412,57 @@ async function handleMPDisconnect(req, res) {
   } catch(e) { return res.status(500).json({ error: e.message }); }
 }
 
+async function confirmMPSubPayment(paymentId, extRef) {
+  // extRef: "SUB-{cid}-{plan}-{tipo_plan}"
+  const parts = extRef.split('-');
+  if (parts.length < 4) { console.error('mp_sub_confirm: extRef inválido', extRef); return; }
+  // cid es un UUID (5 partes separadas por guión), reconstruir
+  const plan      = parts[parts.length - 1]; // último
+  const tipo_plan = parts[parts.length - 2]; // penúltimo
+  const cid       = parts.slice(1, parts.length - 2).join('-');
+  if (!['mensual','anual'].includes(plan)) { console.error('mp_sub_confirm: plan inválido', plan); return; }
+
+  const KEY = process.env.SUPABASE_SERVICE_KEY;
+  const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  // Obtener monto desde MP
+  let monto = 0;
+  try {
+    const appToken = process.env.MP_ACCESS_TOKEN;
+    const pr = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${appToken}`, Accept: 'application/json' }
+    });
+    const pd = await pr.json();
+    monto = pd.transaction_amount || 0;
+  } catch(e) { console.error('mp_sub_confirm: fetch payment error', e.message); }
+
+  const dias = plan === 'anual' ? 365 : 30;
+  const rpcBody = { p_cliente_id: cid, p_dias: dias, p_plan: plan, p_tipo_plan: tipo_plan, p_monto: monto, p_plataforma: 'mercadopago', p_referencia: String(paymentId) };
+  let cli = null;
+  try {
+    const rpcResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/extend_suscripcion`, {
+      method: 'POST',
+      headers: { ...sh, Prefer: 'return=representation' },
+      body: JSON.stringify(rpcBody)
+    });
+    const rpcText = await rpcResp.text();
+    console.log(`mp_sub_confirm rpc status=${rpcResp.status} body=${rpcText.slice(0,200)}`);
+    const rpcData = JSON.parse(rpcText);
+    if (rpcData && typeof rpcData === 'object' && !Array.isArray(rpcData) && rpcData.nombre_negocio !== undefined) {
+      cli = { nombre_negocio: rpcData.nombre_negocio, email: rpcData.email };
+    }
+  } catch(e) { console.error('mp_sub_confirm rpc error:', e.message); return; }
+
+  if (cli?.email && process.env.RESEND_API_KEY) {
+    const PLAN_LABELS_SUB = { inicio: 'Plan Inicio', pro: 'Plan Pro', clinica_ia: 'Plan Clínica IA' };
+    const planLabel = (PLAN_LABELS_SUB[tipo_plan] || 'attempo') + ' ' + (plan === 'anual' ? 'anual' : 'mensual');
+    const montoFmt  = '$' + Math.round(monto).toLocaleString('es-CL');
+    const htmlOk = `<div style="font-family:Inter,sans-serif;max-width:520px;margin:auto;padding:32px 24px"><img src="${BASE_URL}/logo_attempo.png" alt="attempo" style="height:36px;margin-bottom:28px"><h2 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 8px">¡Pago recibido!</h2><p style="font-size:14px;color:#6b7280;margin:0 0 24px">Hola ${htmlEscape(cli.nombre_negocio)}, tu suscripción <strong>${htmlEscape(planLabel)}</strong> fue activada por <strong style="color:#6C5CE4">${montoFmt}</strong>.</p><a href="${BASE_URL}/admin.html" style="display:inline-block;padding:11px 24px;background:#6C5CE4;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">Ir a mi panel →</a><p style="margin-top:32px;color:#bbb;font-size:11px">attempo · contacto@attempo.cl</p></div>`;
+    fetch('https://api.resend.com/emails', { method:'POST', headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ from:'attempo <noreply@attempo.cl>', to:[cli.email], subject:`Suscripción activada — ${planLabel}`, html:htmlOk }) }).catch(() => {});
+    fetch('https://api.resend.com/emails', { method:'POST', headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({ from:'attempo <noreply@attempo.cl>', to:['contacto@attempo.cl'], subject:`Nuevo pago — ${cli.nombre_negocio} (${planLabel} ${montoFmt})`, html:htmlOk }) }).catch(() => {});
+  }
+}
+
 async function confirmMPPayment(paymentId, cita_id) {
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
@@ -1493,7 +1574,9 @@ async function handleMPWebhook(req, res) {
     const payment = await pr.json();
     if (payment.status !== 'approved' || !payment.external_reference) return;
     const extRef = payment.external_reference;
-    if (extRef.startsWith('COT-')) {
+    if (extRef.startsWith('SUB-')) {
+      await confirmMPSubPayment(paymentId, extRef);
+    } else if (extRef.startsWith('COT-')) {
       await confirmMPPaymentCot(paymentId, extRef.slice(4));
     } else {
       await confirmMPPayment(paymentId, extRef);
