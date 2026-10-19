@@ -1248,10 +1248,11 @@ async function confirmar() {
         document.getElementById('cf-mp-btn').href = data.mp_url;
         document.getElementById('cf-mp-wrap').style.display = '';
       }
-      if (tieneKlap) {
-        document.getElementById('cf-klap-btn').href = data.klap_url;
-        document.getElementById('cf-klap-wrap').style.display = '';
-      }
+      // Klap oculto temporalmente hasta pasar a producción
+      // if (tieneKlap) {
+      //   document.getElementById('cf-klap-btn').href = data.klap_url;
+      //   document.getElementById('cf-klap-wrap').style.display = '';
+      // }
     } else {
       document.getElementById('cf-icon').textContent  = '✓';
       document.getElementById('cf-title').textContent = '¡Reserva confirmada!';
