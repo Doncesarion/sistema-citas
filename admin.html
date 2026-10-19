@@ -7879,7 +7879,7 @@ async function syncCitasGoogleCalendar() {
   try {
     const r = await fetch('/api/google-auth', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
       body: JSON.stringify({ cliente_id: cid })
     });
     const data = await r.json();
