@@ -319,6 +319,34 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
+  // ── POST: guardar referencia de transferencia (público, verificado por email) ─
+  if (req.body?.accion === 'guardar_referencia') {
+    const { id, email, referencia } = req.body;
+    const UUID_RE_R = /^[0-9a-f-]{36}$/i;
+    if (!id || !UUID_RE_R.test(id)) return res.status(400).json({ error: 'ID inválido' });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+    const ref = String(referencia || '').trim().slice(0, 200);
+    if (!ref) return res.status(400).json({ error: 'Referencia vacía' });
+    try {
+      const rc = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&email_paciente=ilike.${encodeURIComponent(email)}&select=id&limit=1`,
+        { headers: sh }
+      );
+      const rows = await rc.json();
+      if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'Cita no encontrada' });
+      const rp = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ voucher_manual: ref })
+      });
+      if (!rp.ok) return res.status(500).json({ error: 'Error al guardar' });
+      return res.json({ ok: true });
+    } catch(e) {
+      console.error('guardar_referencia error:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
   // ── POST: cancelar o reagendar (gestionar-cita) ───────────────────────────
   if (req.body?.accion) {
     const { id, accion, nueva_fecha, nueva_hora, token } = req.body;

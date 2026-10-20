@@ -478,6 +478,18 @@ body::before{
           <div id="cf-pagos" style="display:none;margin-top:14px;border-top:1px solid var(--b1);padding-top:14px">
             <div id="cf-pagos-titulo" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3);margin-bottom:10px">Opciones de pago</div>
             <div id="cf-pagos-list"></div>
+            <div id="cf-ref-transferencia" style="display:none;margin-top:12px;padding:12px;background:#f5f3ff;border-radius:10px;border:1px solid #ede9fe">
+              <div style="font-size:12px;font-weight:700;color:var(--a);margin-bottom:6px">¿Ya transferiste? Déjanos tu número de operación</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input id="cf-ref-input" type="text" placeholder="Ej: 123456789" maxlength="100"
+                  style="flex:1;padding:8px 10px;border:1px solid #d1c4e9;border-radius:8px;font-size:13px;outline:none" />
+                <button onclick="guardarReferenciaTransferencia()" id="cf-ref-btn"
+                  style="padding:8px 14px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+                  Enviar
+                </button>
+              </div>
+              <div id="cf-ref-msg" style="display:none;font-size:12px;margin-top:6px"></div>
+            </div>
           </div>
           <div class="c-actions" style="margin-top:16px">
             <button class="btn-g" onclick="resetear()">Hacer otra reserva</button>
@@ -1193,6 +1205,8 @@ async function confirmar() {
     if (data.cita?.id) {
       document.getElementById('cf-ref').textContent = 'AT-' + data.cita.id.slice(0, 8).toUpperCase();
       document.getElementById('cf-ref-wrap').style.display = '';
+      window._citaIdConfirmada  = data.cita.id;
+      window._emailConfirmado   = email;
     }
 
     // Botones de calendario (se ocultan si hay pago pendiente online)
@@ -1293,6 +1307,9 @@ async function confirmar() {
         document.getElementById('cf-pagos-titulo').textContent = tieneMP ? 'O paga de otra forma' : 'Opciones de pago';
         document.getElementById('cf-pagos-list').innerHTML = items.join('');
         document.getElementById('cf-pagos').style.display = 'block';
+        if (mp.transferencia && window._citaIdConfirmada) {
+          document.getElementById('cf-ref-transferencia').style.display = 'block';
+        }
       } else {
         document.getElementById('cf-pagos').style.display = 'none';
       }
@@ -1449,6 +1466,44 @@ function rereservarCita(idx) {
 }
 
 /* ── RESET ── */
+async function guardarReferenciaTransferencia() {
+  const input = document.getElementById('cf-ref-input');
+  const btn   = document.getElementById('cf-ref-btn');
+  const msg   = document.getElementById('cf-ref-msg');
+  const ref   = (input?.value || '').trim();
+  if (!ref) { msg.textContent = 'Ingresa el número de operación.'; msg.style.display = 'block'; msg.style.color = '#dc2626'; return; }
+  if (!window._citaIdConfirmada || !window._emailConfirmado) { msg.textContent = 'Error: datos de reserva no disponibles.'; msg.style.display = 'block'; msg.style.color = '#dc2626'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  try {
+    const r = await fetch('/api/crear-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'guardar_referencia', id: window._citaIdConfirmada, email: window._emailConfirmado, referencia: ref })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.ok) {
+      msg.textContent = '✓ Número de operación guardado. El profesional lo verá en su agenda.';
+      msg.style.color = '#16a34a';
+      msg.style.display = 'block';
+      btn.style.display = 'none';
+      input.disabled = true;
+    } else {
+      msg.textContent = data.error || 'No se pudo guardar. Intenta de nuevo.';
+      msg.style.color = '#dc2626';
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
+    }
+  } catch {
+    msg.textContent = 'Error de conexión. Intenta de nuevo.';
+    msg.style.color = '#dc2626';
+    msg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Enviar';
+  }
+}
+
 function resetear() {
   Object.assign(st, { svc:null, prof:null, fecha:null, hora:null, _espAsignado:null });
   citasDelDia = [];
