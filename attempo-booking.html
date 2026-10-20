@@ -1499,6 +1499,13 @@ function resetear() {
 .achip{background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.18);border-radius:20px;padding:4px 10px;font-size:11px;color:#6C5CE4;cursor:pointer;transition:all .12s;font-family:inherit}
 .achip:hover{background:#6C5CE4;color:#fff;border-color:#6C5CE4}
 .attia-foot{display:flex;gap:8px;padding:9px 12px;border-top:1px solid #f0eef8;flex-shrink:0;align-items:center}
+#attia-consent{position:absolute;inset:0;background:#fff;z-index:10;display:flex;flex-direction:column;padding:20px 18px;border-radius:14px}
+#attia-consent h3{font-size:14px;font-weight:700;color:#1E1B3A;margin:0 0 8px}
+#attia-consent p{font-size:12px;color:#5E5880;line-height:1.55;margin:0 0 10px}
+#attia-consent ul{font-size:12px;color:#5E5880;line-height:1.6;margin:0 0 16px;padding-left:16px}
+#attia-consent-btn{background:linear-gradient(135deg,#8B7CF8,#6C5CE4);color:#fff;border:none;border-radius:20px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;width:100%}
+#attia-consent-link{display:block;text-align:center;margin-top:8px;font-size:11px;color:#9C96B4;text-decoration:none}
+#attia-consent-link:hover{color:#6C5CE4}
 #attia-input{flex:1;border:1.5px solid #e0ddf5;border-radius:20px;padding:7px 13px;font-size:13px;font-family:inherit;color:#1E1B3A;outline:none;transition:border-color .12s;background:#fff}
 #attia-input:focus{border-color:#8B7CF8}
 #attia-send{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s}
@@ -1515,6 +1522,20 @@ function resetear() {
 </button>
 
 <div id="attia-panel">
+  <div id="attia-consent" style="display:none">
+    <div class="attia-av" style="margin-bottom:12px;width:40px;height:40px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+    </div>
+    <h3>Antes de continuar</h3>
+    <p>Attia es un asistente virtual con inteligencia artificial. Para funcionar, procesa los mensajes de esta conversación.</p>
+    <ul>
+      <li>Las respuestas son generadas por <strong>Claude de Anthropic</strong> — tus mensajes no se usan para entrenar la IA</li>
+      <li>La conversación se almacena de forma segura en los servidores de attempo</li>
+      <li>No compartas información médica sensible por este canal</li>
+    </ul>
+    <button id="attia-consent-btn" onclick="attiaAceptarConsentimiento()">Entendido, continuar</button>
+    <a href="/privacidad" target="_blank" rel="noopener noreferrer" id="attia-consent-link">Ver política de privacidad</a>
+  </div>
   <div class="attia-hdr">
     <div class="attia-av">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1554,7 +1575,27 @@ function attiaToggle() {
   _attiaOpen = !_attiaOpen;
   document.getElementById('attia-panel').classList.toggle('open', _attiaOpen);
   document.getElementById('attia-btn').classList.toggle('on', _attiaOpen);
-  if (_attiaOpen && _attiaHist.length === 0) {
+  if (_attiaOpen) {
+    const consentido = localStorage.getItem('attia_consent_v1');
+    const consentEl = document.getElementById('attia-consent');
+    if (!consentido) {
+      if (consentEl) consentEl.style.display = 'flex';
+    } else {
+      if (consentEl) consentEl.style.display = 'none';
+      if (_attiaHist.length === 0) _attiaIniciar();
+    }
+  }
+}
+
+function attiaAceptarConsentimiento() {
+  localStorage.setItem('attia_consent_v1', '1');
+  const consentEl = document.getElementById('attia-consent');
+  if (consentEl) consentEl.style.display = 'none';
+  _attiaIniciar();
+}
+
+function _attiaIniciar() {
+  if (_attiaHist.length === 0) {
     const biz = negocioData?.nombre_negocio || 'este negocio';
     _attiaAppend('bot', `¡Hola! Soy Attia, el asistente virtual de **${biz}**. Puedo ayudarte con info sobre los servicios, horarios y tu reserva. ¿En qué te ayudo?`);
     setTimeout(() => document.getElementById('attia-input').focus(), 200);
