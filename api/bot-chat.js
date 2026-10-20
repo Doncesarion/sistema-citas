@@ -196,24 +196,24 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'Attempo <contacto@attempo.cl>',
           to: [emailDestino],
-          subject: `Requiere atención — ${canalLabel}: ${nombreDisplay}`,
+          subject: `⚠️ Paciente requiere atención — ${nombreDisplay} (${canalLabel})`,
           html: `<div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;color:#2d2d2d">
-<div style="background:#6C5CE4;border-radius:10px 10px 0 0;padding:16px 20px">
-  <div style="color:#fff;font-size:16px;font-weight:700">Contacto requiere atención humana</div>
-  <div style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:2px">${new Date().toLocaleString('es-CL',{timeZone:'America/Santiago'})}</div>
+<div style="background:#DC2626;border-radius:10px 10px 0 0;padding:16px 20px">
+  <div style="color:#fff;font-size:16px;font-weight:700">⚠️ Paciente requiere atención humana</div>
+  <div style="color:rgba(255,255,255,0.85);font-size:12px;margin-top:2px">${new Date().toLocaleString('es-CL',{timeZone:'America/Santiago'})}</div>
 </div>
-<div style="border:1px solid #e5e1ff;border-top:none;border-radius:0 0 10px 10px;padding:18px 20px">
+<div style="border:1px solid #fecaca;border-top:none;border-radius:0 0 10px 10px;padding:18px 20px">
   <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px">
     <tr><td style="padding:5px 0;color:#888;width:80px">Canal</td><td><strong>${canalLabel}</strong></td></tr>
     <tr><td style="padding:5px 0;color:#888">Nombre</td><td><strong>${nombreDisplay}</strong></td></tr>
-    ${telefonoFinal ? `<tr><td style="padding:5px 0;color:#888">Teléfono</td><td><a href="tel:${telefonoFinal}" style="color:#6C5CE4">${telefonoFinal}</a></td></tr>` : ''}
+    ${telefonoFinal ? `<tr><td style="padding:5px 0;color:#888">Teléfono</td><td><a href="tel:${telefonoFinal}" style="color:#DC2626;font-weight:700">${telefonoFinal}</a></td></tr>` : ''}
     ${email ? `<tr><td style="padding:5px 0;color:#888">Email</td><td><a href="mailto:${email}" style="color:#6C5CE4">${email}</a></td></tr>` : ''}
     ${interes ? `<tr><td style="padding:5px 0;color:#888;vertical-align:top">Motivo</td><td style="color:#444">${String(interes).replace(/</g,'&lt;')}</td></tr>` : ''}
   </table>
   ${resumen ? `<div style="padding:10px 14px;background:#fffbe6;border-left:3px solid #f59e0b;border-radius:4px;font-size:12px;color:#555;margin-top:8px">${String(resumen).replace(/</g,'&lt;')}</div>` : ''}
   ${transcriptHtml}
-  <div style="margin-top:20px;padding:12px 14px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;font-size:12px;color:#166534">
-    El bot está <strong>pausado</strong> en esta conversación. Esta persona espera que le escribas directamente en ${canalLabel}.
+  <div style="margin-top:20px;padding:12px 14px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;font-size:12px;color:#991b1b">
+    El bot está <strong>pausado</strong>. Esta persona espera que le escribas directamente en ${canalLabel}.
   </div>
 </div>
 <p style="font-size:11px;color:#aaa;text-align:center;margin-top:12px">attempo — sistema de agendamiento inteligente</p>
