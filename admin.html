@@ -3467,41 +3467,75 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
   <!-- Panel: Leads / Pipeline ────────────────────────────────────────────── -->
   <div id="bsec-leads" class="vp" style="display:none;flex:1;overflow-y:auto;padding:20px 24px">
 
-    <!-- Contadores del pipeline -->
-    <div id="leads-pipeline-counts" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 16px">
-        <div style="font-size:11px;font-weight:600;color:#c2410c;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Nuevo</div>
-        <div id="leads-count-nuevo" style="font-size:26px;font-weight:700;color:#ea580c">—</div>
+    <!-- Stats strip -->
+    <div id="leads-pipeline-counts" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#f97316;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#c2410c;text-transform:uppercase;letter-spacing:.05em;line-height:1">Nuevo</div>
+          <div id="leads-count-nuevo" style="font-size:24px;font-weight:700;color:#ea580c;line-height:1.2">—</div>
+        </div>
       </div>
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px">
-        <div style="font-size:11px;font-weight:600;color:#1d4ed8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Calificado</div>
-        <div id="leads-count-calificado" style="font-size:26px;font-weight:700;color:#2563eb">—</div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#3b82f6;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#1d4ed8;text-transform:uppercase;letter-spacing:.05em;line-height:1">Calificado</div>
+          <div id="leads-count-calificado" style="font-size:24px;font-weight:700;color:#2563eb;line-height:1.2">—</div>
+        </div>
       </div>
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px">
-        <div style="font-size:11px;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Agendado</div>
-        <div id="leads-count-agendado" style="font-size:26px;font-weight:700;color:#16a34a">—</div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#22c55e;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:.05em;line-height:1">Agendado</div>
+          <div id="leads-count-agendado" style="font-size:24px;font-weight:700;color:#16a34a;line-height:1.2">—</div>
+        </div>
       </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px">
-        <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Perdido</div>
-        <div id="leads-count-perdido" style="font-size:26px;font-weight:700;color:#9ca3af">—</div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:#94a3b8;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;line-height:1">Perdido</div>
+          <div id="leads-count-perdido" style="font-size:24px;font-weight:700;color:#6b7280;line-height:1.2">—</div>
+        </div>
       </div>
     </div>
 
-    <!-- Filtros + búsqueda -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="lfilt on" onclick="filtrarLeads('todos',this)" style="padding:5px 12px;font-size:12px;font-weight:600;border-radius:20px;border:1px solid var(--a);background:var(--a);color:#fff;cursor:pointer">Todos</button>
-        <button class="lfilt" onclick="filtrarLeads('nuevo',this)" style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:20px;border:1px solid #fed7aa;background:#fff7ed;color:#c2410c;cursor:pointer">Nuevo</button>
-        <button class="lfilt" onclick="filtrarLeads('calificado',this)" style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:20px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;cursor:pointer">Calificado</button>
-        <button class="lfilt" onclick="filtrarLeads('agendado',this)" style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:20px;border:1px solid #bbf7d0;background:#f0fdf4;color:#15803d;cursor:pointer">Agendado</button>
-        <button class="lfilt" onclick="filtrarLeads('perdido',this)" style="padding:5px 12px;font-size:12px;font-weight:500;border-radius:20px;border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;cursor:pointer">Perdido</button>
+    <!-- Toolbar: búsqueda + toggle vista -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="position:relative;flex:1;min-width:200px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="leads-search" placeholder="Buscar nombre, teléfono, interés..." oninput="renderLeadsBoard()"
+          style="width:100%;box-sizing:border-box;border:1px solid var(--b1);border-radius:8px;padding:7px 10px 7px 32px;font-size:12px;outline:none;background:var(--surface-hi,#fff)">
       </div>
-      <input type="search" id="leads-search" placeholder="Buscar nombre, teléfono, interés..." oninput="renderLeads()"
-        style="flex:1;min-width:180px;border:1px solid var(--b1);border-radius:8px;padding:6px 10px;font-size:12px;outline:none">
+      <!-- Toggle Kanban / Tabla -->
+      <div style="display:flex;border:1px solid var(--b1);border-radius:8px;overflow:hidden;flex-shrink:0">
+        <button id="leads-btn-kanban" onclick="setLeadsView('kanban')"
+          style="padding:6px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;background:var(--a);color:#fff">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+          Kanban
+        </button>
+        <button id="leads-btn-table" onclick="setLeadsView('table')"
+          style="padding:6px 14px;font-size:12px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;background:transparent;color:var(--t2,#6b7280)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Tabla
+        </button>
+      </div>
     </div>
 
-    <!-- Tabla de leads -->
-    <div style="background:#fff;border:1px solid var(--b1);border-radius:12px;overflow:hidden">
+    <!-- Kanban board -->
+    <div id="leads-kanban" style="display:flex;gap:12px;align-items:flex-start;overflow-x:auto;padding-bottom:8px;min-height:300px">
+      <!-- Columns rendered by JS -->
+    </div>
+
+    <!-- Table view -->
+    <div id="leads-table-wrap" style="display:none;background:#fff;border:1px solid var(--b1);border-radius:12px;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;font-size:13px" id="leads-table">
         <thead>
           <tr style="background:#f9fafb;border-bottom:1px solid var(--b1)">
@@ -3518,10 +3552,12 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
         </tbody>
       </table>
     </div>
-    <div id="leads-empty" style="display:none;text-align:center;padding:48px 0;color:var(--t3)">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 10px;display:block"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      <div style="font-size:13px;font-weight:500">Sin leads en esta etapa</div>
-      <div style="font-size:12px;margin-top:4px">Los leads aparecen cuando Attia captura un contacto del chat</div>
+
+    <!-- Empty state (shared) -->
+    <div id="leads-empty" style="display:none;text-align:center;padding:56px 0;color:var(--t3)">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;opacity:.4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <div style="font-size:14px;font-weight:600;color:var(--t2)">Sin leads en esta búsqueda</div>
+      <div style="font-size:12px;margin-top:5px">Los leads aparecen cuando Attia captura un contacto del chat</div>
     </div>
   </div><!-- end bsec-leads -->
 
@@ -6120,23 +6156,72 @@ function showBandejaTab(name, btn, skipPush) {
 
 // ── Leads / Pipeline ──────────────────────────────────────────────────────────
 var _leadsData = [];
-var _leadsFiltro = 'todos';
+var _leadsView = 'kanban'; // 'kanban' | 'table'
+
+// Stage metadata
+var _LEADS_STAGES = [
+  { id:'nuevo',      label:'Nuevo',      next:'calificado', accent:'#f97316', text:'#ea580c', bg:'#fff7ed', border:'#fed7aa' },
+  { id:'calificado', label:'Calificado', next:'agendado',   accent:'#3b82f6', text:'#2563eb', bg:'#eff6ff', border:'#bfdbfe' },
+  { id:'agendado',   label:'Agendado',   next:null,         accent:'#22c55e', text:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0' },
+  { id:'perdido',    label:'Perdido',    next:null,         accent:'#94a3b8', text:'#6b7280', bg:'#f9fafb', border:'#e5e7eb' },
+];
+
+// Color palette for initials avatars (based on name hash)
+var _LEADS_AVATAR_PALETTE = ['#6C5CE4','#f97316','#3b82f6','#22c55e','#e11d48','#0891b2','#7c3aed','#b45309'];
+
+function _leadsInitialsColor(str) {
+  var h = 0;
+  for (var i = 0; i < (str||'').length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
+  return _LEADS_AVATAR_PALETTE[Math.abs(h) % _LEADS_AVATAR_PALETTE.length];
+}
+
+function _leadsRelTime(dateStr) {
+  if (!dateStr) return '';
+  var diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60)        return 'justo ahora';
+  if (diff < 3600)      return 'hace ' + Math.floor(diff / 60) + 'm';
+  if (diff < 86400)     return 'hace ' + Math.floor(diff / 3600) + 'h';
+  if (diff < 86400 * 30) return 'hace ' + Math.floor(diff / 86400) + 'd';
+  return new Date(dateStr).toLocaleDateString('es-CL', { day:'2-digit', month:'short' });
+}
+
+function _leadsCanalBadge(canal) {
+  var bg  = (typeof _B_CANAL_BG  !== 'undefined' && _B_CANAL_BG[canal])  || '#64748b';
+  var svg = (typeof _B_CANAL_SVG !== 'undefined' && _B_CANAL_SVG[canal]) || '';
+  var label = canal ? canal.charAt(0).toUpperCase() + canal.slice(1) : 'Desconocido';
+  if (svg) {
+    return '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 5px;border-radius:20px;background:' + bg + ';font-size:10px;font-weight:600;color:#fff;vertical-align:middle">'
+         + '<span style="display:inline-flex;width:13px;height:13px;align-items:center;justify-content:center">' + svg + '</span>'
+         + _escHtml(label) + '</span>';
+  }
+  return '<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;background:' + bg + ';font-size:10px;font-weight:600;color:#fff">' + _escHtml(label) + '</span>';
+}
+
+function _leadsFilteredData() {
+  var query = (document.getElementById('leads-search') ? document.getElementById('leads-search').value : '').toLowerCase().trim();
+  return _leadsData.filter(function(l) {
+    if (!query) return true;
+    var hay = ((l.nombre||'') + ' ' + (l.telefono||'') + ' ' + (l.interes||'') + ' ' + (l.resumen||'')).toLowerCase();
+    return hay.includes(query);
+  });
+}
 
 async function cargarLeads() {
-  var tbody = document.getElementById('leads-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Cargando...</td></tr>';
+  // Show loading state in kanban
+  var kb = document.getElementById('leads-kanban');
+  if (kb) kb.innerHTML = '<div style="padding:40px;color:var(--t3);font-size:13px">Cargando pipeline...</div>';
   try {
     var r = await fetch('/api/bandeja?action=leads', { headers: _citasH() });
     var data = await r.json();
     _leadsData = Array.isArray(data) ? data : [];
     _actualizarContadoresLeads();
-    renderLeads();
+    renderLeadsBoard();
     // Badge en tab
     var nuevos = _leadsData.filter(function(l){ return l.estado === 'nuevo'; }).length;
     var badge = document.getElementById('leads-badge');
     if (badge) { badge.textContent = nuevos || ''; badge.style.display = nuevos ? 'inline-block' : 'none'; }
   } catch(e) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#dc2626;font-size:13px">Error al cargar leads</td></tr>';
+    if (kb) kb.innerHTML = '<div style="padding:40px;color:#dc2626;font-size:13px">Error al cargar leads</div>';
   }
 }
 
@@ -6149,42 +6234,116 @@ function _actualizarContadoresLeads() {
   });
 }
 
-function filtrarLeads(estado, btn) {
-  _leadsFiltro = estado;
-  document.querySelectorAll('.lfilt').forEach(function(b){
-    b.classList.remove('on');
-    b.style.fontWeight = '500';
-    b.style.borderColor = b.dataset.color || '';
-  });
-  if (btn) { btn.classList.add('on'); btn.style.fontWeight = '600'; }
-  renderLeads();
+function setLeadsView(view) {
+  _leadsView = view;
+  var btnK = document.getElementById('leads-btn-kanban');
+  var btnT = document.getElementById('leads-btn-table');
+  var kb   = document.getElementById('leads-kanban');
+  var tw   = document.getElementById('leads-table-wrap');
+  if (btnK) { btnK.style.background = view === 'kanban' ? 'var(--a)' : 'transparent'; btnK.style.color = view === 'kanban' ? '#fff' : 'var(--t2,#6b7280)'; btnK.style.fontWeight = view === 'kanban' ? '600' : '500'; }
+  if (btnT) { btnT.style.background = view === 'table'  ? 'var(--a)' : 'transparent'; btnT.style.color = view === 'table'  ? '#fff' : 'var(--t2,#6b7280)'; btnT.style.fontWeight = view === 'table'  ? '600' : '500'; }
+  if (kb) kb.style.display  = view === 'kanban' ? 'flex' : 'none';
+  if (tw) tw.style.display  = view === 'table'  ? 'block' : 'none';
+  renderLeadsBoard();
 }
 
-function renderLeads() {
-  var query = (document.getElementById('leads-search')?.value || '').toLowerCase().trim();
-  var filtered = _leadsData.filter(function(l){
-    if (_leadsFiltro !== 'todos' && l.estado !== _leadsFiltro) return false;
-    if (query) {
-      var haystack = ((l.nombre||'') + ' ' + (l.telefono||'') + ' ' + (l.interes||'') + ' ' + (l.resumen||'')).toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-    return true;
-  });
-
-  var tbody = document.getElementById('leads-tbody');
+// Called by search input + stage changes
+function renderLeadsBoard() {
+  var filtered = _leadsFilteredData();
   var empty = document.getElementById('leads-empty');
-  var table = document.getElementById('leads-table');
 
   if (!filtered.length) {
-    if (tbody) tbody.innerHTML = '';
-    if (table) table.style.display = 'none';
+    var kb2 = document.getElementById('leads-kanban');
+    var tw2 = document.getElementById('leads-table-wrap');
+    if (kb2) kb2.style.display = 'none';
+    if (tw2) tw2.style.display = 'none';
     if (empty) empty.style.display = 'block';
     return;
   }
-  if (table) table.style.display = '';
   if (empty) empty.style.display = 'none';
 
-  var CANAL_ICO = { whatsapp:'💬', instagram:'📷', messenger:'💙', attia:'🌐', web:'🌐' };
+  if (_leadsView === 'kanban') {
+    _renderLeadsKanban(filtered);
+  } else {
+    _renderLeadsTable(filtered);
+  }
+}
+
+// Alias kept for compatibility with older calls
+function renderLeads() { renderLeadsBoard(); }
+
+function _renderLeadsKanban(filtered) {
+  var kb = document.getElementById('leads-kanban');
+  if (!kb) return;
+  kb.style.display = 'flex';
+  var tw = document.getElementById('leads-table-wrap');
+  if (tw) tw.style.display = 'none';
+
+  kb.innerHTML = _LEADS_STAGES.map(function(stage) {
+    var cards = filtered.filter(function(l){ return l.estado === stage.id; });
+    var colCards = cards.map(function(l) {
+      var nombre = (l.nombre || l.canal_user_name || 'Sin nombre').slice(0, 28);
+      var initials = nombre.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+      var avatarColor = _leadsInitialsColor(nombre);
+      var interes = (l.interes || '').slice(0, 90);
+      var resumen = (l.resumen || '').slice(0, 120);
+      var relTime = _leadsRelTime(l.created_at);
+      var canalBadge = _leadsCanalBadge(l.canal);
+      var nextStage = stage.next;
+      var nextBtn = nextStage
+        ? '<button onclick="cambiarEstadoLead(\'' + l.id + '\',\'' + nextStage + '\')" title="Avanzar etapa" '
+          + 'style="background:' + stage.accent + ';border:none;color:#fff;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px">'
+          + '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+          + _LEADS_STAGES.find(function(s){ return s.id === nextStage; }).label + '</button>'
+        : '';
+      return '<div class="lcard" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 13px;margin-bottom:8px;position:relative;transition:box-shadow .15s;cursor:default" '
+           + 'onmouseover="this.style.boxShadow=\'0 2px 10px rgba(0,0,0,.08)\';this.querySelector(\'.lcard-actions\').style.opacity=1" '
+           + 'onmouseout="this.style.boxShadow=\'\';this.querySelector(\'.lcard-actions\').style.opacity=0">'
+           // Avatar + name row
+           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">'
+           + '<div style="width:32px;height:32px;border-radius:8px;background:' + avatarColor + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">' + initials + '</div>'
+           + '<div style="flex:1;min-width:0">'
+           + '<div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _escHtml(nombre) + '</div>'
+           + (l.telefono ? '<div style="font-size:10px;color:var(--t3);margin-top:1px">' + _escHtml(l.telefono) + '</div>' : '')
+           + '</div>'
+           + canalBadge
+           + '</div>'
+           // Interest
+           + (interes ? '<div style="font-size:12px;color:var(--t2,#374151);font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;margin-bottom:5px">' + _escHtml(interes) + '</div>' : '')
+           + (resumen ? '<div style="font-size:11px;color:var(--t3);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px">' + _escHtml(resumen) + '</div>' : '')
+           // Footer row
+           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'
+           + '<span style="font-size:10px;color:var(--t3)">' + relTime + '</span>'
+           + '<div class="lcard-actions" style="display:flex;align-items:center;gap:4px;opacity:0;transition:opacity .15s">'
+           + nextBtn
+           + '<button onclick="eliminarLead(\'' + l.id + '\')" title="Eliminar lead" '
+           + 'style="background:none;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center">'
+           + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'
+           + '</button>'
+           + '</div>'
+           + '</div>'
+           + '</div>';
+    }).join('');
+
+    return '<div style="flex:0 0 240px;min-width:240px">'
+         + '<div style="display:flex;align-items:center;gap:7px;padding:8px 2px 10px;margin-bottom:2px">'
+         + '<span style="width:9px;height:9px;border-radius:50%;background:' + stage.accent + ';flex-shrink:0"></span>'
+         + '<span style="font-size:12px;font-weight:700;color:' + stage.text + ';text-transform:uppercase;letter-spacing:.05em">' + stage.label + '</span>'
+         + '<span style="margin-left:auto;min-width:20px;text-align:center;background:' + stage.accent + ';color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px">' + cards.length + '</span>'
+         + '</div>'
+         + '<div style="background:' + stage.bg + ';border:1px solid ' + stage.border + ';border-radius:12px;padding:10px;min-height:120px">'
+         + (colCards || '<div style="text-align:center;padding:20px 0;font-size:11px;color:#9ca3af">Sin leads</div>')
+         + '</div>'
+         + '</div>';
+  }).join('');
+}
+
+function _renderLeadsTable(filtered) {
+  var tw = document.getElementById('leads-table-wrap');
+  var kb = document.getElementById('leads-kanban');
+  if (tw) tw.style.display = 'block';
+  if (kb) kb.style.display = 'none';
+
   var ESTADO_STYLE = {
     nuevo:      'background:#fff7ed;color:#c2410c;border:1px solid #fed7aa',
     calificado: 'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe',
@@ -6192,32 +6351,41 @@ function renderLeads() {
     perdido:    'background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb',
   };
 
+  var tbody = document.getElementById('leads-tbody');
+  if (!tbody) return;
+
   tbody.innerHTML = filtered.map(function(l){
     var fecha = l.created_at ? new Date(l.created_at).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '—';
     var nombre = (l.nombre || l.canal_user_name || 'Sin nombre').slice(0,30);
     var tel = l.telefono ? '<div style="font-size:11px;color:var(--t3);margin-top:2px">' + l.telefono + '</div>' : '';
-    var interes = (l.interes || '').slice(0,40) || '—';
-    var resumen = (l.resumen || '').slice(0,80);
+    var interes = (l.interes || '').slice(0,50) || '—';
+    var resumen = (l.resumen || '').slice(0,100);
     var estadoStyle = ESTADO_STYLE[l.estado] || ESTADO_STYLE.nuevo;
-    var canalIco = CANAL_ICO[l.canal] || '•';
+    var canalBadge = _leadsCanalBadge(l.canal);
+    var initials = nombre.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+    var avatarColor = _leadsInitialsColor(nombre);
 
-    return '<tr style="border-bottom:1px solid var(--b1);transition:background .1s" onmouseover="this.style.background=\'#f9fafb\'" onmouseout="this.style.background=\'\'">' +
-      '<td style="padding:11px 14px"><div style="font-weight:600;color:var(--t1)">' + _escHtml(nombre) + '</div>' + tel + '</td>' +
-      '<td style="padding:11px 14px;font-size:18px" title="' + (l.canal||'') + '">' + canalIco + '</td>' +
-      '<td style="padding:11px 14px;max-width:260px"><div style="font-weight:500;color:var(--t1)">' + _escHtml(interes) + '</div>' +
-        (resumen ? '<div style="font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4">' + _escHtml(resumen) + '</div>' : '') + '</td>' +
-      '<td style="padding:11px 14px">' +
-        '<select onchange="cambiarEstadoLead(\'' + l.id + '\',this.value)" style="' + estadoStyle + ';border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none">' +
-          ['nuevo','calificado','agendado','perdido'].map(function(e){ return '<option value="' + e + '"' + (l.estado===e?' selected':'') + '>' + e.charAt(0).toUpperCase()+e.slice(1) + '</option>'; }).join('') +
-        '</select>' +
-      '</td>' +
-      '<td style="padding:11px 14px;font-size:12px;color:var(--t3);white-space:nowrap">' + fecha + '</td>' +
-      '<td style="padding:11px 14px">' +
-        '<button onclick="eliminarLead(\'' + l.id + '\')" title="Eliminar lead" style="background:none;border:none;cursor:pointer;color:#dc2626;opacity:.6;padding:4px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>' +
-        '</button>' +
-      '</td>' +
-    '</tr>';
+    return '<tr style="border-bottom:1px solid var(--b1);transition:background .1s" onmouseover="this.style.background=\'#f9fafb\'" onmouseout="this.style.background=\'\'">'
+      + '<td style="padding:11px 14px">'
+      + '<div style="display:flex;align-items:center;gap:9px">'
+      + '<div style="width:30px;height:30px;border-radius:7px;background:' + avatarColor + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + initials + '</div>'
+      + '<div><div style="font-weight:600;color:var(--t1)">' + _escHtml(nombre) + '</div>' + tel + '</div>'
+      + '</div></td>'
+      + '<td style="padding:11px 14px">' + canalBadge + '</td>'
+      + '<td style="padding:11px 14px;max-width:280px">'
+      + '<div style="font-weight:500;color:var(--t1);font-size:12px">' + _escHtml(interes) + '</div>'
+      + (resumen ? '<div style="font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4">' + _escHtml(resumen) + '</div>' : '')
+      + '</td>'
+      + '<td style="padding:11px 14px">'
+      + '<select onchange="cambiarEstadoLead(\'' + l.id + '\',this.value)" style="' + estadoStyle + ';border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none">'
+      + ['nuevo','calificado','agendado','perdido'].map(function(e){ return '<option value="' + e + '"' + (l.estado===e?' selected':'') + '>' + e.charAt(0).toUpperCase()+e.slice(1) + '</option>'; }).join('')
+      + '</select></td>'
+      + '<td style="padding:11px 14px;font-size:12px;color:var(--t3);white-space:nowrap">' + fecha + '</td>'
+      + '<td style="padding:11px 14px">'
+      + '<button onclick="eliminarLead(\'' + l.id + '\')" title="Eliminar lead" style="background:none;border:none;cursor:pointer;color:#dc2626;opacity:.6;padding:4px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'
+      + '</button></td>'
+      + '</tr>';
   }).join('');
 }
 
@@ -6231,17 +6399,18 @@ async function cambiarEstadoLead(id, estado) {
   var prevEstado = lead.estado;
   lead.estado = estado;
   _actualizarContadoresLeads();
+  renderLeadsBoard();
   try {
     var r = await fetch('/api/bandeja?action=lead-estado&id=' + id, {
       method: 'PATCH',
       headers: Object.assign({'Content-Type':'application/json'}, _citasH()),
-      body: JSON.stringify({ estado })
+      body: JSON.stringify({ estado: estado })
     });
     if (!r.ok) throw new Error();
   } catch(e) {
     lead.estado = prevEstado;
     _actualizarContadoresLeads();
-    renderLeads();
+    renderLeadsBoard();
     alert('Error al actualizar el estado');
   }
 }
@@ -6255,7 +6424,7 @@ async function eliminarLead(id) {
     if (!r.ok) throw new Error();
     _leadsData = _leadsData.filter(function(l){ return l.id !== id; });
     _actualizarContadoresLeads();
-    renderLeads();
+    renderLeadsBoard();
   } catch(e) {
     alert('Error al eliminar el lead');
   }
@@ -15039,49 +15208,31 @@ async function renderReporteBandeja() {
   const convs = Array.isArray(_bConvs) ? _bConvs : [];
   const total = convs.length;
 
+  // ── Metrics ──────────────────────────────────────────────────────────────────
+  const sinLeer    = convs.filter(c => (c.no_leidos || 0) > 0).length;
+  const pausados   = convs.filter(c => c.pausa_bot).length;
+
   // Por canal
-  const canales = ['whatsapp','instagram','messenger','attia'];
+  const canales      = ['whatsapp','instagram','messenger','attia'];
+  const canalLabels  = { whatsapp:'WhatsApp', instagram:'Instagram', messenger:'Messenger', attia:'Attia' };
   const porCanal = {};
   canales.forEach(c => porCanal[c] = 0);
   convs.forEach(c => { if (porCanal[c.canal] !== undefined) porCanal[c.canal]++; });
 
   // Por estado
-  const estados = ['abierta','cotizando','cerrada'];
-  const estLabels = { abierta:'Abierta', cotizando:'Cotizando', cerrada:'Cerrada' };
-  const estColors = { abierta:'#a78bfa', cotizando:'#f59e0b', cerrada:'#6b7280' };
-  const porEstado = {};
+  const estados    = ['abierta','cotizando','cerrada'];
+  const estLabels  = { abierta:'Abierta', cotizando:'Cotizando', cerrada:'Cerrada' };
+  const estColors  = { abierta:'#a78bfa', cotizando:'#f59e0b', cerrada:'#6b7280' };
+  const estBgs     = { abierta:'#f5f3ff', cotizando:'#fffbeb', cerrada:'#f9fafb' };
+  const estBorders = { abierta:'#ddd6fe', cotizando:'#fde68a', cerrada:'#e5e7eb' };
+  const porEstado  = {};
   estados.forEach(e => porEstado[e] = 0);
   convs.forEach(c => { const k = c.estado || 'abierta'; if (porEstado[k] !== undefined) porEstado[k]++; else porEstado['abierta']++; });
-
-  // Sin respuesta (no_leidos > 0 del lado del cliente)
-  const sinRespuesta = convs.filter(c => (c.no_leidos || 0) > 0).length;
 
   const maxCanal = Math.max(...Object.values(porCanal), 1);
   const maxEst   = Math.max(...Object.values(porEstado), 1);
 
-  const canalColors = { whatsapp:'#25d366', instagram:'#e1306c', messenger:'#0084ff', attia:'#6C5CE4' };
-  const canalLabels = { whatsapp:'WhatsApp', instagram:'Instagram', messenger:'Messenger', attia:'Attia' };
-
-  function barRow(label, count, max, color) {
-    const pct = total > 0 ? Math.round(count / total * 100) : 0;
-    const barW = max > 0 ? Math.round(count / max * 100) : 0;
-    return `<div class="brep-row">
-      <span class="brep-dot" style="background:${color}"></span>
-      <span class="brep-label">${label}</span>
-      <div class="brep-bar-wrap"><div class="brep-bar" style="width:${barW}%;background:${color}"></div></div>
-      <span class="brep-count">${count}</span>
-      <span class="brep-pct">${pct}%</span>
-    </div>`;
-  }
-
-  const canalRows = canales.map(c => barRow(canalLabels[c], porCanal[c], maxCanal, canalColors[c])).join('');
-  const estadoRows = estados.map(e => barRow(estLabels[e], porEstado[e], maxEst, estColors[e])).join('');
-
-  const alertaHtml = sinRespuesta > 0
-    ? `<div class="brep-alert"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${sinRespuesta} conversación${sinRespuesta>1?'es':''} sin responder</span></div>`
-    : `<div class="brep-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Todo respondido</span></div>`;
-
-  // Mensajes IA — usar cache si ya está disponible, si no cargar
+  // ── Mensajes IA ──────────────────────────────────────────────────────────────
   let msgIa = _bMsgIaCached;
   if (msgIa === null) {
     try {
@@ -15090,26 +15241,113 @@ async function renderReporteBandeja() {
     } catch(e) {}
   }
   const mesActual = new Date().toLocaleString('es-CL', { month: 'long' });
-  const iaHtml = msgIa !== null
-    ? `<div class="brep-ia-box">
-        <span class="brep-ia-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 0 2h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1 0-2h1a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z"/><path d="M9 14v1"/><path d="M15 14v1"/></svg></span>
-        <span class="brep-ia-label">Mensajes enviados por Attia en ${mesActual}</span>
-        <strong class="brep-ia-count">${msgIa.toLocaleString('es-CL')}</strong>
-      </div>`
-    : '';
 
-  el.innerHTML = `
-    <div class="brep-summary-box">Total de conversaciones: <strong>${total}</strong></div>
-    ${iaHtml}
-    ${alertaHtml}
-    <div class="brep-section">
-      <div class="brep-section-title">Por canal</div>
-      ${canalRows}
-    </div>
-    <div class="brep-section">
-      <div class="brep-section-title">Por estado</div>
-      ${estadoRows}
+  // Bot ratio
+  const botPct = total > 0 ? Math.round(pausados / total * 100) : 0;
+  const humanPct = 100 - botPct;
+
+  // ── Alerta / OK strip ─────────────────────────────────────────────────────────
+  const alertaHtml = sinLeer > 0
+    ? `<div style="display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;font-size:12px;font-weight:600;color:#dc2626;margin-bottom:16px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        ${sinLeer} conversación${sinLeer>1?'es':''} sin responder
+      </div>`
+    : `<div style="display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:12px;font-weight:600;color:#16a34a;margin-bottom:16px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Todo respondido
+      </div>`;
+
+  // ── KPI grid (4 cards) ────────────────────────────────────────────────────────
+  const kpiCard = (icon, label, value, bg, accent, sublabel) =>
+    `<div style="background:${bg};border:1px solid ${accent}22;border-radius:12px;padding:14px 15px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:.05em">${label}</span>
+        <span style="width:28px;height:28px;border-radius:7px;background:${accent};display:flex;align-items:center;justify-content:center">${icon}</span>
+      </div>
+      <div style="font-size:26px;font-weight:700;color:${accent};line-height:1">${value}</div>
+      ${sublabel ? `<div style="font-size:10px;color:#9ca3af;margin-top:4px">${sublabel}</div>` : ''}
     </div>`;
+
+  const kpiGrid = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px">
+    ${kpiCard(
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      'Conversaciones', total, '#f5f3ff', '#7c3aed', 'total activas'
+    )}
+    ${kpiCard(
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
+      'Sin leer', sinLeer, sinLeer > 0 ? '#fef2f2' : '#f9fafb', sinLeer > 0 ? '#dc2626' : '#6b7280',
+      sinLeer > 0 ? 'requieren atención' : 'al día'
+    )}
+    ${kpiCard(
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>',
+      'Bot pausado', pausados, '#fff7ed', '#f97316', 'atención humana'
+    )}
+    ${kpiCard(
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 0 2h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1 0-2h1a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z"/><path d="M9 14v1"/><path d="M15 14v1"/></svg>',
+      'Attia', msgIa !== null ? (msgIa).toLocaleString('es-CL') : '—', '#eff6ff', '#3b82f6', 'mensajes en ' + mesActual
+    )}
+  </div>`;
+
+  // ── Canal bars (with SVG icons) ───────────────────────────────────────────────
+  const canalBars = canales.map(c => {
+    const count  = porCanal[c];
+    const pct    = total > 0 ? Math.round(count / total * 100) : 0;
+    const barW   = maxCanal > 0 ? Math.round(count / maxCanal * 100) : 0;
+    const bg     = (_B_CANAL_BG[c]  || '#64748b');
+    const svg    = (_B_CANAL_SVG[c] || '');
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+      <div style="width:26px;height:26px;border-radius:7px;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0">${svg}</div>
+      <span style="font-size:12px;font-weight:500;color:var(--t1);width:82px;flex-shrink:0">${canalLabels[c]}</span>
+      <div style="flex:1;height:6px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+        <div style="width:${barW}%;height:100%;background:${bg};border-radius:4px;transition:width .4s"></div>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:var(--t1);width:26px;text-align:right;flex-shrink:0">${count}</span>
+      <span style="font-size:11px;color:var(--t3);width:30px;text-align:right;flex-shrink:0">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  // ── Estado pipeline ───────────────────────────────────────────────────────────
+  const estBadges = estados.map(e => {
+    const count = porEstado[e];
+    const pct   = total > 0 ? Math.round(count / total * 100) : 0;
+    const barW  = maxEst > 0 ? Math.round(count / maxEst * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+      <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;background:${estBgs[e]};border:1px solid ${estBorders[e]};font-size:11px;font-weight:600;color:${estColors[e]};width:82px;flex-shrink:0;justify-content:center">${estLabels[e]}</span>
+      <div style="flex:1;height:6px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+        <div style="width:${barW}%;height:100%;background:${estColors[e]};border-radius:4px;transition:width .4s"></div>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:var(--t1);width:26px;text-align:right;flex-shrink:0">${count}</span>
+      <span style="font-size:11px;color:var(--t3);width:30px;text-align:right;flex-shrink:0">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  // ── Bot vs humano ratio ───────────────────────────────────────────────────────
+  const botRatio = total > 0 ? `
+    <div style="background:#f8fafc;border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-top:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Bot vs Humano</div>
+      <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;margin-bottom:8px">
+        <div style="flex:${100-botPct};background:#6C5CE4;transition:flex .4s"></div>
+        <div style="flex:${botPct||1};background:#f97316;transition:flex .4s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <span style="display:flex;align-items:center;gap:5px;color:var(--t2)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#6C5CE4"></span>Attia <strong>${humanPct}%</strong></span>
+        <span style="display:flex;align-items:center;gap:5px;color:var(--t2)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f97316"></span>Pausado <strong>${botPct}%</strong></span>
+      </div>
+    </div>` : '';
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  el.innerHTML = `
+    ${alertaHtml}
+    ${kpiGrid}
+    <div style="background:#f8fafc;border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Por canal</div>
+      ${canalBars}
+    </div>
+    <div style="background:#f8fafc;border:1px solid var(--b1);border-radius:12px;padding:14px 16px">
+      <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Por estado</div>
+      ${estBadges}
+    </div>
+    ${botRatio}`;
 }
 
 // ── Eliminar conversación ────────────────────────────────────────────────────
