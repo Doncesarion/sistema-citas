@@ -236,7 +236,7 @@ export default async function handler(req, res) {
   }
 
   // ── POST — enviar mensaje manual desde admin ──────────────────────────────
-  if (req.method === 'POST') {
+  if (req.method === 'POST' && !req.query.action) {
     const { conversacion_id, contenido } = req.body || {};
     const contenidoLimitado = contenido?.trim().slice(0, 4096);
     const _convIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
