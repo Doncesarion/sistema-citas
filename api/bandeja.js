@@ -159,10 +159,36 @@ export default async function handler(req, res) {
       `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv_id}&order=created_at.asc&limit=200&select=*`,
       { headers: sh }
     );
-    const msgs = await rm.json();
+    let msgs = await rm.json();
+    if (!Array.isArray(msgs)) msgs = [];
+
+    // Fallback: si no hay mensajes en tabla, leer desde chat_sessions.messages
+    if (msgs.length === 0) {
+      try {
+        const rcs = await fetch(
+          `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=messages,created_at&limit=1`,
+          { headers: sh }
+        );
+        const [sess] = await rcs.json();
+        if (sess?.messages && Array.isArray(sess.messages) && sess.messages.length > 0) {
+          const base = new Date(sess.created_at || Date.now()).getTime();
+          msgs = sess.messages.map((m, i) => ({
+            id: `cs_${i}`,
+            conversacion_id: conv_id,
+            cliente_id,
+            rol: m.role === 'assistant' ? 'bot' : 'usuario',
+            contenido: typeof m.content === 'string' ? m.content
+              : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join('') : '',
+            visto: true,
+            created_at: new Date(base + i * 1000).toISOString()
+          })).filter(m => m.contenido);
+        }
+      } catch (_) {}
+    }
+
     return res.status(200).json({
       conversacion: { ...conv, pausa_bot },
-      mensajes: Array.isArray(msgs) ? msgs : []
+      mensajes: msgs
     });
   }
 

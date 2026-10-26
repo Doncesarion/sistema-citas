@@ -212,21 +212,34 @@ export default async function handler(req, res) {
     });
     if (cvRpc.ok) {
       conversacion_id = await cvRpc.json();
-      if (conversacion_id) {
-        fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
-          method: 'POST',
-          headers: { ...shJ, Prefer: 'return=minimal' },
-          body: JSON.stringify({ conversacion_id, cliente_id, rol: 'usuario', contenido: mensaje })
-        }).catch(e => console.error('meta-webhook: error guardando mensaje usuario:', e.message));
+    }
 
-        // Actualizar foto de perfil si se obtuvo
-        if (canal_user_photo) {
-          fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conversacion_id}`, {
-            method: 'PATCH',
-            headers: { ...shJ, Prefer: 'return=minimal' },
-            body: JSON.stringify({ canal_user_photo })
-          }).catch(() => {});
-        }
+    // Si el RPC no devolvió un ID, buscar la conversación directamente
+    if (!conversacion_id) {
+      try {
+        const rq = await fetch(
+          `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id&limit=1`,
+          { headers: sh }
+        );
+        const [row] = await rq.json();
+        if (row?.id) conversacion_id = row.id;
+      } catch (_) {}
+    }
+
+    if (conversacion_id) {
+      fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+        method: 'POST',
+        headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify({ conversacion_id, cliente_id, rol: 'usuario', contenido: mensaje })
+      }).catch(e => console.error('meta-webhook: error guardando mensaje usuario:', e.message));
+
+      // Actualizar foto de perfil si se obtuvo
+      if (canal_user_photo) {
+        fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conversacion_id}`, {
+          method: 'PATCH',
+          headers: { ...shJ, Prefer: 'return=minimal' },
+          body: JSON.stringify({ canal_user_photo })
+        }).catch(() => {});
       }
     }
   } catch (e) {
