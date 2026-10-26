@@ -257,6 +257,7 @@ export default async function handler(req, res) {
   let chatbotKnowledge = [];
   let sedesContexto = '';
   let pacienteContexto = '';
+  let leadContexto = '';
   let negocioNombre = 'el negocio';
   let serviciosCatalogo = [];
   let emailNegocio = null;
@@ -266,7 +267,7 @@ export default async function handler(req, res) {
   let espLista = [];
 
   try {
-    const [rawBotCfg, rawCK, rawCli, rawEsp, rawCitas] = await Promise.all([
+    const [rawBotCfg, rawCK, rawCli, rawEsp, rawCitas, rawLead] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh })
         .then(r => r.json()).catch(() => []),
       fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&activo=eq.true&order=orden.asc`, { headers: sh })
@@ -279,6 +280,8 @@ export default async function handler(req, res) {
         ? fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&tel_paciente=eq.${encodeURIComponent(canal_user_id)}&estado=not.in.(canceled,cancelada)&select=nombre_paciente,fecha,hora,servicio,estado&order=fecha.desc,hora.desc&limit=3`, { headers: sh })
             .then(r => r.ok ? r.json() : []).catch(() => [])
         : Promise.resolve([]),
+      fetch(`${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=nombre,interes,resumen,estado,notas&order=created_at.desc&limit=1`, { headers: sh })
+        .then(r => r.ok ? r.json() : []).then(d => (Array.isArray(d) && d[0]) || null).catch(() => null),
     ]);
 
     // botConfig
@@ -341,6 +344,18 @@ export default async function handler(req, res) {
       ).join('\n');
       pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial. Su nombre es ${nombre} — NO lo pidas. Salúdalo por su nombre en el primer mensaje.\nÚltimas citas:\n${detalle}`;
     }
+
+    // lead previo — memoria persistente por contacto
+    if (rawLead) {
+      const etapaLabel = { nuevo: 'nuevo (primer contacto)', calificado: 'calificado (mostró interés)', agendado: 'agendado', perdido: 'perdido (no continuó)' }[rawLead.estado] || rawLead.estado;
+      const partes = [`\nCONTACTO PREVIO: Este usuario ya interactuó antes y tiene un lead registrado. Etapa actual: ${etapaLabel}.`];
+      if (rawLead.nombre) partes.push(`Nombre: ${rawLead.nombre} — NO lo pidas de nuevo.`);
+      if (rawLead.interes) partes.push(`Interés registrado: ${rawLead.interes}`);
+      if (rawLead.resumen) partes.push(`Contexto anterior: ${rawLead.resumen}`);
+      if (rawLead.notas)   partes.push(`Notas del equipo: ${rawLead.notas}`);
+      partes.push(`Retoma la conversación con naturalidad. Si ya tiene nombre, úsalo sin preguntar.`);
+      leadContexto = partes.join('\n');
+    }
   } catch (e) {
     console.error('bot-chat: error en carga paralela:', e.message);
   }
@@ -398,7 +413,7 @@ OBJECIONES FRECUENTES:
 - "¿Necesito tarjeta?" → "Sí, la prueba pide una tarjeta, pero no se cobra nada hasta que terminen los 12 días. Cancelas cuando quieras."
 - "¿Funciona para [rubro]?" → Adapta la respuesta al rubro y da un ejemplo concreto de cómo attempo les ayuda.
 
-HOY ES: ${hoyVentas}`;
+HOY ES: ${hoyVentas}${leadContexto}`;
 
     const ventasTools = [
       {
@@ -642,7 +657,7 @@ ${espTexto}
 
 CATÁLOGO DE SERVICIOS (con precios y duración):
 ${srvTexto}
-${sedesContexto}${pacienteContexto}${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${chatbotKnowledge.length ? '\n\nBASE DE CONOCIMIENTO DEL NEGOCIO (usa esta información para responder con precisión):\n' + chatbotKnowledge.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n') : ''}${promosTexto}
+${sedesContexto}${pacienteContexto}${leadContexto}${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${chatbotKnowledge.length ? '\n\nBASE DE CONOCIMIENTO DEL NEGOCIO (usa esta información para responder con precisión):\n' + chatbotKnowledge.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n') : ''}${promosTexto}
 
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.
