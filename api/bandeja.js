@@ -738,6 +738,126 @@ export default async function handler(req, res) {
     return res.status(r.ok ? 201 : 400).json(Array.isArray(data) ? data[0] : data);
   }
 
+  // ── POST ?action=clasificar-conversaciones — crear/actualizar leads desde chats ─
+  if (req.method === 'POST' && req.query.action === 'clasificar-conversaciones') {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(400).json({ error: 'API key no configurada' });
+
+    // 1. Conversaciones recientes
+    const rConv = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name&order=created_at.desc&limit=60`,
+      { headers: sh }
+    );
+    const convs = await rConv.json();
+    if (!Array.isArray(convs) || !convs.length) return res.status(200).json({ created:0, updated:0, skipped:0, total:0 });
+
+    // 2. Leads existentes — solo saltamos los ya calificados/agendados/perdidos
+    const rLeads = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,estado`,
+      { headers: sh }
+    );
+    const existingLeads = await rLeads.json();
+    const leadMap = {};
+    (Array.isArray(existingLeads) ? existingLeads : []).forEach(l => {
+      leadMap[`${l.canal}|${l.canal_user_id}`] = l;
+    });
+
+    // 3. Filtrar: procesar sin lead o con lead en "nuevo"
+    const toProcess = convs.filter(c => {
+      const existing = leadMap[`${c.canal}|${c.canal_user_id}`];
+      return !existing || existing.estado === 'nuevo';
+    }).slice(0, 20);
+
+    let created = 0, updated = 0, skipped = 0;
+
+    for (const conv of toProcess) {
+      // 4. Obtener historial de mensajes — primero chat_sessions, luego mensajes tabla
+      let mensajes = [];
+      try {
+        const rSess = await fetch(
+          `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=messages&limit=1`,
+          { headers: sh }
+        );
+        const [sess] = await rSess.json();
+        if (sess?.messages && Array.isArray(sess.messages)) {
+          mensajes = sess.messages.map(m => ({
+            rol: m.role === 'assistant' ? 'Bot' : 'Usuario',
+            texto: (typeof m.content === 'string' ? m.content
+              : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join('') : '').slice(0, 300)
+          })).filter(m => m.texto);
+        }
+      } catch (_) {}
+
+      if (!mensajes.length) {
+        // Fallback: tabla mensajes
+        try {
+          const rMsg = await fetch(
+            `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=in.(select%20id%20from%20conversaciones%20where%20canal_user_id%3D%27${encodeURIComponent(conv.canal_user_id)}%27%20and%20cliente_id%3D%27${cliente_id}%27)&order=created_at.asc&limit=20&select=rol,contenido`,
+            { headers: sh }
+          );
+          const rows = await rMsg.json();
+          if (Array.isArray(rows)) mensajes = rows.map(r => ({ rol: r.rol === 'bot' ? 'Bot' : 'Usuario', texto: (r.contenido||'').slice(0,300) }));
+        } catch (_) {}
+      }
+
+      if (mensajes.length < 2) { skipped++; continue; }
+
+      const chatText = mensajes.slice(0, 18).map(m => `${m.rol}: ${m.texto}`).join('\n');
+
+      // 5. Clasificar con Claude Haiku
+      const prompt = `Analiza esta conversación de chat y extrae datos del contacto. Responde SOLO con JSON válido, sin markdown ni texto adicional.
+{"nombre":"string o null","interes":"qué busca en máximo 8 palabras o null","estado":"nuevo|calificado|agendado|perdido","resumen":"qué pasó en 1 frase"}
+
+Criterios de etapa:
+- nuevo: solo preguntó o saludó, sin interés concreto
+- calificado: mostró interés real, pidió precios, horarios o más información específica
+- agendado: confirmó o coordinó una cita, hora o servicio
+- perdido: dijo que no le interesaba, o la conversación quedó incompleta sin respuesta del usuario
+
+Conversación:
+${chatText}`;
+
+      let cls;
+      try {
+        const ai = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+        });
+        const aiData = await ai.json();
+        cls = JSON.parse(aiData.content?.[0]?.text || '{}');
+      } catch (_) { skipped++; continue; }
+
+      const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+      const estado = estadosValidos.includes(cls.estado) ? cls.estado : 'nuevo';
+      const nombre = cls.nombre || conv.canal_user_name || null;
+      const interes = cls.interes || null;
+      const resumen = cls.resumen || null;
+      const key = `${conv.canal}|${conv.canal_user_id}`;
+      const existing = leadMap[key];
+
+      if (existing) {
+        // Actualizar lead en "nuevo"
+        await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${existing.id}`, {
+          method: 'PATCH',
+          headers: { ...shJ, Prefer: 'return=minimal' },
+          body: JSON.stringify({ nombre, interes, resumen, estado })
+        });
+        updated++;
+      } else {
+        // Crear lead nuevo
+        await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+          method: 'POST',
+          headers: { ...shJ, Prefer: 'return=minimal' },
+          body: JSON.stringify({ cliente_id, canal: conv.canal, canal_user_id: conv.canal_user_id, canal_user_name: conv.canal_user_name || null, nombre, interes, resumen, estado })
+        });
+        created++;
+      }
+    }
+
+    return res.status(200).json({ created, updated, skipped, total: toProcess.length });
+  }
+
   // ── GET ?action=analizar-perdidas — clasificación IA de leads perdidos ────
   if (req.method === 'GET' && req.query.action === 'analizar-perdidas') {
     const r = await fetch(
