@@ -711,5 +711,77 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── POST ?action=crear-lead — agregar lead manual ─────────────────────────
+  if (req.method === 'POST' && req.query.action === 'crear-lead') {
+    const { nombre, telefono, interes, notas, estado } = req.body || {};
+    if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    const estadoFinal = estadosValidos.includes(estado) ? estado : 'nuevo';
+    const canal_user_id = (telefono || '').replace(/\D/g, '') || `m_${Date.now()}`;
+    const payload = {
+      cliente_id,
+      canal: 'manual',
+      canal_user_id,
+      canal_user_name: nombre,
+      nombre,
+      telefono: telefono || null,
+      interes: interes || null,
+      notas: notas || null,
+      estado: estadoFinal,
+    };
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+      method: 'POST',
+      headers: { ...shJ, Prefer: 'return=representation' },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    return res.status(r.ok ? 201 : 400).json(Array.isArray(data) ? data[0] : data);
+  }
+
+  // ── GET ?action=analizar-perdidas — clasificación IA de leads perdidos ────
+  if (req.method === 'GET' && req.query.action === 'analizar-perdidas') {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&estado=eq.perdido&select=nombre,interes,resumen,notas&order=created_at.desc&limit=60`,
+      { headers: sh }
+    );
+    const leads = await r.json();
+    if (!Array.isArray(leads) || leads.length === 0) {
+      return res.status(200).json({ categorias: [], total: 0 });
+    }
+    const textos = leads.map((l, i) => {
+      const partes = [];
+      if (l.interes)  partes.push(`interés: ${l.interes}`);
+      if (l.resumen)  partes.push(`contexto: ${l.resumen}`);
+      if (l.notas)    partes.push(`notas: ${l.notas}`);
+      return `Lead ${i + 1}: ${partes.join(' | ') || 'sin información'}`;
+    }).join('\n');
+
+    const prompt = `Eres un analista de CRM. Clasifica estos leads perdidos según la razón más probable de pérdida.
+Categorías disponibles (usa solo estas): "No respondió", "Precio alto", "Sin disponibilidad horaria", "Ya tiene proveedor", "Fuera de área", "Otro".
+Para cada categoría presente, devuelve cuántos leads caen ahí y un resumen de 1 frase de qué pasó.
+RESPONDE SOLO con un JSON válido, sin markdown, con este formato exacto:
+{"categorias":[{"nombre":"...","cantidad":N,"resumen":"..."}],"conclusion":"Una frase con el principal problema"}
+
+Leads a analizar:
+${textos}`;
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(200).json({ categorias: [], total: leads.length, error: 'API key no configurada' });
+
+    const ai = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 512, messages: [{ role: 'user', content: prompt }] })
+    });
+    const aiData = await ai.json();
+    const raw = aiData.content?.[0]?.text || '{}';
+    try {
+      const parsed = JSON.parse(raw);
+      return res.status(200).json({ ...parsed, total: leads.length });
+    } catch {
+      return res.status(200).json({ categorias: [], total: leads.length, raw });
+    }
+  }
+
   return res.status(405).end();
 }
