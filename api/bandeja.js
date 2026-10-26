@@ -740,6 +740,7 @@ export default async function handler(req, res) {
 
   // ── POST ?action=clasificar-conversaciones — crear/actualizar leads desde chats ─
   if (req.method === 'POST' && req.query.action === 'clasificar-conversaciones') {
+    try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(400).json({ error: 'API key no configurada' });
 
@@ -860,6 +861,9 @@ ${chatText}`;
     }
 
     return res.status(200).json({ created, updated, skipped, total: toProcess.length });
+    } catch (e) {
+      return res.status(500).json({ error: e?.message || 'Error interno', detail: String(e) });
+    }
   }
 
   // ── GET ?action=analizar-perdidas — clasificación IA de leads perdidos ────

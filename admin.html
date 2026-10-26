@@ -6653,16 +6653,16 @@ async function clasificarConversaciones() {
       method: 'POST', headers: _citasH()
     });
     var data = await r.json();
-    if (data.error) throw new Error(data.error);
+    if (data.error) throw new Error(data.error + (data.detail ? ' — ' + data.detail : ''));
     var parts = [];
     if (data.created)  parts.push(data.created + ' leads creados');
     if (data.updated)  parts.push(data.updated + ' actualizados');
-    if (data.skipped)  parts.push(data.skipped + ' sin historial suficiente');
+    if (data.skipped)  parts.push(data.skipped + ' sin historial');
     var msg = parts.length ? parts.join(' · ') : 'Sin conversaciones nuevas para procesar';
     toastNew(msg);
     await cargarLeads();
   } catch(e) {
-    toastErr('Error al clasificar conversaciones');
+    toastErr('Error: ' + (e.message || 'desconocido'));
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = original; btn.style.background = '#fff'; btn.style.color = '#6C5CE4'; }
   }
