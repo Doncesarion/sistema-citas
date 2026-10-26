@@ -630,5 +630,60 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── GET ?action=leads — listar leads del pipeline ────────────────────────────
+  if (req.method === 'GET' && req.query.action === 'leads') {
+    const estado = req.query.estado; // nuevo | calificado | agendado | perdido | undefined
+    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    let url = `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&order=created_at.desc&limit=200&select=*`;
+    if (estado && estadosValidos.includes(estado)) {
+      url += `&estado=eq.${estado}`;
+    }
+    const r = await fetch(url, { headers: sh });
+    const data = await r.json();
+    return res.status(200).json(Array.isArray(data) ? data : []);
+  }
+
+  // ── PATCH ?action=lead-estado&id=xxx — cambiar etapa de un lead ──────────────
+  if (req.method === 'PATCH' && req.query.action === 'lead-estado' && req.query.id) {
+    const lead_id = req.query.id;
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(lead_id)) return res.status(400).json({ error: 'ID inválido' });
+    const { estado, notas } = req.body || {};
+    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    if (estado && !estadosValidos.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
+    // Verificar que el lead pertenece a este cliente
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}&cliente_id=eq.${cliente_id}&limit=1&select=id`,
+      { headers: sh }
+    );
+    const [lead] = await rc.json();
+    if (!lead) return res.status(404).json({ error: 'Lead no encontrado' });
+    const patch = {};
+    if (estado) patch.estado = estado;
+    if (notas !== undefined) patch.notas = notas;
+    await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}`, {
+      method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+      body: JSON.stringify(patch)
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── DELETE ?action=lead&id=xxx — eliminar un lead ────────────────────────────
+  if (req.method === 'DELETE' && req.query.action === 'lead' && req.query.id) {
+    const lead_id = req.query.id;
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(lead_id)) return res.status(400).json({ error: 'ID inválido' });
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}&cliente_id=eq.${cliente_id}&limit=1&select=id`,
+      { headers: sh }
+    );
+    const [lead] = await rc.json();
+    if (!lead) return res.status(404).json({ error: 'Lead no encontrado' });
+    await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}`, {
+      method: 'DELETE', headers: sh
+    });
+    return res.status(200).json({ ok: true });
+  }
+
   return res.status(405).end();
 }
