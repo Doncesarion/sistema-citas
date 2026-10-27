@@ -779,7 +779,15 @@ export default async function handler(req, res) {
       return !ex || ex.estado === 'nuevo';
     }).slice(0, 20);
 
-    if (!toProcess.length) return res.status(200).json({ created:0, updated:0, skipped: Array.isArray(sessions) ? sessions.length : 0, total:0 });
+    // DEBUG — diagnóstico de por qué se filtran sesiones
+    const debugInfo = (Array.isArray(sessions) ? sessions : []).slice(0, 3).map(s => ({
+      canal: s.canal,
+      messages_type: typeof s.messages,
+      messages_is_array: Array.isArray(s.messages),
+      messages_length: Array.isArray(s.messages) ? s.messages.length : (s.messages === null ? 'null' : 'no-array'),
+      first_msg_keys: Array.isArray(s.messages) && s.messages[0] ? Object.keys(s.messages[0]) : null
+    }));
+    if (!toProcess.length) return res.status(200).json({ created:0, updated:0, skipped: Array.isArray(sessions) ? sessions.length : 0, total:0, debug: debugInfo });
 
     let created = 0, updated = 0, skipped = 0;
 
