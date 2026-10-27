@@ -771,6 +771,7 @@ export default async function handler(req, res) {
     if (!candidatos.length) return res.status(200).json({ created:0, updated:0, skipped:0, total:0 });
 
     let created = 0, updated = 0, skipped = 0;
+    const debugRows = [];
 
     for (const conv of candidatos) {
       try {
@@ -799,6 +800,15 @@ export default async function handler(req, res) {
           const msgArr = await rMsg.json();
           if (Array.isArray(msgArr) && msgArr.length >= 2) msgs = msgArr;
         }
+
+        debugRows.push({
+          uid: conv.canal_user_id,
+          cs_found: !!cs,
+          cs_raw_len: cs?.messages ? (Array.isArray(cs.messages) ? cs.messages.length : 'not-array') : 0,
+          mapped_len: msgs.length,
+          first_content_type: cs?.messages?.[0] ? typeof cs.messages[0].content : null,
+          first_content_sample: cs?.messages?.[0]?.content ? String(cs.messages[0].content).slice(0, 60) : null
+        });
 
         if (msgs.length < 2) { skipped++; continue; }
 
@@ -860,7 +870,7 @@ ${chatText}`;
       }
     }
 
-    return res.status(200).json({ created, updated, skipped, total: candidatos.length });
+    return res.status(200).json({ created, updated, skipped, total: candidatos.length, debug: debugRows.slice(0,5) });
     } catch (e) {
       return res.status(500).json({ error: e?.message || 'Error interno', detail: String(e) });
     }
