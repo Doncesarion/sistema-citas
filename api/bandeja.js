@@ -744,44 +744,42 @@ export default async function handler(req, res) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(400).json({ error: 'API key no configurada' });
 
-    // 1. Conversaciones recientes como fuente principal
-    const rConv = await fetch(
-      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name&order=ultimo_mensaje_at.desc&limit=30`,
-      { headers: sh }
-    );
-    const convList = await rConv.json();
+    // 1. Cargar conversaciones + todas las chat_sessions del cliente en paralelo
+    const [rConv, rAllCs, rLeads] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name&order=ultimo_mensaje_at.desc&limit=30`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&select=canal,canal_user_id,messages&order=updated_at.desc&limit=100`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,estado`, { headers: sh })
+    ]);
+    const [convList, allSessions, existingLeads] = await Promise.all([rConv.json(), rAllCs.json(), rLeads.json()]);
 
-    // 2. Leads existentes
-    const rLeads = await fetch(
-      `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,estado`,
-      { headers: sh }
-    );
-    const existingLeads = await rLeads.json();
+    // Mapa canal|canal_user_id → session (sin URL-encode, match directo)
+    const csMap = {};
+    (Array.isArray(allSessions) ? allSessions : []).forEach(s => {
+      if (s.canal && s.canal_user_id) csMap[`${s.canal}|${s.canal_user_id}`] = s;
+    });
+
     const leadMap = {};
     (Array.isArray(existingLeads) ? existingLeads : []).forEach(l => {
       leadMap[`${l.canal}|${l.canal_user_id}`] = l;
     });
 
-    // 3. Filtrar conversaciones sin lead clasificado
+    // 2. Filtrar conversaciones sin lead clasificado
     const candidatos = (Array.isArray(convList) ? convList : []).filter(c => {
       const ex = leadMap[`${c.canal}|${c.canal_user_id}`];
       return !ex || ex.estado === 'nuevo';
     }).slice(0, 20);
 
-    if (!candidatos.length) return res.status(200).json({ created:0, updated:0, skipped:0, total:0 });
+    // Debug: mostrar primeras 3 conversaciones vs primeras 3 sessions del mapa
+    const convSample = (Array.isArray(convList) ? convList : []).slice(0,3).map(c => `${c.canal}|${c.canal_user_id}`);
+    const csSample = Object.keys(csMap).slice(0,3);
+    if (!candidatos.length) return res.status(200).json({ created:0, updated:0, skipped:0, total:0, conv_sample: convSample, cs_sample: csSample, cs_total: Object.keys(csMap).length });
 
     let created = 0, updated = 0, skipped = 0;
-    const debugRows = [];
 
     for (const conv of candidatos) {
       try {
-        // 4. Leer desde chat_sessions.messages (fuente principal para este cliente)
-        const rCs = await fetch(
-          `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=messages&limit=1`,
-          { headers: sh }
-        );
-        const csArr = await rCs.json();
-        const cs = Array.isArray(csArr) ? csArr[0] : null;
+        // 3. Buscar sesión directamente en el mapa (sin URL-encode)
+        const cs = csMap[`${conv.canal}|${conv.canal_user_id}`] || null;
         let msgs = [];
         if (cs?.messages && Array.isArray(cs.messages)) {
           msgs = cs.messages.map(m => ({
@@ -800,15 +798,6 @@ export default async function handler(req, res) {
           const msgArr = await rMsg.json();
           if (Array.isArray(msgArr) && msgArr.length >= 2) msgs = msgArr;
         }
-
-        debugRows.push({
-          uid: conv.canal_user_id,
-          cs_found: !!cs,
-          cs_raw_len: cs?.messages ? (Array.isArray(cs.messages) ? cs.messages.length : 'not-array') : 0,
-          mapped_len: msgs.length,
-          first_content_type: cs?.messages?.[0] ? typeof cs.messages[0].content : null,
-          first_content_sample: cs?.messages?.[0]?.content ? String(cs.messages[0].content).slice(0, 60) : null
-        });
 
         if (msgs.length < 2) { skipped++; continue; }
 
@@ -870,7 +859,7 @@ ${chatText}`;
       }
     }
 
-    return res.status(200).json({ created, updated, skipped, total: candidatos.length, debug: debugRows.slice(0,5) });
+    return res.status(200).json({ created, updated, skipped, total: candidatos.length, conv_sample: convSample, cs_sample: csSample, cs_total: Object.keys(csMap).length });
     } catch (e) {
       return res.status(500).json({ error: e?.message || 'Error interno', detail: String(e) });
     }
