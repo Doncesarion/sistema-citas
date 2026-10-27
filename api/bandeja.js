@@ -770,6 +770,29 @@ export default async function handler(req, res) {
 
     if (!candidatos.length) return res.status(200).json({ created:0, updated:0, skipped:0, total:0 });
 
+    // DEBUG: inspeccionar primera conversación
+    const firstConv = candidatos[0];
+    const rDbgMsg = await fetch(
+      `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${firstConv.id}&limit=5&select=rol,contenido,created_at`,
+      { headers: sh }
+    );
+    const dbgMsgRaw = await rDbgMsg.json();
+    const rDbgCs = await fetch(
+      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(firstConv.canal)}&canal_user_id=eq.${encodeURIComponent(firstConv.canal_user_id)}&select=id,messages&limit=1`,
+      { headers: sh }
+    );
+    const dbgCsRaw = await rDbgCs.json();
+    const dbgCs = Array.isArray(dbgCsRaw) ? dbgCsRaw[0] : null;
+    return res.status(200).json({
+      debug_conv: { id: firstConv.id, canal: firstConv.canal, canal_user_id: firstConv.canal_user_id },
+      debug_mensajes_count: Array.isArray(dbgMsgRaw) ? dbgMsgRaw.length : dbgMsgRaw,
+      debug_mensajes_sample: Array.isArray(dbgMsgRaw) ? dbgMsgRaw.slice(0,2) : dbgMsgRaw,
+      debug_cs_found: !!dbgCs,
+      debug_cs_messages_type: dbgCs ? typeof dbgCs.messages : 'no session',
+      debug_cs_messages_length: dbgCs && Array.isArray(dbgCs.messages) ? dbgCs.messages.length : (dbgCs ? 'not array' : 0),
+      candidatos_total: candidatos.length
+    });
+
     let created = 0, updated = 0, skipped = 0;
 
     for (const conv of candidatos) {
