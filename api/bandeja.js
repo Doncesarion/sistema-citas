@@ -778,61 +778,53 @@ export default async function handler(req, res) {
 
     for (const conv of candidatos) {
       try {
-        // 3. Buscar sesión directamente en el mapa (sin URL-encode)
+        // 3. Buscar mensajes en chat_sessions (match directo sin URL-encode)
         const cs = csMap[`${conv.canal}|${conv.canal_user_id}`] || null;
-        let msgs = [];
-        if (cs?.messages && Array.isArray(cs.messages)) {
-          msgs = cs.messages.map(m => {
-            let contenido = '';
-            if (typeof m.content === 'string') contenido = m.content;
-            else if (Array.isArray(m.content)) contenido = m.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
-            else if (m.content != null) contenido = JSON.stringify(m.content).slice(0, 200);
-            return { rol: m.role === 'assistant' ? 'bot' : 'usuario', contenido };
-          });
-          // No filtrar por contenido vacío — contar todos los mensajes con rol definido
+        let chatText = '';
+
+        if (cs?.messages && Array.isArray(cs.messages) && cs.messages.length > 0) {
+          const lineas = cs.messages.slice(0, 18).map(m => {
+            let txt = '';
+            if (typeof m.content === 'string') txt = m.content;
+            else if (Array.isArray(m.content)) txt = m.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
+            else if (m.content != null) txt = JSON.stringify(m.content).slice(0, 200);
+            return `${m.role === 'assistant' ? 'Bot' : 'Usuario'}: ${txt.slice(0, 300)}`;
+          }).filter(l => l.length > 10);
+          chatText = lineas.join('\n');
         }
 
         // Fallback: tabla mensajes
-        if (msgs.length < 1) {
+        if (!chatText) {
           const rMsg = await fetch(
-            `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv.id}&order=created_at.asc&limit=30&select=rol,contenido`,
+            `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv.id}&order=created_at.asc&limit=20&select=rol,contenido`,
             { headers: sh }
           );
           const msgArr = await rMsg.json();
-          if (Array.isArray(msgArr) && msgArr.length >= 1) msgs = msgArr;
+          if (Array.isArray(msgArr) && msgArr.length > 0) {
+            chatText = msgArr.slice(0, 18).map(m =>
+              `${m.rol === 'bot' ? 'Bot' : 'Usuario'}: ${(m.contenido || '').slice(0, 300)}`
+            ).filter(l => l.length > 10).join('\n');
+          }
         }
 
-        if (msgs.length < 1) { skipped++; continue; }
-
-        // 5. Construir texto de conversación
-        const chatText = msgs.slice(0, 18).map(m =>
-          `${m.rol === 'bot' ? 'Bot' : 'Usuario'}: ${(m.contenido || '').slice(0, 300)}`
-        ).join('\n');
-
-        // 6. Clasificar con Claude Haiku
-        const prompt = `Analiza esta conversación de chat y extrae datos del contacto. Responde SOLO con JSON válido, sin markdown ni texto adicional.
-{"nombre":"string o null","interes":"qué busca en máximo 8 palabras o null","estado":"nuevo|calificado|agendado|perdido","resumen":"qué pasó en 1 frase"}
-
-Criterios:
-- nuevo: solo saludó o preguntó algo general
-- calificado: mostró interés real, pidió precios/horarios/disponibilidad
-- agendado: confirmó una cita, hora o servicio concreto
-- perdido: dijo que no, dejó de responder tras seguimiento, o conversación incompleta
-
-Conversación:
-${chatText}`;
-
+        // Sin historial: crear lead "nuevo" igualmente con el nombre del contacto
         let cls = {};
-        try {
-          const ai = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-            body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
-          });
-          const aiData = await ai.json();
-          const parsed = JSON.parse(aiData.content?.[0]?.text || '{}');
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) cls = parsed;
-        } catch (_) { skipped++; continue; }
+        if (chatText) {
+          try {
+            const prompt = `Analiza esta conversación y extrae datos del contacto. Responde SOLO con JSON válido, sin markdown.
+{"nombre":"string o null","interes":"qué busca en máximo 8 palabras o null","estado":"nuevo|calificado|agendado|perdido","resumen":"qué pasó en 1 frase"}
+Criterios: nuevo=solo saludó, calificado=pidió precios/horarios, agendado=confirmó cita, perdido=no continuó.
+Conversación:\n${chatText}`;
+            const ai = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+            });
+            const aiData = await ai.json();
+            const parsed = JSON.parse(aiData.content?.[0]?.text || '{}');
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) cls = parsed;
+          } catch (_) {}
+        }
 
         const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
         const estado = estadosValidos.includes(cls.estado) ? cls.estado : 'nuevo';
@@ -862,7 +854,7 @@ ${chatText}`;
       }
     }
 
-    return res.status(200).json({ created, updated, skipped, total: candidatos.length, conv_sample: convSample, cs_sample: csSample, cs_total: Object.keys(csMap).length });
+    return res.status(200).json({ created, updated, skipped, total: candidatos.length });
     } catch (e) {
       return res.status(500).json({ error: e?.message || 'Error interno', detail: String(e) });
     }
