@@ -744,15 +744,24 @@ export default async function handler(req, res) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(400).json({ error: 'API key no configurada' });
 
-    // 1. Conversaciones recientes (columna correcta: ultimo_mensaje_at)
-    const rConv = await fetch(
-      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name&order=ultimo_mensaje_at.desc&limit=60`,
+    // 1. Leer chat_sessions directamente — fuente real de mensajes del bot
+    const rSess = await fetch(
+      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&select=canal,canal_user_id,messages&order=created_at.desc&limit=40`,
       { headers: sh }
     );
-    const convs = await rConv.json();
-    if (!Array.isArray(convs) || !convs.length) return res.status(200).json({ created:0, updated:0, skipped:0, total:0 });
+    const sessions = await rSess.json();
+    // También leer conversaciones para obtener el nombre del contacto
+    const rConv = await fetch(
+      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=canal,canal_user_id,canal_user_name&order=ultimo_mensaje_at.desc&limit=60`,
+      { headers: sh }
+    );
+    const convList = await rConv.json();
+    const nameMap = {};
+    (Array.isArray(convList) ? convList : []).forEach(c => {
+      nameMap[`${c.canal}|${c.canal_user_id}`] = c.canal_user_name || null;
+    });
 
-    // 2. Leads existentes — saltamos los ya en calificado/agendado/perdido
+    // 2. Leads existentes
     const rLeads = await fetch(
       `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,estado`,
       { headers: sh }
@@ -763,45 +772,25 @@ export default async function handler(req, res) {
       leadMap[`${l.canal}|${l.canal_user_id}`] = l;
     });
 
-    // 3. Filtrar: solo sin lead o con lead en "nuevo"
-    const toProcess = convs.filter(c => {
-      const ex = leadMap[`${c.canal}|${c.canal_user_id}`];
+    // 3. Filtrar: sessions con mensajes suficientes y sin lead clasificado
+    const toProcess = (Array.isArray(sessions) ? sessions : []).filter(s => {
+      if (!Array.isArray(s.messages) || s.messages.length < 2) return false;
+      const ex = leadMap[`${s.canal}|${s.canal_user_id}`];
       return !ex || ex.estado === 'nuevo';
     }).slice(0, 20);
 
+    if (!toProcess.length) return res.status(200).json({ created:0, updated:0, skipped: Array.isArray(sessions) ? sessions.length : 0, total:0 });
+
     let created = 0, updated = 0, skipped = 0;
 
-    for (const conv of toProcess) {
+    for (const sess of toProcess) {
       try {
-        // 4. Mensajes — primero chat_sessions, fallback tabla mensajes con conv.id
-        let mensajes = [];
-        try {
-          const rSess = await fetch(
-            `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=messages&limit=1`,
-            { headers: sh }
-          );
-          const [sess] = await rSess.json();
-          if (sess?.messages && Array.isArray(sess.messages)) {
-            mensajes = sess.messages.map(m => ({
-              rol: m.role === 'assistant' ? 'Bot' : 'Usuario',
-              texto: (typeof m.content === 'string' ? m.content
-                : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join('') : '').slice(0, 300)
-            })).filter(m => m.texto);
-          }
-        } catch (_) {}
-
-        if (!mensajes.length && conv.id) {
-          try {
-            const rMsg = await fetch(
-              `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv.id}&order=created_at.asc&limit=20&select=rol,contenido`,
-              { headers: sh }
-            );
-            const rows = await rMsg.json();
-            if (Array.isArray(rows)) {
-              mensajes = rows.map(r => ({ rol: r.rol === 'bot' ? 'Bot' : 'Usuario', texto: (r.contenido||'').slice(0,300) })).filter(m => m.texto);
-            }
-          } catch (_) {}
-        }
+        // 4. Construir texto de conversación
+        const mensajes = sess.messages.map(m => ({
+          rol: m.role === 'assistant' ? 'Bot' : 'Usuario',
+          texto: (typeof m.content === 'string' ? m.content
+            : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join('') : '').slice(0, 300)
+        })).filter(m => m.texto);
 
         if (mensajes.length < 2) { skipped++; continue; }
 
@@ -811,11 +800,11 @@ export default async function handler(req, res) {
         const prompt = `Analiza esta conversación de chat y extrae datos del contacto. Responde SOLO con JSON válido, sin markdown ni texto adicional.
 {"nombre":"string o null","interes":"qué busca en máximo 8 palabras o null","estado":"nuevo|calificado|agendado|perdido","resumen":"qué pasó en 1 frase"}
 
-Criterios de etapa:
-- nuevo: solo preguntó o saludó, sin interés concreto
-- calificado: mostró interés real, pidió precios, horarios o más información específica
-- agendado: confirmó o coordinó una cita, hora o servicio
-- perdido: dijo que no le interesaba, o la conversación quedó sin respuesta del usuario
+Criterios:
+- nuevo: solo saludó o preguntó algo general
+- calificado: mostró interés real, pidió precios/horarios/disponibilidad
+- agendado: confirmó una cita, hora o servicio concreto
+- perdido: dijo que no, dejó de responder tras seguimiento, o conversación incompleta
 
 Conversación:
 ${chatText}`;
@@ -834,10 +823,10 @@ ${chatText}`;
 
         const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
         const estado = estadosValidos.includes(cls.estado) ? cls.estado : 'nuevo';
-        const nombre = cls.nombre || conv.canal_user_name || null;
+        const nombre = cls.nombre || nameMap[`${sess.canal}|${sess.canal_user_id}`] || null;
         const interes = cls.interes || null;
         const resumen = cls.resumen || null;
-        const key = `${conv.canal}|${conv.canal_user_id}`;
+        const key = `${sess.canal}|${sess.canal_user_id}`;
         const existing = leadMap[key];
 
         if (existing) {
@@ -851,7 +840,7 @@ ${chatText}`;
           await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
             method: 'POST',
             headers: { ...shJ, Prefer: 'return=minimal' },
-            body: JSON.stringify({ cliente_id, canal: conv.canal, canal_user_id: conv.canal_user_id, canal_user_name: conv.canal_user_name || null, nombre, interes, resumen, estado })
+            body: JSON.stringify({ cliente_id, canal: sess.canal, canal_user_id: sess.canal_user_id, canal_user_name: nombre, nombre, interes, resumen, estado })
           });
           created++;
         }
