@@ -782,24 +782,27 @@ export default async function handler(req, res) {
         const cs = csMap[`${conv.canal}|${conv.canal_user_id}`] || null;
         let msgs = [];
         if (cs?.messages && Array.isArray(cs.messages)) {
-          msgs = cs.messages.map(m => ({
-            rol: m.role === 'assistant' ? 'bot' : 'usuario',
-            contenido: (typeof m.content === 'string' ? m.content
-              : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join('') : '')
-          })).filter(m => m.contenido);
+          msgs = cs.messages.map(m => {
+            let contenido = '';
+            if (typeof m.content === 'string') contenido = m.content;
+            else if (Array.isArray(m.content)) contenido = m.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
+            else if (m.content != null) contenido = JSON.stringify(m.content).slice(0, 200);
+            return { rol: m.role === 'assistant' ? 'bot' : 'usuario', contenido };
+          });
+          // No filtrar por contenido vacío — contar todos los mensajes con rol definido
         }
 
         // Fallback: tabla mensajes
-        if (msgs.length < 2) {
+        if (msgs.length < 1) {
           const rMsg = await fetch(
             `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv.id}&order=created_at.asc&limit=30&select=rol,contenido`,
             { headers: sh }
           );
           const msgArr = await rMsg.json();
-          if (Array.isArray(msgArr) && msgArr.length >= 2) msgs = msgArr;
+          if (Array.isArray(msgArr) && msgArr.length >= 1) msgs = msgArr;
         }
 
-        if (msgs.length < 2) { skipped++; continue; }
+        if (msgs.length < 1) { skipped++; continue; }
 
         // 5. Construir texto de conversación
         const chatText = msgs.slice(0, 18).map(m =>
