@@ -764,16 +764,13 @@ export default async function handler(req, res) {
       leadMap[`${l.canal}|${l.canal_user_id}`] = l;
     });
 
-    // 2. Candidatos: sin lead, o lead "nuevo" que recibió mensajes más recientes que la última clasificación
+    // 2. Candidatos: sin lead, o lead "nuevo" (siempre re-clasificar para mejorar)
+    // No tocar leads calificado/agendado/perdido — esos se movieron intencionalmente
     const candidatos = (Array.isArray(convList) ? convList : []).filter(c => {
       const ex = leadMap[`${c.canal}|${c.canal_user_id}`];
-      if (!ex) return true; // sin lead → siempre procesar
-      if (ex.estado === 'calificado' || ex.estado === 'agendado') return false; // ya avanzados → no tocar
-      if (ex.estado === 'perdido') return false; // marcado perdido manualmente → respetar
-      // "nuevo": re-clasificar si hay mensajes más nuevos que el lead
-      const leadAt = ex.updated_at ? new Date(ex.updated_at).getTime() : 0;
-      const convAt = c.ultimo_mensaje_at ? new Date(c.ultimo_mensaje_at).getTime() : 0;
-      return convAt > leadAt;
+      if (!ex) return true;
+      if (ex.estado === 'calificado' || ex.estado === 'agendado' || ex.estado === 'perdido') return false;
+      return true; // "nuevo" → siempre re-clasificar
     }).slice(0, 25);
 
     if (!candidatos.length) return res.status(200).json({ created: 0, updated: 0, skipped: 0, total: 0 });
@@ -814,23 +811,35 @@ export default async function handler(req, res) {
           chatText = `Usuario: ${conv.ultimo_mensaje.slice(0, 400)}`;
         }
 
+        // Siempre agregar contexto del contacto + último mensaje al inicio
+        const ctxHeader = [
+          `Canal: ${conv.canal}`,
+          conv.canal_user_name ? `Contacto: ${conv.canal_user_name}` : null,
+          conv.ultimo_mensaje ? `Último mensaje: "${conv.ultimo_mensaje.slice(0, 200)}"` : null
+        ].filter(Boolean).join('\n');
+
+        const chatContext = chatText ? `${ctxHeader}\n\nConversación:\n${chatText}` : ctxHeader;
+
         // 4. Clasificar con Claude Haiku
         let cls = {};
-        if (chatText) {
+        if (chatContext) {
           try {
-            const prompt = `Eres un asistente que clasifica leads de un sistema de agendamiento de citas. Analiza la siguiente conversación y responde SOLO con JSON válido (sin markdown, sin explicaciones).
+            const prompt = `Clasifica este contacto para el pipeline de ventas de un sistema de agendamiento de citas (attempo.cl). Responde SOLO con JSON válido, sin markdown.
 
-Formato exacto:
-{"nombre":"nombre real del contacto o null","interes":"qué servicio/producto busca en máx 8 palabras o null","estado":"nuevo|calificado|agendado|perdido","resumen":"una frase de qué pasó"}
+{"nombre":"nombre real del contacto, null si no aparece","interes":"qué busca en máx 8 palabras, null si no está claro","estado":"nuevo|calificado|agendado|perdido","resumen":"una frase exacta de qué pasó"}
 
-Criterios de estado:
-- nuevo: solo saludó, preguntó algo general, sin intención clara
-- calificado: mostró interés real, pidió precios, horarios, disponibilidad o información específica
-- agendado: confirmó una cita, hora o servicio concreto
-- perdido: dijo explícitamente que no, dejó de responder, o fue spam/publicidad
+Reglas estrictas para el estado:
+- perdido: mencionó "no gracias", "no me interesa", "no}", envió spam/publicidad, o la conversación fue irrelevante al negocio → SIEMPRE perdido
+- agendado: confirmó fecha, hora o cita concreta → SIEMPRE agendado
+- calificado: preguntó por precios, planes, horarios, cómo funciona, quiere información específica, mencionó el producto/servicio con interés → SIEMPRE calificado
+- nuevo: SOLO si no encaja en ninguna de las categorías anteriores (saludó sin contexto)
 
-Conversación:
-${chatText}`;
+Cuando el último mensaje del usuario es "no", "no gracias", "no}", spam o publicidad → estado es perdido.
+Cuando el usuario preguntó algo específico sobre el producto/servicio → estado es calificado.
+Sé decisivo: evita "nuevo" si hay evidencia clara de otro estado.
+
+Datos del contacto:
+${chatContext}`;
 
             const ai = await fetch('https://api.anthropic.com/v1/messages', {
               method: 'POST',
