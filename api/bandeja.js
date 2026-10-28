@@ -226,7 +226,7 @@ export default async function handler(req, res) {
   }
 
   // ── GET — lista de conversaciones ─────────────────────────────────────────
-  if (req.method === 'GET') {
+  if (req.method === 'GET' && !req.query.action) {
     const r = await fetch(
       `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&order=ultimo_mensaje_at.desc&limit=100&select=*`,
       { headers: sh }
@@ -744,56 +744,58 @@ export default async function handler(req, res) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(400).json({ error: 'API key no configurada' });
 
-    // 1. Cargar conversaciones + todas las chat_sessions del cliente en paralelo
+    // 1. Cargar en paralelo: conversaciones (con ultimo_mensaje), chat_sessions, leads existentes
     const [rConv, rAllCs, rLeads] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name&order=ultimo_mensaje_at.desc&limit=30`, { headers: sh }),
-      fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&select=canal,canal_user_id,messages&order=updated_at.desc&limit=100`, { headers: sh }),
-      fetch(`${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,estado`, { headers: sh })
+      fetch(`${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name,ultimo_mensaje,ultimo_mensaje_at&order=ultimo_mensaje_at.desc&limit=50`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&select=canal,canal_user_id,messages,updated_at&order=updated_at.desc&limit=100`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,estado,updated_at`, { headers: sh })
     ]);
     const [convList, allSessions, existingLeads] = await Promise.all([rConv.json(), rAllCs.json(), rLeads.json()]);
 
-    // Mapa canal|canal_user_id → session (sin URL-encode, match directo)
+    // Mapa de chat_sessions por canal|canal_user_id (match directo, sin URL-encode)
     const csMap = {};
     (Array.isArray(allSessions) ? allSessions : []).forEach(s => {
       if (s.canal && s.canal_user_id) csMap[`${s.canal}|${s.canal_user_id}`] = s;
     });
 
+    // Mapa de leads existentes
     const leadMap = {};
     (Array.isArray(existingLeads) ? existingLeads : []).forEach(l => {
       leadMap[`${l.canal}|${l.canal_user_id}`] = l;
     });
 
-    // 2. Filtrar conversaciones sin lead clasificado
+    // 2. Candidatos: sin lead, o lead "nuevo" que recibió mensajes más recientes que la última clasificación
     const candidatos = (Array.isArray(convList) ? convList : []).filter(c => {
       const ex = leadMap[`${c.canal}|${c.canal_user_id}`];
-      return !ex || ex.estado === 'nuevo';
-    }).slice(0, 20);
+      if (!ex) return true; // sin lead → siempre procesar
+      if (ex.estado === 'calificado' || ex.estado === 'agendado') return false; // ya avanzados → no tocar
+      if (ex.estado === 'perdido') return false; // marcado perdido manualmente → respetar
+      // "nuevo": re-clasificar si hay mensajes más nuevos que el lead
+      const leadAt = ex.updated_at ? new Date(ex.updated_at).getTime() : 0;
+      const convAt = c.ultimo_mensaje_at ? new Date(c.ultimo_mensaje_at).getTime() : 0;
+      return convAt > leadAt;
+    }).slice(0, 25);
 
-    // Debug: mostrar primeras 3 conversaciones vs primeras 3 sessions del mapa
-    const convSample = (Array.isArray(convList) ? convList : []).slice(0,3).map(c => `${c.canal}|${c.canal_user_id}`);
-    const csSample = Object.keys(csMap).slice(0,3);
-    if (!candidatos.length) return res.status(200).json({ created:0, updated:0, skipped:0, total:0, conv_sample: convSample, cs_sample: csSample, cs_total: Object.keys(csMap).length });
+    if (!candidatos.length) return res.status(200).json({ created: 0, updated: 0, skipped: 0, total: 0 });
 
     let created = 0, updated = 0, skipped = 0;
 
     for (const conv of candidatos) {
       try {
-        // 3. Buscar mensajes en chat_sessions (match directo sin URL-encode)
-        const cs = csMap[`${conv.canal}|${conv.canal_user_id}`] || null;
+        // 3. Construir chatText desde chat_sessions.messages (fuente principal)
         let chatText = '';
+        const cs = csMap[`${conv.canal}|${conv.canal_user_id}`] || null;
 
         if (cs?.messages && Array.isArray(cs.messages) && cs.messages.length > 0) {
-          const lineas = cs.messages.slice(0, 18).map(m => {
-            let txt = '';
-            if (typeof m.content === 'string') txt = m.content;
-            else if (Array.isArray(m.content)) txt = m.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
-            else if (m.content != null) txt = JSON.stringify(m.content).slice(0, 200);
-            return `${m.role === 'assistant' ? 'Bot' : 'Usuario'}: ${txt.slice(0, 300)}`;
-          }).filter(l => l.length > 10);
-          chatText = lineas.join('\n');
+          chatText = cs.messages.slice(-20).map(m => {
+            let txt = typeof m.content === 'string' ? m.content
+              : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join(' ')
+              : '';
+            return txt.trim() ? `${m.role === 'assistant' ? 'Bot' : 'Usuario'}: ${txt.slice(0, 400)}` : null;
+          }).filter(Boolean).join('\n');
         }
 
-        // Fallback: tabla mensajes
+        // Fallback 1: tabla mensajes
         if (!chatText) {
           const rMsg = await fetch(
             `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv.id}&order=created_at.asc&limit=20&select=rol,contenido`,
@@ -801,27 +803,44 @@ export default async function handler(req, res) {
           );
           const msgArr = await rMsg.json();
           if (Array.isArray(msgArr) && msgArr.length > 0) {
-            chatText = msgArr.slice(0, 18).map(m =>
-              `${m.rol === 'bot' ? 'Bot' : 'Usuario'}: ${(m.contenido || '').slice(0, 300)}`
+            chatText = msgArr.map(m =>
+              `${m.rol === 'bot' ? 'Bot' : 'Usuario'}: ${(m.contenido || '').slice(0, 400)}`
             ).filter(l => l.length > 10).join('\n');
           }
         }
 
-        // Sin historial: crear lead "nuevo" igualmente con el nombre del contacto
+        // Fallback 2: usar ultimo_mensaje de conversaciones como contexto mínimo
+        if (!chatText && conv.ultimo_mensaje) {
+          chatText = `Usuario: ${conv.ultimo_mensaje.slice(0, 400)}`;
+        }
+
+        // 4. Clasificar con Claude Haiku
         let cls = {};
         if (chatText) {
           try {
-            const prompt = `Analiza esta conversación y extrae datos del contacto. Responde SOLO con JSON válido, sin markdown.
-{"nombre":"string o null","interes":"qué busca en máximo 8 palabras o null","estado":"nuevo|calificado|agendado|perdido","resumen":"qué pasó en 1 frase"}
-Criterios: nuevo=solo saludó, calificado=pidió precios/horarios, agendado=confirmó cita, perdido=no continuó.
-Conversación:\n${chatText}`;
+            const prompt = `Eres un asistente que clasifica leads de un sistema de agendamiento de citas. Analiza la siguiente conversación y responde SOLO con JSON válido (sin markdown, sin explicaciones).
+
+Formato exacto:
+{"nombre":"nombre real del contacto o null","interes":"qué servicio/producto busca en máx 8 palabras o null","estado":"nuevo|calificado|agendado|perdido","resumen":"una frase de qué pasó"}
+
+Criterios de estado:
+- nuevo: solo saludó, preguntó algo general, sin intención clara
+- calificado: mostró interés real, pidió precios, horarios, disponibilidad o información específica
+- agendado: confirmó una cita, hora o servicio concreto
+- perdido: dijo explícitamente que no, dejó de responder, o fue spam/publicidad
+
+Conversación:
+${chatText}`;
+
             const ai = await fetch('https://api.anthropic.com/v1/messages', {
               method: 'POST',
               headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 250, messages: [{ role: 'user', content: prompt }] })
             });
             const aiData = await ai.json();
-            const parsed = JSON.parse(aiData.content?.[0]?.text || '{}');
+            const rawText = aiData.content?.[0]?.text || '{}';
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) cls = parsed;
           } catch (_) {}
         }
@@ -835,10 +854,11 @@ Conversación:\n${chatText}`;
         const existing = leadMap[key];
 
         if (existing) {
+          const patch = { nombre, interes, resumen, estado, updated_at: new Date().toISOString() };
           await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${existing.id}`, {
             method: 'PATCH',
             headers: { ...shJ, Prefer: 'return=minimal' },
-            body: JSON.stringify({ nombre, interes, resumen, estado })
+            body: JSON.stringify(patch)
           });
           updated++;
         } else {
