@@ -897,7 +897,8 @@ export default async function handler(req, res) {
     const dia = esp.horario?.[diasKey[new Date(fecha + 'T12:00:00').getDay()]];
     if (!dia?.activo || !dia.bloques?.length) return res.json({ disponible: false });
 
-    const todos = generarSlots(dia.bloques[0].desde, dia.bloques[0].hasta);
+    // Generar slots para todos los bloques del día (ej: 10-13 y 14:30-18:30)
+    const todos = dia.bloques.flatMap(b => generarSlots(b.desde, b.hasta));
     const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const citas = await fetch(
       `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&or=(estado.neq.pending_payment,created_at.gte.${encodeURIComponent(cutoff)})&select=hora`,
