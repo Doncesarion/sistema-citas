@@ -6877,6 +6877,7 @@ function renderServicios() {
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
           <button onclick="editarServicio(${i})" style="color:var(--t2);border:1px solid var(--b2);background:var(--bg2);border-radius:4px;font-size:10px;cursor:pointer;padding:2px 6px;white-space:nowrap">Editar</button>
+          <button onclick="duplicarServicio(${i})" style="color:var(--t2);border:1px solid var(--b2);background:var(--bg2);border-radius:4px;font-size:10px;cursor:pointer;padding:2px 6px;white-space:nowrap" title="Duplicar servicio">Duplicar</button>
           ${_srvEspsCache.length > 0 ? `<button onclick="editarSrvEsps(${i})" style="color:var(--a);border:1px solid rgba(108,92,228,0.25);background:rgba(108,92,228,0.06);border-radius:4px;font-size:10px;cursor:pointer;padding:2px 6px;white-space:nowrap">Profesionales</button>` : ''}
           <button onclick="eliminarServicio(${i})" style="color:var(--t4);border:none;background:none;font-size:16px;cursor:pointer;line-height:1;padding:1px 5px" title="Eliminar">×</button>
         </div>
@@ -7000,6 +7001,17 @@ function editarServicio(idx) {
 function eliminarServicio(idx) {
   _serviciosCache.splice(idx, 1);
   renderServicios();
+}
+
+function duplicarServicio(idx) {
+  const original = _serviciosCache[idx];
+  if (!original) return;
+  const copia = { ...original, nombre: original.nombre + ' (copia)' };
+  if (Array.isArray(original.especialistas_ids)) copia.especialistas_ids = [...original.especialistas_ids];
+  _serviciosCache.splice(idx + 1, 0, copia);
+  actualizarDatalistCat();
+  renderServicios();
+  toast('Servicio duplicado — recuerda guardar el catálogo');
 }
 
 /* ════ PROMOCIONES (servicios) ════ */
