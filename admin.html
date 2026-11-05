@@ -12604,7 +12604,7 @@ async function conectarConMeta() {
   const state = btoa(JSON.stringify({ cid }));
   const params = new URLSearchParams({
     client_id:     META_APP_ID,
-    redirect_uri:  'https://app.attempo.cl/api/meta-oauth-callback',
+    redirect_uri:  'https://app.attempo.cl/api/meta-webhook',
     scope:         'pages_messaging,instagram_manage_messages,instagram_basic,pages_manage_metadata,pages_read_engagement',
     response_type: 'code',
     state
