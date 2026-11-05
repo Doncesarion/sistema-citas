@@ -162,7 +162,28 @@ export default async function handler(req, res) {
     let msgs = await rm.json();
     if (!Array.isArray(msgs)) msgs = [];
 
-    // Fallback: si no hay mensajes en tabla, leer desde chat_sessions.messages
+    // Fallback 1: buscar mensajes en OTRAS conversaciones del mismo canal_user_id
+    // (ocurre cuando upsert_conversacion crea un ID nuevo pero los mensajes quedaron en el anterior)
+    if (msgs.length === 0) {
+      try {
+        const rOtras = await fetch(
+          `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=id`,
+          { headers: sh }
+        );
+        const otrasConvs = await rOtras.json();
+        if (Array.isArray(otrasConvs) && otrasConvs.length > 1) {
+          const ids = otrasConvs.map(c => c.id).join(',');
+          const rm2 = await fetch(
+            `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=in.(${ids})&order=created_at.asc&limit=200&select=*`,
+            { headers: sh }
+          );
+          const msgs2 = await rm2.json();
+          if (Array.isArray(msgs2) && msgs2.length > 0) msgs = msgs2;
+        }
+      } catch (_) {}
+    }
+
+    // Fallback 2: si no hay mensajes en ninguna conversación, leer desde chat_sessions.messages
     if (msgs.length === 0) {
       try {
         const rcs = await fetch(
