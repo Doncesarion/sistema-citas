@@ -12614,92 +12614,94 @@ async function saveCanal(canal) {
 
 /* ─── Meta OAuth ──────────────────────────────────────── */
 const META_APP_ID = '752072737927782';
+const _FB_BTN_HTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> Conectar con Meta';
 
-function _loadFbSdk() {
-  return new Promise(resolve => {
-    if (window.FB) { resolve(); return; }
-    window.fbAsyncInit = () => {
-      FB.init({ appId: META_APP_ID, cookie: true, xfbml: false, version: 'v19.0' });
-      resolve();
-    };
-    const s = document.createElement('script');
-    s.src = 'https://connect.facebook.net/es_LA/sdk.js';
-    s.async = true;
-    document.body.appendChild(s);
-  });
-}
+// Cargar SDK de Facebook proactivamente al iniciar la página
+(function _initFbSdk() {
+  if (window.FB) return;
+  window.fbAsyncInit = () => {
+    FB.init({ appId: META_APP_ID, cookie: true, xfbml: false, version: 'v19.0' });
+  };
+  const s = document.createElement('script');
+  s.src = 'https://connect.facebook.net/es_LA/sdk.js';
+  s.async = true;
+  document.body.appendChild(s);
+})();
 
-async function conectarConMeta() {
-  if (!META_APP_ID) {
-    toast('Configura el META_APP_ID en el código primero');
+function conectarConMeta() {
+  const btn = document.getElementById('btn-meta-oauth');
+
+  // Si el SDK aún no cargó, avisar y esperar
+  if (!window.FB) {
+    toast('Cargando Facebook SDK… intenta en 2 segundos');
     return;
   }
-  const btn = document.getElementById('btn-meta-oauth');
+
   btn.disabled = true;
   btn.innerHTML = '<span style="opacity:.7">Conectando…</span>';
-  try {
-    await _loadFbSdk();
-    const loginRes = await new Promise((resolve, reject) => {
-      FB.login(res => {
-        if (res.authResponse) resolve(res.authResponse);
-        else reject(new Error('Login cancelado'));
-      }, {
-        scope: 'pages_messaging,instagram_manage_messages,instagram_basic,pages_manage_metadata,pages_read_engagement',
-        return_scopes: true
+
+  // FB.login debe ser la primera llamada — sin ningún await previo
+  FB.login(async (res) => {
+    if (!res.authResponse) {
+      toast('Login cancelado. Si se bloqueó el popup, permite ventanas emergentes en este sitio.');
+      btn.disabled = false;
+      btn.innerHTML = _FB_BTN_HTML;
+      return;
+    }
+    try {
+      const userToken = res.authResponse.accessToken;
+      // Obtener páginas del usuario
+      const pagesRes = await new Promise((resolve, reject) =>
+        FB.api('/me/accounts', { access_token: userToken }, r => r.error ? reject(r.error) : resolve(r))
+      );
+      const pages = pagesRes.data || [];
+      if (!pages.length) { toast('No se encontró ninguna página de Facebook'); return; }
+      const page = pages[0];
+      const pageId = page.id;
+      const pageToken = page.access_token;
+      // Buscar cuenta de Instagram vinculada
+      const igRes = await new Promise((resolve, reject) =>
+        FB.api(`/${pageId}`, { fields: 'instagram_business_account', access_token: pageToken },
+          r => r.error ? reject(r.error) : resolve(r))
+      );
+      const igAccountId = igRes.instagram_business_account?.id || null;
+      // Guardar en Supabase
+      const cid = await getClienteId();
+      if (!cid) { toast('Error: sesión no encontrada'); return; }
+      const r0 = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: _SH });
+      const [cli] = await r0.json();
+      const merged = {
+        ...(cli?.canales_meta || {}),
+        fb_page_id: pageId,
+        fb_token: pageToken,
+        ...(igAccountId ? { ig_account_id: igAccountId, ig_token: pageToken } : {})
+      };
+      const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+        method: 'PATCH',
+        headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ canales_meta: merged })
       });
-    });
-    const userToken = loginRes.accessToken;
-    // Obtener páginas del usuario
-    const pagesRes = await new Promise((resolve, reject) =>
-      FB.api('/me/accounts', { access_token: userToken }, r => r.error ? reject(r.error) : resolve(r))
-    );
-    const pages = pagesRes.data || [];
-    if (!pages.length) { toast('No se encontró ninguna página de Facebook'); return; }
-    // Usar la primera página (o buscar la del cliente si hubiera múltiples)
-    const page = pages[0];
-    const pageId = page.id;
-    const pageToken = page.access_token;
-    // Buscar cuenta de Instagram vinculada
-    const igRes = await new Promise((resolve, reject) =>
-      FB.api(`/${pageId}`, { fields: 'instagram_business_account', access_token: pageToken },
-        r => r.error ? reject(r.error) : resolve(r))
-    );
-    const igAccountId = igRes.instagram_business_account?.id || null;
-    // Guardar ambos canales directo (merge en Supabase)
-    const cid = await getClienteId();
-    if (!cid) { toast('Error: sesión no encontrada'); return; }
-    const r0 = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: _SH });
-    const [cli] = await r0.json();
-    const merged = {
-      ...(cli?.canales_meta || {}),
-      fb_page_id: pageId,
-      fb_token: pageToken,
-      ...(igAccountId ? { ig_account_id: igAccountId, ig_token: pageToken } : {})
-    };
-    const r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
-      method: 'PATCH',
-      headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ canales_meta: merged })
-    });
-    if (!r.ok) throw new Error('Error al guardar');
-    // Poblar campos avanzados para referencia
-    const sf = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-    sf('canal-fb-page-id',   pageId);
-    sf('canal-fb-token',     '••••••••');
-    sf('canal-ig-account-id', igAccountId || '');
-    sf('canal-ig-token',     igAccountId ? '••••••••' : '');
-    // Actualizar estado visual
-    const oauthDiv = document.getElementById('meta-oauth-connected');
-    if (oauthDiv) { oauthDiv.style.display = 'flex'; }
-    toast('✓ Messenger' + (igAccountId ? ' e Instagram conectados' : ' conectado'));
-    cargarCanales();
-  } catch(e) {
-    console.error('conectarConMeta:', e);
-    toast(e.message || 'Error al conectar con Meta');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> Conectar con Meta';
-  }
+      if (!r.ok) throw new Error('Error al guardar');
+      const sf = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+      sf('canal-fb-page-id',    pageId);
+      sf('canal-fb-token',      '••••••••');
+      sf('canal-ig-account-id', igAccountId || '');
+      sf('canal-ig-token',      igAccountId ? '••••••••' : '');
+      const oauthDiv = document.getElementById('meta-oauth-connected');
+      if (oauthDiv) { oauthDiv.style.display = 'flex'; }
+      toast('✓ Messenger' + (igAccountId ? ' e Instagram conectados' : ' conectado'));
+      cargarCanales();
+    } catch(e) {
+      console.error('conectarConMeta:', e);
+      toast(e.message || 'Error al conectar con Meta');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = _FB_BTN_HTML;
+    }
+  }, {
+    scope: 'pages_messaging,instagram_manage_messages,instagram_basic,pages_manage_metadata,pages_read_engagement',
+    return_scopes: true
+  });
 }
 
 async function desconectarMeta() {
