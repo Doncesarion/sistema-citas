@@ -15100,7 +15100,17 @@ async function cargarMensajesHilo(conv_id, silent = false) {
     const r = await fetch(`/api/bandeja?id=${conv_id}`, {
       headers: _bandejaH()
     });
-    if (!r.ok) return;
+    if (!r.ok) {
+      console.error('bandeja: error HTTP', r.status, 'al cargar mensajes de', conv_id);
+      if (!silent) {
+        const cont = document.getElementById('bthread-msgs');
+        if (cont) cont.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--t3);font-size:13px">
+          <div style="margin-bottom:8px">No se pudieron cargar los mensajes (error ${r.status})</div>
+          <button onclick="cargarMensajesHilo('${conv_id}')" style="font-size:12px;padding:6px 14px;border:1px solid var(--b1);border-radius:6px;background:var(--bg2);color:var(--t2);cursor:pointer">Reintentar</button>
+        </div>`;
+      }
+      return;
+    }
     const data = await r.json();
     _bMsgs = data.mensajes || [];
     renderHilo(silent);
@@ -15133,6 +15143,11 @@ function renderHilo(silent = false) {
   const fotoAvHtml = convFoto
     ? `<img src="${escH(convFoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;inset:0" onerror="this.style.display='none'">` : '';
   const avatarHtml = `<div class="bmsg-av" style="background:${convColor}">${convInits}${fotoAvHtml}</div>`;
+
+  if (!_bMsgs.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--t3);font-size:13px">Sin mensajes guardados en esta conversación</div>';
+    return;
+  }
 
   let lastDay = '';
   cont.innerHTML = _bMsgs.map(m => {

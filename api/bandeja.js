@@ -166,7 +166,7 @@ export default async function handler(req, res) {
     if (msgs.length === 0) {
       try {
         const rcs = await fetch(
-          `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=messages,created_at&limit=1`,
+          `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=messages,created_at&order=updated_at.desc&limit=1`,
           { headers: sh }
         );
         const [sess] = await rcs.json();
@@ -186,6 +186,9 @@ export default async function handler(req, res) {
       } catch (_) {}
     }
 
+    if (msgs.length === 0) {
+      console.log(`[bandeja] conv ${conv_id} sin mensajes — canal:${conv.canal} canal_user_id:${conv.canal_user_id}`);
+    }
     return res.status(200).json({
       conversacion: { ...conv, pausa_bot },
       mensajes: msgs
