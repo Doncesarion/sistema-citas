@@ -282,7 +282,7 @@ export default async function handler(req, res) {
     }
 
     if (conversacion_id) {
-      fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
         method: 'POST',
         headers: { ...shJ, Prefer: 'return=minimal' },
         body: JSON.stringify({ conversacion_id, cliente_id, rol: 'usuario', contenido: mensaje })
@@ -342,7 +342,7 @@ export default async function handler(req, res) {
   // ── Guardar respuesta del bot ─────────────────────────────────────────────
   if (respuesta && conversacion_id) {
     const shJ = { ...sh, 'Content-Type': 'application/json' };
-    fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
       method: 'POST',
       headers: { ...shJ, Prefer: 'return=minimal' },
       body: JSON.stringify({ conversacion_id, cliente_id, rol: 'bot', contenido: respuesta, visto: true })
