@@ -29,21 +29,12 @@ body::before{
     radial-gradient(ellipse 55% 35% at 15% 8%,rgba(108,92,228,0.07),transparent 70%),
     radial-gradient(ellipse 40% 50% at 85% 92%,rgba(139,124,248,0.06),transparent 70%);
 }
-.nav{
-  position:sticky;top:0;z-index:50;background:#fff;
-  border-bottom:1px solid var(--b1);
-  padding:0 20px;min-height:52px;display:flex;align-items:center;justify-content:space-between;
-  box-shadow:0 1px 3px rgba(108,92,228,.06);
-}
-.nav-biz{font-size:16px;font-weight:700;color:var(--t1);letter-spacing:-.02em}
-.nav-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t3);font-weight:500}
-.nav-badge .ldot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 2.5s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
 .page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:24px 20px 64px;width:100%}
 /* ── Hero ───────────────────────────────────────────────────────────── */
 .hero-cover{
+  position:relative;z-index:1;
   background:#fff;border-bottom:1px solid var(--b1);
-  padding:32px 20px 24px;text-align:center;
+  padding:36px 20px 24px;text-align:center;
 }
 .hero-banner{display:none}
 .hero-profile{display:contents}
@@ -73,6 +64,9 @@ body::before{
   font-size:11px;font-weight:500;color:var(--t2);
 }
 .hero-badge svg{color:var(--a);flex-shrink:0}
+.hero-badge-online{background:rgba(22,163,74,.06);border-color:rgba(22,163,74,.18);color:var(--green);font-weight:600}
+.ldot-g{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 2.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
 .biz-open{
   display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
   padding:4px 11px;border-radius:100px;
@@ -158,28 +152,25 @@ body::before{
 .mod-choice:hover{border-color:var(--b2)}
 .mod-choice.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
 .svc-row{
-  display:flex;align-items:center;gap:14px;
-  padding:16px 18px;
+  display:block;
+  padding:18px 20px;
   border:1.5px solid var(--b1);border-radius:14px;
   cursor:pointer;transition:all .18s;background:#fff;
 }
 .svc-row:hover{border-color:var(--b2);box-shadow:0 4px 20px rgba(108,92,228,.1);transform:translateY(-1px)}
 .svc-row.sel{border-color:var(--a);box-shadow:0 4px 20px rgba(108,92,228,.16);background:rgba(108,92,228,.02)}
-.svc-icon{width:44px;height:44px;border-radius:12px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.svc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.svc-icon-name{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.svc-icon{width:38px;height:38px;border-radius:10px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .svc-row.sel .svc-icon{background:rgba(108,92,228,.14)}
-.svc-info{flex:1;min-width:0}
-.svc-name{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px;line-height:1.2}
-.svc-meta{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.svc-meta-pill{padding:2px 8px;border-radius:100px;background:var(--adim);font-size:10px;font-weight:600;color:var(--a)}
-.svc-desc{font-size:11px;color:var(--t4);margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.svc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-.svc-price{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--a);line-height:1;white-space:nowrap}
-.svc-cta{
-  display:inline-block;padding:6px 14px;
-  background:linear-gradient(135deg,var(--a),var(--a3));
-  color:#fff;border-radius:7px;font-size:11px;font-weight:700;
-  white-space:nowrap;letter-spacing:.01em;pointer-events:none;
-}
+.svc-name{font-size:15px;font-weight:700;color:var(--t1);line-height:1.3}
+.svc-price{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--a);white-space:nowrap;flex-shrink:0}
+.svc-fields{display:flex;gap:24px;margin-bottom:10px}
+.svc-field-lbl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.svc-field-val{font-size:13px;font-weight:500;color:var(--t2)}
+.svc-desc{font-size:12px;color:var(--t3);line-height:1.55;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.svc-footer{display:flex;justify-content:flex-end}
+.svc-cta{display:inline-flex;align-items:center;padding:8px 18px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;letter-spacing:.01em;pointer-events:none}
 .svc-row.sel .svc-cta{background:var(--green)}
 .svc-radio{display:none}
 .prof-list{display:flex;flex-direction:column;gap:7px}
@@ -288,10 +279,6 @@ body::before{
 </head>
 <body>
 
-<nav class="nav">
-  <span class="nav-biz" id="nav-biz">Cargando...</span>
-  <span class="nav-badge"><span class="ldot"></span>Reserva en línea</span>
-</nav>
 
 <!-- LOADING -->
 <div id="loading-wrap" class="loading-state" style="position:relative;z-index:1">Cargando información del negocio...</div>
@@ -324,6 +311,9 @@ body::before{
         <div class="hero-badge" id="biz-horario-wrap" style="display:none">
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3v3l2 1.5"/></svg>
           <span id="biz-horario-txt"></span>
+        </div>
+        <div class="hero-badge hero-badge-online">
+          <span class="ldot-g"></span>Reserva en línea
         </div>
       </div>
     </div>
@@ -624,7 +614,6 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
     clienteId      = rows[0].id;
     horarioNegocio = rows[0].horario_negocio || null;
 
-    document.getElementById('nav-biz').textContent    = negocioData.nombre_negocio;
     document.getElementById('biz-name').textContent   = negocioData.nombre_negocio;
     document.getElementById('biz-logo-ini').textContent = iniciales(negocioData.nombre_negocio);
     document.title = `${negocioData.nombre_negocio} — Reserva tu hora`;
@@ -742,24 +731,33 @@ function renderServicios(servicios) {
     return;
   }
   list.innerHTML = servicios.map(s => {
-    const icon    = iconSvc(s.nombre);
-    const durStr  = s.duracion ? `${s.duracion} min` : '';
+    const icon       = iconSvc(s.nombre);
+    const durStr     = s.duracion ? `${s.duracion} min` : '';
     const precioBase = s.precio ? Number(s.precio) : 0;
-    const precioStr = precioBase ? `$${precioBase.toLocaleString('es-CL')}` : '';
-    const dataStr = JSON.stringify({ nom: s.nombre, duracion: s.duracion || 60, precio: s.precio || 0, icon, modalidad: s.modalidad || 'presencial' });
-    const modalidadLabel = s.modalidad === 'online' ? 'Online' : s.modalidad === 'ambos' ? 'Presencial · Online' : '';
+    const precioStr  = precioBase ? `$${precioBase.toLocaleString('es-CL')}` : '';
+    const dataStr    = JSON.stringify({ nom: s.nombre, duracion: s.duracion || 60, precio: s.precio || 0, icon, modalidad: s.modalidad || 'presencial' });
+    const modalidadLabel = s.modalidad === 'online' ? 'Online' : s.modalidad === 'ambos' ? 'Presencial · Online' : 'Presencial';
+    const hasFields  = durStr || modalidadLabel;
     return `<div class="svc-row" data-svc='${dataStr.replace(/'/g,"&#39;")}' onclick="selSvc(this)">
-      <div class="svc-icon">${icon}</div>
-      <div class="svc-info">
-        <div class="svc-name">${esc(s.nombre)}</div>
-        <div class="svc-meta">
-          ${durStr ? `<span class="svc-meta-pill">${durStr}</span>` : ''}
-          ${modalidadLabel ? `<span class="svc-meta-pill">${modalidadLabel}</span>` : ''}
+      <div class="svc-header">
+        <div class="svc-icon-name">
+          <div class="svc-icon">${icon}</div>
+          <div class="svc-name">${esc(s.nombre)}</div>
         </div>
-        ${s.descripcion ? `<div class="svc-desc">${esc(s.descripcion)}</div>` : ''}
-      </div>
-      <div class="svc-right">
         ${precioStr ? `<div class="svc-price">${precioStr}</div>` : ''}
+      </div>
+      ${hasFields ? `<div class="svc-fields">
+        <div class="svc-field">
+          <div class="svc-field-lbl">Modalidad</div>
+          <div class="svc-field-val">${modalidadLabel}</div>
+        </div>
+        ${durStr ? `<div class="svc-field">
+          <div class="svc-field-lbl">Duración</div>
+          <div class="svc-field-val">${durStr}</div>
+        </div>` : ''}
+      </div>` : ''}
+      ${s.descripcion ? `<div class="svc-desc">${esc(s.descripcion)}</div>` : ''}
+      <div class="svc-footer">
         <span class="svc-cta">Agendar hora →</span>
       </div>
     </div>`;
