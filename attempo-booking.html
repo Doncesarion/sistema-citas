@@ -34,10 +34,10 @@ body::before{
 .hero-cover{
   position:relative;z-index:1;
   background:#fff;border-bottom:1px solid var(--b1);
-  text-align:center;overflow:hidden;
+  overflow:hidden;
 }
 .hero-banner{
-  height:140px;
+  height:130px;
   background:linear-gradient(135deg,var(--a3) 0%,var(--a) 50%,var(--a2) 100%);
   position:relative;
 }
@@ -45,25 +45,34 @@ body::before{
   content:'';position:absolute;inset:0;
   background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
-.hero-body{padding:0 20px 24px}
-.hero-profile{display:contents}
+.hero-body{padding:0 24px 24px}
+.hero-profile-row{
+  display:flex;align-items:flex-end;gap:16px;
+  margin-top:-88px;margin-bottom:16px;
+  position:relative;z-index:2;
+}
 .hero-avatar{
-  width:152px;height:152px;border-radius:22px;
+  width:176px;height:176px;border-radius:22px;flex-shrink:0;
   background:linear-gradient(135deg,var(--a),var(--a3));
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:40px;font-weight:600;color:#fff;
-  box-shadow:0 8px 28px rgba(108,92,228,.3);
+  font-family:var(--mono);font-size:46px;font-weight:600;color:#fff;
+  box-shadow:0 8px 28px rgba(108,92,228,.28);
   border:5px solid #fff;
-  margin:-76px auto 16px;
-  position:relative;z-index:2;overflow:hidden;
+  overflow:hidden;
 }
 .hero-avatar img{width:100%;height:100%;object-fit:cover;border-radius:17px}
-.hero-rating{display:none;align-items:center;gap:6px;justify-content:center;margin-bottom:10px}
-.hero-stars{color:#FBBF24;font-size:17px;letter-spacing:1.5px;line-height:1}
-.hero-rating-score{font-size:14px;font-weight:700;color:var(--t1)}
+.hero-info-col{flex:1;min-width:0;padding-bottom:4px}
+.hero-name{
+  font-size:22px;font-weight:800;color:var(--t1);letter-spacing:-.03em;
+  line-height:1.2;margin-bottom:6px;
+}
+.hero-rating{display:none;align-items:center;gap:5px;margin-bottom:0}
+.hero-stars{color:#FBBF24;font-size:16px;letter-spacing:1px;line-height:1}
+.hero-rating-score{font-size:13px;font-weight:700;color:var(--t1)}
 .hero-rating-count{font-size:12px;color:var(--t3)}
-.hero-desc-box{max-width:480px;margin:10px auto 14px;background:rgba(108,92,228,.04);border:1px solid var(--b1);border-radius:10px;padding:12px 16px;text-align:left}
+.hero-desc-box{margin:0 0 14px;background:rgba(108,92,228,.04);border:1px solid var(--b1);border-radius:10px;padding:12px 16px}
 .hero-desc-box p{font-size:13px;color:var(--t2);line-height:1.65;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hero-spec{display:none}
 .hero-info{display:contents}
 .hero-name{
   font-size:22px;font-weight:800;color:var(--t1);letter-spacing:-.03em;
@@ -73,7 +82,7 @@ body::before{
   font-size:13px;color:var(--t2);line-height:1.6;
   max-width:420px;margin:0 auto 14px;
 }
-.hero-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:0}
+.hero-badges{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;margin-bottom:0}
 .hero-badge{
   display:inline-flex;align-items:center;gap:5px;
   padding:4px 11px;border-radius:100px;
@@ -272,10 +281,11 @@ body::before{
 .error-state .e-title{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:8px}
 .error-state .e-sub{font-size:13px;color:var(--t3)}
 @media(max-width:600px){
-  .hero-banner{height:110px}
+  .hero-banner{height:100px}
   .hero-body{padding:0 16px 20px}
-  .hero-avatar{width:120px;height:120px;font-size:30px;margin-top:-60px;border-radius:17px}
-  .hero-name{font-size:19px}
+  .hero-profile-row{margin-top:-64px;gap:12px}
+  .hero-avatar{width:128px;height:128px;font-size:32px;border-radius:17px}
+  .hero-name{font-size:18px}
   .svc-list{grid-template-columns:1fr}
   .sbi-lbl{font-size:10px;overflow:hidden;text-overflow:ellipsis}
   .page{padding:18px 14px 48px}
@@ -315,16 +325,23 @@ body::before{
     <div class="hero-cover">
       <div class="hero-banner" id="hero-banner"></div>
       <div class="hero-body">
-        <div class="hero-avatar" id="biz-logo-ini">AT</div>
-        <h1 class="hero-name" id="biz-name">Cargando...</h1>
-        <div class="hero-rating" id="hero-rating">
-          <span class="hero-stars" id="hero-stars"></span>
-          <span class="hero-rating-score" id="hero-rating-score"></span>
-          <span class="hero-rating-count" id="hero-rating-count"></span>
+        <!-- fila: avatar izquierda + nombre/estrellas derecha -->
+        <div class="hero-profile-row">
+          <div class="hero-avatar" id="biz-logo-ini">AT</div>
+          <div class="hero-info-col">
+            <h1 class="hero-name" id="biz-name">Cargando...</h1>
+            <div class="hero-rating" id="hero-rating">
+              <span class="hero-stars" id="hero-stars"></span>
+              <span class="hero-rating-score" id="hero-rating-score"></span>
+              <span class="hero-rating-count" id="hero-rating-count"></span>
+            </div>
+          </div>
         </div>
+        <!-- descripción -->
         <div class="hero-desc-box" id="hero-desc-box" style="display:none">
           <p id="biz-desc"></p>
         </div>
+        <!-- badges: horario + reserva en línea -->
         <div class="hero-badges">
           <div id="biz-status" style="display:none"><span id="biz-status-lbl"></span></div>
           <div class="hero-badge" id="biz-dir-wrap" style="display:none">
