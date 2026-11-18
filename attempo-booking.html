@@ -276,6 +276,19 @@ body::before{
 .c-row b{color:var(--t1);font-weight:600;min-width:90px;flex-shrink:0}
 .c-row span{color:var(--t2)}
 .c-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+/* ── Reseñas ─────────────────────────────────────────────────────────── */
+.eval-section{margin-top:24px}
+.eval-score-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.eval-score-big{font-size:36px;font-weight:800;color:var(--t1);line-height:1}
+.eval-stars-big{color:#FBBF24;font-size:20px;letter-spacing:2px;line-height:1}
+.eval-count{font-size:13px;color:var(--t3)}
+.eval-cards{display:flex;flex-direction:column;gap:10px}
+.eval-card{background:#fff;border:1px solid var(--b1);border-radius:var(--rl);padding:16px 18px}
+.eval-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.eval-card-name{font-size:13px;font-weight:600;color:var(--t1)}
+.eval-card-stars{color:#FBBF24;font-size:13px;letter-spacing:1px}
+.eval-card-date{font-size:11px;color:var(--t4)}
+.eval-card-txt{font-size:13px;color:var(--t2);line-height:1.6}
 .loading-state{text-align:center;padding:80px 20px;color:var(--t3);font-size:14px}
 .error-state{text-align:center;padding:80px 20px}
 .error-state .e-icon{font-size:40px;margin-bottom:16px}
@@ -600,6 +613,22 @@ body::before{
     </div>
 
   </div><!-- /page -->
+
+  <!-- RESEÑAS -->
+  <div id="eval-section" class="eval-section" style="display:none;max-width:760px;margin:0 auto;padding:0 20px 48px">
+    <div class="book-header">
+      <h2 class="book-title">Evaluaciones</h2>
+      <div class="eval-score-row" style="margin-bottom:0">
+        <span class="eval-score-big" id="eval-score-big"></span>
+        <div>
+          <div class="eval-stars-big" id="eval-stars-big"></div>
+          <div class="eval-count" id="eval-count"></div>
+        </div>
+      </div>
+    </div>
+    <div class="eval-cards" id="eval-cards"></div>
+  </div>
+
 </div><!-- /content-wrap -->
 
 <footer style="margin-top:auto;border-top:1px solid var(--b1);padding:16px 24px;text-align:center;font-size:11px;color:var(--t4);position:relative;z-index:1">
@@ -709,6 +738,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
       const rd = rRatings ? await rRatings.json() : null;
       if (rd?.resumen) rd.resumen.forEach(r => { ratingsMap[r.especialista_id] = r; });
       renderHeroRating();
+      if (rd?.reseñas?.length) renderReseñas(rd.reseñas);
     } catch(_) {}
 
     renderServicios(negocioData.servicios || []);
@@ -781,6 +811,30 @@ function renderHeroRating() {
   document.getElementById('hero-rating-score').textContent = promedio.toFixed(1);
   document.getElementById('hero-rating-count').textContent = `(${totalEvals} ${totalEvals === 1 ? 'evaluación' : 'evaluaciones'})`;
   document.getElementById('hero-rating').style.display     = 'flex';
+}
+
+/* ── RESEÑAS ── */
+function renderReseñas(reseñas) {
+  if (!reseñas.length) return;
+  const total   = reseñas.length;
+  const promedio = reseñas.reduce((s, r) => s + r.estrellas, 0) / total;
+  const stars   = Math.round(promedio);
+  document.getElementById('eval-score-big').textContent  = promedio.toFixed(1);
+  document.getElementById('eval-stars-big').textContent  = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+  document.getElementById('eval-count').textContent      = `${total} ${total === 1 ? 'evaluación' : 'evaluaciones'}`;
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  document.getElementById('eval-cards').innerHTML = reseñas.map(r => {
+    const fecha = r.fecha ? (() => { const d = new Date(r.fecha + 'T12:00:00'); return `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`; })() : '';
+    return `<div class="eval-card">
+      <div class="eval-card-top">
+        <span class="eval-card-name">${esc(r.nombre)}</span>
+        <span class="eval-card-stars">${'★'.repeat(r.estrellas)}</span>
+      </div>
+      ${fecha ? `<div class="eval-card-date" style="margin-bottom:6px">${fecha}</div>` : ''}
+      <div class="eval-card-txt">${esc(r.comentario)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('eval-section').style.display = 'block';
 }
 
 /* ── SERVICIOS ── */

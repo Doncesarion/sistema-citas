@@ -1054,16 +1054,27 @@ export async function handleEvaluar(req, res) {
     const ipR = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
     if (await isEvaluarRateLimited(ipR)) return res.status(429).json({ error: 'Demasiadas solicitudes' });
     const rows = await fetch(
-      `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.true&select=especialista_id,estrellas`,
+      `${SUPABASE_URL}/rest/v1/evaluaciones?cliente_id=eq.${cid}&usado=eq.true&select=especialista_id,estrellas,comentario,paciente_nombre,anonima,created_at&order=created_at.desc&limit=50`,
       { headers: sh }
     ).then(r => r.json()).catch(() => []);
     const mapa = {};
+    const reseñas = [];
     if (Array.isArray(rows)) {
-      rows.forEach(({ especialista_id, estrellas }) => {
-        if (!especialista_id || !estrellas) return;
-        if (!mapa[especialista_id]) mapa[especialista_id] = { sum: 0, count: 0 };
-        mapa[especialista_id].sum += estrellas;
-        mapa[especialista_id].count++;
+      rows.forEach(({ especialista_id, estrellas, comentario, paciente_nombre, anonima, created_at }) => {
+        if (!estrellas) return;
+        if (especialista_id) {
+          if (!mapa[especialista_id]) mapa[especialista_id] = { sum: 0, count: 0 };
+          mapa[especialista_id].sum += estrellas;
+          mapa[especialista_id].count++;
+        }
+        if (comentario && comentario.trim()) {
+          reseñas.push({
+            estrellas,
+            comentario: comentario.trim(),
+            nombre: anonima ? 'Cliente anónimo' : (paciente_nombre || 'Cliente'),
+            fecha: created_at ? created_at.slice(0, 10) : null
+          });
+        }
       });
     }
     const resumen = Object.entries(mapa).map(([id, { sum, count }]) => ({
@@ -1071,7 +1082,7 @@ export async function handleEvaluar(req, res) {
       promedio: Math.round(sum / count * 10) / 10,
       total: count
     }));
-    return res.status(200).json({ ok: true, resumen });
+    return res.status(200).json({ ok: true, resumen, reseñas });
   }
 
   // GET ?action=evaluar&token=xxx → form del paciente
