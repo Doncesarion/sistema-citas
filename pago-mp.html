@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resultado de pago — attempo</title>
+  <link rel="icon" href="/logo_attempo.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, -apple-system, sans-serif; background: #f5f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 20px; box-shadow: 0 8px 40px rgba(108,92,228,0.12); padding: 48px 40px; max-width: 440px; width: 100%; text-align: center; }
+    .logo { margin-bottom: 28px; }
+    .logo img { height: 40px; }
+    .icon { font-size: 48px; margin-bottom: 20px; }
+    h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 10px; }
+    p { font-size: 14px; color: #6b7280; line-height: 1.6; }
+    .footer { margin-top: 24px; font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><img src="/logo_attempo.png" alt="attempo"></div>
+    <div class="icon" id="icon">⏳</div>
+    <h1 id="title">Procesando...</h1>
+    <p id="msg"></p>
+    <div class="footer"><p>Pago procesado por <strong>Mercado Pago</strong></p></div>
+  </div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const status = p.get('status');
+    const collectionStatus = p.get('collection_status');
+    const paymentId = p.get('payment_id') || p.get('collection_id');
+    const citaId = p.get('cita') || p.get('external_reference');
+
+    const map = {
+      success: { icon:'✅', title:'¡Pago exitoso!', msg:'Tu pago fue procesado correctamente. Recibirás un correo de confirmación.' },
+      ok:      { icon:'✅', title:'¡Pago exitoso!', msg:'Tu pago fue procesado correctamente. Recibirás un correo de confirmación.' },
+      failure: { icon:'❌', title:'Pago rechazado', msg:'No pudimos procesar tu pago. Intenta con otro método.' },
+      rechazado: { icon:'❌', title:'Pago rechazado', msg:'No pudimos procesar tu pago. Intenta con otro método.' },
+      pending:   { icon:'⏳', title:'Pago pendiente', msg:'Tu pago está siendo procesado. Te notificaremos cuando se confirme.' },
+      pendiente: { icon:'⏳', title:'Pago pendiente', msg:'Tu pago está siendo procesado. Te notificaremos cuando se confirme.' },
+    };
+    const d = map[status] || { icon:'ℹ️', title:'Estado desconocido', msg:'Contacta al negocio para verificar tu pago.' };
+    document.getElementById('icon').textContent  = d.icon;
+    document.getElementById('title').textContent = d.title;
+    document.getElementById('msg').textContent   = d.msg;
+
+    // Confirmar pago en el backend cuando MP aprueba
+    if ((collectionStatus === 'approved' || status === 'success') && paymentId && citaId) {
+      fetch(`/api/flow?tipo=mp_confirm&payment_id=${encodeURIComponent(paymentId)}&cita_id=${encodeURIComponent(citaId)}&collection_status=approved`)
+        .catch(() => {});
+    }
+  </script>
+</body>
+</html>

@@ -30,8 +30,9 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 
 /* ── CARD ── */
 .card{background:#fff;border:1px solid var(--b1);border-radius:var(--rx);box-shadow:var(--sh1);overflow:hidden}
-.card-head{padding:24px 28px 0}
-.card-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:6px}
+.card-head{padding:24px 28px 16px;text-align:center}
+.card-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:8px}
+.card-ref{font-size:12px;color:var(--t2);font-family:var(--mono);font-weight:600;margin-top:8px;letter-spacing:.04em}
 .card-body{padding:20px 28px 28px}
 .info-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--b1)}
 .info-row:last-child{border-bottom:none}
@@ -63,7 +64,8 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 .rag-section.show{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-.rag-title{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
+.rag-title{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.rag-subtitle{font-size:12px;color:var(--a);font-weight:500;margin-bottom:16px;background:rgba(108,92,228,0.07);border-radius:6px;padding:5px 10px;display:inline-block}
 
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .cal-month-lbl{font-size:14px;font-weight:600;color:var(--t1)}
@@ -96,6 +98,18 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 .rag-confirm-lbl strong{color:var(--t1)}
 .btn-confirm-rag{width:100%;padding:12px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-confirm-rag:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── FEEDBACK ── */
+.fb-wrap{background:var(--adim);border:1px solid var(--b2);border-radius:var(--rl);padding:18px;margin:16px 0;text-align:center}
+.fb-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:12px}
+.fb-stars{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
+.star-btn{font-size:28px;background:none;border:none;cursor:pointer;color:var(--t4);padding:2px 4px;transition:color .12s,transform .1s;line-height:1}
+.star-btn:hover{color:#F59E0B;transform:scale(1.15)}
+.star-btn.lit{color:#F59E0B}
+.fb-textarea{width:100%;padding:9px 12px;border:1.5px solid var(--b1);border-radius:var(--r);font-size:12px;font-family:'Geist',sans-serif;color:var(--t1);background:#fff;outline:none;resize:vertical;min-height:64px;transition:border-color .12s;margin-bottom:10px}
+.fb-textarea:focus{border-color:var(--a)}
+.btn-fb{width:100%;padding:10px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:'Geist',sans-serif;transition:opacity .15s}
+.btn-fb:disabled{opacity:.35;cursor:not-allowed}
 
 /* ── MISC ── */
 .msg-ok{text-align:center;padding:36px 20px}
@@ -137,9 +151,22 @@ html,body{min-height:100%;font-family:'Geist',sans-serif;background:var(--bg);co
 </div>
 
 <script>
-const params = new URLSearchParams(location.search);
-const citaId = params.get('id');
-const manageToken = params.get('token') || '';
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+// Soporte para URL corta (/gc/AT-XXXXXXXX#token o /gc/AT-XXXXXXXX/token) y URL legacy (?id=UUID&token=TOKEN)
+const _pathParts = location.pathname.split('/').filter(Boolean);
+let shortId     = null;
+let citaId      = null;
+let manageToken = '';
+
+if (_pathParts[0] === 'gc' && _pathParts[1]) {
+  shortId     = _pathParts[1]; // "AT-6A2B2FFF"
+  // Nuevo formato: token en el hash (#token); backwards compat: token en el path
+  manageToken = location.hash.slice(1) || _pathParts[2] || '';
+} else {
+  const _params = new URLSearchParams(location.search);
+  citaId       = _params.get('id');
+  manageToken  = _params.get('token') || '';
+}
 
 const MESES     = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESES_CAP = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -174,31 +201,41 @@ function fechaTexto(iso) {
 
 /* ── CARGAR CITA ── */
 async function cargar() {
-  if (!citaId) { mostrarError('No se encontró el identificador de la cita.'); return; }
+  if (!citaId && !shortId) { mostrarError('No se encontró el identificador de la cita.'); return; }
   try {
-    const r = await fetch(`/api/gestionar-cita?id=${encodeURIComponent(citaId)}`);
+    const url = shortId
+      ? `/api/gestionar-cita?short=${encodeURIComponent(shortId)}&t=${encodeURIComponent(manageToken)}`
+      : `/api/gestionar-cita?id=${encodeURIComponent(citaId)}&t=${encodeURIComponent(manageToken)}`;
+    const r = await fetch(url);
     const data = await r.json();
     if (!r.ok || !data.cita) { mostrarError(data.error || 'Cita no encontrada.'); return; }
+    if (shortId) citaId = data.cita.id; // necesario para los POST (cancelar/reagendar/feedback)
+    // Limpiar la URL: mostrar solo /gc/AT-XXXXXXXX sin el token (sea en path o en hash)
+    if (shortId) history.replaceState(null, '', '/gc/' + shortId);
     renderCita(data);
   } catch (e) {
     mostrarError('Error de conexión. Intenta de nuevo.');
   }
 }
 
-function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre }) {
+function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre, ya_evaluado, eval_estrellas }) {
   document.getElementById('loading').style.display = 'none';
   const el = document.getElementById('content');
   el.style.display = 'block';
   espId = cita.especialista_id || null;
 
   const esCancelada = cita.estado === 'canceled';
-  const esRealizada = cita.estado === 'done';
+  const hoyD = new Date(); hoyD.setHours(0,0,0,0);
+  const [_fy,_fm,_fd] = (cita.fecha||'').split('-').map(Number);
+  const esRealizada = cita.estado === 'done' ||
+    (cita.estado !== 'canceled' && _fy && new Date(_fy,_fm-1,_fd) < hoyD);
 
   el.innerHTML = `
     <div class="card">
       <div class="card-head">
         <div class="card-title">Tu cita</div>
         ${estadoBadge(cita.estado)}
+        <div class="card-ref">N° AT-${cita.id.slice(0,8).toUpperCase()}</div>
       </div>
       <div class="card-body">
         <div class="info-row"><span class="info-lbl">Servicio</span><span class="info-val">${cita.servicio || '—'}</span></div>
@@ -217,8 +254,28 @@ function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre })
           <div class="msg-ok" style="padding:24px 0 4px">
             <div class="msg-icon">✅</div>
             <div class="msg-title" style="font-size:15px">Esta cita ya fue realizada</div>
-            ${booking_slug ? `<a href="/${booking_slug}" class="btn-new">Agendar una nueva cita</a>` : ''}
           </div>
+          <div class="fb-wrap" id="fb-wrap">
+            ${ya_evaluado ? `
+              <div style="padding:8px 0;text-align:center">
+                <div style="font-size:24px;color:#F59E0B;margin-bottom:8px">${'★'.repeat(eval_estrellas||0)}${'☆'.repeat(5-(eval_estrellas||0))}</div>
+                <div style="font-size:13px;font-weight:600;color:var(--green)">¡Gracias por tu reseña!</div>
+                <div style="font-size:12px;color:var(--t3);margin-top:4px">Tu opinión fue registrada.</div>
+              </div>
+            ` : `
+              <div class="fb-title">¿Cómo fue tu experiencia?</div>
+              <div class="fb-stars" id="fb-stars" role="group" aria-label="Calificación">
+                <button class="star-btn" data-v="1" onclick="selStar(1)" aria-label="1 estrella">★</button>
+                <button class="star-btn" data-v="2" onclick="selStar(2)" aria-label="2 estrellas">★</button>
+                <button class="star-btn" data-v="3" onclick="selStar(3)" aria-label="3 estrellas">★</button>
+                <button class="star-btn" data-v="4" onclick="selStar(4)" aria-label="4 estrellas">★</button>
+                <button class="star-btn" data-v="5" onclick="selStar(5)" aria-label="5 estrellas">★</button>
+              </div>
+              <textarea class="fb-textarea" id="fb-comment" placeholder="Cuéntanos más sobre tu experiencia... (opcional)"></textarea>
+              <button class="btn-fb" id="fb-btn" onclick="enviarFeedback()" disabled>Enviar reseña</button>
+            `}
+          </div>
+          ${booking_slug ? `<a href="/${booking_slug}" class="btn-new" style="margin-top:12px">Agendar una nueva cita</a>` : ''}
         ` : `
           <div class="actions">
             ${espId ? `<button class="btn-reagendar" id="btn-rag" onclick="toggleCalendario()">Reagendar cita</button>` : ''}
@@ -234,11 +291,12 @@ function renderCita({ cita, nombre_especialista, booking_slug, negocio_nombre })
 
           <!-- CALENDARIO INLINE -->
           <div class="rag-section" id="rag-section">
-            <div class="rag-title">Elige nueva fecha y hora</div>
+            <div class="rag-title">Reagendando tu cita</div>
+            <div class="rag-subtitle">Fecha actual: ${fechaTexto(cita.fecha)} · ${(cita.hora || '').slice(0,5)} hrs</div>
             <div class="cal-nav">
-              <button class="cal-arr" onclick="prevMes()">‹</button>
-              <span class="cal-month-lbl" id="cal-lbl"></span>
-              <button class="cal-arr" onclick="nextMes()">›</button>
+              <button class="cal-arr" onclick="prevMes()" aria-label="Mes anterior">‹</button>
+              <span class="cal-month-lbl" id="cal-lbl" aria-live="polite"></span>
+              <button class="cal-arr" onclick="nextMes()" aria-label="Mes siguiente">›</button>
             </div>
             <div class="cal-grid" id="cal-grid"></div>
             <div id="slots-wrap" style="display:none">
@@ -304,7 +362,19 @@ function toggleCalendario() {
     btn.textContent = calAbierto ? 'Cerrar calendario' : 'Reagendar cita';
     btn.classList.toggle('open', calAbierto);
   }
-  if (calAbierto) renderCal();
+  if (calAbierto) {
+    renderCal();
+    // Auto-seleccionar primer día disponible (mañana)
+    setTimeout(() => {
+      const prox = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() + 1);
+      calY = prox.getFullYear();
+      calM = prox.getMonth();
+      const iso = `${calY}-${String(calM+1).padStart(2,'0')}-${String(prox.getDate()).padStart(2,'0')}`;
+      renderCal();
+      selDia(iso);
+      document.getElementById('rag-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 160);
+  }
 }
 
 function renderCal() {
@@ -448,12 +518,51 @@ async function confirmarReagendado() {
   }
 }
 
+/* ── FEEDBACK ── */
+let _fbRating = 0;
+
+function selStar(n) {
+  _fbRating = n;
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.classList.toggle('lit', i < n);
+  });
+  const fbBtn = document.getElementById('fb-btn');
+  if (fbBtn) fbBtn.disabled = false;
+}
+
+async function enviarFeedback() {
+  const btn = document.getElementById('fb-btn');
+  const comentario = (document.getElementById('fb-comment')?.value || '').trim();
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/gestionar-cita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: citaId, accion: 'feedback', rating: _fbRating, comentario, token: manageToken })
+    });
+    const data = await r.json();
+    const wrap = document.getElementById('fb-wrap');
+    if (wrap) {
+      const estrellas = '★'.repeat(_fbRating) + '☆'.repeat(5 - _fbRating);
+      wrap.innerHTML = `<div style="padding:8px 0">
+        <div style="font-size:20px;color:#F59E0B;margin-bottom:8px">${estrellas}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--green)">¡Gracias por tu reseña!</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:4px">Tu opinión nos ayuda a mejorar.</div>
+      </div>`;
+    }
+  } catch (e) {
+    btn.textContent = 'Enviar reseña';
+    btn.disabled = false;
+  }
+}
+
 /* ── ERROR ── */
 function mostrarError(msg) {
   document.getElementById('loading').style.display = 'none';
   const el = document.getElementById('content');
   el.style.display = 'block';
-  el.innerHTML = `<div class="error-box">${msg}</div>`;
+  el.innerHTML = `<div class="error-box">${esc(msg)}</div>`;
 }
 
 cargar();

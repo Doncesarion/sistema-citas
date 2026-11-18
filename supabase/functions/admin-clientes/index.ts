@@ -99,7 +99,9 @@ Deno.serve(async (req) => {
         await supabase.from('pagos').insert({ cliente_id: body.cliente_id, plan: body.plan, monto: body.monto, plataforma: body.plataforma, referencia: body.referencia, estado: 'pagado', fecha_pago: new Date().toISOString() })
         const diasP = body.plan === 'anual' ? 365 : 30
         const expP = new Date(); expP.setDate(expP.getDate() + diasP)
-        result = await supabase.from('clientes_sistema').update({ plan: body.plan, fecha_expiracion: expP.toISOString().split('T')[0], activo: true, updated_at: new Date().toISOString() }).eq('id', body.cliente_id).select().single()
+        const updPago: any = { plan: body.plan, fecha_expiracion: expP.toISOString().split('T')[0], activo: true, updated_at: new Date().toISOString() }
+        if (body.tipo_plan) updPago.tipo_plan = body.tipo_plan
+        result = await supabase.from('clientes_sistema').update(updPago).eq('id', body.cliente_id).select().single()
         break
       }
 

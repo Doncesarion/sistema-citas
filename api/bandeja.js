@@ -20,7 +20,9 @@ function verifySessionToken(token) {
   const payload = token.slice(0, dot);
   const sig     = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-  if (sig !== expected) return null;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
   const parts = payload.split(':');
   if (parts.length < 3) return null;
   const cliente_id = parts[0];
@@ -30,39 +32,74 @@ function verifySessionToken(token) {
   return { cliente_id, rol };
 }
 
+function verifySaToken(token) {
+  if (!token) return false;
+  const SA_SECRET = process.env.SA_SECRET;
+  if (!SA_SECRET) return false;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return false;
+  const payload = token.slice(0, dot);
+  const sig     = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
+  try {
+    const sigBuf = Buffer.from(sig, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return false;
+  } catch { return false; }
+  return Date.now() <= parseInt(payload);
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://app.attempo.cl');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-session-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const session = verifySessionToken(req.headers['x-session-token']);
   if (!session) return res.status(401).json({ error: 'No autorizado' });
 
   let { cliente_id } = session;
-  if (session.rol === 'superadmin') {
-    const override = req.headers['x-override-cliente-id'];
-    if (override) cliente_id = override;
+  const override = req.headers['x-override-cliente-id'];
+  if (override && (session.rol === 'superadmin' || verifySaToken(req.headers['x-sa-impersona']))) {
+    cliente_id = override;
   }
   const KEY = process.env.SUPABASE_SERVICE_KEY;
   const sh  = { apikey: KEY, Authorization: `Bearer ${KEY}` };
   const shJ = { ...sh, 'Content-Type': 'application/json' };
 
-  // ── GET ?action=stats — contador msg IA del mes ───────────────────────────
+  // ── GET ?action=stats — contadores IA + recordatorios del mes ────────────
   if (req.method === 'GET' && req.query.action === 'stats') {
-    const now  = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/mensajes?cliente_id=eq.${cliente_id}&rol=eq.bot&created_at=gte.${from}&select=id`,
-      { headers: sh }
-    );
-    const data = await r.json();
-    return res.status(200).json({ msg_ia_mes: Array.isArray(data) ? data.length : 0 });
+    const mesKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
+    const [rUso, rCli] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/uso_mensual?cliente_id=eq.${cliente_id}&mes=eq.${mesKey}&select=mensajes_ia&limit=1`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=tipo_plan,rec_mes_count,rec_mes_key,rec_mes_limit_extra,rec_limite_extra_mensual,mensajes_wa_usados,mensajes_wa_limite,mensajes_wa_extra`, { headers: sh })
+    ]);
+    const usoData = await rUso.json();
+    const cliData = await rCli.json();
+    const uso = Array.isArray(usoData) ? usoData[0] : null;
+    const cli = Array.isArray(cliData) ? cliData[0] : null;
+
+    const rec_mes_count          = (cli?.rec_mes_key === mesKey ? cli.rec_mes_count : 0) || 0;
+    const rec_mes_limit_extra    = (cli?.rec_mes_key === mesKey ? cli.rec_mes_limit_extra : 0) || 0;
+    const rec_limite_extra_mensual = cli?.rec_limite_extra_mensual || 0;
+    const tipo_plan              = cli?.tipo_plan || 'inicio';
+
+    return res.status(200).json({
+      msg_ia_mes: uso?.mensajes_ia || 0,
+      rec_mes_count,
+      rec_mes_limit_extra,
+      rec_limite_extra_mensual,
+      tipo_plan,
+      mensajes_wa_usados: cli?.mensajes_wa_usados || 0,
+      mensajes_wa_limite: cli?.mensajes_wa_limite || 0,
+      mensajes_wa_extra:  cli?.mensajes_wa_extra  || 0
+    });
   }
 
   // ── GET ?id=xxx — mensajes de una conversación ────────────────────────────
   if (req.method === 'GET' && req.query.id) {
     const conv_id = req.query.id;
+    if (!conv_id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conv_id)) {
+      return res.status(400).json({ error: 'ID de conversación inválido' });
+    }
 
     const rc = await fetch(
       `${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conv_id}&cliente_id=eq.${cliente_id}&limit=1`,
@@ -122,10 +159,60 @@ export default async function handler(req, res) {
       `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv_id}&order=created_at.asc&limit=200&select=*`,
       { headers: sh }
     );
-    const msgs = await rm.json();
+    let msgs = await rm.json();
+    if (!Array.isArray(msgs)) msgs = [];
+
+    // Fallback 1: buscar mensajes en OTRAS conversaciones del mismo canal_user_id
+    // (ocurre cuando upsert_conversacion crea un ID nuevo pero los mensajes quedaron en el anterior)
+    if (msgs.length === 0) {
+      try {
+        const rOtras = await fetch(
+          `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=id`,
+          { headers: sh }
+        );
+        const otrasConvs = await rOtras.json();
+        if (Array.isArray(otrasConvs) && otrasConvs.length > 1) {
+          const ids = otrasConvs.map(c => c.id).join(',');
+          const rm2 = await fetch(
+            `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=in.(${ids})&order=created_at.asc&limit=200&select=*`,
+            { headers: sh }
+          );
+          const msgs2 = await rm2.json();
+          if (Array.isArray(msgs2) && msgs2.length > 0) msgs = msgs2;
+        }
+      } catch (_) {}
+    }
+
+    // Fallback 2: si no hay mensajes en ninguna conversación, leer desde chat_sessions.messages
+    if (msgs.length === 0) {
+      try {
+        const rcs = await fetch(
+          `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(conv.canal)}&canal_user_id=eq.${encodeURIComponent(conv.canal_user_id)}&select=messages,created_at&order=updated_at.desc&limit=1`,
+          { headers: sh }
+        );
+        const [sess] = await rcs.json();
+        if (sess?.messages && Array.isArray(sess.messages) && sess.messages.length > 0) {
+          const base = new Date(sess.created_at || Date.now()).getTime();
+          msgs = sess.messages.map((m, i) => ({
+            id: `cs_${i}`,
+            conversacion_id: conv_id,
+            cliente_id,
+            rol: m.role === 'assistant' ? 'bot' : 'usuario',
+            contenido: typeof m.content === 'string' ? m.content
+              : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join('') : '',
+            visto: true,
+            created_at: new Date(base + i * 1000).toISOString()
+          })).filter(m => m.contenido);
+        }
+      } catch (_) {}
+    }
+
+    if (msgs.length === 0) {
+      console.log(`[bandeja] conv ${conv_id} sin mensajes — canal:${conv.canal} canal_user_id:${conv.canal_user_id}`);
+    }
     return res.status(200).json({
       conversacion: { ...conv, pausa_bot },
-      mensajes: Array.isArray(msgs) ? msgs : []
+      mensajes: msgs
     });
   }
 
@@ -163,7 +250,7 @@ export default async function handler(req, res) {
   }
 
   // ── GET — lista de conversaciones ─────────────────────────────────────────
-  if (req.method === 'GET') {
+  if (req.method === 'GET' && !req.query.action) {
     const r = await fetch(
       `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&order=ultimo_mensaje_at.desc&limit=100&select=*`,
       { headers: sh }
@@ -173,9 +260,11 @@ export default async function handler(req, res) {
   }
 
   // ── POST — enviar mensaje manual desde admin ──────────────────────────────
-  if (req.method === 'POST') {
+  if (req.method === 'POST' && !req.query.action) {
     const { conversacion_id, contenido } = req.body || {};
-    if (!conversacion_id || !contenido?.trim()) {
+    const contenidoLimitado = contenido?.trim().slice(0, 4096);
+    const _convIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!conversacion_id || !_convIdRe.test(conversacion_id) || !contenidoLimitado) {
       return res.status(400).json({ error: 'Datos incompletos' });
     }
 
@@ -212,7 +301,7 @@ export default async function handler(req, res) {
                 from: 'contacto@attempo.cl',
                 to: canal_user_id,
                 subject: `Mensaje de ${conv.canal_user_name || 'tu centro'}`,
-                html: contenido.trim().replace(/\n/g, '<br>')
+                html: contenidoLimitado.replace(/\n/g, '<br>')
               })
             });
             if (!emailRes.ok) console.error('bandeja attia: error email', await emailRes.text());
@@ -228,19 +317,19 @@ export default async function handler(req, res) {
           metaRes = await fetch(`https://graph.facebook.com/v20.0/${channelId}/messages`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: contenido.trim() } })
+            body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: contenidoLimitado } })
           });
         } else if (canal === 'instagram') {
           metaRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenido.trim() } })
+            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenidoLimitado } })
           });
         } else {
           metaRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenido.trim() } })
+            body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: contenidoLimitado } })
           });
         }
         if (!metaRes.ok) {
@@ -257,11 +346,11 @@ export default async function handler(req, res) {
     await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
         method: 'POST', headers: { ...shJ, Prefer: 'return=minimal' },
-        body: JSON.stringify({ conversacion_id, cliente_id, rol: 'admin', contenido: contenido.trim(), visto: true })
+        body: JSON.stringify({ conversacion_id, cliente_id, rol: 'admin', contenido: contenidoLimitado, visto: true })
       }),
       fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conversacion_id}`, {
         method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
-        body: JSON.stringify({ ultimo_mensaje: contenido.trim().slice(0, 120), ultimo_mensaje_at: ahora })
+        body: JSON.stringify({ ultimo_mensaje: contenidoLimitado.slice(0, 120), ultimo_mensaje_at: ahora })
       })
     ]);
 
@@ -427,7 +516,7 @@ export default async function handler(req, res) {
   // ── PATCH ?id=xxx&action=update-name — editar nombre del contacto ─────────
   if (req.method === 'PATCH' && req.query.id && req.query.action === 'update-name') {
     const conv_id = req.query.id;
-    const nombre  = (req.body?.nombre || '').trim();
+    const nombre  = (req.body?.nombre || '').trim().slice(0, 200);
     if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
 
     const rc = await fetch(
@@ -487,6 +576,43 @@ export default async function handler(req, res) {
       }
     );
     return res.status(200).json({ ok: true, pausa_bot: pausaVal });
+  }
+
+  // ── GET ?action=notif-config — leer estado de notificación ─────────────────
+  if (req.method === 'GET' && req.query.action === 'notif-config') {
+    const rb = await fetch(
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=notif_nuevo_mensaje,notif_email&limit=1`,
+      { headers: sh }
+    );
+    const [bc] = await rb.json();
+    return res.status(200).json({ notif_nuevo_mensaje: bc?.notif_nuevo_mensaje || false, notif_email: bc?.notif_email || '' });
+  }
+
+  // ── PATCH ?action=toggle-notif — activar/desactivar notificación ────────────
+  if (req.method === 'PATCH' && req.query.action === 'toggle-notif') {
+    const activo = req.body?.activo === true;
+    const notif_email = typeof req.body?.notif_email === 'string' ? req.body.notif_email.trim() : null;
+    const payload = { notif_nuevo_mensaje: activo };
+    if (notif_email !== null) payload.notif_email = notif_email || null;
+    const rbCheck = await fetch(
+      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=id&limit=1`,
+      { headers: sh }
+    );
+    const [existing] = await rbCheck.json();
+    if (existing) {
+      await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}`, {
+        method: 'PATCH',
+        headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await fetch(`${SUPABASE_URL}/rest/v1/bot_config`, {
+        method: 'POST',
+        headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify({ cliente_id, ...payload })
+      });
+    }
+    return res.status(200).json({ ok: true, notif_nuevo_mensaje: activo });
   }
 
   // ── DELETE ?id=xxx — eliminar conversación y sus mensajes ───────────────────
@@ -552,6 +678,284 @@ export default async function handler(req, res) {
       method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' }, body: JSON.stringify({ contacto_id: null })
     });
     return res.status(200).json({ ok: true });
+  }
+
+  // ── GET ?action=leads — listar leads del pipeline ────────────────────────────
+  if (req.method === 'GET' && req.query.action === 'leads') {
+    const estado = req.query.estado; // nuevo | calificado | agendado | perdido | undefined
+    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    let url = `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&order=created_at.desc&limit=200&select=*`;
+    if (estado && estadosValidos.includes(estado)) {
+      url += `&estado=eq.${estado}`;
+    }
+    const r = await fetch(url, { headers: sh });
+    const data = await r.json();
+    return res.status(200).json(Array.isArray(data) ? data : []);
+  }
+
+  // ── PATCH ?action=lead-estado&id=xxx — cambiar etapa de un lead ──────────────
+  if (req.method === 'PATCH' && req.query.action === 'lead-estado' && req.query.id) {
+    const lead_id = req.query.id;
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(lead_id)) return res.status(400).json({ error: 'ID inválido' });
+    const { estado, notas } = req.body || {};
+    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    if (estado && !estadosValidos.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
+    // Verificar que el lead pertenece a este cliente
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}&cliente_id=eq.${cliente_id}&limit=1&select=id`,
+      { headers: sh }
+    );
+    const [lead] = await rc.json();
+    if (!lead) return res.status(404).json({ error: 'Lead no encontrado' });
+    const patch = {};
+    if (estado) patch.estado = estado;
+    if (notas !== undefined) patch.notas = notas;
+    await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}`, {
+      method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+      body: JSON.stringify(patch)
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── DELETE ?action=lead&id=xxx — eliminar un lead ────────────────────────────
+  if (req.method === 'DELETE' && req.query.action === 'lead' && req.query.id) {
+    const lead_id = req.query.id;
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(lead_id)) return res.status(400).json({ error: 'ID inválido' });
+    const rc = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}&cliente_id=eq.${cliente_id}&limit=1&select=id`,
+      { headers: sh }
+    );
+    const [lead] = await rc.json();
+    if (!lead) return res.status(404).json({ error: 'Lead no encontrado' });
+    await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}`, {
+      method: 'DELETE', headers: sh
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── POST ?action=crear-lead — agregar lead manual ─────────────────────────
+  if (req.method === 'POST' && req.query.action === 'crear-lead') {
+    const { nombre, telefono, interes, notas, estado } = req.body || {};
+    if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    const estadoFinal = estadosValidos.includes(estado) ? estado : 'nuevo';
+    const canal_user_id = (telefono || '').replace(/\D/g, '') || `m_${Date.now()}`;
+    const payload = {
+      cliente_id,
+      canal: 'manual',
+      canal_user_id,
+      canal_user_name: nombre,
+      nombre,
+      telefono: telefono || null,
+      interes: interes || null,
+      notas: notas || null,
+      estado: estadoFinal,
+    };
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+      method: 'POST',
+      headers: { ...shJ, Prefer: 'return=representation' },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    return res.status(r.ok ? 201 : 400).json(Array.isArray(data) ? data[0] : data);
+  }
+
+  // ── POST ?action=clasificar-conversaciones — crear/actualizar leads desde chats ─
+  if (req.method === 'POST' && req.query.action === 'clasificar-conversaciones') {
+    try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(400).json({ error: 'API key no configurada' });
+
+    // 1. Cargar en paralelo: conversaciones (con ultimo_mensaje), chat_sessions, leads existentes
+    const [rConv, rAllCs, rLeads] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,canal_user_name,ultimo_mensaje,ultimo_mensaje_at&order=ultimo_mensaje_at.desc&limit=50`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&select=canal,canal_user_id,messages,updated_at&order=updated_at.desc&limit=100`, { headers: sh }),
+      fetch(`${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&select=id,canal,canal_user_id,estado,updated_at`, { headers: sh })
+    ]);
+    const [convList, allSessions, existingLeads] = await Promise.all([rConv.json(), rAllCs.json(), rLeads.json()]);
+
+    // Mapa de chat_sessions por canal|canal_user_id (match directo, sin URL-encode)
+    const csMap = {};
+    (Array.isArray(allSessions) ? allSessions : []).forEach(s => {
+      if (s.canal && s.canal_user_id) csMap[`${s.canal}|${s.canal_user_id}`] = s;
+    });
+
+    // Mapa de leads existentes
+    const leadMap = {};
+    (Array.isArray(existingLeads) ? existingLeads : []).forEach(l => {
+      leadMap[`${l.canal}|${l.canal_user_id}`] = l;
+    });
+
+    // 2. Candidatos: sin lead, o lead "nuevo" (siempre re-clasificar para mejorar)
+    // No tocar leads calificado/agendado/perdido — esos se movieron intencionalmente
+    const candidatos = (Array.isArray(convList) ? convList : []).filter(c => {
+      const ex = leadMap[`${c.canal}|${c.canal_user_id}`];
+      if (!ex) return true;
+      if (ex.estado === 'calificado' || ex.estado === 'agendado' || ex.estado === 'perdido') return false;
+      return true; // "nuevo" → siempre re-clasificar
+    }).slice(0, 25);
+
+    if (!candidatos.length) return res.status(200).json({ created: 0, updated: 0, skipped: 0, total: 0 });
+
+    let created = 0, updated = 0, skipped = 0;
+
+    for (const conv of candidatos) {
+      try {
+        // 3. Construir chatText desde chat_sessions.messages (fuente principal)
+        let chatText = '';
+        const cs = csMap[`${conv.canal}|${conv.canal_user_id}`] || null;
+
+        if (cs?.messages && Array.isArray(cs.messages) && cs.messages.length > 0) {
+          chatText = cs.messages.slice(-20).map(m => {
+            let txt = typeof m.content === 'string' ? m.content
+              : Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join(' ')
+              : '';
+            return txt.trim() ? `${m.role === 'assistant' ? 'Bot' : 'Usuario'}: ${txt.slice(0, 400)}` : null;
+          }).filter(Boolean).join('\n');
+        }
+
+        // Fallback 1: tabla mensajes
+        if (!chatText) {
+          const rMsg = await fetch(
+            `${SUPABASE_URL}/rest/v1/mensajes?conversacion_id=eq.${conv.id}&order=created_at.asc&limit=20&select=rol,contenido`,
+            { headers: sh }
+          );
+          const msgArr = await rMsg.json();
+          if (Array.isArray(msgArr) && msgArr.length > 0) {
+            chatText = msgArr.map(m =>
+              `${m.rol === 'bot' ? 'Bot' : 'Usuario'}: ${(m.contenido || '').slice(0, 400)}`
+            ).filter(l => l.length > 10).join('\n');
+          }
+        }
+
+        // Fallback 2: usar ultimo_mensaje de conversaciones como contexto mínimo
+        if (!chatText && conv.ultimo_mensaje) {
+          chatText = `Usuario: ${conv.ultimo_mensaje.slice(0, 400)}`;
+        }
+
+        // Siempre agregar contexto del contacto + último mensaje al inicio
+        const ctxHeader = [
+          `Canal: ${conv.canal}`,
+          conv.canal_user_name ? `Contacto: ${conv.canal_user_name}` : null,
+          conv.ultimo_mensaje ? `Último mensaje: "${conv.ultimo_mensaje.slice(0, 200)}"` : null
+        ].filter(Boolean).join('\n');
+
+        const chatContext = chatText ? `${ctxHeader}\n\nConversación:\n${chatText}` : ctxHeader;
+
+        // 4. Clasificar con Claude Haiku
+        let cls = {};
+        if (chatContext) {
+          try {
+            const prompt = `Clasifica este contacto para el pipeline de ventas de un sistema de agendamiento de citas (attempo.cl). Responde SOLO con JSON válido, sin markdown.
+
+{"nombre":"nombre real del contacto, null si no aparece","interes":"qué busca en máx 8 palabras, null si no está claro","estado":"nuevo|calificado|agendado|perdido","resumen":"una frase exacta de qué pasó"}
+
+Reglas estrictas para el estado:
+- perdido: mencionó "no gracias", "no me interesa", "no}", envió spam/publicidad, o la conversación fue irrelevante al negocio → SIEMPRE perdido
+- agendado: confirmó fecha, hora o cita concreta → SIEMPRE agendado
+- calificado: preguntó por precios, planes, horarios, cómo funciona, quiere información específica, mencionó el producto/servicio con interés → SIEMPRE calificado
+- nuevo: SOLO si no encaja en ninguna de las categorías anteriores (saludó sin contexto)
+
+Cuando el último mensaje del usuario es "no", "no gracias", "no}", spam o publicidad → estado es perdido.
+Cuando el usuario preguntó algo específico sobre el producto/servicio → estado es calificado.
+Sé decisivo: evita "nuevo" si hay evidencia clara de otro estado.
+
+Datos del contacto:
+${chatContext}`;
+
+            const ai = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+              body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 250, messages: [{ role: 'user', content: prompt }] })
+            });
+            const aiData = await ai.json();
+            const rawText = aiData.content?.[0]?.text || '{}';
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) cls = parsed;
+          } catch (_) {}
+        }
+
+        const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+        const estado = estadosValidos.includes(cls.estado) ? cls.estado : 'nuevo';
+        const nombre = cls.nombre || conv.canal_user_name || null;
+        const interes = cls.interes || null;
+        const resumen = cls.resumen || null;
+        const key = `${conv.canal}|${conv.canal_user_id}`;
+        const existing = leadMap[key];
+
+        if (existing) {
+          const patch = { nombre, interes, resumen, estado, updated_at: new Date().toISOString() };
+          await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${existing.id}`, {
+            method: 'PATCH',
+            headers: { ...shJ, Prefer: 'return=minimal' },
+            body: JSON.stringify(patch)
+          });
+          updated++;
+        } else {
+          await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+            method: 'POST',
+            headers: { ...shJ, Prefer: 'return=minimal' },
+            body: JSON.stringify({ cliente_id, canal: conv.canal, canal_user_id: conv.canal_user_id, canal_user_name: nombre, nombre, interes, resumen, estado })
+          });
+          created++;
+        }
+      } catch (_) {
+        skipped++;
+      }
+    }
+
+    return res.status(200).json({ created, updated, skipped, total: candidatos.length });
+    } catch (e) {
+      return res.status(500).json({ error: e?.message || 'Error interno', detail: String(e) });
+    }
+  }
+
+  // ── GET ?action=analizar-perdidas — clasificación IA de leads perdidos ────
+  if (req.method === 'GET' && req.query.action === 'analizar-perdidas') {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&estado=eq.perdido&select=nombre,interes,resumen,notas&order=created_at.desc&limit=60`,
+      { headers: sh }
+    );
+    const leads = await r.json();
+    if (!Array.isArray(leads) || leads.length === 0) {
+      return res.status(200).json({ categorias: [], total: 0 });
+    }
+    const textos = leads.map((l, i) => {
+      const partes = [];
+      if (l.interes)  partes.push(`interés: ${l.interes}`);
+      if (l.resumen)  partes.push(`contexto: ${l.resumen}`);
+      if (l.notas)    partes.push(`notas: ${l.notas}`);
+      return `Lead ${i + 1}: ${partes.join(' | ') || 'sin información'}`;
+    }).join('\n');
+
+    const prompt = `Eres un analista de CRM. Clasifica estos leads perdidos según la razón más probable de pérdida.
+Categorías disponibles (usa solo estas): "No respondió", "Precio alto", "Sin disponibilidad horaria", "Ya tiene proveedor", "Fuera de área", "Otro".
+Para cada categoría presente, devuelve cuántos leads caen ahí y un resumen de 1 frase de qué pasó.
+RESPONDE SOLO con un JSON válido, sin markdown, con este formato exacto:
+{"categorias":[{"nombre":"...","cantidad":N,"resumen":"..."}],"conclusion":"Una frase con el principal problema"}
+
+Leads a analizar:
+${textos}`;
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(200).json({ categorias: [], total: leads.length, error: 'API key no configurada' });
+
+    const ai = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 512, messages: [{ role: 'user', content: prompt }] })
+    });
+    const aiData = await ai.json();
+    const raw = aiData.content?.[0]?.text || '{}';
+    try {
+      const parsed = JSON.parse(raw);
+      return res.status(200).json({ ...parsed, total: leads.length });
+    } catch {
+      return res.status(200).json({ categorias: [], total: leads.length, raw });
+    }
   }
 
   return res.status(405).end();

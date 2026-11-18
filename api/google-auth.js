@@ -4,6 +4,25 @@ const REDIRECT_URI = 'https://app.attempo.cl/api/google-auth';
 const SCOPE        = 'https://www.googleapis.com/auth/calendar';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 
+function verifySessionToken(token) {
+  if (!token) return null;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
+  const parts = payload.split(':');
+  if (parts.length < 3) return null;
+  const [cliente_id, rol, expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return { cliente_id, rol };
+}
+
 function encryptToken(token) {
   const key = Buffer.from(process.env.GOOGLE_TOKEN_KEY, 'hex');
   const iv = crypto.randomBytes(12);
@@ -36,8 +55,18 @@ export default async function handler(req, res) {
 
   // ── GET sin code: iniciar flujo OAuth ──────────────────────────────────────
   if (req.method === 'GET' && !req.query.code) {
+    const sessionToken = req.headers['x-session-token'] || req.query.tok;
+    const session = verifySessionToken(sessionToken);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
     const { cliente_id } = req.query;
     if (!cliente_id) return res.status(400).json({ error: 'Falta cliente_id' });
+    if (session.rol !== 'superadmin' && cliente_id !== session.cliente_id) {
+      return res.status(403).json({ error: 'Acceso denegado' });
+    }
+
+    const csrf = crypto.createHmac('sha256', process.env.SESSION_SECRET || '').update(cliente_id + Date.now()).digest('hex').slice(0, 32);
+    res.setHeader('Set-Cookie', `oauth_csrf=${encodeURIComponent(cliente_id + ':' + csrf)}; HttpOnly; SameSite=Lax; Path=/api/google-auth; Max-Age=600`);
+    const state = Buffer.from(JSON.stringify({ cliente_id, csrf })).toString('base64url');
 
     const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
       client_id:     CLIENT_ID,
@@ -46,18 +75,31 @@ export default async function handler(req, res) {
       scope:         SCOPE,
       access_type:   'offline',
       prompt:        'consent',   // fuerza refresh_token en cada conexión
-      state:         cliente_id
+      state
     });
     return res.redirect(302, url);
   }
 
   // ── GET con code: callback de Google ───────────────────────────────────────
   if (req.method === 'GET' && req.query.code) {
-    const { code, state: cliente_id, error } = req.query;
+    const { code, state, error } = req.query;
 
-    if (error || !code || !cliente_id) {
+    if (error || !code || !state) {
       return res.redirect(302, '/gc-callback?status=error');
     }
+
+    // Validar CSRF state contra cookie
+    const rawCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('oauth_csrf='));
+    const cookieVal = rawCookie ? decodeURIComponent(rawCookie.split('=')[1]) : '';
+    const [cookieClienteId, cookieCsrf] = cookieVal.split(':');
+    let stateData;
+    try { stateData = JSON.parse(Buffer.from(state, 'base64url').toString()); } catch { return res.status(400).json({ error: 'State inválido' }); }
+    if (!stateData.csrf || !stateData.cliente_id || stateData.csrf !== cookieCsrf || stateData.cliente_id !== cookieClienteId) {
+      return res.status(403).json({ error: 'CSRF validation failed' });
+    }
+    const cliente_id = stateData.cliente_id;
+    // Limpiar cookie CSRF
+    res.setHeader('Set-Cookie', 'oauth_csrf=; HttpOnly; SameSite=Lax; Path=/api/google-auth; Max-Age=0');
 
     try {
       // Intercambiar code por tokens
@@ -98,6 +140,10 @@ export default async function handler(req, res) {
 
   // ── DELETE: desconectar Google Calendar ────────────────────────────────────
   if (req.method === 'DELETE') {
+    const sessionToken = req.headers['x-session-token'];
+    const session = verifySessionToken(sessionToken);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
+
     const { cliente_id } = req.body || {};
     if (!cliente_id) return res.status(400).json({ error: 'Falta cliente_id' });
 
@@ -132,8 +178,16 @@ export default async function handler(req, res) {
 
   // ── POST: sincronizar citas existentes al calendario Attempo ──────────────
   if (req.method === 'POST') {
+    const sessionToken = req.headers['x-session-token'];
+    const session = verifySessionToken(sessionToken);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
     const { cliente_id } = req.body || {};
     if (!cliente_id) return res.status(400).json({ error: 'Falta cliente_id' });
+    if (session.rol !== 'superadmin' && cliente_id !== session.cliente_id) {
+      return res.status(403).json({ error: 'Acceso denegado' });
+    }
+
+    const { reset } = req.body || {};
 
     try {
       const rc = await fetch(
@@ -146,6 +200,32 @@ export default async function handler(req, res) {
       const access_token = await gcGetAccessToken(decryptToken(cli.google_refresh_token), CLIENT_ID, CLIENT_SECRET);
       const calendar_id  = await gcGetOrCreateCalendar(access_token, sh, cliente_id, cli.google_calendar_id);
 
+      // ── Modo reset: eliminar y recrear el calendario completo ──
+      if (reset) {
+        // Borrar el calendario entero (más rápido que borrar evento por evento)
+        await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${access_token}` }
+        }).catch(() => {});
+
+        // Limpiar referencia al calendario en Supabase
+        await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+          method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+          body: JSON.stringify({ google_calendar_id: null })
+        });
+
+        // Limpiar google_event_id en todas las citas del cliente
+        await fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}`, {
+          method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+          body: JSON.stringify({ google_event_id: null })
+        });
+
+        // Recrear el calendario Attempo desde cero
+        const newCal = await gcGetOrCreateCalendar(access_token, sh, cliente_id, null);
+        console.log(`gc reset: calendario recreado ${newCal} para cliente ${cliente_id}`);
+      }
+
+      // ── Sincronizar citas activas sin evento vinculado ──
       const rc2 = await fetch(
         `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&google_event_id=is.null&estado=neq.canceled&select=id,nombre_paciente,servicio,fecha,hora,especialistas(nombre)&order=fecha.asc&limit=200`,
         { headers: sh }
@@ -176,7 +256,7 @@ export default async function handler(req, res) {
           ok++;
         } catch(_) { errors++; }
       }
-      return res.json({ ok: true, sincronizadas: ok, errores: errors, total: citas.length, calendar_id });
+      return res.json({ ok: true, sincronizadas: ok, errores: errors, total: citas.length, calendar_id, reset: !!reset });
     } catch(e) {
       console.error('google-auth sync error:', e.message);
       return res.status(500).json({ error: 'Error al sincronizar calendario' });

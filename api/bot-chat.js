@@ -1,11 +1,29 @@
 import crypto from 'crypto';
-
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret || !cita_id) return '';
-  return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+  const hmac = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
+  return expire + '.' + hmac;
+}
+
+function notificarNuevoMensaje(canal, nombre, primerMensaje, destinatario = 'cesarsalinasmunoz@gmail.com') {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const canalLabel = canal === 'whatsapp' ? 'WhatsApp' : canal === 'instagram' ? 'Instagram' : canal === 'messenger' ? 'Messenger' : canal;
+  const de = nombre && nombre !== canal ? nombre : 'Visitante';
+  fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'Attempo <contacto@attempo.cl>',
+      to: [destinatario],
+      subject: `Nuevo mensaje — ${canalLabel}`,
+      html: `<p style="font-family:sans-serif"><strong>Canal:</strong> ${canalLabel}<br><strong>De:</strong> ${de}<br><strong>Mensaje:</strong> "${String(primerMensaje).slice(0, 400)}"</p>`
+    })
+  }).catch(() => {});
 }
 
 export default async function handler(req, res) {
@@ -24,6 +42,13 @@ export default async function handler(req, res) {
   if (!cliente_id || !canal || !canal_user_id || !mensaje) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
+  const _clienteIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!_clienteIdRe.test(cliente_id)) {
+    return res.status(400).json({ error: 'cliente_id inválido' });
+  }
+  if (typeof canal_user_id !== 'string' || canal_user_id.length > 128 || typeof mensaje !== 'string' || mensaje.length > 4000) {
+    return res.status(400).json({ error: 'Datos inválidos' });
+  }
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;
@@ -39,7 +64,7 @@ export default async function handler(req, res) {
 
   try {
     const rs = await fetch(
-      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id,messages,pausa_bot&limit=1`,
+      `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id,messages,pausa_bot,conversation_status&limit=1`,
       { headers: sh }
     );
     const sessions = await rs.json();
@@ -47,7 +72,28 @@ export default async function handler(req, res) {
       sessionId = sessions[0].id;
       historial = Array.isArray(sessions[0].messages) ? sessions[0].messages : [];
       if (sessions[0].pausa_bot) {
-        return res.status(200).json({ respuesta: '', pausa: true });
+        // Cargar protocolo_urgencia desde bot_config
+        let protocoloUrgencia = '';
+        try {
+          const rbp = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&select=protocolo_urgencia&limit=1`, { headers: sh });
+          const [bpc] = await rbp.json();
+          protocoloUrgencia = bpc?.protocolo_urgencia || '';
+        } catch(_) {}
+
+        const ultimoMsg = historial[historial.length - 1];
+        const esperandoRespuesta = ultimoMsg?.role === 'assistant' &&
+          typeof ultimoMsg.content === 'string' &&
+          (ultimoMsg.content.includes('contactar') || ultimoMsg.content.includes('equipo'));
+        const respuesta = protocoloUrgencia || (esperandoRespuesta ? 'nuestro equipo te va a responder aquí a la brevedad' : '');
+        if (respuesta) {
+          const msgsActualizados = [...historial, { role: 'user', content: mensaje }, { role: 'assistant', content: respuesta }];
+          fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
+            method: 'PATCH',
+            headers: { ...shJson, Prefer: 'return=minimal' },
+            body: JSON.stringify({ messages: msgsActualizados })
+          }).catch(() => {});
+        }
+        return res.status(200).json({ respuesta, pausa: true });
       }
     } else {
       // Crear nueva sesión
@@ -84,30 +130,234 @@ export default async function handler(req, res) {
     }).catch(e => console.error('bot-chat: error tracking cliente:', e.message));
   }
 
-  // ── 2. Cargar configuración del bot ───────────────────────────────────────
-  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [] };
+  // ── Capturar lead + pausar bot + alertar al responsable ──────────────────
+  async function ejecutarCapturarLead(params, emailDestino, conversacion = []) {
+    const { nombre, telefono, email, interes, resumen } = params;
+    const telefonoFinal = telefono || (canal === 'whatsapp' ? canal_user_id : null);
+
+    // Guardar en tabla leads
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+        method: 'POST',
+        headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          cliente_id,
+          canal,
+          canal_user_id,
+          canal_user_name: canal_user_name || null,
+          nombre:   nombre   || canal_user_name || null,
+          telefono: telefonoFinal || null,
+          email:    email    || null,
+          interes:  interes  || null,
+          resumen:  resumen  || null,
+          estado:   'nuevo'
+        })
+      });
+    } catch (e) {
+      console.error('capturar_lead: error guardando lead:', e.message);
+    }
+
+    // Pausar el bot en esta sesión
+    if (sessionId) {
+      fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
+        method: 'PATCH',
+        headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({ pausa_bot: true, conversation_status: 'derivado' })
+      }).catch(e => console.error('capturar_lead: error pausando bot:', e.message));
+    }
+
+    // Enviar email de alerta al responsable
+    const key = process.env.RESEND_API_KEY;
+    if (key && emailDestino) {
+      const canalLabel = canal === 'whatsapp' ? 'WhatsApp' : canal === 'instagram' ? 'Instagram' : canal === 'messenger' ? 'Messenger' : canal;
+      const nombreDisplay = nombre || canal_user_name || 'Visitante';
+
+      // Construir transcript de los últimos 10 mensajes
+      const msgs = conversacion.slice(-10);
+      const transcriptHtml = msgs.length ? `
+<div style="margin-top:20px">
+  <div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#888;margin-bottom:8px">Conversación</div>
+  <div style="border:1px solid #e5e1ff;border-radius:10px;overflow:hidden;font-size:13px">
+    ${msgs.map(m => {
+      const esBot = m.role === 'assistant';
+      const texto = typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => b.text).join(' ') : '');
+      if (!texto.trim()) return '';
+      return `<div style="padding:10px 14px;background:${esBot ? '#f5f3ff' : '#fff'};border-bottom:1px solid #ede9ff">
+        <span style="font-size:10px;font-weight:600;color:${esBot ? '#6C5CE4' : '#555'};display:block;margin-bottom:3px">${esBot ? (botConfig?.nombre_bot || 'Bot') : (nombreDisplay)}</span>
+        <span style="color:#2d2d2d;line-height:1.5">${String(texto).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+      </div>`;
+    }).filter(Boolean).join('')}
+  </div>
+</div>` : '';
+
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [emailDestino],
+          subject: `⚠️ Paciente requiere atención — ${nombreDisplay} (${canalLabel})`,
+          html: `<div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;color:#2d2d2d">
+<div style="background:#DC2626;border-radius:10px 10px 0 0;padding:16px 20px">
+  <div style="color:#fff;font-size:16px;font-weight:700">⚠️ Paciente requiere atención humana</div>
+  <div style="color:rgba(255,255,255,0.85);font-size:12px;margin-top:2px">${new Date().toLocaleString('es-CL',{timeZone:'America/Santiago'})}</div>
+</div>
+<div style="border:1px solid #fecaca;border-top:none;border-radius:0 0 10px 10px;padding:18px 20px">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px">
+    <tr><td style="padding:5px 0;color:#888;width:80px">Canal</td><td><strong>${canalLabel}</strong></td></tr>
+    <tr><td style="padding:5px 0;color:#888">Nombre</td><td><strong>${nombreDisplay}</strong></td></tr>
+    ${telefonoFinal ? `<tr><td style="padding:5px 0;color:#888">Teléfono</td><td><a href="tel:${telefonoFinal}" style="color:#DC2626;font-weight:700">${telefonoFinal}</a></td></tr>` : ''}
+    ${email ? `<tr><td style="padding:5px 0;color:#888">Email</td><td><a href="mailto:${email}" style="color:#6C5CE4">${email}</a></td></tr>` : ''}
+    ${interes ? `<tr><td style="padding:5px 0;color:#888;vertical-align:top">Motivo</td><td style="color:#444">${String(interes).replace(/</g,'&lt;')}</td></tr>` : ''}
+  </table>
+  ${resumen ? `<div style="padding:10px 14px;background:#fffbe6;border-left:3px solid #f59e0b;border-radius:4px;font-size:12px;color:#555;margin-top:8px">${String(resumen).replace(/</g,'&lt;')}</div>` : ''}
+  ${transcriptHtml}
+  <div style="margin-top:20px;padding:12px 14px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;font-size:12px;color:#991b1b">
+    El bot está <strong>pausado</strong>. Esta persona espera que le escribas directamente en ${canalLabel}.
+  </div>
+</div>
+<p style="font-size:11px;color:#aaa;text-align:center;margin-top:12px">attempo — sistema de agendamiento inteligente</p>
+</div>`
+        })
+      }).catch(() => {});
+    }
+
+    // Registrar gap si el bot no sabía responder (no hay datos de contacto del usuario)
+    if (interes && !nombre && !telefono && !email && !canal_user_name) {
+      try {
+        const gapQ = interes.slice(0, 300);
+        const existing = await fetch(
+          `${SUPABASE_URL}/rest/v1/chatbot_gaps?cliente_id=eq.${cliente_id}&pregunta=eq.${encodeURIComponent(gapQ)}&limit=1`,
+          { headers: sh }
+        );
+        if (existing.ok) {
+          const rows = await existing.json();
+          if (rows.length > 0) {
+            fetch(`${SUPABASE_URL}/rest/v1/chatbot_gaps?id=eq.${rows[0].id}`, {
+              method: 'PATCH',
+              headers: { ...shJson, Prefer: 'return=minimal' },
+              body: JSON.stringify({ frecuencia: rows[0].frecuencia + 1, last_seen: new Date().toISOString() })
+            }).catch(() => {});
+          } else {
+            fetch(`${SUPABASE_URL}/rest/v1/chatbot_gaps`, {
+              method: 'POST',
+              headers: { ...shJson, Prefer: 'return=minimal' },
+              body: JSON.stringify({ cliente_id, pregunta: gapQ, canal })
+            }).catch(() => {});
+          }
+        }
+      } catch(e) { /* silencioso */ }
+    }
+
+    return { ok: true };
+  }
+
+  // ── 2. Carga en paralelo: botConfig + knowledge + negocio/sedes + especialistas + paciente ──
+  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '' };
+  let chatbotKnowledge = [];
+  let sedesContexto = '';
+  let pacienteContexto = '';
+  let leadContexto = '';
+  let negocioNombre = 'el negocio';
+  let serviciosCatalogo = [];
+  let emailNegocio = null;
+  let metodosPagoNegocio = null;
+  let datosBancoNegocio = null;
+  let direccionNegocio = null;
+  let espLista = [];
+
   try {
-    const rb = await fetch(
-      `${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`,
-      { headers: sh }
-    );
-    const rawBotCfg = await rb.json();
+    const [rawBotCfg, rawCK, rawCli, rawEsp, rawCitas, rawLead] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh })
+        .then(r => r.json()).catch(() => []),
+      fetch(`${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&activo=eq.true&order=orden.asc`, { headers: sh })
+        .then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios,email,promociones,ubicaciones,metodos_pago,datos_banco,direccion&limit=1`, { headers: sh })
+        .then(r => r.json()).then(d => d[0] || null).catch(() => null),
+      fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad,horario&order=nombre.asc`, { headers: sh })
+        .then(r => r.json()).catch(() => []),
+      canal === 'whatsapp' && canal_user_id
+        ? fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&tel_paciente=eq.${encodeURIComponent(canal_user_id)}&estado=not.in.(canceled,cancelada)&select=nombre_paciente,fecha,hora,servicio,estado&order=fecha.desc,hora.desc&limit=3`, { headers: sh })
+            .then(r => r.ok ? r.json() : []).catch(() => [])
+        : Promise.resolve([]),
+      fetch(`${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=nombre,interes,resumen,estado,notas&order=created_at.desc&limit=1`, { headers: sh })
+        .then(r => r.ok ? r.json() : []).then(d => (Array.isArray(d) && d[0]) || null).catch(() => null),
+    ]);
+
+    // botConfig
     const [bc] = Array.isArray(rawBotCfg) ? rawBotCfg : [];
     if (bc) {
-      botConfig.nombre_bot   = bc.nombre_bot   || 'Valentina';
-      botConfig.tono         = bc.tono         || 'informal';
-      botConfig.saludo       = bc.saludo       || '';
-      botConfig.faqs         = Array.isArray(bc.faqs) ? bc.faqs : [];
-      botConfig.tipo_bot     = bc.tipo_bot     || 'atencion';
-      botConfig.conocimiento = bc.conocimiento || '';
-      botConfig.promociones  = Array.isArray(bc.promociones) ? bc.promociones : [];
+      botConfig.nombre_bot          = bc.nombre_bot          || 'Valentina';
+      botConfig.tono                = bc.tono                || 'informal';
+      botConfig.saludo              = bc.saludo              || '';
+      botConfig.faqs                = Array.isArray(bc.faqs) ? bc.faqs : [];
+      botConfig.tipo_bot            = bc.tipo_bot            || 'atencion';
+      botConfig.conocimiento        = bc.conocimiento        || '';
+      botConfig.promociones         = Array.isArray(bc.promociones) ? bc.promociones : [];
+      botConfig.notif_nuevo_mensaje = bc.notif_nuevo_mensaje || false;
+      botConfig.notif_email         = bc.notif_email         || '';
+      botConfig.delay_min_seg       = bc.delay_min_seg       || 0;
+      botConfig.delay_max_seg       = bc.delay_max_seg       || 0;
+      botConfig.mensaje_traspaso    = bc.mensaje_traspaso    || '';
+      botConfig.protocolo_urgencia  = bc.protocolo_urgencia  || '';
     }
-    console.log('bot-chat: promociones cargadas =', JSON.stringify(botConfig.promociones));
     if (process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
       botConfig.tipo_bot = 'ventas';
     }
+
+    // knowledge
+    if (Array.isArray(rawCK)) chatbotKnowledge = rawCK;
+
+    // negocio + sedes + pago (misma query, un solo round-trip)
+    if (rawCli) {
+      negocioNombre        = rawCli.nombre_negocio || 'el negocio';
+      serviciosCatalogo    = Array.isArray(rawCli.servicios) ? rawCli.servicios : [];
+      emailNegocio         = rawCli.email || null;
+      metodosPagoNegocio   = rawCli.metodos_pago || null;
+      datosBancoNegocio    = rawCli.datos_banco || null;
+      direccionNegocio     = rawCli.direccion || null;
+      if (Array.isArray(rawCli.promociones)) {
+        botConfig.promociones = [...rawCli.promociones, ...botConfig.promociones];
+      }
+      const sedes = rawCli.ubicaciones;
+      if (Array.isArray(sedes) && sedes.length > 0) {
+        const lineas = sedes.map((s, i) => {
+          const partes = [`Sede ${i + 1}: ${s.nombre}`];
+          if (s.ciudad)    partes.push(`Ciudad: ${s.ciudad}`);
+          if (s.direccion) partes.push(`Dirección: ${s.direccion}`);
+          if (s.telefono)  partes.push(`Teléfono: ${s.telefono}`);
+          return partes.join(' | ');
+        });
+        sedesContexto = `\n\nSEDES Y UBICACIONES DEL NEGOCIO:\n${lineas.join('\n')}`;
+      }
+    }
+    console.log('bot-chat: promociones cargadas =', JSON.stringify(botConfig.promociones));
+
+    // especialistas
+    if (Array.isArray(rawEsp)) espLista = rawEsp;
+
+    // paciente recurrente (WhatsApp)
+    if (Array.isArray(rawCitas) && rawCitas.length > 0) {
+      const nombre = rawCitas[0].nombre_paciente;
+      const detalle = rawCitas.map(c =>
+        `- ${c.servicio || 'Consulta'} el ${c.fecha} a las ${c.hora} (${c.estado})`
+      ).join('\n');
+      pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial. Su nombre es ${nombre} — NO lo pidas. Salúdalo por su nombre en el primer mensaje.\nÚltimas citas:\n${detalle}`;
+    }
+
+    // lead previo — memoria persistente por contacto
+    if (rawLead) {
+      const etapaLabel = { nuevo: 'nuevo (primer contacto)', calificado: 'calificado (mostró interés)', agendado: 'agendado', perdido: 'perdido (no continuó)' }[rawLead.estado] || rawLead.estado;
+      const partes = [`\nCONTACTO PREVIO: Este usuario ya interactuó antes y tiene un lead registrado. Etapa actual: ${etapaLabel}.`];
+      if (rawLead.nombre) partes.push(`Nombre: ${rawLead.nombre} — NO lo pidas de nuevo.`);
+      if (rawLead.interes) partes.push(`Interés registrado: ${rawLead.interes}`);
+      if (rawLead.resumen) partes.push(`Contexto anterior: ${rawLead.resumen}`);
+      if (rawLead.notas)   partes.push(`Notas del equipo: ${rawLead.notas}`);
+      partes.push(`Retoma la conversación con naturalidad. Si ya tiene nombre, úsalo sin preguntar.`);
+      leadContexto = partes.join('\n');
+    }
   } catch (e) {
-    console.error('bot-chat: error cargando bot_config:', e.message);
+    console.error('bot-chat: error en carga paralela:', e.message);
   }
 
   // ── MODO VENTAS (bot de ventas attempo) ──────────────────────────────────
@@ -117,66 +367,94 @@ export default async function handler(req, res) {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago'
     });
 
-    const ventasSystemPrompt = `Eres Valentina del equipo de attempo. Atiendes por WhatsApp a personas interesadas en conocer la plataforma. Eres chilena, cercana y cálida.
+    const ventasSystemPrompt = `Eres Valentina, del equipo de attempo. Atiendes por ${canal === 'whatsapp' ? 'WhatsApp' : canal} a personas interesadas en conocer la plataforma. Eres chilena, directa y cálida.
 
 SOBRE ATTEMPO:
-attempo es una plataforma de agendamiento online para profesionales y clínicas en Chile. Sus pacientes o clientes reservan citas 24/7 desde el celular, reciben recordatorios automáticos por WhatsApp y pueden pagar con Webpay. Todo listo en 5 minutos, sin complicaciones.
+attempo es una plataforma de agendamiento online para profesionales y clínicas en Chile. Los pacientes reservan citas 24/7 desde el celular, reciben recordatorios automáticos por WhatsApp y pueden pagar con Webpay. Listo en 5 minutos, sin complicaciones técnicas.
 
 PLANES Y PRECIOS:
 - Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
-- Plan Pro: $44.990/mes + IVA — todo lo de Inicio + chatbot IA (Attia) que responde consultas y agenda citas en Instagram, WhatsApp y Messenger de forma automática.
+- Plan Pro: $44.990/mes + IVA — todo lo anterior + chatbot IA (Attia) que responde consultas y agenda citas en WhatsApp, Instagram y Messenger de forma automática.
 - Plan Clínica IA: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro. Para clínicas y centros.
-- Todos los planes incluyen 12 días de prueba gratis.
+- Todos incluyen 12 días de prueba gratis.
 
 PARA QUIÉN ES:
 Psicólogos, psiquiatras, médicos, nutricionistas, matronas, fisioterapeutas, dentistas, abogados, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
 
-LINK DE REGISTRO:
-https://app.attempo.cl/registro
-
 CÓMO RESPONDER:
-- Mensajes cortos, máximo 3-4 líneas. Nunca textos largos.
-- Una sola pregunta o idea por mensaje.
-- Tratas de tú. Usa el nombre del lead desde que lo sabes.
-- 1 a 2 emojis por mensaje máximo.
-- No digas que eres una IA ni lo confirmes si te preguntan.
-- Si no sabes algo técnico específico, di "te consulto con el equipo y te confirmo en un momento".
-- Cuando des el precio, hazlo directo, sin rodeos.
+- Mensajes cortos, máximo 3-4 líneas. Una idea por mensaje.
+- Tratas de tú. Usa el nombre desde que lo sabes.
+- Sin emojis en cada mensaje — solo 1 cuando realmente aporte algo.
+- No digas que eres IA.
+- NUNCA digas "te consulto con el equipo" — si no puedes responder algo con certeza, usa capturar_lead para que alguien del equipo lo contacte directamente.
 
-FLUJO NATURAL DE CONVERSACIÓN:
-1. ${esPrimerMsg ? 'Saluda con calidez y pregunta el nombre.' : 'Continúa la conversación de forma natural.'}
-2. Pregunta qué tipo de profesional es o qué negocio tiene.
-3. Cuéntale cómo attempo ayuda puntualmente a su rubro.
-4. Responde sus dudas sin rodeos.
-5. Cuando muestre interés real, mándale el link: "Puedes probarlo 12 días gratis aquí: https://app.attempo.cl/registro 🚀"
+ETAPAS DE LA CONVERSACIÓN (sigue este orden):
+1. ${esPrimerMsg ? 'Saluda brevemente y pregunta el nombre.' : 'Continúa desde donde iba la conversación.'}
+2. Calificar: pregunta qué tipo de negocio tiene y si trabaja solo o con más profesionales. Eso determina qué plan recomendar.
+3. Recomendar el plan correcto con un argumento concreto basado en lo que dijo. No listes todos los planes — recomienda uno.
+4. Cerrar: cuando muestre interés real, da el link directamente: "Puedes probarlo 12 días gratis aquí: https://app.attempo.cl/registro"
+5. Si lleva más de 6 mensajes sin cerrar o la conversación se estanca, usa capturar_lead para que el equipo lo contacte.
 
-RESPUESTAS A OBJECIONES COMUNES:
-- "¿Es muy caro?" → "El Plan Inicio son $24.990 al mes + IVA, menos de $1.000 al día. Y con los recordatorios automáticos evitas que tus pacientes se olviden. La mayoría recupera el costo desde el primer mes."
-- "¿Es difícil de usar?" → "Para nada, en 5 minutos ya tienes tu agenda lista. Y si necesitas ayuda, te acompañamos en todo el proceso."
-- "¿Qué es Attia el chatbot?" → "Es tu asistente IA. Responde consultas y agenda citas automáticamente en Instagram y Messenger mientras tú atiendes. Viene incluido en el Plan Pro."
-- "¿Necesito tarjeta de crédito?" → "Sí, la prueba gratis pide una tarjeta, pero no se cobra nada hasta que terminen los 12 días. Y cancelas cuando quieras, sin costo."
-- "¿Funciona para [rubro específico]?" → Adapta la respuesta al rubro mencionado y da un ejemplo concreto de cómo attempo les ayuda.
+CUANDO ALGUIEN MENCIONA OTRO SISTEMA (Reservo, Medilink, Agenda Pro, u otro):
+Piensa qué está pidiendo realmente antes de responder:
+- Si quiere agregar un canal IA para que los pacientes le escriban por WhatsApp o Instagram: attempo SÍ puede hacer eso. Attia atiende las conversaciones y agenda citas — no tiene que reemplazar su sistema actual, los dos pueden coexistir.
+- Si quiere que attempo sincronice automáticamente datos con su sistema propio o escriba reservas directamente en otro sistema: eso no existe hoy. Sé honesta: "Hoy no tenemos integración directa con [sistema]. Lo que sí podemos hacer es [alternativa concreta]."
+- Si quiere reemplazar completamente su sistema actual: depende de qué funciones usa. Pregunta qué necesita mantener antes de recomendar.
+Nunca prometas integraciones que no existen. Nunca adivines.
 
-HOY ES: ${hoyVentas}`;
+CUANDO ALGUIEN PIDE HABLAR CON UN HUMANO:
+Usa de inmediato la herramienta capturar_lead con los datos que tengas (nombre, teléfono si es WhatsApp, lo que contó sobre su negocio).
+Después di únicamente: "${botConfig.mensaje_traspaso || 'Listo [nombre], ya avisé al equipo. Te van a escribir aquí mismo a la brevedad.'}"
+No prometas horas ni plazos. No sigas intentando responder tú.
+
+OBJECIONES FRECUENTES:
+- "¿Es muy caro?" → "El Plan Inicio son $24.990 al mes, menos de $1.000 al día. Y los recordatorios automáticos evitan que los pacientes se olviden — la mayoría recupera el costo desde el primer mes."
+- "¿Es difícil?" → "Cinco minutos y ya tienes la agenda online. Sin instalaciones ni técnicos."
+- "¿Necesito tarjeta?" → "Sí, la prueba pide una tarjeta, pero no se cobra nada hasta que terminen los 12 días. Cancelas cuando quieras."
+- "¿Funciona para [rubro]?" → Adapta la respuesta al rubro y da un ejemplo concreto de cómo attempo les ayuda.
+
+HOY ES: ${hoyVentas}${leadContexto}`;
+
+    const ventasTools = [
+      {
+        name: 'capturar_lead',
+        description: 'Registra a un prospecto que pidió contacto humano o cuyos datos hay que guardar para seguimiento. Pausa el bot y alerta al equipo. Úsala cuando alguien pide hablar con una persona, deja sus datos para ser contactado, o la conversación lleva mucho tiempo sin cerrar.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            nombre:   { type: 'string' },
+            telefono: { type: 'string' },
+            email:    { type: 'string' },
+            interes:  { type: 'string', description: 'En qué está interesado — plan, rubro, consulta específica' },
+            resumen:  { type: 'string', description: 'Resumen breve de la conversación para el equipo' }
+          },
+          required: []
+        }
+      }
+    ];
 
     const MAX_MESSAGES = 20;
     let msgs = historial.slice(-MAX_MESSAGES);
     msgs.push({ role: 'user', content: mensaje });
 
     let respuestaVentas = '';
+    let leadCapturadoVentas = false;
+
     try {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         const r = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
             'x-api-key':         ANTHROPIC_KEY,
             'anthropic-version': '2023-06-01',
+            'anthropic-beta':    'prompt-caching-2024-07-31',
             'content-type':      'application/json'
           },
           body: JSON.stringify({
             model:      'claude-haiku-4-5-20251001',
             max_tokens: 300,
-            system:     ventasSystemPrompt,
+            system:     [{ type: 'text', text: ventasSystemPrompt, cache_control: { type: 'ephemeral' } }],
+            tools:      ventasTools,
             messages:   msgs
           })
         });
@@ -191,9 +469,28 @@ HOY ES: ${hoyVentas}`;
 
         if (!r.ok) throw new Error(data.error?.message || 'Error de Claude API');
 
-        respuestaVentas = data.content.find(b => b.type === 'text')?.text || '';
-        msgs.push({ role: 'assistant', content: respuestaVentas });
-        break;
+        if (data.stop_reason !== 'tool_use') {
+          respuestaVentas = data.content.find(b => b.type === 'text')?.text || '';
+          msgs.push({ role: 'assistant', content: respuestaVentas });
+          break;
+        }
+
+        const toolBlocks = data.content.filter(b => b.type === 'tool_use');
+        const toolResults = [];
+
+        for (const block of toolBlocks) {
+          if (block.name === 'capturar_lead') {
+            const result = await ejecutarCapturarLead(block.input, 'cesarsalinasmunoz@gmail.com', [...historial, { role: 'user', content: mensaje }]);
+            if (result.ok) leadCapturadoVentas = true;
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
+          }
+        }
+
+        msgs = [
+          ...msgs,
+          { role: 'assistant', content: data.content },
+          { role: 'user',      content: toolResults }
+        ];
       }
     } catch (err) {
       console.error('bot-chat ventas error:', err);
@@ -205,48 +502,68 @@ HOY ES: ${hoyVentas}`;
         method: 'PATCH',
         headers: { ...shJson, Prefer: 'return=minimal' },
         body: JSON.stringify({
-          messages:           msgs.slice(-MAX_MESSAGES),
-          canal_user_name:    canal_user_name || null,
-          updated_at:         new Date().toISOString(),
-          conversation_status: 'esperando_respuesta',
+          messages:            msgs.slice(-MAX_MESSAGES),
+          canal_user_name:     canal_user_name || null,
+          updated_at:          new Date().toISOString(),
+          conversation_status: leadCapturadoVentas ? 'derivado' : 'esperando_respuesta',
         })
       }).catch(e => console.error('bot-chat ventas: error guardando sesión:', e.message));
     }
 
-    return res.status(200).json({ respuesta: respuestaVentas, cita_creada: null });
+    if (esPrimerMsg) notificarNuevoMensaje(canal, canal_user_name, mensaje);
+    return res.status(200).json({ respuesta: respuestaVentas || 'Un momento, intenta de nuevo.', cita_creada: null });
   }
   // ── FIN MODO VENTAS ───────────────────────────────────────────────────────
 
-  // ── 3. Cargar datos del negocio ───────────────────────────────────────────
-  let negocioNombre = 'el negocio';
-  let serviciosCatalogo = [];
+  // ── 3. Detección de escalada humana (keywords + fallos repetidos) ─────────
+  {
+    const KEYWORDS_HUMANO = [
+      'hablar con alguien','hablar con una persona','hablar con un humano',
+      'quiero a una persona','persona real','quiero hablar con','necesito hablar con',
+      'atiéndeme','atención humana','agente humano','representante',
+      'no quiero hablar con un bot','no eres humano','eres un robot','eres una ia',
+      'quiero hablar con el equipo','quiero hablar con ustedes',
+      'quiero que me llamen','que me llamen','llámenme',
+    ];
+    const mensajeLower = mensaje.toLowerCase();
+    const pidioHumano  = KEYWORDS_HUMANO.some(k => mensajeLower.includes(k));
 
-  try {
-    const rn = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=nombre_negocio,servicios&limit=1`,
-      { headers: sh }
-    );
-    const [cli] = await rn.json();
-    negocioNombre     = cli?.nombre_negocio || 'el negocio';
-    serviciosCatalogo = Array.isArray(cli?.servicios) ? cli.servicios : [];
-  } catch (e) {
-    console.error('bot-chat: error cargando negocio:', e.message);
+    // Fallos repetidos: el bot ya dijo "alguien del equipo te va a contactar" 2+ veces
+    const TEXTO_ESCALADA = 'alguien del equipo te va a contactar';
+    const fallosBot = historial.filter(m =>
+      m.role === 'assistant' && typeof m.content === 'string' &&
+      m.content.toLowerCase().includes(TEXTO_ESCALADA)
+    ).length;
+    const falloRepetido = fallosBot >= 2;
+
+    if (pidioHumano || falloRepetido) {
+      const motivo = pidioHumano
+        ? `Pidió hablar con una persona: "${mensaje.slice(0, 200)}"`
+        : `El bot escaló ${fallosBot} veces sin resolver la consulta del paciente.`;
+
+      await ejecutarCapturarLead(
+        { nombre: canal_user_name || null, telefono: canal === 'whatsapp' ? canal_user_id : null, interes: motivo },
+        emailNegocio,
+        [...historial, { role: 'user', content: mensaje }]
+      );
+
+      const respEscalada = pidioHumano
+        ? 'Claro, te paso con nuestro equipo. Te van a contactar a la brevedad.'
+        : 'Entiendo que no he podido ayudarte bien. Te pongo en contacto con nuestro equipo para que te atiendan personalmente.';
+
+      if (sessionId) {
+        const msgsAct = [...historial, { role: 'user', content: mensaje }, { role: 'assistant', content: respEscalada }];
+        fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
+          method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ messages: msgsAct, conversation_status: 'derivado', pausa_bot: true })
+        }).catch(() => {});
+      }
+
+      return res.status(200).json({ respuesta: respEscalada, delay_min_seg: 0, delay_max_seg: 0 });
+    }
   }
 
-  // ── 4. Cargar especialistas ───────────────────────────────────────────────
-  let espLista = [];
-  try {
-    const re = await fetch(
-      `${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${cliente_id}&activo=eq.true&select=id,nombre,especialidad,horario&order=nombre.asc`,
-      { headers: sh }
-    );
-    espLista = await re.json();
-    if (!Array.isArray(espLista)) espLista = [];
-  } catch (e) {
-    console.error('bot-chat: error cargando especialistas:', e.message);
-    espLista = [];
-  }
-
+  // ── 4. Preparar datos de especialistas ───────────────────────────────────
   const espTexto = espLista.length
     ? espLista.map(e => `- ${e.nombre}, ${e.especialidad || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
@@ -316,6 +633,10 @@ HOY ES: ${hoyVentas}`;
   const telDesdeCanal = canal === 'whatsapp' ? canal_user_id : null;
 
   const esPrimerMensaje = historial.length === 0;
+  if (esPrimerMensaje && botConfig.notif_nuevo_mensaje) {
+    const destNotif = botConfig.notif_email || emailNegocio;
+    if (destNotif) notificarNuevoMensaje(canal, canal_user_name, mensaje, destNotif);
+  }
 
   const systemPrompt = `Eres ${botConfig.nombre_bot}, la asistente virtual de ${negocioNombre}. Atiendes por ${canal}. Eres chilena, cálida y profesional. Nunca dices que eres una IA.
 
@@ -336,7 +657,7 @@ ${espTexto}
 
 CATÁLOGO DE SERVICIOS (con precios y duración):
 ${srvTexto}
-${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${promosTexto}
+${sedesContexto}${pacienteContexto}${leadContexto}${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${chatbotKnowledge.length ? '\n\nBASE DE CONOCIMIENTO DEL NEGOCIO (usa esta información para responder con precisión):\n' + chatbotKnowledge.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n') : ''}${promosTexto}
 
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.
@@ -351,14 +672,16 @@ INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 
 FLUJO PARA AGENDAR UNA CITA — sigue SIEMPRE este orden exacto, sin saltarte pasos:
 1. Saluda con calidez si es el primer mensaje.
-2. Pregunta el nombre completo del paciente.
+2. Si hay PACIENTE RECURRENTE en el contexto, ya tienes su nombre — NO lo pidas, pasa directamente al paso 3. Si no, pregunta el nombre completo.
 3. Pregunta el servicio. Si hay catálogo, preséntalo así:
    "Contamos con los siguientes servicios:
    - [Servicio 1] (duración · precio)
    - [Servicio 2] ..."
    ¿Cuál necesitas?
 4. Si hay un solo profesional, infórmalo: "Serás atendido/a por [nombre], [especialidad]."
-   Si hay varios, lista sus nombres y pregunta con quién prefiere.
+   Si hay PACIENTE RECURRENTE y sus citas anteriores mencionan un profesional, sugiérelo: "¿Te agendo con [nombre] como la última vez, o prefieres otro profesional?"
+   Si hay 2-3 profesionales, lista sus nombres y pregunta con quién prefiere.
+   Si hay 4 o más profesionales, di: "Tenemos [N] profesionales disponibles. ¿Tienes preferencia por alguno, o te agendo con quien tenga disponibilidad antes?"
 5. Llama a ver_disponibilidad_semana y presenta el resultado línea por línea. Pregunta qué día prefiere. IMPORTANTE: el campo "texto" muestra el horario general del profesional, NO las horas reales libres (puede haber citas ya agendadas). Nunca uses esos horarios para decirle al paciente qué horas hay disponibles en un día concreto.
 6. Cuando el paciente elija un día, SIEMPRE llama a buscar_disponibilidad para ese día antes de mencionar horas. Usa el campo "rangos" para presentar compactamente: "Tenemos disponibilidad de [rangos]. ¿Qué hora te acomoda?" NUNCA listes slots individuales. NUNCA uses los horarios de ver_disponibilidad_semana para responder esto.
 7. Cuando el paciente confirme una hora específica, verifica que esté en el campo "horas" de buscar_disponibilidad. ${telDesdeCanal ? `Ya tienes su teléfono (${telDesdeCanal}). Pide el email: "Para enviarte la confirmación necesito tu email, ¿cuál es?"` : `Pide teléfono y email en un solo mensaje: "Para confirmar necesito tu teléfono y email para enviarte la confirmación."`}
@@ -368,6 +691,12 @@ FLUJO PARA AGENDAR UNA CITA — sigue SIEMPRE este orden exacto, sin saltarte pa
 
 RESPUESTA TRAS CREAR CITA (solo después de que crear_cita retorne ok:true):
 "¡Listo [nombre]! Tu cita quedó confirmada para el [fecha] a las [hora] con [profesional]. 📅"
+
+ESCALACIÓN A HUMANO:
+Si el paciente pide hablar directamente con una persona del equipo o dice explícitamente que no quiere seguir con el bot:
+- Usa INMEDIATAMENTE la herramienta capturar_lead con los datos disponibles (nombre, teléfono si es WhatsApp, motivo).
+- Después di únicamente: "${botConfig.mensaje_traspaso || 'Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad.'}"
+- No ofrezcas más alternativas ni hagas preguntas adicionales.
 
 REGLAS GENERALES:
 - Una sola pregunta por mensaje.
@@ -419,6 +748,21 @@ REGLAS GENERALES:
         },
         required: ['especialista_id', 'nombre_paciente', 'tel_paciente', 'email_paciente', 'servicio', 'fecha', 'hora']
       }
+    },
+    {
+      name: 'capturar_lead',
+      description: 'Registra a un paciente o contacto que pidió hablar con una persona del equipo. Pausa el bot y alerta al negocio. Úsala cuando alguien pide atención humana explícitamente o cuando la consulta no puede resolverse sin intervención de una persona.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          nombre:   { type: 'string', description: 'Nombre del contacto' },
+          telefono: { type: 'string', description: 'Teléfono — si viene por WhatsApp ya está disponible, no hace falta pedirlo' },
+          email:    { type: 'string', description: 'Email si lo proporcionó' },
+          interes:  { type: 'string', description: 'Razón del contacto — qué necesita o qué preguntó' },
+          resumen:  { type: 'string', description: 'Resumen breve de la conversación para el equipo' }
+        },
+        required: []
+      }
     }
   ];
 
@@ -454,8 +798,11 @@ REGLAS GENERALES:
   }
 
   async function ejecutarBuscarDisponibilidad(especialista_id, fecha) {
+    const _espUuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!_espUuidRe.test(especialista_id || '')) return { error: 'Profesional no válido' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return { error: 'Fecha inválida' };
     const r1 = await fetch(
-      `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
+      `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&cliente_id=eq.${cliente_id}&select=horario`,
       { headers: sh }
     );
     const [esp] = await r1.json();
@@ -547,15 +894,18 @@ REGLAS GENERALES:
       return d.toISOString().split('T')[0];
     });
 
-    // Traer todas las citas existentes en ese rango de una sola vez por especialista
+    // Traer todas las citas existentes en paralelo (una query por especialista)
     const resultados = [];
-    for (const esp of esps) {
-      const horario = esp.horario || {};
-      const r = await fetch(
+    const citasPorEsp = await Promise.all(esps.map(esp =>
+      fetch(
         `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&fecha=gte.${fechas[0]}&fecha=lte.${fechas[fechas.length-1]}&estado=neq.canceled&or=(especialista_id.eq.${esp.id},especialista_id.is.null)&select=fecha,hora,servicio`,
         { headers: sh }
-      );
-      const citas = await r.json();
+      ).then(r => r.json()).catch(() => [])
+    ));
+    for (let ei = 0; ei < esps.length; ei++) {
+      const esp = esps[ei];
+      const horario = esp.horario || {};
+      const citas = Array.isArray(citasPorEsp[ei]) ? citasPorEsp[ei] : [];
       const ocupadasMap = {};
       (Array.isArray(citas) ? citas : []).forEach(c => {
         const f = c.fecha;
@@ -700,19 +1050,11 @@ REGLAS GENERALES:
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
 
-    // Traer metodos_pago, datos_banco y email_negocio del negocio
-    let metodos_pago = null, datos_banco = null, email_negocio = null, direccion = null;
-    try {
-      const rn2 = await fetch(
-        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=metodos_pago,datos_banco,email,direccion&limit=1`,
-        { headers: sh }
-      );
-      const [cli2] = await rn2.json();
-      metodos_pago  = cli2?.metodos_pago  || null;
-      datos_banco   = cli2?.datos_banco   || null;
-      email_negocio = cli2?.email         || null;
-      direccion     = cli2?.direccion     || null;
-    } catch (e) { console.error('bot-chat: error cargando negocio extras:', e.message); }
+    // Usar datos del negocio ya cargados en la carga paralela inicial
+    const metodos_pago  = metodosPagoNegocio;
+    const datos_banco   = datosBancoNegocio;
+    const email_negocio = emailNegocio;
+    const direccion     = direccionNegocio;
 
     // Enviar email de confirmación directamente desde aquí
     if (email_paciente && process.env.RESEND_API_KEY) {
@@ -757,7 +1099,7 @@ REGLAS GENERALES:
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            subject: `Tu cita en ${negocioNombre} está confirmada ✓`,
+            subject: `Tu cita en ${negocioNombre} está confirmada`,
             headers: {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -858,6 +1200,9 @@ REGLAS GENERALES:
     if (nombre === 'crear_cita') {
       return await ejecutarCrearCita(params);
     }
+    if (nombre === 'capturar_lead') {
+      return await ejecutarCapturarLead(params, emailNegocio, [...historial, { role: 'user', content: mensaje }]);
+    }
     return { error: 'Herramienta no reconocida' };
   }
 
@@ -870,8 +1215,9 @@ REGLAS GENERALES:
   msgs.push({ role: 'user', content: mensaje });
 
   // ── 9. Llamar a Claude con agentic loop ───────────────────────────────────
-  let respuestaFinal = '';
-  let citaCreada     = null;
+  let respuestaFinal  = '';
+  let citaCreada      = null;
+  let leadCapturado   = false;
 
   try {
     for (let i = 0; i < 5; i++) {
@@ -880,12 +1226,13 @@ REGLAS GENERALES:
         headers: {
           'x-api-key':         ANTHROPIC_KEY,
           'anthropic-version': '2023-06-01',
+          'anthropic-beta':    'prompt-caching-2024-07-31',
           'content-type':      'application/json'
         },
         body: JSON.stringify({
           model:      'claude-haiku-4-5-20251001',
           max_tokens: 400,
-          system:     systemPrompt,
+          system:     [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           tools,
           messages:   msgs
         })
@@ -908,7 +1255,7 @@ REGLAS GENERALES:
         respuestaFinal = data.content.find(b => b.type === 'text')?.text || '';
 
         // Salvaguarda: si Claude dice "confirmada/listo" sin haber llamado al tool, forzar tool call
-        const pareceConfirmacion = /listo|confirmad|agendad/i.test(respuestaFinal);
+        const pareceConfirmacion = /listo|lista|confirmad|agendad|reservad|quedó\s*(agendad|confirmad|reservad)|cita\s+(cread|lista|registrad)|ya\s+quedas|te\s+queda/i.test(respuestaFinal);
         if (pareceConfirmacion && !citaCreada && i < 4) {
           console.log('bot-chat: Claude confirmó sin llamar al tool — forzando crear_cita');
           msgs.push({ role: 'assistant', content: respuestaFinal });
@@ -929,6 +1276,9 @@ REGLAS GENERALES:
 
         if (block.name === 'crear_cita' && result.ok) {
           citaCreada = { ...block.input, ...result.confirmacion, cita_id: result.cita_id };
+        }
+        if (block.name === 'capturar_lead' && result.ok) {
+          leadCapturado = true;
         }
 
         toolResults.push({
@@ -951,10 +1301,18 @@ REGLAS GENERALES:
 
   // ── 10. Guardar historial actualizado en chat_sessions ────────────────────
   if (sessionId) {
-    // Si se creó una cita, limpiar el historial para que la siguiente conversación empiece fresco
-    const mensajesGuardables = citaCreada
-      ? []
-      : msgs.slice(-MAX_MESSAGES);
+    // Normalizar mensajes antes de persistir: eliminar bloques tool_use/tool_result
+    // y mensajes de sistema interno para evitar errores 400 y confundir a Claude
+    const normalizarMsg = (m) => {
+      if (Array.isArray(m.content)) {
+        const textos = m.content.filter(b => b.type === 'text').map(b => b.text);
+        if (!textos.length) return null; // elimina tool_use-only y tool_result
+        return { role: m.role, content: textos.join(' ') };
+      }
+      if (typeof m.content === 'string' && m.content.startsWith('SISTEMA:')) return null;
+      return m;
+    };
+    const mensajesGuardables = msgs.slice(-MAX_MESSAGES).map(normalizarMsg).filter(Boolean);
 
     fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?id=eq.${sessionId}`, {
       method: 'PATCH',
@@ -963,13 +1321,15 @@ REGLAS GENERALES:
         messages:            mensajesGuardables,
         canal_user_name:     canal_user_name || null,
         updated_at:          new Date().toISOString(),
-        conversation_status: citaCreada ? 'agendo' : 'esperando_respuesta',
+        conversation_status: citaCreada ? 'agendo' : leadCapturado ? 'derivado' : 'esperando_respuesta',
       })
     }).catch(e => console.error('bot-chat: error guardando sesión:', e.message));
   }
 
   return res.status(200).json({
-    respuesta:   respuestaFinal,
-    cita_creada: citaCreada || null
+    respuesta:    respuestaFinal || 'Un momento, intenta de nuevo.',
+    cita_creada:  citaCreada || null,
+    delay_min_seg: botConfig.delay_min_seg || 0,
+    delay_max_seg: botConfig.delay_max_seg || 0,
   });
 }

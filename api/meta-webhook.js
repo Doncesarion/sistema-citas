@@ -1,5 +1,19 @@
+import crypto from 'crypto';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
+export const config = { api: { bodyParser: false } };
+
+function _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, respuesta) {
+  const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const mensajes = [{ role: 'user', content: mensaje, name: canal_user_name || canal_user_id }];
+  if (respuesta) mensajes.push({ role: 'assistant', content: respuesta });
+  fetch(`${SUPABASE_URL}/rest/v1/web_leads`, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ session_id: canal_user_id, mensajes, tipo: 'whatsapp_msg', pagina: canal })
+  }).catch(e => console.error('[meta-lead]', e.message));
+}
 
 function incUso(cliente_id, campo) {
   const mes = new Date().toISOString().slice(0, 7);
@@ -10,7 +24,85 @@ function incUso(cliente_id, campo) {
   }).catch(() => {});
 }
 
+function incWaUsados(cliente_id) {
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_wa_usados`, {
+    method: 'POST',
+    headers: { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_cliente_id: cliente_id })
+  }).catch(() => {});
+}
+
+async function checkWaQuota(cliente_id) {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=mensajes_wa_limite,mensajes_wa_extra,mensajes_wa_usados&limit=1`,
+      { headers: { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` } }
+    );
+    const [d] = await r.json();
+    if (!d || !d.mensajes_wa_limite) return true;
+    return d.mensajes_wa_usados < (d.mensajes_wa_limite + (d.mensajes_wa_extra || 0));
+  } catch (e) {
+    console.error('[meta-webhook] checkWaQuota error:', e.message);
+    return true;
+  }
+}
+
+const REDIRECT_URI = 'https://app.attempo.cl/api/meta-webhook';
+
 export default async function handler(req, res) {
+  // ── OAuth callback de Meta (GET con ?code=) ───────────────────────────────
+  if (req.method === 'GET' && req.query.code) {
+    const { code, state, error } = req.query;
+    if (error || !code) return res.redirect('/admin?meta_error=1');
+    let cid;
+    try {
+      cid = JSON.parse(Buffer.from(state, 'base64').toString()).cid;
+      if (!cid) throw new Error('sin cid');
+    } catch { return res.redirect('/admin?meta_error=1'); }
+    const APP_ID     = process.env.META_APP_ID;
+    const APP_SECRET = process.env.META_APP_SECRET;
+    const SH = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
+    try {
+      const tokenRes = await fetch(
+        `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&client_secret=${APP_SECRET}&code=${code}`
+      );
+      const tokenData = await tokenRes.json();
+      if (tokenData.error) throw new Error(tokenData.error.message);
+      const longRes = await fetch(
+        `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${tokenData.access_token}`
+      );
+      const longData = await longRes.json();
+      const userToken = longData.access_token || tokenData.access_token;
+      const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${userToken}`);
+      const pagesData = await pagesRes.json();
+      const pages = pagesData.data || [];
+      if (!pages.length) return res.redirect('/admin?meta_error=2');
+      const page = pages[0];
+      const pageId = page.id;
+      const pageToken = page.access_token;
+      const igRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`);
+      const igData = await igRes.json();
+      const igAccountId = igData.instagram_business_account?.id || null;
+      const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: SH });
+      const [cli] = await r0.json();
+      const merged = {
+        ...(cli?.canales_meta || {}),
+        fb_page_id: pageId,
+        fb_token:   pageToken,
+        ...(igAccountId ? { ig_account_id: igAccountId, ig_token: pageToken } : {})
+      };
+      await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+        method: 'PATCH',
+        headers: { ...SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ canales_meta: merged })
+      });
+      return res.redirect('/admin?meta_ok=1');
+    } catch(e) {
+      console.error('[meta-webhook/oauth]', e.message);
+      return res.redirect('/admin?meta_error=1');
+    }
+  }
+
   // ── Verificación de webhook (GET) ─────────────────────────────────────────
   if (req.method === 'GET') {
     const mode      = req.query['hub.mode'];
@@ -25,9 +117,28 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
+  // Leer raw body para validar firma de Meta
+  let rawBody = '';
+  await new Promise((resolve, reject) => {
+    req.on('data', chunk => { rawBody += chunk.toString(); });
+    req.on('end', resolve);
+    req.on('error', reject);
+  });
+  // Parsear manualmente el JSON
+  let body;
+  try { body = JSON.parse(rawBody); } catch { return res.status(400).json({ error: 'Body inválido' }); }
+
+  // Validar firma X-Hub-Signature-256 de Meta
+  const metaAppSecret = process.env.META_APP_SECRET;
+  if (!metaAppSecret) return res.status(503).end(); // fail-secure: secret obligatorio
+  const sig = req.headers['x-hub-signature-256'];
+  if (!sig) return res.status(403).end();
+  const expected = 'sha256=' + crypto.createHmac('sha256', metaAppSecret).update(rawBody).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return res.status(403).end();
+  } catch { return res.status(403).end(); }
+
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
-  const body = req.body || {};
-  console.log('meta-webhook object:', body.object);
 
   // ── Parsear mensaje según canal ───────────────────────────────────────────
   let canal, canal_user_id, canal_user_name, mensaje, channelKey, channelValue;
@@ -75,7 +186,19 @@ export default async function handler(req, res) {
     const r = await fetch(supaUrl, { headers: sh });
     const [cli] = await r.json();
     if (!cli) {
-      console.log('meta-webhook: cliente no encontrado para', channelKey, channelValue);
+      console.log('meta-webhook: cliente no encontrado para', channelKey, channelValue, '— guardando como lead attempo');
+      // Mensaje a un número/canal de attempo (no de un cliente) → lead
+      const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+      await fetch(`${SUPABASE_URL}/rest/v1/web_leads`, {
+        method: 'POST',
+        headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          session_id: canal_user_id,
+          mensajes: [{ role: 'user', content: mensaje, name: canal_user_name || canal_user_id }],
+          tipo: 'whatsapp_msg',
+          pagina: canal
+        })
+      }).catch(e => console.error('[meta-lead]', e.message));
       return res.status(200).end();
     }
     cliente_id  = cli.id;
@@ -118,6 +241,14 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // Detectar si es un canal propio de attempo (para capturar como lead)
+  const attempoChannels = [
+    process.env.ATTEMPO_WA_PHONE_ID,
+    process.env.ATTEMPO_FB_PAGE_ID,
+    process.env.ATTEMPO_IG_ACCOUNT_ID
+  ].filter(Boolean);
+  const isAttempoChannel = !!(channelValue && attempoChannels.includes(channelValue));
+
   // ── Guardar conversación y mensaje entrante ───────────────────────────────
   let conversacion_id = null;
   try {
@@ -136,29 +267,54 @@ export default async function handler(req, res) {
     });
     if (cvRpc.ok) {
       conversacion_id = await cvRpc.json();
-      if (conversacion_id) {
-        fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
-          method: 'POST',
-          headers: { ...shJ, Prefer: 'return=minimal' },
-          body: JSON.stringify({ conversacion_id, cliente_id, rol: 'usuario', contenido: mensaje })
-        }).catch(e => console.error('meta-webhook: error guardando mensaje usuario:', e.message));
+    }
 
-        // Actualizar foto de perfil si se obtuvo
-        if (canal_user_photo) {
-          fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conversacion_id}`, {
-            method: 'PATCH',
-            headers: { ...shJ, Prefer: 'return=minimal' },
-            body: JSON.stringify({ canal_user_photo })
-          }).catch(() => {});
-        }
+    // Si el RPC no devolvió un ID, buscar la conversación directamente
+    if (!conversacion_id) {
+      try {
+        const rq = await fetch(
+          `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id&limit=1`,
+          { headers: sh }
+        );
+        const [row] = await rq.json();
+        if (row?.id) conversacion_id = row.id;
+      } catch (_) {}
+    }
+
+    if (conversacion_id) {
+      await fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+        method: 'POST',
+        headers: { ...shJ, Prefer: 'return=minimal' },
+        body: JSON.stringify({ conversacion_id, cliente_id, rol: 'usuario', contenido: mensaje })
+      }).catch(e => console.error('meta-webhook: error guardando mensaje usuario:', e.message));
+
+      // Actualizar foto de perfil si se obtuvo
+      if (canal_user_photo) {
+        fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${conversacion_id}`, {
+          method: 'PATCH',
+          headers: { ...shJ, Prefer: 'return=minimal' },
+          body: JSON.stringify({ canal_user_photo })
+        }).catch(() => {});
       }
     }
   } catch (e) {
     console.error('meta-webhook: error guardando conversacion:', e.message);
   }
 
+  // ── Verificar cuota mensual WA antes de llamar al bot ────────────────────
+  if (!isAttempoChannel && canal === 'whatsapp' && cliente_id) {
+    const cuotaOk = await checkWaQuota(cliente_id);
+    if (!cuotaOk) {
+      console.log('[meta-webhook] cuota WA agotada para cliente', cliente_id);
+      return res.status(200).end();
+    }
+  }
+
+  // ── Responder 200 a Meta de inmediato para evitar timeout ────────────────
+  res.status(200).end();
+
   // ── Llamar al bot IA ──────────────────────────────────────────────────────
-  let respuesta = '';
+  let respuesta = '', delayMinSeg = 0, delayMaxSeg = 0;
   try {
     const botRes = await fetch(`${BASE_URL}/api/bot-chat`, {
       method: 'POST',
@@ -168,26 +324,39 @@ export default async function handler(req, res) {
     const botData = await botRes.json();
     if (botData.pausa) {
       console.log('meta-webhook: bot pausado para', canal_user_id);
-      return res.status(200).end();
+      if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
+      return;
     }
-    respuesta = botData.respuesta || '';
+    respuesta    = botData.respuesta    || '';
+    delayMinSeg  = botData.delay_min_seg || 0;
+    delayMaxSeg  = botData.delay_max_seg || delayMinSeg;
   } catch (e) {
     console.error('meta-webhook: error llamando bot-chat:', e.message);
-    return res.status(200).end();
+    if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
+    return;
   }
+
+  // ── Guardar lead de attempo (usuario + respuesta del bot) ─────────────────
+  if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, respuesta);
 
   // ── Guardar respuesta del bot ─────────────────────────────────────────────
   if (respuesta && conversacion_id) {
     const shJ = { ...sh, 'Content-Type': 'application/json' };
-    fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
       method: 'POST',
       headers: { ...shJ, Prefer: 'return=minimal' },
       body: JSON.stringify({ conversacion_id, cliente_id, rol: 'bot', contenido: respuesta, visto: true })
     }).catch(e => console.error('meta-webhook: error guardando mensaje bot:', e.message));
   }
 
-  console.log('meta-webhook: respuesta generada:', !!respuesta, '| accessToken:', !!accessToken, '| canal:', canal);
-  if (!respuesta || !accessToken) { console.log('meta-webhook: abortando envío — respuesta:', !!respuesta, 'token:', !!accessToken); return res.status(200).end(); }
+  if (!respuesta || !accessToken) return;
+
+  // ── Delay configurable antes de enviar ────────────────────────────────────
+  if (delayMinSeg > 0) {
+    const delay = Math.floor(Math.random() * (delayMaxSeg - delayMinSeg + 1) + delayMinSeg);
+    console.log(`meta-webhook: delay ${delay}s para cliente ${cliente_id}`);
+    await new Promise(r => setTimeout(r, delay * 1000));
+  }
 
   // ── Enviar respuesta al canal ─────────────────────────────────────────────
   try {
@@ -214,10 +383,11 @@ export default async function handler(req, res) {
     }
     const sendBody = await sendRes.text();
     console.log('meta-webhook: send status:', sendRes.status, '| body:', sendBody.slice(0,120));
-    if (sendRes.ok) incUso(cliente_id, 'mensajes_wa_bot');
+    if (sendRes.ok) {
+      incUso(cliente_id, 'mensajes_wa_bot');
+      if (!isAttempoChannel) incWaUsados(cliente_id);
+    }
   } catch (e) {
     console.error('meta-webhook: error enviando respuesta:', e.message);
   }
-
-  return res.status(200).end();
 }

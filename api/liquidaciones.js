@@ -47,6 +47,7 @@ export default async function handler(req, res) {
   let cliente_id = s.cliente_id;
   const overrideId = req.headers['x-override-cliente-id'];
   if (s.rol === 'superadmin' && overrideId && /^[0-9a-f-]{36}$/i.test(overrideId)) {
+    console.log(`[audit] superadmin impersonation: override cliente_id=${overrideId} at ${new Date().toISOString()}`);
     cliente_id = overrideId;
   }
 
@@ -72,7 +73,7 @@ export default async function handler(req, res) {
         if (!Array.isArray(raw)) {
           const errBody = await rEsp.text().catch(() => '');
           console.error('especialistas error:', rEsp.status, errBody);
-          return res.status(500).json({ error: 'Error al cargar profesionales', detail: errBody.slice(0, 300) });
+          return res.status(500).json({ error: 'Error al cargar profesionales' });
         }
         especialistas = raw.map(e => ({ ...e, comision_pct: 70 }));
       } else {

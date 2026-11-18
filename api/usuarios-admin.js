@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import { promisify } from 'util';
+import PDFDocument from 'pdfkit';
 const scryptAsync = promisify(crypto.scrypt);
+
+export const config = { api: { bodyParser: { sizeLimit: '2mb' } } };
 
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
@@ -13,7 +16,9 @@ function verifySessionToken(token, expectedClienteId) {
   const payload = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
-  if (sig !== expected) return false;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return false;
+  } catch { return false; }
   const parts = payload.split(':');
   if (parts.length !== 3) return false;
   const [clienteId, , expires] = parts;
@@ -31,7 +36,9 @@ function getClienteIdFromToken(token) {
   const payload = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
-  if (sig !== expected) return null;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
   const parts = payload.split(':');
   if (parts.length !== 3) return null;
   const [clienteId, , expires] = parts;
@@ -76,7 +83,9 @@ function verifyToken(token) {
   const payload = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto.createHmac('sha256', SA_SECRET).update(payload).digest('hex');
-  if (sig !== expected) return false;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return false;
+  } catch { return false; }
   if (Date.now() > parseInt(payload)) return false;
   return true;
 }
@@ -276,6 +285,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           nombre_negocio: negocio,
           email: emailLower,
+          password_hash: hashedPw,
           plan,
           tipo_plan: plan,
           fecha_inicio: today,
@@ -329,25 +339,30 @@ export default async function handler(req, res) {
       if (process.env.RESEND_API_KEY) {
         const planLabel = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
         const loginUrl = `${BASE_URL}/login`;
-        fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: 'attempo <contacto@attempo.cl>',
-            to: [emailLower],
-            subject: `¡Bienvenido/a a attempo, ${negocio}!`,
-            headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
-            html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
+        try {
+          const emailResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'attempo <contacto@attempo.cl>',
+              to: [emailLower],
+              subject: `Tu cuenta attempo está lista`,
+              headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>' },
+              html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F8F7FF;font-family:'Segoe UI',sans-serif">
 <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.1)">
   <div style="background:linear-gradient(135deg,#1E1B3A,#16143A);padding:24px 32px">
     <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.03em">attempo</span>
   </div>
   <div style="padding:32px">
-    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">¡Tu cuenta está lista! 🎉</h2>
-    <p style="margin:0 0 20px;font-size:14px;color:#5E5880;line-height:1.6">Hola <b>${negocio}</b>, creamos tu cuenta en attempo con el <b>Plan ${planLabel[plan] || plan}</b>. Tienes <b>12 días de prueba gratis</b> para explorar la plataforma.</p>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">Tu cuenta está lista</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E5880;line-height:1.6">Hola <b>${negocio}</b>, tu cuenta fue creada con el <b>Plan ${planLabel[plan] || plan}</b>. Tienes <b>12 días de prueba gratis</b> para explorar la plataforma.</p>
     <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
-      <div style="margin-bottom:12px"><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tu acceso</span><br><span style="font-size:15px;font-weight:600;color:#16143A">${emailLower}</span></div>
-      <div><span style="font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tu enlace de agendamiento</span><br><a href="${BASE_URL}/${slug}" style="font-size:13px;color:#6C5CE4;text-decoration:none;font-weight:500">${BASE_URL}/${slug}</a></div>
+      <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tus datos de acceso</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:10px">
+        <tr><td style="padding:6px 0;font-size:12px;color:#9C96B4;width:90px">Email</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#16143A">${emailLower}</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#9C96B4">Contraseña</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#16143A;font-family:monospace">${password}</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#9C96B4">Tu link</td><td style="padding:6px 0"><a href="${BASE_URL}/${slug}" style="font-size:13px;color:#6C5CE4;text-decoration:none;font-weight:500">${BASE_URL}/${slug}</a></td></tr>
+      </table>
     </div>
     <a href="${loginUrl}" style="display:block;text-align:center;background:linear-gradient(135deg,#6C5CE4,#4F3EE0);color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Ir a mi panel →</a>
     <p style="margin:0;font-size:13px;color:#9C96B4;line-height:1.5">Si tienes dudas, escríbenos a <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
@@ -356,8 +371,19 @@ export default async function handler(req, res) {
     <p style="margin:0;font-size:11px;color:#C4C0D8">© attempo · <a href="mailto:contacto@attempo.cl" style="color:#6C5CE4;text-decoration:none">contacto@attempo.cl</a></p>
   </div>
 </div></body></html>`
-          })
-        }).catch(e => console.error('auto-registro: email error', e.message));
+            })
+          });
+          const emailData = await emailResp.json();
+          if (!emailResp.ok) {
+            console.error('auto-registro: email error', emailResp.status, JSON.stringify(emailData));
+          } else {
+            console.error('auto-registro: email enviado id=', emailData.id);
+          }
+        } catch(emailErr) {
+          console.error('auto-registro: email excepción', emailErr.message);
+        }
+      } else {
+        console.error('auto-registro: sin RESEND_API_KEY, email omitido');
       }
 
       return res.status(200).json({ ok: true, cliente_id, nombre: negocio, tipo_plan: plan, session_token });
@@ -487,9 +513,157 @@ export default async function handler(req, res) {
     return res.status(r.status).json(await r.json());
   }
 
-  // ── Todas las demás rutas requieren token válido ───────────────────────────
-  if (!verifyToken(req.headers['x-sa-token'])) {
+  // OPTIONS preflight para web-lead-save (cross-origin desde attempo.cl)
+  if (req.query.action === 'web-lead-save') {
+    res.setHeader('Access-Control-Allow-Origin', 'https://attempo.cl');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(204).end();
+  }
+
+  // POST ?action=web-lead-save — guardar lead del sitio web (chat Attia o clic WA), sin auth
+  if (req.method === 'POST' && req.query.action === 'web-lead-save') {
+    const { session_id, mensajes, ip, tipo, pagina } = req.body || {};
+    if (!session_id || !Array.isArray(mensajes)) return res.status(400).json({ error: 'Datos inválidos' });
+    const tipoValido = ['chat', 'whatsapp'].includes(tipo) ? tipo : 'chat';
+    try {
+      const r = await fetch(`${_SUPA_URL}/rest/v1/web_leads`, {
+        method: 'POST',
+        headers: { ..._sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ session_id: String(session_id).slice(0, 64), mensajes, ip: ip || null, tipo: tipoValido, pagina: pagina || null })
+      });
+      if (!r.ok) { const err = await r.text().catch(() => ''); console.error('[web-lead-save]', r.status, err); return res.status(500).json({ error: 'Error al guardar' }); }
+      return res.status(200).json({ ok: true });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // ── Todas las demás rutas requieren token válido (excepto cotizaciones que tienen su propia auth) ──
+  if (!req.query.action?.startsWith('cot-') && !verifyToken(req.headers['x-sa-token'])) {
     return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  // POST ?action=merge-leads — SA: fusionar dos sesiones en un grupo
+  if (req.method === 'POST' && req.query.action === 'merge-leads') {
+    const { session_a, session_b } = req.body || {};
+    if (!session_a || !session_b || session_a === session_b) return res.status(400).json({ error: 'IDs inválidos' });
+    try {
+      const [rA, rB] = await Promise.all([
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_a)}&select=group_id&limit=1`, { headers: _sh }),
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_b)}&select=group_id&limit=1`, { headers: _sh })
+      ]);
+      const [rowA] = await rA.json().catch(() => []);
+      const [rowB] = await rB.json().catch(() => []);
+      const canonical = rowA?.group_id || rowB?.group_id || session_a;
+      const patches = [
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_a)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) }),
+        fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_b)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) })
+      ];
+      if (rowA?.group_id) patches.push(fetch(`${_SUPA_URL}/rest/v1/web_leads?group_id=eq.${encodeURIComponent(rowA.group_id)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) }));
+      if (rowB?.group_id && rowB.group_id !== canonical) patches.push(fetch(`${_SUPA_URL}/rest/v1/web_leads?group_id=eq.${encodeURIComponent(rowB.group_id)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: canonical }) }));
+      await Promise.all(patches);
+      return res.status(200).json({ ok: true, group_id: canonical });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // POST ?action=unmerge-lead — SA: desvincular una sesión de su grupo
+  if (req.method === 'POST' && req.query.action === 'unmerge-lead') {
+    const { session_id } = req.body || {};
+    if (!session_id) return res.status(400).json({ error: 'session_id requerido' });
+    try {
+      const r = await fetch(`${_SUPA_URL}/rest/v1/web_leads?session_id=eq.${encodeURIComponent(session_id)}`, { method: 'PATCH', headers: { ..._sh, Prefer: 'return=minimal' }, body: JSON.stringify({ group_id: null }) });
+      if (!r.ok) return res.status(500).json({ error: 'Error al desvincular' });
+      return res.status(200).json({ ok: true });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // POST ?action=toggle-bot-pausa — SA: activar/pausar bot para una conversación
+  if (req.method === 'POST' && req.query.action === 'toggle-bot-pausa') {
+    const { canal_user_id, canal, pausa } = req.body || {};
+    if (!canal_user_id || !canal || typeof pausa !== 'boolean') return res.status(400).json({ error: 'Datos incompletos' });
+    const channelKey   = canal === 'whatsapp' ? 'wa_phone_number_id' : canal === 'messenger' ? 'fb_page_id' : 'ig_account_id';
+    const channelValue = canal === 'whatsapp' ? process.env.ATTEMPO_WA_PHONE_ID : canal === 'messenger' ? process.env.ATTEMPO_FB_PAGE_ID : process.env.ATTEMPO_IG_ACCOUNT_ID;
+    if (!channelValue) return res.status(500).json({ error: 'Canal no configurado' });
+    try {
+      const rCli = await fetch(`${_SUPA_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id&limit=1`, { headers: _sh });
+      const [cli] = await rCli.json().catch(() => []);
+      if (!cli) return res.status(404).json({ error: 'Canal no encontrado' });
+      const r = await fetch(`${_SUPA_URL}/rest/v1/chat_sessions?cliente_id=eq.${encodeURIComponent(cli.id)}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}`, {
+        method: 'PATCH',
+        headers: { ..._sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ pausa_bot: pausa })
+      });
+      if (!r.ok) { const err = await r.text().catch(() => ''); return res.status(500).json({ error: 'Error al actualizar', detail: err.slice(0,100) }); }
+      return res.status(200).json({ ok: true, pausa });
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // POST ?action=send-wa-reply — SA: responder a un lead desde el panel
+  if (req.method === 'POST' && req.query.action === 'send-wa-reply') {
+    const { to, mensaje, canal } = req.body || {};
+    if (!to || !mensaje || !canal) return res.status(400).json({ error: 'Datos incompletos' });
+    if (typeof mensaje !== 'string' || mensaje.length > 4096) return res.status(400).json({ error: 'Mensaje inválido' });
+    const channelKey   = canal === 'whatsapp' ? 'wa_phone_number_id' : canal === 'messenger' ? 'fb_page_id' : 'ig_account_id';
+    const channelValue = canal === 'whatsapp' ? process.env.ATTEMPO_WA_PHONE_ID : canal === 'messenger' ? process.env.ATTEMPO_FB_PAGE_ID : process.env.ATTEMPO_IG_ACCOUNT_ID;
+    if (!channelValue) return res.status(500).json({ error: 'Canal no configurado en env vars' });
+    try {
+      const rCli = await fetch(`${_SUPA_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id,canales_meta&limit=1`, { headers: _sh });
+      const [cli] = await rCli.json().catch(() => []);
+      if (!cli) return res.status(404).json({ error: 'Canal no encontrado' });
+      const meta = cli.canales_meta || {};
+      const accessToken = canal === 'whatsapp' ? meta.wa_token : canal === 'messenger' ? meta.fb_token : meta.ig_token;
+      if (!accessToken) return res.status(500).json({ error: 'Access token no configurado' });
+      let sendRes;
+      if (canal === 'whatsapp') {
+        sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messaging_product: 'whatsapp', to, type: 'text', text: { body: mensaje } })
+        });
+      } else if (canal === 'messenger') {
+        sendRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: { id: to }, message: { text: mensaje } })
+        });
+      } else {
+        sendRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: { id: to }, message: { text: mensaje } })
+        });
+      }
+      if (!sendRes.ok) { const err = await sendRes.text().catch(() => ''); console.error('[send-wa-reply]', sendRes.status, err.slice(0,200)); return res.status(500).json({ error: 'Error Meta API: ' + sendRes.status }); }
+      // Guardar respuesta en web_leads
+      fetch(`${_SUPA_URL}/rest/v1/web_leads`, {
+        method: 'POST',
+        headers: { ..._sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ session_id: to, mensajes: [{ role: 'assistant', content: mensaje }], tipo: 'whatsapp_msg', pagina: canal })
+      }).catch(() => {});
+      // Auto-pausar el bot al responder manualmente
+      fetch(`${_SUPA_URL}/rest/v1/chat_sessions?cliente_id=eq.${encodeURIComponent(cli.id || '')}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(to)}`, {
+        method: 'PATCH',
+        headers: { ..._sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ pausa_bot: true })
+      }).catch(() => {});
+      return res.status(200).json({ ok: true });
+    } catch(e) { console.error('[send-wa-reply] exception:', e.message); return res.status(500).json({ error: 'Error interno' }); }
+  }
+
+  // GET ?action=web-leads — SA: conversaciones del chat de attempo.cl
+  if (req.method === 'GET' && req.query.action === 'web-leads') {
+    try {
+      const r = await fetch(`${_SUPA_URL}/rest/v1/web_leads?order=created_at.desc&limit=200`, { headers: _sh });
+      if (!r.ok) {
+        const err = await r.text().catch(() => '');
+        console.error('[web-leads] Supabase error:', r.status, err);
+        return res.status(500).json({ error: 'Error al cargar leads', detail: err.slice(0, 200) });
+      }
+      const rows = await r.json();
+      return res.status(200).json(Array.isArray(rows) ? rows : []);
+    } catch(e) {
+      console.error('[web-leads] exception:', e.message);
+      return res.status(500).json({ error: e.message });
+    }
   }
 
   // ── POST proxy: reenvía a edge function admin-clientes ────────────────────
@@ -531,6 +705,431 @@ export default async function handler(req, res) {
     }
 
     return res.status(response.status).json(data);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // ── COTIZACIONES ──────────────────────────────────────════════════
+  // ══════════════════════════════════════════════════════════════════
+  if (req.query.action && req.query.action.startsWith('cot-')) {
+    const _isUuid = s => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    const _cotClienteId = () => {
+      const override = req.headers['x-override-cliente-id'];
+      if (override && _isUuid(override) && verifyToken(req.headers['x-sa-impersona'])) return override;
+      const cid = getClienteIdFromToken(req.headers['x-session-token']);
+      return _isUuid(cid) ? cid : null;
+    };
+    try {
+    const _CKEY = process.env.SUPABASE_SERVICE_KEY;
+    const _CURL = 'https://xztqawulvrtjvtfixofy.supabase.co';
+    const _csh  = { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': 'application/json' };
+    const _cshG = { apikey: _CKEY, Authorization: `Bearer ${_CKEY}` };
+    const action = req.query.action;
+
+    // GET cot-lista — listar cotizaciones del cliente autenticado
+    if (req.method === 'GET' && action === 'cot-lista') {
+      const cid = _cotClienteId();
+      if (!cid) {
+        const tok = req.headers['x-session-token'] || '';
+        const hasSecret = !!process.env.SESSION_SECRET;
+        const dot = tok.lastIndexOf('.');
+        const payload = dot > -1 ? tok.slice(0, dot) : '';
+        const parts = payload.split(':');
+        return res.status(401).json({ error: 'No autorizado', _d: { hasToken: tok.length > 0, hasSecret, parts: parts.length, override: !!req.headers['x-override-cliente-id'], impersona: !!req.headers['x-sa-impersona'] } });
+      }
+      const r = await fetch(`${_CURL}/rest/v1/cotizaciones?cliente_id=eq.${cid}&order=created_at.desc&limit=100`, { headers: _cshG });
+      return res.status(200).json(await r.json());
+    }
+
+    // POST cot-guardar — crear o actualizar cotización
+    if (req.method === 'POST' && action === 'cot-guardar') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id, datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url } = req.body || {};
+      if (id) {
+        const r = await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
+          method: 'PATCH', headers: { ..._csh, Prefer: 'return=representation' },
+          body: JSON.stringify({ datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url })
+        });
+        const d = await r.json();
+        return res.status(200).json(d[0] || {});
+      } else {
+        const rMax = await fetch(`${_CURL}/rest/v1/cotizaciones?cliente_id=eq.${cid}&select=numero&order=numero.desc&limit=1`, { headers: _cshG });
+        const mx = await rMax.json();
+        const numero = ((mx[0]?.numero) || 0) + 1;
+        const dias = parseInt(condiciones?.validez_dias || 15);
+        const fHoy = new Date().toISOString().split('T')[0];
+        const fVenc = new Date(Date.now() + dias * 86400000).toISOString().split('T')[0];
+        const tokenRespuesta = crypto.randomBytes(32).toString('hex');
+        const r = await fetch(`${_CURL}/rest/v1/cotizaciones`, {
+          method: 'POST', headers: { ..._csh, Prefer: 'return=representation' },
+          body: JSON.stringify({ cliente_id: cid, numero, datos_destinatario, items, condiciones, incluye_iva, notas, archivo_externo_url, fecha_emision: fHoy, fecha_vencimiento: fVenc, token_respuesta: tokenRespuesta, estado: 'borrador' })
+        });
+        const d = await r.json();
+        return res.status(201).json(d[0] || {});
+      }
+    }
+
+    // POST cot-enviar — enviar cotización por email y/o WhatsApp (con PDF adjunto)
+    if (req.method === 'POST' && action === 'cot-enviar') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id, canales } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'id requerido' });
+      const [rCot, rCli] = await Promise.all([
+        fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}&limit=1`, { headers: _cshG }),
+        fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,contacto_tel,direccion,logo_url,canales_meta&limit=1`, { headers: _cshG })
+      ]);
+      const cot = (await rCot.json())[0];
+      const cli = (await rCli.json())[0];
+      if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
+      const publicUrl = `${BASE_URL}/cotizacion?token=${cot.token_respuesta}`;
+      const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0) * (parseFloat(it.cantidad)||1) * (1 - (parseFloat(it.descuento)||0)/100), 0);
+      const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
+      const totalFmt = '$' + total.toLocaleString('es-CL');
+      const errors = [];
+
+      // Generar PDF una sola vez si algún canal lo necesita
+      let pdfBuf = null;
+      const needPdf = canales?.includes('email');
+      if (needPdf) {
+        try { pdfBuf = await buildCotizacionPDF({ cot, cli }); } catch(e) { errors.push('pdf-gen: ' + e.message); }
+      }
+
+      // EMAIL con PDF adjunto
+      if (canales?.includes('email') && cot.datos_destinatario?.email) {
+        try {
+          const emailBody = {
+            from: 'attempo <contacto@attempo.cl>',
+            to: [cot.datos_destinatario.email],
+            subject: `Cotización N° ${cot.numero} — ${cli?.nombre_negocio || 'attempo'}`,
+            html: buildCotizacionEmail({ cot, cli, publicUrl, totalFmt })
+          };
+          if (pdfBuf) {
+            emailBody.attachments = [{ filename: `Cotizacion-${cot.numero || 'nueva'}.pdf`, content: pdfBuf.toString('base64') }];
+          }
+          const eR = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(emailBody)
+          });
+          if (!eR.ok) {
+            const eErr = await eR.json().catch(() => ({}));
+            errors.push('email: ' + (eErr.message || eErr.name || eR.status));
+          }
+        } catch(e) { errors.push('email: ' + e.message); }
+      }
+
+      // WHATSAPP — template primero (sin restricción 24h), fallback a texto libre
+      if (canales?.includes('whatsapp')) {
+        if (!cot.datos_destinatario?.telefono) {
+          errors.push('whatsapp: falta teléfono del destinatario');
+        } else if (!cli?.canales_meta?.wa_phone_number_id || !cli?.canales_meta?.wa_token) {
+          errors.push('whatsapp: canal no configurado (falta Phone Number ID o token)');
+        } else {
+          let phone = String(cot.datos_destinatario.telefono).replace(/\D/g,'');
+          if (!phone.startsWith('56') && phone.length === 9) phone = '56' + phone;
+          const firstName = cot.datos_destinatario?.nombre ? cot.datos_destinatario.nombre.split(' ')[0] : 'cliente';
+          const waUrl = `https://graph.facebook.com/v21.0/${cli.canales_meta.wa_phone_number_id}/messages`;
+          const waHeaders = { Authorization: `Bearer ${cli.canales_meta.wa_token}`, 'Content-Type': 'application/json' };
+          try {
+            // Intento 1: template aprobado (llega a cualquier número sin restricción de 24h)
+            // Intenta primero es_LA (Chile/Latam), luego es (genérico) si falla
+            const langCodes = ['es_LA', 'es'];
+            let templateOk = false;
+            for (const langCode of langCodes) {
+              const templateBody = {
+                messaging_product: 'whatsapp', to: phone, type: 'template',
+                template: {
+                  name: 'cotizacion_nueva', language: { code: langCode },
+                  components: [{ type: 'body', parameters: [
+                    { type: 'text', text: firstName },
+                    { type: 'text', text: String(cot.numero || '') },
+                    { type: 'text', text: totalFmt },
+                    { type: 'text', text: publicUrl }
+                  ]}]
+                }
+              };
+              console.log(`[cotiz-wa] intentando template lang=${langCode} phone=${phone}`);
+              const wR = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(templateBody) });
+              const wRText = await wR.text();
+              console.log(`[cotiz-wa] template ${langCode} → status=${wR.status} body=${wRText.slice(0,300)}`);
+              if (wR.ok) { templateOk = true; break; }
+              const wErr = JSON.parse(wRText || '{}');
+              const errCode = wErr.error?.code;
+              // Si el error NO es de template, no tiene caso probar otro lang
+              const esErrorTemplate = errCode === 132001 || errCode === 132000 || errCode === 100 || String(wErr.error?.message || '').includes('template') || String(wErr.error?.message || '').includes('language');
+              if (!esErrorTemplate) {
+                errors.push(`whatsapp: [${errCode}] ${wErr.error?.message || wR.status}`);
+                break;
+              }
+            }
+            // Fallback a texto libre si el template falló (funciona solo dentro de ventana 24h)
+            if (!templateOk && !errors.some(e => e.startsWith('whatsapp:'))) {
+              console.log('[cotiz-wa] template falló, intentando texto libre');
+              const textBody = {
+                messaging_product: 'whatsapp', to: phone, type: 'text',
+                text: { body: `Hola ${firstName}, te enviamos la Cotización N° ${cot.numero} por ${totalFmt}.\n\nRevísala y respóndela aquí:\n${publicUrl}` }
+              };
+              const wR2 = await fetch(waUrl, { method: 'POST', headers: waHeaders, body: JSON.stringify(textBody) });
+              const wR2Text = await wR2.text();
+              console.log(`[cotiz-wa] texto libre → status=${wR2.status} body=${wR2Text.slice(0,200)}`);
+              if (!wR2.ok) {
+                const wErr2 = JSON.parse(wR2Text || '{}');
+                errors.push(`whatsapp: [${wErr2.error?.code}] ${wErr2.error?.message || wR2.status}`);
+              }
+            }
+          } catch(e) { errors.push('whatsapp: ' + e.message); }
+        }
+      }
+
+      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
+        method: 'PATCH', headers: _csh, body: JSON.stringify({ estado: 'enviada' })
+      });
+      return res.status(200).json({ ok: true, ...(errors.length && { errors }) });
+    }
+
+    // DELETE cot-eliminar — eliminar borrador
+    if (req.method === 'DELETE' && action === 'cot-eliminar') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id } = req.query;
+      if (!id) return res.status(400).json({ error: 'id requerido' });
+      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
+        method: 'DELETE', headers: _cshG
+      });
+      return res.status(200).json({ ok: true });
+    }
+
+    // GET cot-publica — página pública (sin auth)
+    if (req.method === 'GET' && action === 'cot-publica') {
+      const { token } = req.query;
+      if (!token) return res.status(400).json({ error: 'token requerido' });
+      const r = await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}&limit=1`, { headers: _cshG });
+      const cot = (await r.json())[0];
+      if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
+      const rCli = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}&select=nombre_negocio,email,contacto_tel,direccion,logo_url&limit=1`, { headers: _cshG });
+      const cli = (await rCli.json())[0] || {};
+      return res.status(200).json({ cotizacion: cot, negocio: { ...cli, telefono: cli.contacto_tel } });
+    }
+
+    // POST cot-responder — cliente acepta o rechaza (sin auth)
+    if (req.method === 'POST' && action === 'cot-responder') {
+      const { token, accion, comentario } = req.body || {};
+      if (!token || !['aceptada','rechazada'].includes(accion)) return res.status(400).json({ error: 'Datos inválidos' });
+      const rCheck = await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}&estado=eq.enviada&limit=1`, { headers: _cshG });
+      const cot = (await rCheck.json())[0];
+      if (!cot) return res.status(409).json({ error: 'Esta cotización ya fue respondida o no está disponible' });
+      await fetch(`${_CURL}/rest/v1/cotizaciones?token_respuesta=eq.${encodeURIComponent(token)}`, {
+        method: 'PATCH', headers: _csh,
+        body: JSON.stringify({ estado: accion, respuesta: { accion, comentario: comentario || null, fecha: new Date().toISOString() } })
+      });
+
+      // Si acepta y el negocio tiene MP conectado → generar link de pago
+      let payment_url = null;
+      if (accion === 'aceptada') {
+        try {
+          const rCli = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}&select=nombre_negocio,metodos_pago&limit=1`, { headers: _cshG });
+          const cli = (await rCli.json())[0];
+          const mp = cli?.metodos_pago || {};
+          const neto = (cot.items || []).reduce((s, it) => s + (parseFloat(it.precio_unitario)||0) * (parseFloat(it.cantidad)||1) * (1 - (parseFloat(it.descuento)||0)/100), 0);
+          const total = cot.incluye_iva ? Math.round(neto * 1.19) : Math.round(neto);
+          if (mp.mp_connected && mp.mp_access_token && total > 0) {
+            let mpToken = mp.mp_access_token;
+            const prefBody = {
+              items: [{ title: `Cotización N° ${cot.numero || ''} — ${cli?.nombre_negocio || ''}`.slice(0, 255), quantity: 1, unit_price: total, currency_id: 'CLP' }],
+              external_reference: `COT-${cot.id}`,
+              back_urls: {
+                success: `${BASE_URL}/cotizacion?token=${token}&pago=ok`,
+                failure: `${BASE_URL}/cotizacion?token=${token}&pago=error`,
+                pending: `${BASE_URL}/cotizacion?token=${token}`
+              },
+              auto_return: 'approved',
+              notification_url: `${BASE_URL}/api/flow?tipo=mp_webhook`
+            };
+            let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+              body: JSON.stringify(prefBody)
+            });
+            if (prefResp.status === 401 && mp.mp_refresh_token) {
+              const tr = await fetch('https://api.mercadopago.com/oauth/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ grant_type: 'refresh_token', client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, refresh_token: mp.mp_refresh_token })
+              });
+              const td = await tr.json();
+              if (td.access_token) {
+                mp.mp_access_token = td.access_token;
+                if (td.refresh_token) mp.mp_refresh_token = td.refresh_token;
+                await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cot.cliente_id}`, { method: 'PATCH', headers: _csh, body: JSON.stringify({ metodos_pago: mp }) });
+                mpToken = td.access_token;
+                prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+                  body: JSON.stringify(prefBody)
+                });
+              }
+            }
+            const prefData = await prefResp.json();
+            if (prefData.init_point) payment_url = prefData.init_point;
+            else console.error('cot-responder mp error:', JSON.stringify(prefData));
+          }
+          /* Webpay — reservado para uso futuro
+          else if (mp.webpay && mp.webpay_commerce_code && mp.webpay_api_key_secret && total > 0) {
+            payment_url = `${BASE_URL}/api/flow?tipo=webpay_cot_create&cot_token=${encodeURIComponent(token)}`;
+          } */
+        } catch(e) { console.error('cot-responder mp:', e.message); }
+      }
+
+      return res.status(200).json({ ok: true, estado: accion, ...(payment_url && { payment_url }) });
+    }
+
+    // GET cot-config — datos del negocio para cotizaciones
+    if (req.method === 'GET' && action === 'cot-config') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const r = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,contacto_tel,direccion,logo_url&limit=1`, { headers: _cshG });
+      const row = (await r.json())[0] || {};
+      return res.status(200).json({ ...row, telefono: row.contacto_tel });
+    }
+
+    // POST cot-logo-upload — sube logo a Storage y devuelve URL pública (el PATCH a BD lo hace el frontend)
+    if (req.method === 'POST' && action === 'cot-logo-upload') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { fileBase64, mimeType } = req.body || {};
+      if (!fileBase64) return res.status(400).json({ error: 'fileBase64 requerido' });
+      if (!/^image\//i.test(mimeType || '')) return res.status(400).json({ error: 'Formato de imagen inválido' });
+      const bucket = 'cotizaciones';
+      const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
+      if (bucketR.status === 404) {
+        const cR = await fetch(`${_CURL}/storage/v1/bucket`, {
+          method: 'POST', headers: _csh,
+          body: JSON.stringify({ id: bucket, name: bucket, public: true })
+        });
+        if (!cR.ok) {
+          const err = await cR.text().catch(() => '');
+          return res.status(500).json({ error: 'Error creando bucket: ' + err.slice(0, 160) });
+        }
+      } else {
+        await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, {
+          method: 'PUT', headers: _csh, body: JSON.stringify({ public: true })
+        }).catch(() => {});
+      }
+      const ext  = mimeType === 'image/png' ? 'png' : 'jpg';
+      const path = `logos/${cid}_${Date.now()}.${ext}`;
+      const buf  = Buffer.from(fileBase64, 'base64');
+      const storageR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
+        method: 'POST',
+        headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'image/jpeg', 'x-upsert': 'true' },
+        body: buf
+      });
+      if (!storageR.ok) {
+        const err = await storageR.text().catch(() => '');
+        return res.status(500).json({ error: 'Error subiendo logo a Storage: ' + err.slice(0, 200) });
+      }
+      const publicUrl = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
+      return res.status(200).json({ ok: true, publicUrl });
+    }
+
+    // PATCH cot-logo — guardar/quitar logo_url en clientes_sistema con service key
+    if (req.method === 'PATCH' && action === 'cot-logo') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { logo_url } = req.body || {};
+      const rUp = await fetch(`${_CURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+        method: 'PATCH', headers: { ..._csh, Prefer: 'return=minimal' }, body: JSON.stringify({ logo_url: logo_url ?? null })
+      });
+      if (!rUp.ok) {
+        const errTxt = await rUp.text().catch(() => '');
+        return res.status(500).json({ error: 'Error guardando logo en BD: ' + errTxt.slice(0, 200) });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
+    // POST cot-voucher-upload — sube comprobante de transferencia y marca cotización como pagada
+    if (req.method === 'POST' && action === 'cot-voucher-upload') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { id, fileBase64, mimeType, filename } = req.body || {};
+      if (!id || !fileBase64) return res.status(400).json({ error: 'id y fileBase64 requeridos' });
+      const ext = (filename || 'comprobante.jpg').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      const path = `vouchers/${cid}_${Date.now()}.${ext}`;
+      const bucket = 'cotizaciones';
+      const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
+      if (bucketR.status === 404) {
+        await fetch(`${_CURL}/storage/v1/bucket`, {
+          method: 'POST', headers: _csh, body: JSON.stringify({ id: bucket, name: bucket, public: true })
+        }).catch(() => {});
+      } else {
+        await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, {
+          method: 'PUT', headers: _csh, body: JSON.stringify({ public: true })
+        }).catch(() => {});
+      }
+      const buf = Buffer.from(fileBase64, 'base64');
+      const stR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
+        method: 'POST',
+        headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'image/jpeg', 'x-upsert': 'true' },
+        body: buf
+      });
+      if (!stR.ok) { const e = await stR.text().catch(() => ''); return res.status(500).json({ error: 'Error subiendo comprobante: ' + e.slice(0, 120) }); }
+      const voucher_url = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
+      // Merge en respuesta y marcar como pagada
+      const rCot = await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}&limit=1`, { headers: _cshG });
+      const [cot] = await rCot.json();
+      if (!cot) return res.status(404).json({ error: 'Cotización no encontrada' });
+      const respMerged = { ...(cot.respuesta || {}), metodo_pago: 'transferencia', voucher_url };
+      await fetch(`${_CURL}/rest/v1/cotizaciones?id=eq.${id}&cliente_id=eq.${cid}`, {
+        method: 'PATCH', headers: _csh, body: JSON.stringify({ estado: 'pagada', respuesta: respMerged })
+      });
+      return res.status(200).json({ ok: true, voucher_url });
+    }
+
+    // POST cot-pdf-upload — sube PDF a Supabase Storage con service role key
+    if (req.method === 'POST' && action === 'cot-pdf-upload') {
+      const cid = _cotClienteId();
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const { fileBase64, mimeType, filename } = req.body || {};
+      if (!fileBase64) return res.status(400).json({ error: 'fileBase64 requerido' });
+      const ext  = (filename || 'archivo.pdf').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'pdf';
+      const path = `pdf_externos/${cid}_${Date.now()}.${ext}`;
+      const bucket = 'cotizaciones';
+      // Crear bucket si no existe
+      const bucketR = await fetch(`${_CURL}/storage/v1/bucket/${bucket}`, { headers: _cshG });
+      if (bucketR.status === 404) {
+        await fetch(`${_CURL}/storage/v1/bucket`, {
+          method: 'POST', headers: _csh,
+          body: JSON.stringify({ id: bucket, name: bucket, public: true })
+        });
+      }
+      // Subir archivo
+      const buf = Buffer.from(fileBase64, 'base64');
+      const storageR = await fetch(`${_CURL}/storage/v1/object/${bucket}/${path}`, {
+        method: 'POST',
+        headers: { apikey: _CKEY, Authorization: `Bearer ${_CKEY}`, 'Content-Type': mimeType || 'application/pdf', 'x-upsert': 'true' },
+        body: buf
+      });
+      if (!storageR.ok) {
+        const err = await storageR.text().catch(() => '');
+        return res.status(500).json({ error: 'Error al subir archivo: ' + err.slice(0, 120) });
+      }
+      const publicUrl = `${_CURL}/storage/v1/object/public/${bucket}/${path}`;
+      return res.status(200).json({ ok: true, publicUrl });
+    }
+    } catch(e) { return res.status(500).json({ error: e.message }); }
+  }
+
+  // ── SA: generar session token para cliente impersonado ────────────────────
+  if (req.method === 'POST' && req.query.action === 'gen-impersona-token') {
+    if (!verifyToken(req.headers['x-sa-token'])) return res.status(401).json({ error: 'No autorizado' });
+    const { cliente_id } = req.body || {};
+    if (!cliente_id) return res.status(400).json({ error: 'cliente_id requerido' });
+    const SESSION_SECRET = process.env.SESSION_SECRET;
+    if (!SESSION_SECRET) return res.status(500).json({ error: 'SESSION_SECRET no configurado' });
+    const expires = Date.now() + 24 * 60 * 60 * 1000;
+    const payload = `${cliente_id}:admin:${expires}`;
+    const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+    return res.status(200).json({ session_token: `${payload}.${sig}` });
   }
 
   // ── Gestión de usuarios y negocios ────────────────────────────────────────
@@ -855,6 +1454,144 @@ export default async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: 'Error interno' });
   }
+}
+
+async function buildCotizacionPDF({ cot, cli }) {
+  // Descargar logo si hay URL pública
+  let logoBuf = null;
+  const logoUrl = cli?.logo_url;
+  if (logoUrl && !logoUrl.startsWith('data:')) {
+    try {
+      const lr = await fetch(logoUrl);
+      if (lr.ok) logoBuf = Buffer.from(await lr.arrayBuffer());
+    } catch(_) {}
+  }
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
+    const negNombre = cli?.nombre_negocio || '';
+    const negDir    = cli?.direccion || '';
+    const negEmail  = cli?.email || '';
+    const negTel    = cli?.contacto_tel || '';
+    const dest      = cot.datos_destinatario || {};
+    const items     = cot.items || [];
+    const conds     = cot.condiciones || {};
+
+    // Encabezado — logo + nombre negocio
+    let headerY = 40;
+    if (logoBuf) {
+      doc.image(logoBuf, 40, headerY, { fit: [180, 40] });
+      headerY += 46;
+    }
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a1a1a').text(negNombre, 40, headerY);
+    let y = headerY + 22;
+    if (negDir)   { doc.fontSize(9).font('Helvetica').fillColor('#666').text(negDir, 40, y);   y += 13; }
+    if (negEmail) { doc.text([negEmail, negTel].filter(Boolean).join(' · '), 40, y); y += 13; }
+
+    // N° cotización
+    doc.rect(380, 40, 175, 50).stroke('#1a1a1a');
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#555').text('COTIZACIÓN', 388, 48);
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a1a1a').text(`N° ${cot.numero || '—'}`, 388, 58);
+    const hoy = new Date().toLocaleDateString('es-CL');
+    doc.fontSize(8).font('Helvetica').fillColor('#555').text(`Fecha: ${hoy}`, 380, 96);
+    if (conds.validez_dias) doc.text(`Vence en: ${conds.validez_dias} días`, 380, 107);
+
+    y = Math.max(y, 110) + 12;
+    doc.moveTo(40, y).lineTo(555, y).stroke('#ddd'); y += 12;
+
+    // Destinatario
+    doc.fontSize(7).font('Helvetica-Bold').fillColor('#888').text('DESTINATARIO', 40, y); y += 12;
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1a1a1a').text(dest.nombre || '', 40, y); y += 14;
+    const destLines = [dest.rut ? `RUT: ${dest.rut}` : null, dest.giro, dest.direccion, [dest.email, dest.telefono].filter(Boolean).join(' · ')].filter(Boolean);
+    destLines.forEach(l => { doc.fontSize(9).font('Helvetica').fillColor('#555').text(l, 40, y); y += 12; });
+
+    if (conds.plazo_entrega || conds.forma_pago) {
+      let cy = y - destLines.length * 12 - 14;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#888').text('CONDICIONES', 350, cy); cy += 12;
+      if (conds.plazo_entrega) { doc.fontSize(9).font('Helvetica').fillColor('#555').text(`Entrega: ${conds.plazo_entrega}`, 350, cy); cy += 12; }
+      if (conds.forma_pago)   { doc.fontSize(9).font('Helvetica').fillColor('#555').text(`Pago: ${conds.forma_pago}`, 350, cy); }
+    }
+
+    y += 16;
+    doc.moveTo(40, y).lineTo(555, y).stroke('#ddd'); y += 8;
+
+    // Tabla
+    const cols = { desc: 40, cant: 330, precio: 390, dto: 460, total: 500 };
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#555');
+    doc.text('Descripción', cols.desc, y);
+    doc.text('Cant.', cols.cant, y, { width: 55, align: 'right' });
+    doc.text('Precio unit.', cols.precio, y, { width: 65, align: 'right' });
+    doc.text('Dto.', cols.dto, y, { width: 35, align: 'right' });
+    doc.text('Total', cols.total, y, { width: 55, align: 'right' });
+    y += 14;
+    doc.moveTo(40, y).lineTo(555, y).stroke('#eee'); y += 6;
+
+    let neto = 0;
+    items.forEach(it => {
+      const tot = (it.precio_unitario||0) * (it.cantidad||1) * (1 - (it.descuento||0)/100);
+      neto += tot;
+      doc.fontSize(9).font('Helvetica').fillColor('#1a1a1a').text(it.descripcion || '', cols.desc, y, { width: 280 });
+      doc.text(String(it.cantidad||1), cols.cant, y, { width: 55, align: 'right' });
+      doc.text(fmt(it.precio_unitario||0), cols.precio, y, { width: 65, align: 'right' });
+      doc.text(`${it.descuento||0}%`, cols.dto, y, { width: 35, align: 'right' });
+      doc.font('Helvetica-Bold').text(fmt(tot), cols.total, y, { width: 55, align: 'right' });
+      y += 16;
+      doc.moveTo(40, y - 4).lineTo(555, y - 4).stroke('#f0f0f0');
+    });
+
+    // Totales
+    y += 8;
+    const iva   = cot.incluye_iva ? Math.round(neto * 0.19) : 0;
+    const total = Math.round(neto) + iva;
+    doc.fontSize(9).font('Helvetica').fillColor('#555').text('Neto', 380, y); doc.text(fmt(neto), 460, y, { width: 95, align: 'right' }); y += 14;
+    if (cot.incluye_iva) { doc.text('IVA 19%', 380, y); doc.text(fmt(iva), 460, y, { width: 95, align: 'right' }); y += 14; }
+    doc.moveTo(380, y).lineTo(555, y).stroke('#1a1a1a'); y += 6;
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1a1a1a').text('Total', 380, y);
+    doc.text(fmt(total), 460, y, { width: 95, align: 'right' }); y += 20;
+
+    // Observaciones
+    if (cot.notas) {
+      y += 8;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#888').text('OBSERVACIONES', 40, y); y += 12;
+      doc.fontSize(9).font('Helvetica').fillColor('#444').text(cot.notas, 40, y, { width: 515 }); y += 20;
+    }
+
+    // Footer
+    doc.fontSize(8).fillColor('#aaa').text('Cotización generada vía attempo · attempo.cl', 40, 780, { align: 'center', width: 515 });
+    doc.end();
+  });
+}
+
+function buildCotizacionEmail({ cot, cli, publicUrl, totalFmt }) {
+  const nombre  = cot.datos_destinatario?.nombre || 'Estimado/a';
+  const negocio = cli?.nombre_negocio || 'Tu proveedor';
+  const logo    = cli?.logo_url;
+  const logoHtml = (logo && !logo.startsWith('data:'))
+    ? `<img src="${logo}" alt="${negocio}" style="height:48px;width:auto;max-width:160px;display:block;margin:0 0 4px">`
+    : `<div style="font-size:20px;font-weight:700;color:#fff">${negocio}</div>`;
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+<tr><td style="background:#1E1B3A;padding:24px 32px">${logoHtml}<div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px">Cotización N° ${cot.numero}</div></td></tr>
+<tr><td style="padding:32px">
+  <p style="margin:0 0 16px;color:#374151;font-size:15px">Hola <strong>${nombre}</strong>,</p>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.6"><strong>${negocio}</strong> te ha enviado una cotización por un total de <strong style="color:#6C5CE4">${totalFmt}</strong>. Haz clic en el botón para revisarla y responderla.</p>
+  <table width="100%"><tr><td align="center" style="padding:0 0 24px">
+    <a href="${publicUrl}" style="display:inline-block;padding:14px 36px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600">Ver cotización →</a>
+  </td></tr></table>
+  <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center">Esta cotización vence el ${cot.fecha_vencimiento || '—'}.</p>
+</td></tr>
+<tr><td style="background:#f9f8ff;padding:14px 32px;text-align:center;border-top:1px solid #ede9fe">
+  <p style="margin:0;color:#9ca3af;font-size:12px">Enviado vía attempo · <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none">attempo.cl</a></p>
+</td></tr>
+</table></td></tr></table></body></html>`;
 }
 
 function inviteHtml({ nombre, username, tempPassword, rolLabel, loginUrl }) {

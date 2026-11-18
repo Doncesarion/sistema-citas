@@ -1,5 +1,25 @@
 import crypto from 'crypto';
 
+function verifySessionToken(token) {
+  if (!token) return null;
+  const [payload, sig] = [token.slice(0, token.lastIndexOf('.')), token.slice(token.lastIndexOf('.') + 1)];
+  if (!payload || !sig) return null;
+  const SECRET = process.env.SESSION_SECRET;
+  if (!SECRET) return null;
+  const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
+  const parts = payload.split(':');
+  if (parts.length < 3) return null;
+  const [cliente_id, rol, expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return { cliente_id, rol };
+}
+
+// Rate limiting en memoria para modo landing (chatbot público web)
+const landingRateLimit = new Map();
+
 const ADMIN_HELP_PROMPT = `Eres Attio, el asistente de ayuda interno de Attempo. Tu misión es responder todas las dudas del administrador sobre cómo usar el dashboard. Eres claro, amigable y directo. Siempre respondes en español.
 
 SECCIONES DEL DASHBOARD:
@@ -59,19 +79,23 @@ function incUso(supaUrl, supaKey, cliente_id, campo) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { messages, cliente_id, negocio_nombre, type, attia_conv_id: incomingConvId } = req.body || {};
+  const { messages, cliente_id, negocio_nombre, type, attia_conv_id: incomingConvId, email_paciente } = req.body || {};
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Datos incompletos' });
+  if (messages.some(m => typeof m?.content !== 'string' || m.content.length > 2000)) return res.status(400).json({ error: 'Mensaje inválido' });
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key no configurada' });
 
   // ── Modo admin-help (Attio) ──────────────────────────────────────────────
   if (type === 'admin') {
+    const sessionToken = req.headers['x-session-token'];
+    const session = verifySessionToken(sessionToken);
+    if (!session) return res.status(401).json({ error: 'No autorizado' });
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, system: ADMIN_HELP_PROMPT, messages: messages.slice(-10) })
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400, system: ADMIN_HELP_PROMPT, messages: messages.slice(-8) })
       });
       if (!r.ok) return res.status(502).json({ error: 'Error AI', detail: await r.text() });
       const data = await r.json();
@@ -83,75 +107,213 @@ export default async function handler(req, res) {
 
   // ── Modo landing (Attia website sales bot) ────────────────────────────────
   if (type === 'landing') {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const windowMs = 60 * 1000;
+    const maxReqs = 20;
+    const entry = landingRateLimit.get(ip) || { count: 0, start: now };
+    if (now - entry.start > windowMs) { entry.count = 0; entry.start = now; }
+    entry.count++;
+    landingRateLimit.set(ip, entry);
+    if (entry.count > maxReqs) return res.status(429).json({ error: 'Demasiadas solicitudes' });
+
     const { session_id } = req.body || {};
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
     const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
     const sh2 = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
     const hoy = new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago' });
-    const landingPrompt = `Eres Attia, la asistente virtual de attempo. Atiendes desde el sitio web a personas interesadas en conocer la plataforma.
+
+    const landingPrompt = `Eres Attia, la asistente de attempo en el sitio web. Atiendes a personas interesadas en conocer la plataforma.
 
 SOBRE ATTEMPO:
-attempo es una plataforma de agendamiento online para profesionales y clínicas en Chile. Tus pacientes o clientes reservan citas 24/7 desde el celular, reciben recordatorios automáticos por WhatsApp y email, y pueden pagar con Webpay. Todo listo en minutos, sin complicaciones técnicas.
+attempo es una plataforma chilena de agendamiento online con chatbot IA. Los pacientes reservan citas 24/7, reciben recordatorios automáticos por WhatsApp y pueden pagar con Webpay. Sin complicaciones técnicas.
 
 PLANES Y PRECIOS:
-- Plan Inicio: $24.990/mes + IVA — agenda online, recordatorios automáticos, cobro con Webpay. Para profesionales solos.
-- Plan Pro: $44.990/mes + IVA — todo lo de Inicio + chatbot IA (Attia) que responde y agenda en Instagram, WhatsApp y Messenger.
+- Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
+- Plan Pro: $44.990/mes + IVA — todo lo anterior + chatbot IA (Attia) que responde y agenda en WhatsApp, Instagram y Messenger.
 - Plan Clínica IA: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro.
-- Todos los planes incluyen 12 días de prueba gratis.
+- Todos incluyen 12 días de prueba gratis, sin tarjeta de crédito.
 
 PARA QUIÉN ES:
-Psicólogos, médicos, nutricionistas, kinesiólogos, dentistas, fonoaudiólogos, matronas, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
+Psicólogos, médicos, nutricionistas, kinesiólogos, dentistas, fonoaudiólogos, matronas, abogados, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
 
 CÓMO EMPEZAR:
-Pueden crear su cuenta gratis en https://app.attempo.cl/registro (12 días de prueba, sin tarjeta de crédito).
-O escribirnos por WhatsApp al +56957285407 para una demo personalizada.
+https://app.attempo.cl/registro — 12 días de prueba, sin tarjeta.
+WhatsApp +56957285407 para una demo personalizada.
 
 CÓMO RESPONDER:
-- Mensajes cortos, máximo 3 líneas. Sin textos largos.
-- Una sola pregunta o idea por mensaje.
-- Usa "tú" con el visitante. No uses markdown ni asteriscos. Sin emojis.
-- No menciones que eres una IA.
-- Si no sabes algo técnico específico, di "te consulto con el equipo".
-- Cuando muestren interés real: "puedes crear tu cuenta gratis en https://app.attempo.cl/registro o escribirnos al WhatsApp +56957285407 para que te mostremos cómo funciona para tu rubro".
+- Máximo 3 líneas por mensaje. Una idea por mensaje.
+- Tratas de tú. Sin markdown ni asteriscos.
+- PROHIBIDO usar emojis. No uses ninguno: ni 😊 ni 👋 ni 📧 ni 🚀 ni ningún otro. Solo texto plano.
+- No menciones que eres IA.
+- NUNCA digas: "te consulto con el equipo", "le pregunto al equipo técnico", "puedo consultarlo", "escribe a contacto@..." ni ninguna variante. Si no puedes responder, usa capturar_lead — no inventes frases de relleno.
+
+RESPUESTAS A PREGUNTAS FRECUENTES (usa estas directamente, sin derivar):
+
+Integraciones con otros sistemas:
+- Reservo: attempo no se integra directamente con Reservo. Los dos pueden correr en paralelo: tu equipo sigue usando Reservo para gestión clínica y fichas, mientras Attia maneja el canal de WhatsApp para reservas y recordatorios. Las citas que agenda Attia quedan en attempo.
+- Medilink, Agenda Pro u otro sistema clínico: No hay integración directa. attempo maneja sus propias citas de forma independiente.
+- WordPress: La página de reservas de attempo se puede agregar en WordPress como link o iframe. No hay plugin nativo.
+- Chatbot en mi web (sitio web propio): Attia funciona en WhatsApp, Instagram y Messenger. No se instala en un sitio web como chat flotante. Lo que sí puedes agregar a tu web es el botón o link de reservas de attempo, o embeber el calendario como iframe.
+- Google Calendar: Sí, attempo se conecta con Google Calendar. Cada cita nueva aparece automáticamente en tu calendario.
+
+Configuración y tiempos:
+- Tiempo de implementación: Entre 5 y 15 minutos para crear la cuenta y configurar la agenda. Conectar WhatsApp Business toma 1-2 días adicionales dependiendo de la verificación de Meta.
+- ¿Necesito un técnico?: No. Todo se configura desde el panel web sin instalaciones.
+- ¿Qué necesito para empezar?: Una cuenta de email y, si quieres el chatbot, un número de WhatsApp Business verificado en Meta Business Suite.
+
+Personalización:
+- Sí, puedes configurar: nombre y personalidad del bot, mensaje de saludo, preguntas frecuentes, catálogo de servicios con precios y duración, horarios de atención y promociones.
+
+Panel y funcionalidades:
+- El dashboard incluye: agenda de citas (vista día/semana/lista), listado de clientes, historial de conversaciones por canal, reportes de citas e ingresos, configuración del bot y métricas de uso mensual.
+- No hay app móvil separada. El panel es web y funciona desde el celular en el navegador.
+
+Recordatorios:
+- Se envían automáticamente por WhatsApp y email 24h y 1h antes de la cita. El paciente puede confirmar o cancelar desde el mensaje.
+
+Precios y prueba:
+- La prueba gratis dura 12 días. No se pide tarjeta de crédito para empezar.
+- Puedes cancelar en cualquier momento sin costos adicionales.
+
+CUANDO ALGUIEN PIDE UNA DEMO, QUIERE HABLAR CON ALGUIEN, O HACE UNA PREGUNTA QUE NO ESTÁ EN ESTA LISTA:
+Usa de inmediato la herramienta capturar_lead con los datos disponibles (nombre, email o WhatsApp, interés).
+Después di únicamente: "Perfecto, alguien del equipo te va a contactar a la brevedad."
+No sigas intentando responder. No inventes respuestas para lo que no sabes.
 
 HOY ES: ${hoy}`;
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, system: landingPrompt, messages: messages.slice(-12) })
-      });
-      if (!r.ok) return res.status(502).json({ error: 'Error AI' });
-      const data = await r.json();
-      const reply = data.content?.[0]?.text || '';
-      if (session_id && SUPABASE_KEY) {
-        const cid = `web-${session_id}`;
-        const lastUser = messages[messages.length - 1];
-        const toInsert = [];
-        if (lastUser?.role === 'user') toInsert.push({ cliente_id: cid, remitente: 'visitante', contenido: lastUser.content, leido: false });
-        if (reply) toInsert.push({ cliente_id: cid, remitente: 'attia', contenido: reply, leido: false });
-        if (toInsert.length) {
-          fetch(`${SUPABASE_URL}/rest/v1/soporte_mensajes`, {
-            method: 'POST',
-            headers: { ...sh2, Prefer: 'return=minimal' },
-            body: JSON.stringify(toInsert)
-          }).catch(() => {});
+
+    const landingTools = [
+      {
+        name: 'capturar_lead',
+        description: 'Registra a un visitante que pidió contacto humano o una demo. Alerta al equipo de attempo. Úsala cuando alguien pide hablar con una persona, solicita una demo, o deja sus datos para ser contactado.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            nombre:   { type: 'string' },
+            email:    { type: 'string' },
+            telefono: { type: 'string', description: 'WhatsApp o teléfono' },
+            interes:  { type: 'string', description: 'Qué tipo de negocio tiene o qué preguntó' },
+            resumen:  { type: 'string', description: 'Resumen breve de la conversación' }
+          },
+          required: []
         }
       }
-      return res.json({ reply });
+    ];
+
+    function heLanding(str) {
+      if (!str && str !== 0) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    async function ejecutarCapturarLeadLanding(params) {
+      const { nombre, email, telefono, interes, resumen } = params;
+      const clienteIdAttempo = process.env.ATTEMPO_VENTAS_CLIENT_ID;
+      if (clienteIdAttempo && SUPABASE_KEY) {
+        fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+          method: 'POST',
+          headers: { ...sh2, Prefer: 'return=minimal' },
+          body: JSON.stringify({ cliente_id: clienteIdAttempo, canal: 'web', canal_user_id: session_id || null, nombre: nombre || null, email: email || null, telefono: telefono || null, interes: interes || null, resumen: resumen || null, estado: 'nuevo' })
+        }).catch(e => console.error('landing capturar_lead:', e.message));
+      }
+      const key = process.env.RESEND_API_KEY;
+      if (key) {
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Attempo <contacto@attempo.cl>',
+            to: ['cesarsalinasmunoz@gmail.com'],
+            subject: `Lead web — ${nombre || 'Visitante'}`,
+            html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#2d2d2d"><h2 style="color:#6C5CE4;margin:0 0 16px">Lead del sitio web</h2><table style="width:100%;font-size:14px"><tr><td style="color:#666;padding:6px 0;width:90px">Canal</td><td><strong>Sitio web (Attia)</strong></td></tr>${nombre ? `<tr><td style="color:#666;padding:6px 0">Nombre</td><td>${heLanding(nombre)}</td></tr>` : ''}${email ? `<tr><td style="color:#666;padding:6px 0">Email</td><td>${heLanding(email)}</td></tr>` : ''}${telefono ? `<tr><td style="color:#666;padding:6px 0">WhatsApp</td><td>${heLanding(telefono)}</td></tr>` : ''}${interes ? `<tr><td style="color:#666;padding:6px 0">Interés</td><td>${heLanding(interes)}</td></tr>` : ''}</table>${resumen ? `<div style="margin-top:16px;padding:12px;background:#f5f3ff;border-radius:8px;font-size:13px;color:#444">${heLanding(resumen)}</div>` : ''}</div>`
+          })
+        }).catch(() => {});
+      }
+      return { ok: true };
+    }
+
+    let landingMsgs = messages.slice(-12);
+    let reply = '';
+
+    try {
+      for (let i = 0; i < 5; i++) {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, system: landingPrompt, tools: landingTools, messages: landingMsgs })
+        });
+        if (!r.ok) return res.status(502).json({ error: 'Error AI' });
+        const data = await r.json();
+
+        if (data.stop_reason !== 'tool_use') {
+          reply = data.content?.find(b => b.type === 'text')?.text || '';
+          break;
+        }
+
+        const toolBlocks = data.content.filter(b => b.type === 'tool_use');
+        const toolResults = [];
+        for (const block of toolBlocks) {
+          if (block.name === 'capturar_lead') {
+            const result = await ejecutarCapturarLeadLanding(block.input);
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) });
+          }
+        }
+        landingMsgs = [
+          ...landingMsgs,
+          { role: 'assistant', content: data.content },
+          { role: 'user',      content: toolResults }
+        ];
+      }
     } catch (err) {
+      console.error('ai-chat landing error:', err);
       return res.status(500).json({ error: 'Error interno' });
     }
+
+    if (!reply) reply = 'En este momento no puedo responder. Intenta de nuevo en un momento.';
+
+    if (messages.length === 1 && process.env.RESEND_API_KEY) {
+      const primerMensaje = messages[0]?.content || '';
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: ['cesarsalinasmunoz@gmail.com'],
+          subject: 'Nuevo visitante en attempo.cl — Attia',
+          html: `<p style="font-family:sans-serif"><strong>Canal:</strong> Sitio web (Attia)<br><strong>Mensaje:</strong> "${String(primerMensaje).slice(0, 400)}"</p>`
+        })
+      }).catch(() => {});
+    }
+
+    if (session_id && SUPABASE_KEY) {
+      const cid = `web-${session_id}`;
+      const lastUser = messages[messages.length - 1];
+      const toInsert = [];
+      if (lastUser?.role === 'user') toInsert.push({ cliente_id: cid, remitente: 'visitante', contenido: lastUser.content, leido: false });
+      if (reply) toInsert.push({ cliente_id: cid, remitente: 'attia', contenido: reply, leido: false });
+      if (toInsert.length) {
+        fetch(`${SUPABASE_URL}/rest/v1/soporte_mensajes`, {
+          method: 'POST',
+          headers: { ...sh2, Prefer: 'return=minimal' },
+          body: JSON.stringify(toInsert)
+        }).catch(() => {});
+      }
+    }
+    return res.json({ reply });
   }
 
-  if (!cliente_id) return res.status(400).json({ error: 'Datos incompletos' });
+  // Validar que cliente_id es un UUID válido antes de usarlo
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!cliente_id || !uuidRegex.test(cliente_id)) {
+    return res.status(400).json({ error: 'cliente_id inválido' });
+  }
 
   const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY;
   const SUPABASE_URL  = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const sh = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 
   // ── Verificar límite de mensajes para planes chatbot ──────────────────────
-  const LIMITES_CHATBOT = { chatbot_2k: 2000, chatbot_5k: 5000, chatbot_8k: 8000 };
+  const LIMITES_CHATBOT = { inicio: 100, pro: 200, chatbot_2k: 2000, chatbot_5k: 5000, chatbot_8k: 8000 };
   try {
     const mes = new Date().toISOString().slice(0, 7);
     const [planRow, usoRow] = await Promise.all([
@@ -175,14 +337,58 @@ HOY ES: ${hoy}`;
     if (!Array.isArray(espLista)) espLista = [];
   } catch(_) { espLista = []; }
 
+  // ── Reconocimiento de paciente recurrente + citas próximas ───────────────
+  let pacienteContexto = '';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (email_paciente && emailRegex.test(email_paciente)) {
+    try {
+      const hoyISO = new Date().toISOString().slice(0,10);
+      const hace6m = new Date(Date.now() - 180*24*60*60*1000).toISOString().slice(0,10);
+      const en6m   = new Date(Date.now() + 180*24*60*60*1000).toISOString().slice(0,10);
+      const rPac = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email_paciente)}&cliente_id=eq.${cliente_id}&fecha=gte.${hace6m}&fecha=lte.${en6m}&order=fecha.desc&limit=5&select=id,nombre_paciente,fecha,hora,servicio,especialista_id,estado`,
+        { headers: sh }
+      );
+      const citasPac = await rPac.json();
+      if (Array.isArray(citasPac) && citasPac.length > 0) {
+        const nombre = citasPac[0].nombre_paciente || '';
+        const pasadas  = citasPac.filter(c => c.fecha < hoyISO);
+        const proximas = citasPac.filter(c => c.fecha >= hoyISO && !['cancelada','canceled'].includes(c.estado));
+
+        pacienteContexto = `\nPACIENTE RECURRENTE: ${nombre} ya tiene historial con este negocio. En tu primer mensaje salúdalo por su nombre de forma natural.`;
+
+        if (pasadas.length > 0) {
+          const ultima = pasadas[0];
+          const fechaUlt = ultima.fecha.split('-').reverse().join('/');
+          const espUlt = ultima.especialista_id ? (espLista.find(e => e.id === ultima.especialista_id)?.nombre || '') : '';
+          if (ultima.servicio) pacienteContexto += `\nÚltima cita: ${ultima.servicio}${fechaUlt ? ' el ' + fechaUlt : ''}${espUlt ? ' con ' + espUlt : ''}.`;
+          if (pasadas.length > 1) pacienteContexto += `\nHistorial reciente: ${pasadas.length} citas en los últimos 6 meses.`;
+          pacienteContexto += `\nSi quiere agendar, puedes sugerir el mismo servicio${espUlt ? ' y profesional' : ''} de antes.`;
+        }
+
+        if (proximas.length > 0) {
+          pacienteContexto += `\nCITAS PRÓXIMAS (usa estos IDs para reagendar o anular):`;
+          proximas.forEach(c => {
+            const fec = c.fecha.split('-').reverse().join('/');
+            const esp = c.especialista_id ? (espLista.find(e => e.id === c.especialista_id)?.nombre || '') : '';
+            pacienteContexto += `\n• ${c.servicio || 'Cita'} el ${fec} a las ${(c.hora||'').slice(0,5)}${esp ? ' con '+esp : ''} (cita_id: ${c.id})`;
+          });
+        }
+
+        pacienteContexto += '\n';
+      }
+    } catch(e) { console.error('ai-chat paciente-lookup error:', e.message); }
+  }
+
   const espTexto = espLista.length
     ? espLista.map(e => `• ${e.nombre} — ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
 
+  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null;
   let serviciosCatalogo = [], metodosPago = {}, datosBanco = {}, horarioNegocio = null, direccionNegocio = null;
   try {
     const rc = await fetch(
-      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=servicios,metodos_pago,datos_banco,horario_negocio,direccion&limit=1`,
+      `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=servicios,metodos_pago,datos_banco,horario_negocio,direccion,promociones&limit=1`,
       { headers: sh }
     );
     const [cli] = await rc.json();
@@ -191,9 +397,11 @@ HOY ES: ${hoy}`;
     datosBanco  = cli?.datos_banco  || {};
     horarioNegocio = cli?.horario_negocio || null;
     direccionNegocio = cli?.direccion || null;
+    if (Array.isArray(cli?.promociones)) {
+      promocionesBot = [...cli.promociones, ...promocionesBot];
+    }
   } catch(_) {}
 
-  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null;
   try {
     const rb = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh });
     const [bc] = await rb.json();
@@ -203,7 +411,7 @@ HOY ES: ${hoy}`;
       saludoBot       = bc.saludo       || '';
       faqsBot         = Array.isArray(bc.faqs) ? bc.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
       conocimientoBot = bc.conocimiento || '';
-      promocionesBot  = Array.isArray(bc.promociones) ? bc.promociones : [];
+      if (Array.isArray(bc.promociones)) promocionesBot = [...promocionesBot, ...bc.promociones];
       modosBot        = Array.isArray(bc.modos)        ? bc.modos       : [];
       modoActivoId    = bc.modo_activo  || null;
     }
@@ -299,7 +507,9 @@ HOY ES: ${hoy}`;
   const _hoyAI = new Date();
   const _hoyAIstgo = new Date(_hoyAI.toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }) + 'T12:00:00');
   const promocionesActivasAI = promocionesBot.filter(p => {
-    if (!p.titulo?.trim()) return false;
+    const nombre = p.titulo?.trim() || p.nombre?.trim();
+    if (!nombre) return false;
+    if (p.activa === false) return false;
     const ini = p.fecha_inicio ? new Date(p.fecha_inicio + 'T00:00:00') : null;
     const fin = p.fecha_fin    ? new Date(p.fecha_fin   + 'T23:59:59') : null;
     if (ini && _hoyAIstgo < ini) return false;
@@ -307,10 +517,15 @@ HOY ES: ${hoy}`;
     return true;
   });
   const promosTextoAI = promocionesActivasAI.length
-    ? `\nPROMOCIONES VIGENTES HOY:\n${promocionesActivasAI.map(p => `— ${p.titulo}: ${p.descripcion}`).join('\n')}`
+    ? `\nPROMOCIONES VIGENTES HOY:\n${promocionesActivasAI.map(p => {
+        const nombre = p.titulo?.trim() || p.nombre?.trim();
+        const precio = p.precio ? ` — Precio: $${Number(p.precio).toLocaleString('es-CL')}` : '';
+        const prof   = p.profesional_nombre ? ` — Con: ${p.profesional_nombre}` : '';
+        return `— ${nombre}: ${p.descripcion||''}${precio}${prof}`;
+      }).join('\n')}`
     : '';
 
-  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}
+  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}${pacienteContexto}
 ${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
 PROFESIONALES DISPONIBLES (usa el id exacto al llamar las herramientas):
 ${espTexto}
@@ -338,8 +553,19 @@ CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:
 6. Pide teléfono y email en UN SOLO mensaje. Si solo da el teléfono, está bien.
 7. Llama a confirmar_reserva con TODOS los datos: especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha (YYYY-MM-DD), hora (HH:MM), duracion, precio. NO escribas nada después.
 
-NO uses pedir_fecha — no está disponible en este contexto.
-Una vez que confirmar_reserva fue ejecutado en la conversación, NO lo vuelvas a llamar. Si el paciente pregunta cómo pagar, responde directamente con los métodos de pago disponibles que tienes arriba.
+Una vez que confirmar_reserva fue ejecutado en la conversación, NO lo vuelvas a llamar. Si retorna mp_url o flow_url, el sistema redirige al pago automáticamente — NO digas "cita confirmada", di solo "te redirigiremos al pago en un momento". Si no hay pago requerido, ahí sí puedes confirmar la reserva.
+
+CUANDO EL PACIENTE QUIERE REAGENDAR UNA CITA:
+1. Si tienes sus citas próximas en el contexto, identifica cuál quiere cambiar por lo que describe (día, hora, servicio o profesional).
+2. Si no tienes sus citas, llama buscar_citas_paciente con su email (si aún no lo tienes, pídelo).
+3. Confirma con el paciente: "tienes [servicio] el [fecha] a las [hora] con [profesional]. ¿La reagendamos?" Si tiene varias, lista las opciones numeradas y que elija.
+4. Sigue el flujo de agendamiento (pasos 3-7) para confirmar el NUEVO día, hora y profesional. NO canceles la cita vieja hasta tener todos los datos nuevos.
+5. Solo después de llamar confirmar_reserva con los datos nuevos y obtener ok:true, llama cancelar_cita con el cita_id de la cita original. NO vuelvas a pedir el nombre — ya lo tienes.
+
+CUANDO EL PACIENTE QUIERE ANULAR UNA CITA:
+1. Mismos pasos 1 y 2 que reagendamiento para identificar la cita.
+2. Confirma: "¿confirmas que quieres anular [servicio] el [fecha] a las [hora]?"
+3. Cuando confirme, llama cancelar_cita. Luego responde: "listo, tu cita quedó anulada."
 
 CUANDO PREGUNTAN OTRA COSA:
 - Horarios generales: responde con el horario de atención que tienes arriba.
@@ -347,31 +573,21 @@ CUANDO PREGUNTAN OTRA COSA:
 - Servicios: presenta el catálogo que tienes arriba.
 - Preguntas frecuentes: si hay una respuesta configurada arriba para esa pregunta, úsala exactamente.
 
-CÓMO ESCRIBIR:
-- Español chileno natural. Escribe en minúsculas como lo haría una persona en WhatsApp, solo mayúscula al inicio de oración y en nombres propios.
-- Sin emojis. La cercanía se transmite con las palabras, no con símbolos.
-- Sin markdown, sin asteriscos, sin listas con guiones.
-- Mensajes cortos. Una sola pregunta por mensaje.
-- Puedes usar conectores naturales como "claro", "por supuesto", "con gusto", "nos alegra ayudarte" — pero sin signos de exclamación (¡!). Evita "perfecto" y "excelente" que suenan a bot.
-- Usa el nombre del paciente cuando ya lo sabes, pero no en cada mensaje — solo cuando sea natural.
-- Si no hay disponibilidad (disponible: false sin sobrecupo_disponible): "ese día no tengo horas disponibles, ¿te acomoda el [día siguiente]?"
-- Si verificar_disponibilidad retorna sobrecupo_disponible: true con slots_sobrecupo: informa que ese día la agenda está completa, pero ofrece una hora especial fuera de agenda. Muestra las horas de slots_sobrecupo para que el paciente elija. Si acepta, confirma la reserva normalmente con esa hora.
-- Si no hay profesionales activos: díselo con naturalidad y sugiere intentar más tarde.
+CÓMO ESCRIBIR (crítico para mantener costos bajos):
+- Español chileno natural. Minúsculas como en WhatsApp, mayúscula solo al inicio de oración y en nombres.
+- Sin emojis, sin markdown, sin asteriscos, sin listas con guiones.
+- Mensajes MUY cortos — máximo 2 oraciones por respuesta. Nunca saludes con párrafos largos.
+- Una sola pregunta por mensaje. Nunca hagas dos preguntas a la vez.
+- Si ya tienes un dato del contexto (nombre, servicio previo, profesional previo), NO lo preguntes — úsalo directamente.
+- Evita frases de relleno: "claro", "por supuesto", "con gusto", "nos alegra", "perfecto", "excelente". Ve directo al punto.
+- Usa el nombre del paciente como máximo una vez por conversación, solo si es natural.
+- Si no hay disponibilidad (disponible: false sin sobrecupo_disponible): "ese día no tengo horas, ¿te acomoda el [día siguiente]?"
+- Si verificar_disponibilidad retorna sobrecupo_disponible: true, ofrece las horas de slots_sobrecupo como fuera de agenda. Si acepta, confirma normalmente.
+- Si no hay profesionales activos: díselo brevemente y sugiere intentar más tarde.
 - Hoy es ${hoy}. Convierte "mañana", "el lunes", etc. a YYYY-MM-DD.
 - El cliente_id para crear_cita es siempre: ${cliente_id}`;
 
   const tools = [
-    {
-      name: 'pedir_fecha',
-      description: 'Muestra un calendario visual al paciente para que elija el día de su cita. SIEMPRE incluye el especialista_id del profesional ya seleccionado.',
-      input_schema: {
-        type: 'object',
-        properties: {
-          especialista_id: { type: 'string', description: 'ID del profesional confirmado (está en el listado del sistema)' }
-        },
-        required: ['especialista_id']
-      }
-    },
     {
       name: 'verificar_disponibilidad',
       description: 'Retorna los horarios disponibles de un profesional en una fecha específica',
@@ -414,6 +630,28 @@ CÓMO ESCRIBIR:
         },
         required: ['especialista_id', 'nombre_paciente', 'fecha', 'hora']
       }
+    },
+    {
+      name: 'cancelar_cita',
+      description: 'Cancela una cita existente del paciente. Úsala tanto para anulaciones como antes de reagendar. Requiere el cita_id que aparece en el contexto del paciente o que devuelve buscar_citas_paciente.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          cita_id: { type: 'string', description: 'ID UUID de la cita a cancelar' }
+        },
+        required: ['cita_id']
+      }
+    },
+    {
+      name: 'buscar_citas_paciente',
+      description: 'Busca las citas próximas de un paciente por email. Úsala cuando el paciente quiere reagendar o anular pero sus citas no están en el contexto.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', description: 'Email del paciente' }
+        },
+        required: ['email']
+      }
     }
   ];
 
@@ -429,6 +667,8 @@ CÓMO ESCRIBIR:
     }
     return slots;
   }
+
+  const _uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   async function ejecutarHerramienta(nombre, params) {
     if (nombre === 'pedir_fecha') return { ok: true };
@@ -446,8 +686,10 @@ CÓMO ESCRIBIR:
 
     if (nombre === 'verificar_disponibilidad') {
       const { especialista_id, fecha } = params;
+      if (!_uuidRe.test(especialista_id || '')) return { error: 'Profesional no válido' };
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return { error: 'Fecha inválida' };
       const r1 = await fetch(
-        `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=horario`,
+        `${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&cliente_id=eq.${cliente_id}&select=horario`,
         { headers: sh }
       );
       const [esp] = await r1.json();
@@ -462,16 +704,19 @@ CÓMO ESCRIBIR:
         return { disponible: false, mensaje: 'El profesional no trabaja ese día' };
       }
 
-      const bloque = diaHorario.bloques[0];
-      const slots = generarSlots(bloque.desde, bloque.hasta, 30);
+      const slots = diaHorario.bloques.flatMap(b => generarSlots(b.desde, b.hasta, 30));
 
       const r2 = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
+        `${SUPABASE_URL}/rest/v1/citas?especialista_id=eq.${especialista_id}&cliente_id=eq.${cliente_id}&fecha=eq.${fecha}&estado=neq.canceled&select=hora`,
         { headers: sh }
       );
       const citasExistentes = await r2.json();
       const ocupadas = new Set((citasExistentes || []).map(c => c.hora?.slice(0, 5)));
-      const disponibles = slots.filter(s => !ocupadas.has(s));
+      const hoyStgo = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+      const slotsLibres = slots.filter(s => !ocupadas.has(s));
+      const disponibles = fecha === hoyStgo
+        ? slotsLibres.filter(s => { const [h, m] = s.split(':').map(Number); const minSlot = h * 60 + m; const now = new Date(); const minNow = now.toLocaleString('en-US', { timeZone: 'America/Santiago', hour: 'numeric', minute: 'numeric', hour12: false }).split(':').reduce((a,b,i) => a + (i===0 ? Number(b)*60 : Number(b)), 0); return minSlot > minNow + 60; })
+        : slotsLibres;
 
       if (!disponibles.length) {
         if (horario.sobrecupos_habilitados) {
@@ -484,6 +729,20 @@ CÓMO ESCRIBIR:
 
     if (nombre === 'confirmar_reserva') {
       const { especialista_id, nombre_especialista, nombre_paciente, tel_paciente, email_paciente, servicio, fecha, hora, duracion, precio } = params;
+      if (especialista_id && !_uuidRe.test(especialista_id)) return { ok: false, error: 'Profesional inválido' };
+      if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { ok: false, error: 'Fecha inválida' };
+      if (!hora || !/^\d{2}:\d{2}$/.test(hora)) return { ok: false, error: 'Hora inválida' };
+
+      // Pre-check: verificar que el slot sigue libre antes de insertar
+      try {
+        const estadosCancelados = ['cancelada','canceled','cancelled','inasistencia','no-show','no_show'];
+        const qCheck = `especialista_id=eq.${especialista_id}&fecha=eq.${fecha}&hora=eq.${hora}:00&not.estado=in.(${estadosCancelados.join(',')})&limit=1`;
+        const rCheck = await fetch(`${SUPABASE_URL}/rest/v1/citas?${qCheck}&select=id`, { headers: sh });
+        const existing = await rCheck.json();
+        if (Array.isArray(existing) && existing.length > 0) {
+          return { ok: false, error: 'Ese horario ya fue tomado. Propone otro horario disponible.' };
+        }
+      } catch(_) {}
 
       // Crear la cita en Supabase
       let cita;
@@ -506,17 +765,18 @@ CÓMO ESCRIBIR:
         });
         const rows = await rCita.json();
         cita = Array.isArray(rows) ? rows[0] : rows;
-        if (!cita?.id) return { ok: true, listo: true };
+        if (!cita?.id) return { ok: false, error: 'No se pudo crear la cita' };
       } catch(e) {
         console.error('confirmar_reserva: cita error:', e.message);
-        return { ok: true, listo: true };
+        return { ok: false, error: 'Error al crear la cita' };
       }
+
+      const BASE_URL_CF = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
       // Si el negocio tiene Flow configurado y el servicio tiene precio → generar link de pago
       const useFlow = !!(metodosPago.flow && metodosPago.flow_api_key && metodosPago.flow_secret_key && precio > 0);
       if (useFlow) {
         try {
-          const BASE_URL_CF = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
           const flowApiUrl  = metodosPago.flow_sandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
           const signFlow    = (p, s) => {
             const keys = Object.keys(p).sort();
@@ -548,6 +808,61 @@ CÓMO ESCRIBIR:
         }
       }
 
+      // Mercado Pago — si está conectado y el servicio tiene precio → redirigir al pago antes de confirmar
+      const useMP = !!(metodosPago.mp_connected && metodosPago.mp_access_token && precio > 0);
+      if (useMP) {
+        try {
+          let mpToken = metodosPago.mp_access_token;
+          const prefBody = {
+            items: [{ title: (servicio || 'Cita').slice(0, 255), quantity: 1, currency_id: 'CLP', unit_price: Math.round(Number(precio)) }],
+            back_urls: {
+              success: `${BASE_URL_CF}/pago-mp.html?status=success&cita=${cita.id}`,
+              failure: `${BASE_URL_CF}/pago-mp.html?status=failure&cita=${cita.id}`,
+              pending: `${BASE_URL_CF}/pago-mp.html?status=pending&cita=${cita.id}`
+            },
+            auto_return: 'approved',
+            external_reference: cita.id,
+            notification_url: `${BASE_URL_CF}/api/flow?tipo=mp_webhook`
+          };
+          let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+            body: JSON.stringify(prefBody)
+          });
+          if (prefResp.status === 401 && metodosPago.mp_refresh_token) {
+            const tr = await fetch('https://api.mercadopago.com/oauth/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ grant_type: 'refresh_token', client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, refresh_token: metodosPago.mp_refresh_token })
+            });
+            const td = await tr.json();
+            if (td.access_token) {
+              metodosPago.mp_access_token = td.access_token;
+              if (td.refresh_token) metodosPago.mp_refresh_token = td.refresh_token;
+              await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, { method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ metodos_pago: metodosPago }) });
+              mpToken = td.access_token;
+              prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+                body: JSON.stringify(prefBody)
+              });
+            }
+          }
+          const prefData = await prefResp.json();
+          if (prefData.init_point) {
+            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+              method: 'PATCH',
+              headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
+            }).catch(e => console.error('confirmar_reserva: patch mp pending_payment:', e.message));
+            return { ok: true, listo: true, mp_url: prefData.init_point, cita_id: cita.id };
+          }
+          console.error('confirmar_reserva: mp pref error:', JSON.stringify(prefData));
+        } catch(e) {
+          console.error('confirmar_reserva: mp error:', e.message);
+        }
+      }
+
       // Actualizar conversación Attia con datos reales del paciente
       if (attiaConvId) {
         fetch(`${SUPABASE_URL}/rest/v1/conversaciones?id=eq.${attiaConvId}`, {
@@ -563,16 +878,66 @@ CÓMO ESCRIBIR:
       return { ok: true, listo: true, cita };
     }
 
+    if (nombre === 'cancelar_cita') {
+      const { cita_id } = params;
+      if (!_uuidRe.test(cita_id || '')) return { error: 'ID de cita inválido' };
+      try {
+        const rCan = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?id=eq.${cita_id}&cliente_id=eq.${cliente_id}`,
+          {
+            method: 'PATCH',
+            headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'canceled' })
+          }
+        );
+        return rCan.ok ? { ok: true, cancelada: true } : { error: 'No se pudo cancelar la cita' };
+      } catch(e) {
+        console.error('cancelar_cita error:', e.message);
+        return { error: 'Error al cancelar la cita' };
+      }
+    }
+
+    if (nombre === 'buscar_citas_paciente') {
+      const { email } = params;
+      if (!email || !emailRegex.test(email)) return { error: 'Email inválido' };
+      try {
+        const hoyISO2 = new Date().toISOString().slice(0,10);
+        const en6m2   = new Date(Date.now() + 180*24*60*60*1000).toISOString().slice(0,10);
+        const rBus = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cliente_id}&fecha=gte.${hoyISO2}&fecha=lte.${en6m2}&estado=not.in.(canceled,cancelada)&order=fecha.asc&limit=5&select=id,nombre_paciente,fecha,hora,servicio,especialista_id`,
+          { headers: sh }
+        );
+        const citas = await rBus.json();
+        if (!Array.isArray(citas) || !citas.length) return { citas: [], mensaje: 'No encontré citas próximas con ese email.' };
+        return {
+          citas: citas.map(c => ({
+            cita_id: c.id,
+            servicio: c.servicio || 'Cita',
+            fecha: c.fecha.split('-').reverse().join('/'),
+            hora: (c.hora || '').slice(0, 5),
+            profesional: c.especialista_id ? (espLista.find(e => e.id === c.especialista_id)?.nombre || '') : ''
+          }))
+        };
+      } catch(e) {
+        console.error('buscar_citas_paciente error:', e.message);
+        return { error: 'Error buscando citas' };
+      }
+    }
+
     return { error: 'Herramienta no reconocida' };
   }
 
   try {
-    let msgs = [...messages];
+    const safeMessages = messages
+      .slice(-10)
+      .map(m => ({ ...m, content: String(m.content || '').slice(0, 800) }));
+    let msgs = [...safeMessages];
     let slots_disponibles   = null;
     let mostrar_calendario  = false;
     let especialista_id_cal = null;
     let datos_reserva       = null;
     let cita_flow_url       = null;
+    let cita_mp_url         = null;
 
     for (let i = 0; i < 5; i++) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -580,12 +945,13 @@ CÓMO ESCRIBIR:
         headers: {
           'x-api-key':         ANTHROPIC_KEY,
           'anthropic-version': '2023-06-01',
+          'anthropic-beta':    'prompt-caching-2024-07-31',
           'content-type':      'application/json'
         },
         body: JSON.stringify({
           model:      'claude-haiku-4-5-20251001',
-          max_tokens: 512,
-          system:     systemPrompt,
+          max_tokens: 300,
+          system:     [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           tools,
           messages:   msgs
         })
@@ -600,6 +966,19 @@ CÓMO ESCRIBIR:
 
       if (data.stop_reason !== 'tool_use') {
         const text = data.content.find(b => b.type === 'text')?.text || '';
+
+        // Salvaguarda: Claude dice "confirmado/listo" sin haber llamado confirmar_reserva
+        const pareceConfirmacion = /listo|lista|confirmad|agendad|reservad|cita\s+(cread|lista|registrad)/i.test(text);
+        if (pareceConfirmacion && !datos_reserva && i < 4) {
+          console.log('ai-chat: Claude confirmó sin tool — forzando confirmar_reserva');
+          msgs = [
+            ...msgs,
+            { role: 'assistant', content: data.content },
+            { role: 'user', content: [{ type: 'text', text: 'SISTEMA: Confirmaste la cita sin llamar al tool confirmar_reserva. Eso es un error. Llama AHORA a confirmar_reserva con los datos del historial. No respondas texto hasta que retorne ok:true.' }] }
+          ];
+          continue;
+        }
+
         const mensaje = datos_reserva ? '' : text;
         incUso(SUPABASE_URL, SUPABASE_KEY, cliente_id, 'mensajes_ia');
 
@@ -628,7 +1007,7 @@ CÓMO ESCRIBIR:
           }).catch(e => console.error('ai-chat conv-update error:', e.message));
         }
 
-        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva, cita_flow_url, attia_conv_id: attiaConvId });
+        return res.status(200).json({ mensaje, slots_disponibles, mostrar_calendario, especialista_id_cal, datos_reserva, cita_flow_url, cita_mp_url, attia_conv_id: attiaConvId });
       }
 
       const toolBlocks = data.content.filter(b => b.type === 'tool_use');
@@ -641,9 +1020,10 @@ CÓMO ESCRIBIR:
           else if (result.sobrecupo_disponible) slots_disponibles = result.slots_sobrecupo;
         }
         if (block.name === 'pedir_fecha') { mostrar_calendario = true; especialista_id_cal = block.input?.especialista_id || null; }
-        if (block.name === 'confirmar_reserva') {
-          datos_reserva = { ...block.input, ...(result.cita_id ? { cita_id: result.cita_id } : {}) };
+        if (block.name === 'confirmar_reserva' && result.ok) {
+          datos_reserva = { ...block.input, cita_id: result.cita?.id || result.cita_id || null };
           if (result.flow_url) cita_flow_url = result.flow_url;
+          if (result.mp_url)   cita_mp_url   = result.mp_url;
         }
         toolResults.push({
           type:        'tool_result',

@@ -5,6 +5,7 @@ const scryptAsync = promisify(crypto.scrypt);
 
 // Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
 const _loginFallback = new Map();
+const registroRateLimit = new Map();
 async function isRateLimited(ip) {
   const MAX = 10;
   const WINDOW_S = 15 * 60;
@@ -62,7 +63,12 @@ async function verifyPassword(password, stored) {
   }
 
   if (!stored.startsWith('scrypt$')) {
-    return { ok: stored === password, upgrade: stored === password, first: false };
+    // Password legacy en texto plano — comparar con timing-safe
+    let match = false;
+    try {
+      match = crypto.timingSafeEqual(Buffer.from(stored), Buffer.from(password));
+    } catch { match = false; }
+    return { ok: match, upgrade: match, first: false };
   }
   const parts = stored.split('$');
   if (parts.length !== 3) return { ok: false, upgrade: false, first: false };
@@ -110,6 +116,13 @@ export default async function handler(req, res) {
 
       const resetToken = crypto.randomBytes(32).toString('hex');
       const expiresAt  = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+      // Invalidar tokens anteriores del mismo email
+      await fetch(`${SUPABASE_URL}/rest/v1/password_resets?email=eq.${encodeURIComponent(email)}&used=eq.false`, {
+        method: 'PATCH',
+        headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ used: true }),
+      }).catch(() => {});
 
       await fetch(`${SUPABASE_URL}/rest/v1/password_resets`, {
         method: 'POST',
@@ -209,8 +222,10 @@ export default async function handler(req, res) {
     if (!rows2.length) return res.status(401).json({ error: 'Usuario no encontrado' });
     const u2 = rows2[0];
     const saExpires = Date.now() + 24 * 60 * 60 * 1000;
-    const sesPayload = `${u2.cliente_id || 'sa'}:${u2.rol}:${saExpires}`;
-    const sesSig = crypto.createHmac('sha256', SECRET).update(sesPayload).digest('hex');
+    // Superadmin no tiene cliente_id — no incluir session_token estándar (usa x-sa-token propio)
+    const session_token = u2.cliente_id
+      ? (() => { const p = `${u2.cliente_id}:${u2.rol}:${saExpires}`; return `${p}.${crypto.createHmac('sha256', SECRET).update(p).digest('hex')}`; })()
+      : null;
     return res.status(200).json({
       ok: true,
       usuario: u2.email || u2.username,
@@ -218,12 +233,23 @@ export default async function handler(req, res) {
       rol: u2.rol,
       destino: u2.destino,
       cliente_id: u2.cliente_id,
-      session_token: `${sesPayload}.${sesSig}`,
+      session_token,
     });
   }
 
   // ── Registro de nuevo cliente ────────────────────────────────────────────
   if (req.body?.action === 'registro') {
+    const regIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    const regNow = Date.now();
+    const regWindowMs = 60 * 60 * 1000; // 1 hora
+    const regMaxAttempts = 3;
+    const regEntry = registroRateLimit.get(regIp) || { count: 0, start: regNow };
+    if (regNow - regEntry.start > regWindowMs) { regEntry.count = 0; regEntry.start = regNow; }
+    regEntry.count++;
+    registroRateLimit.set(regIp, regEntry);
+    if (regEntry.count > regMaxAttempts) {
+      return res.status(429).json({ error: 'Demasiados registros. Intenta en una hora.' });
+    }
     const { nombre, negocio, email, password, rubro } = req.body;
     if (!nombre?.trim() || !negocio?.trim() || !email?.trim() || !password) {
       return res.status(400).json({ error: 'Completa todos los campos requeridos' });
@@ -237,12 +263,19 @@ export default async function handler(req, res) {
     const emailNorm = email.trim().toLowerCase();
 
     const rCheck = await fetch(
-      `${SUPA_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=id&limit=1`,
+      `${SUPA_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=id,cliente_id&limit=1`,
       { headers: sh }
     );
     const existing = await rCheck.json();
     if (Array.isArray(existing) && existing.length > 0) {
-      return res.status(409).json({ error: 'Este email ya está registrado' });
+      const existingUser = existing[0];
+      // Si el usuario ya tiene un cliente asignado, es una cuenta real → bloquear
+      if (existingUser.cliente_id) {
+        return res.status(409).json({ error: 'Este email ya está registrado' });
+      }
+      // Si el usuario existe pero sin cliente (registro incompleto), limpiar el orfanado
+      await fetch(`${SUPA_URL}/rest/v1/usuarios?id=eq.${existingUser.id}`,
+        { method: 'DELETE', headers: sh }).catch(() => {});
     }
 
     const slugBase = negocio.trim().toLowerCase()
@@ -324,7 +357,7 @@ export default async function handler(req, res) {
     Tu cuenta de attempo está lista.<br>
     Tienes <strong style="color:#6C5CE4">12 días de prueba gratis</strong> para explorar todo lo que attempo puede hacer por tu consulta.
   </p>
-  <a href="https://app.attempo.cl/admin.html" style="display:inline-block;padding:14px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
+  <a href="https://app.attempo.cl/admin" style="display:inline-block;padding:14px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
   <p style="margin:24px 0 0;color:#9ca3af;font-size:12px">¿Tienes dudas? Escríbenos por WhatsApp al +56957285407</p>
 </td></tr>
 <tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe">
@@ -347,7 +380,7 @@ export default async function handler(req, res) {
       session_token = `${payload}.${sig}`;
     }
 
-    return res.status(200).json({ ok: true, nombre: nombre.trim(), rol: 'admin', cliente_id, session_token });
+    return res.status(200).json({ ok: true, nombre: nombre.trim(), rol: 'admin', cliente_id, session_token, plan: 'demo', fecha_expiracion: expStr });
   }
 
   const { usuario, password } = req.body || {};
@@ -415,6 +448,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ mfa_required: true, mfa_token });
     }
 
+    if (!u.cliente_id) {
+      return res.status(403).json({ ok: false, error: 'Usuario sin negocio asociado. Contacta a soporte.' });
+    }
+
     let session_token = null;
     if (SESSION_SECRET && u.cliente_id) {
       const expires = Date.now() + 24 * 60 * 60 * 1000;
@@ -423,14 +460,24 @@ export default async function handler(req, res) {
       session_token = `${payload}.${sig}`;
     }
 
-    // Obtener tipo_plan del negocio para feature gating en el panel
-    let tipo_plan = null;
+    // Obtener plan info para feature gating y control de trial
+    let tipo_plan = null, plan = null, fecha_expiracion = null;
     if (u.cliente_id) {
       try {
-        const rp = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${u.cliente_id}&select=tipo_plan&limit=1`, { headers: sh });
+        const rp = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${u.cliente_id}&select=tipo_plan,plan,fecha_expiracion&limit=1`, { headers: sh });
         const [cli] = await rp.json();
         tipo_plan = cli?.tipo_plan || null;
+        plan = cli?.plan || null;
+        fecha_expiracion = cli?.fecha_expiracion || null;
       } catch(_) {}
+    }
+
+    // Bloquear acceso si el período de prueba demo expiró
+    if (plan === 'demo' && fecha_expiracion) {
+      const today = new Date().toISOString().split('T')[0];
+      if (fecha_expiracion < today) {
+        return res.status(403).json({ ok: false, trial_expired: true, error: 'Tu período de prueba de 12 días ha terminado.' });
+      }
     }
 
     return res.status(200).json({
@@ -442,6 +489,8 @@ export default async function handler(req, res) {
       cliente_id: u.cliente_id,
       session_token,
       tipo_plan,
+      plan,
+      fecha_expiracion,
       debe_cambiar: first || false,
     });
 

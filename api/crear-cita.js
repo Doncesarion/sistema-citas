@@ -2,6 +2,25 @@ import crypto from 'crypto';
 
 const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function verifySessionToken(token) {
+  if (!token) return null;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  } catch { return null; }
+  const parts = payload.split(':');
+  if (parts.length < 3) return null;
+  const [cliente_id, rol, expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return { cliente_id, rol };
+}
+
 function decryptToken(encrypted) {
   if (!encrypted?.startsWith('enc:')) return encrypted;
   const parts = encrypted.split(':');
@@ -19,26 +38,63 @@ function flowSign(params, secret) {
   return crypto.createHmac('sha256', secret || process.env.FLOW_SECRET_KEY).update(str).digest('hex');
 }
 
+function generateEvalToken() {
+  const uuid = crypto.randomUUID().replace(/-/g, '');
+  const exp  = Math.floor(Date.now() / 1000) + 90 * 24 * 3600;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return uuid;
+  const sig = crypto.createHmac('sha256', secret).update(`et:${uuid}:${exp}`).digest('base64url').slice(0, 22);
+  return `${uuid}.${exp.toString(36)}.${sig}`;
+}
+
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
-  return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+  const expB36 = expire.toString(36);
+  const hmac   = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('base64url');
+  return expB36 + '.' + hmac;
+}
+
+function manageShortUrl(cita_id) {
+  const shortId = cita_id.replace(/-/g, '').slice(0, 8).toUpperCase();
+  return `${BASE_URL}/gc/AT-${shortId}#${generateManageToken(cita_id)}`;
 }
 
 function verifyManageToken(cita_id, token) {
   const secret = process.env.SESSION_SECRET;
-  if (!secret) return true;
-  if (!token || typeof token !== 'string' || token.length !== 64) return false;
-  const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
-  try {
-    return crypto.timingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'));
-  } catch {
-    return false;
+  if (!secret) return false;
+  if (!token || typeof token !== 'string') return false;
+  const dotIdx = token.indexOf('.');
+  if (dotIdx === -1) return false;
+  const expStr = token.slice(0, dotIdx);
+  const sig    = token.slice(dotIdx + 1);
+  const now    = Math.floor(Date.now() / 1000);
+
+  if (sig.length === 64) {
+    // Formato antiguo: timestamp decimal + HMAC hex (compatibilidad con links ya enviados)
+    const expire = parseInt(expStr, 10);
+    if (isNaN(expire) || now > expire) return false;
+    const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
+    try { return crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex')); }
+    catch { return false; }
   }
+
+  // Formato nuevo: timestamp base36 + HMAC base64url
+  const expire = parseInt(expStr, 36);
+  if (isNaN(expire) || now > expire) return false;
+  const expected = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('base64url');
+  try {
+    const b1 = Buffer.from(sig, 'base64'), b2 = Buffer.from(expected, 'base64');
+    if (b1.length !== b2.length) return false;
+    return crypto.timingSafeEqual(b1, b2);
+  } catch { return false; }
 }
 
 // Rate limiting persistente con Upstash Redis (fallback a Map en memoria)
 const _bookingFallback = new Map();
+const _gestionarFallback = new Map();
+const _emailLookupFallback = new Map();
 async function isBookingRateLimited(ip) {
   const MAX = 20;
   const WINDOW_S = 60 * 60;
@@ -72,6 +128,68 @@ async function isBookingRateLimited(ip) {
   return false;
 }
 
+async function isGestionRateLimited(ip) {
+  const MAX = 10;
+  const WINDOW_S = 3600;
+
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (url && token) {
+    try {
+      const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
+      const key = `rl:gestionar:${ip}:${bucket}`;
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', key], ['EXPIRE', key, WINDOW_S * 2]])
+      });
+      const data = await r.json();
+      const count = data[0]?.result;
+      if (typeof count === 'number') return count > MAX;
+    } catch {}
+  }
+
+  const now = Date.now();
+  const entry = _gestionarFallback.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _gestionarFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
+    return false;
+  }
+  if (entry.count >= MAX) return true;
+  entry.count++;
+  return false;
+}
+
+async function isEmailLookupRateLimited(ip) {
+  const MAX = 15;
+  const WINDOW_S = 3600;
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (url && token) {
+    try {
+      const bucket = Math.floor(Date.now() / (WINDOW_S * 1000));
+      const key = `rl:emaillookup:${ip}:${bucket}`;
+      const r = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify([['INCR', key], ['EXPIRE', key, WINDOW_S * 2]])
+      });
+      const data = await r.json();
+      const count = data[0]?.result;
+      if (typeof count === 'number') return count > MAX;
+    } catch {}
+  }
+  const now = Date.now();
+  const entry = _emailLookupFallback.get(ip);
+  if (!entry || now > entry.resetAt) {
+    _emailLookupFallback.set(ip, { count: 1, resetAt: now + WINDOW_S * 1000 });
+    return false;
+  }
+  if (entry.count >= MAX) return true;
+  entry.count++;
+  return false;
+}
+
 export default async function handler(req, res) {
   const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
   const KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -79,8 +197,92 @@ export default async function handler(req, res) {
 
   // ── GET: consultar datos de una cita (gestionar-cita) ─────────────────────
   if (req.method === 'GET') {
-    const { id } = req.query;
+    const { id, t, email, cid, short } = req.query;
+
+    // Lookup por email: paciente busca sus citas próximas en la página de reserva
+    if (email && cid) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+      const UUID_RE_Q = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE_Q.test(cid)) return res.status(400).json({ error: 'Parámetro inválido' });
+      const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+      if (await isEmailLookupRateLimited(ip)) return res.status(429).json({ error: 'Demasiadas consultas. Intenta más tarde.' });
+      try {
+        const hace90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?email_paciente=ilike.${encodeURIComponent(email)}&cliente_id=eq.${cid}&fecha=gte.${hace90}&order=fecha.desc&limit=6&select=id,fecha,hora,servicio,estado,especialista_id`,
+          { headers: sh }
+        );
+        const rows = await r.json();
+        if (!Array.isArray(rows)) {
+          console.error('email-lookup supabase error:', JSON.stringify(rows));
+          return res.status(500).json({ error: 'Error al buscar citas' });
+        }
+        const citas = rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, especialista_id: c.especialista_id, token: generateManageToken(c.id) }));
+        return res.json({ ok: true, citas });
+      } catch(e) {
+        console.error('email-lookup error:', e.message);
+        return res.status(500).json({ error: 'Error al buscar citas' });
+      }
+    }
+
+    // Lookup por número de reserva AT-XXXXXXXX
+    const { ref, cid: refCid } = req.query;
+    if (ref && refCid) {
+      const hex = ref.toUpperCase().startsWith('AT-') ? ref.slice(3).toLowerCase() : ref.toLowerCase();
+      if (!/^[0-9a-f]{8}$/.test(hex)) return res.status(400).json({ error: 'Número de reserva inválido' });
+      const UUID_RE_Q2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE_Q2.test(refCid)) return res.status(400).json({ error: 'Parámetro inválido' });
+      const ip2 = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+      if (await isEmailLookupRateLimited(ip2)) return res.status(429).json({ error: 'Demasiadas consultas. Intenta más tarde.' });
+      try {
+        const lo = `${hex}-0000-0000-0000-000000000000`;
+        const hi = `${hex}-ffff-ffff-ffff-ffffffffffff`;
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?id=gte.${lo}&id=lte.${hi}&cliente_id=eq.${refCid}&select=id,fecha,hora,servicio,estado&limit=1`,
+          { headers: sh }
+        );
+        const rows = await r.json();
+        if (!Array.isArray(rows)) return res.status(500).json({ error: 'Error al buscar cita' });
+        const citas = rows.map(c => ({ id: c.id, fecha: c.fecha, hora: c.hora, servicio: c.servicio, estado: c.estado, token: generateManageToken(c.id) }));
+        return res.json({ ok: true, citas });
+      } catch(e) {
+        return res.status(500).json({ error: 'Error al buscar cita' });
+      }
+    }
+
+    // Gestionar vía URL corta: /gc/AT-XXXXXXXX/token
+    if (short && t) {
+      const hex = short.toUpperCase().startsWith('AT-') ? short.slice(3).toLowerCase() : short.toLowerCase();
+      if (!/^[0-9a-f]{8}$/.test(hex)) return res.status(400).json({ error: 'Referencia inválida' });
+      try {
+        const lo = `${hex}-0000-0000-0000-000000000000`;
+        const hi = `${hex}-ffff-ffff-ffff-ffffffffffff`;
+        const rs = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=gte.${lo}&id=lte.${hi}&select=*&limit=1`, { headers: sh });
+        const rows = await rs.json();
+        if (!Array.isArray(rows) || !rows[0]) return res.status(404).json({ error: 'Cita no encontrada' });
+        const cita = rows[0];
+        if (!verifyManageToken(cita.id, t)) return res.status(403).json({ error: 'Acceso no autorizado' });
+        let nombre_especialista = null;
+        if (cita.especialista_id) {
+          const re = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${cita.especialista_id}&select=nombre&limit=1`, { headers: sh });
+          const [esp] = await re.json();
+          nombre_especialista = esp?.nombre || null;
+        }
+        const [rcs, rEv] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh }),
+          fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${cita.id}&usado=eq.true&select=estrellas&limit=1`, { headers: sh })
+        ]);
+        const [cliente] = await rcs.json();
+        const [evUsada] = await rEv.json().catch(() => []);
+        return res.json({ cita, nombre_especialista, booking_slug: cliente?.booking_slug || null, negocio_nombre: cliente?.nombre_negocio || null, ya_evaluado: !!evUsada, eval_estrellas: evUsada?.estrellas || 0 });
+      } catch(e) {
+        console.error('gestionar-cita short GET error:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
     if (!id) return res.status(400).json({ error: 'Falta id' });
+    if (!t || !verifyManageToken(id, t)) return res.status(403).json({ error: 'Acceso no autorizado' });
 
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&select=*&limit=1`, { headers: sh });
@@ -95,14 +297,19 @@ export default async function handler(req, res) {
         nombre_especialista = esp?.nombre || null;
       }
 
-      const rc = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh });
+      const [rc, rEv] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=booking_slug,nombre_negocio&limit=1`, { headers: sh }),
+        fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${cita.id}&usado=eq.true&select=estrellas&limit=1`, { headers: sh })
+      ]);
       const [cliente] = await rc.json();
+      const [evUsada] = await rEv.json().catch(() => []);
 
       return res.json({
-        cita,
-        nombre_especialista,
+        cita, nombre_especialista,
         booking_slug: cliente?.booking_slug || null,
-        negocio_nombre: cliente?.nombre_negocio || null
+        negocio_nombre: cliente?.nombre_negocio || null,
+        ya_evaluado: !!evUsada,
+        eval_estrellas: evUsada?.estrellas || 0
       });
     } catch (e) {
       console.error('gestionar-cita GET error:', e.message);
@@ -112,13 +319,115 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end();
 
+  // ── POST: guardar referencia de transferencia (público, verificado por email) ─
+  if (req.body?.accion === 'guardar_referencia') {
+    const { id, email, referencia } = req.body;
+    const UUID_RE_R = /^[0-9a-f-]{36}$/i;
+    if (!id || !UUID_RE_R.test(id)) return res.status(400).json({ error: 'ID inválido' });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+    const ref = String(referencia || '').trim().slice(0, 200);
+    if (!ref) return res.status(400).json({ error: 'Referencia vacía' });
+    try {
+      const rc = await fetch(
+        `${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&email_paciente=ilike.${encodeURIComponent(email)}&select=id&limit=1`,
+        { headers: sh }
+      );
+      const rows = await rc.json();
+      if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'Cita no encontrada' });
+      const rp = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ voucher_manual: ref })
+      });
+      if (!rp.ok) return res.status(500).json({ error: 'Error al guardar' });
+      return res.json({ ok: true });
+    } catch(e) {
+      console.error('guardar_referencia error:', e.message);
+      return res.status(500).json({ error: 'Error interno' });
+    }
+  }
+
   // ── POST: cancelar o reagendar (gestionar-cita) ───────────────────────────
   if (req.body?.accion) {
     const { id, accion, nueva_fecha, nueva_hora, token } = req.body;
-    if (!id || !['cancelar', 'reagendar'].includes(accion)) return res.status(400).json({ error: 'Acción inválida' });
+    if (!id || !['cancelar', 'reagendar', 'feedback'].includes(accion)) return res.status(400).json({ error: 'Acción inválida' });
+
+    const ipGestionar = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+    if (await isGestionRateLimited(ipGestionar)) {
+      return res.status(429).json({ error: 'Demasiadas solicitudes. Intenta más tarde.' });
+    }
 
     if (!verifyManageToken(id, token)) {
       return res.status(401).json({ error: 'Link inválido. Usa el enlace original de tu email de confirmación.' });
+    }
+
+    // ── FEEDBACK ──────────────────────────────────────────────────────────────
+    if (accion === 'feedback') {
+      const { rating, comentario } = req.body;
+      const r = parseInt(rating, 10);
+      if (!r || r < 1 || r > 5) return res.status(400).json({ error: 'Rating inválido' });
+      try {
+        const rc = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${id}&select=nombre_paciente,servicio,fecha,hora,cliente_id,especialista_id&limit=1`, { headers: sh });
+        const [cita] = await rc.json();
+
+        // Guardar en tabla evaluaciones (crear o actualizar el registro del cron)
+        if (cita?.cliente_id) {
+          const comentTrim = (comentario || '').trim().slice(0, 500) || null;
+          const shJ = { ...sh, 'Content-Type': 'application/json' };
+          const [evPend] = await fetch(
+            `${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${id}&usado=eq.false&select=id&limit=1`,
+            { headers: sh }
+          ).then(x => x.json()).catch(() => []);
+          if (evPend) {
+            fetch(`${SUPABASE_URL}/rest/v1/evaluaciones?id=eq.${evPend.id}`, {
+              method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
+              body: JSON.stringify({ estrellas: r, comentario: comentTrim, anonima: false, usado: true })
+            }).catch(() => {});
+          } else {
+            const [evUsed] = await fetch(
+              `${SUPABASE_URL}/rest/v1/evaluaciones?cita_id=eq.${id}&usado=eq.true&select=id&limit=1`,
+              { headers: sh }
+            ).then(x => x.json()).catch(() => []);
+            if (!evUsed) {
+              fetch(`${SUPABASE_URL}/rest/v1/evaluaciones`, {
+                method: 'POST', headers: { ...shJ, Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                  cliente_id: cita.cliente_id, cita_id: id,
+                  especialista_id: cita.especialista_id || null,
+                  paciente_nombre: cita.nombre_paciente || '',
+                  token: generateEvalToken(), estrellas: r,
+                  comentario: comentTrim, anonima: false, usado: true
+                })
+              }).catch(() => {});
+            }
+          }
+        }
+        if (cita?.cliente_id && process.env.RESEND_API_KEY) {
+          const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=email,nombre_negocio&limit=1`, { headers: sh });
+          const [cli] = await rcli.json();
+          if (cli?.email) {
+            const estrellas = '★'.repeat(r) + '☆'.repeat(5 - r);
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: 'Attempo <contacto@attempo.cl>',
+                to: cli.email,
+                subject: `Nueva reseña de ${cita.nombre_paciente || 'paciente'} — ${r}/5 estrellas`,
+                html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+                  <h2 style="color:#16143A;margin-bottom:4px">Nueva reseña recibida</h2>
+                  <p style="color:#9C96B4;font-size:13px;margin-bottom:20px">${cita.nombre_paciente || 'Paciente'} · ${cita.servicio || ''} · ${cita.fecha || ''}</p>
+                  <div style="font-size:32px;margin-bottom:12px">${estrellas}</div>
+                  <div style="font-size:22px;font-weight:700;color:#16143A;margin-bottom:16px">${r}/5 estrellas</div>
+                  ${comentario ? `<div style="background:#F8F7FF;border-left:3px solid #6C5CE4;padding:12px 16px;border-radius:4px;font-size:14px;color:#16143A;font-style:italic">"${htmlEscape(comentario)}"</div>` : ''}
+                  <p style="font-size:12px;color:#9C96B4;margin-top:20px">Desde el panel de gestión puedes ver todas tus reseñas.</p>
+                </div>`
+              })
+            }).catch(() => {});
+          }
+        }
+      } catch (_) {}
+      return res.json({ ok: true });
     }
 
     try {
@@ -127,6 +436,12 @@ export default async function handler(req, res) {
         patchBody = { estado: 'canceled' };
       } else {
         if (!nueva_fecha || !nueva_hora) return res.status(400).json({ error: 'Faltan fecha u hora' });
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(nueva_fecha)) {
+          return res.status(400).json({ error: 'Formato de fecha inválido' });
+        }
+        if (!/^\d{2}:\d{2}$/.test(nueva_hora)) {
+          return res.status(400).json({ error: 'Formato de hora inválido' });
+        }
         patchBody = { fecha: nueva_fecha, hora: nueva_hora };
       }
 
@@ -169,7 +484,7 @@ export default async function handler(req, res) {
               nombre_especialista = esp?.nombre || null;
             }
 
-            const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,direccion,email,metodos_pago,datos_banco,google_refresh_token&limit=1`, { headers: sh });
+            const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,direccion,email,metodos_pago,datos_banco,google_refresh_token,logo_url&limit=1`, { headers: sh });
             const [cliente] = await rcli.json();
 
             const fechaFmt = new Date(nueva_fecha + 'T12:00:00').toLocaleDateString('es-CL', {
@@ -182,7 +497,7 @@ export default async function handler(req, res) {
               body: JSON.stringify({
                 from: 'Attempo <contacto@attempo.cl>',
                 to: cita.email_paciente,
-                subject: `Tu cita en ${cliente?.nombre_negocio || 'la clínica'} fue reagendada ✓`,
+                subject: `Tu cita en ${cliente?.nombre_negocio || 'la clínica'} fue reagendada`,
                 headers: {
                   'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
                   'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -198,7 +513,8 @@ export default async function handler(req, res) {
                   email_negocio:      cliente?.email || null,
                   metodos_pago:       cliente?.metodos_pago || null,
                   datos_banco:        cliente?.datos_banco  || null,
-                  cita_id:            id
+                  cita_id:            id,
+                  logo_negocio:       (cliente?.logo_url && !cliente.logo_url.startsWith('data:')) ? cliente.logo_url : null
                 })
               })
             }).catch(e => console.error('email reagendar error:', e.message));
@@ -236,19 +552,37 @@ export default async function handler(req, res) {
     cliente_id, nombre_especialista,
     nombre_paciente, tel_paciente, email_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
-    from_admin, enviar_email, estado_admin, slug
+    enviar_email, estado_admin, slug,
+    metodo_pago_admin, modalidad
   } = req.body || {};
+
+  // Validar que from_admin solo sea true si el request tiene sesión válida de admin
+  const sessionToken = req.headers['x-session-token'];
+  const session = verifySessionToken(sessionToken);
+  const isAdmin = !!session;
+  const effectiveFromAdmin = isAdmin ? (req.body?.from_admin || false) : false;
+  const from_admin = effectiveFromAdmin;
 
   // Sanitizar especialista_id: solo aceptar UUIDs válidos, cualquier otro valor (como 'any') → null
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const especialista_id = UUID_RE.test(req.body?.especialista_id || '') ? req.body.especialista_id : null;
 
-  const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'completed', cancelada:'canceled', inasistencia:'no-show' };
-  // INSERT siempre con 'pending' (constraint DB); se parchea a 'confirmed' después si aplica
-  const estadoFinal = from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending';
-  const confirmarDespues = !from_admin;
+  // metodo_pago_admin: 'efectivo' | 'tarjeta' | 'link_flow' | 'link_webpay' | 'link_mp' | null (booking público)
+  const esPagoPresencial = from_admin && (metodo_pago_admin === 'efectivo' || metodo_pago_admin === 'tarjeta');
+  const esLinkWebpay     = from_admin && metodo_pago_admin === 'link_webpay';
+  const esLinkFlow       = from_admin && metodo_pago_admin === 'link_flow';
+  const esLinkMP         = from_admin && metodo_pago_admin === 'link_mp';
+
+  const ESTADO_MAP = { reservada:'pending', confirmada:'confirmed', pendiente:'pending', completada:'done', cancelada:'canceled', inasistencia:'no-show' };
+  // Pago presencial desde admin → confirmar directamente; link de pago → pending_payment lo asigna el handler de pago
+  const estadoFinal = esPagoPresencial ? 'confirmed'
+    : (from_admin && estado_admin ? (ESTADO_MAP[estado_admin] || 'pending') : 'pending');
+  const confirmarDespues = !from_admin && !esPagoPresencial;
 
   const citaIdYaCreada = req.body?._cita_id_ya_creada || null;
+  if (citaIdYaCreada && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(citaIdYaCreada)) {
+    return res.status(400).json({ error: 'ID de cita inválido' });
+  }
   if (!citaIdYaCreada) {
     const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
     if (await isBookingRateLimited(ip)) {
@@ -265,7 +599,7 @@ export default async function handler(req, res) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
     return res.status(400).json({ error: 'Fecha inválida' });
   }
-  if (email_paciente && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email_paciente)) {
+  if (email_paciente && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email_paciente)) {
     return res.status(400).json({ error: 'Email inválido' });
   }
   if (String(nombre_paciente).length > 200) {
@@ -298,7 +632,9 @@ export default async function handler(req, res) {
           hora,
           duracion:       duracion ? (parseInt(duracion) || null) : null,
           precio:         precio         || null,
-          estado: estadoFinal
+          estado: estadoFinal,
+          modalidad:      ['presencial','online','ambos'].includes(modalidad) ? modalidad : 'presencial',
+          ...(esPagoPresencial ? { metodo_pago: metodo_pago_admin } : {})
         })
       });
 
@@ -319,12 +655,39 @@ export default async function handler(req, res) {
         return res.status(isDup ? 409 : 500).json({ error: msg });
       }
       cita = data[0];
+
+      // Conflict check: si otro request creó el mismo slot en paralelo, rechazar el duplicado
+      // Las citas pending_payment de MP con más de 15 min se consideran expiradas y se cancelan
+      if (especialista_id) {
+        const cutoff15 = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        const rConflict = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cliente_id}&especialista_id=eq.${especialista_id}&fecha=eq.${encodeURIComponent(fecha)}&hora=eq.${encodeURIComponent(hora)}&estado=neq.canceled&select=id,estado,metodo_pago,created_at&limit=5`,
+          { headers: sh }
+        );
+        const conflictos = await rConflict.json().catch(() => []);
+        if (Array.isArray(conflictos) && conflictos.length > 1) {
+          const otros = conflictos.filter(c => c.id !== cita.id);
+          const expirados = otros.filter(c => c.estado === 'pending_payment' && c.metodo_pago === 'mercadopago' && c.created_at < cutoff15);
+          if (expirados.length > 0 && expirados.length === otros.length) {
+            // Todos los conflictos son pagos MP expirados → cancelarlos y continuar
+            await Promise.all(expirados.map(c =>
+              fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${c.id}`, {
+                method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+                body: JSON.stringify({ estado: 'canceled', notas: 'Cancelada automáticamente: pago no completado en 15 minutos' })
+              }).catch(() => {})
+            ));
+          } else {
+            await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, { method: 'DELETE', headers: sh }).catch(() => {});
+            return res.status(409).json({ error: 'Este horario ya fue reservado. Por favor elige otro.' });
+          }
+        }
+      }
     }
 
-    let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null;
+    let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null, logo_negocio = null;
     try {
       const rc = await fetch(
-        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token,google_calendar_id&limit=1`,
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token,google_calendar_id,logo_url&limit=1`,
         { headers: sh }
       );
       const rcBody = await rc.json();
@@ -336,15 +699,18 @@ export default async function handler(req, res) {
       datos_banco          = cli?.datos_banco          || null;
       google_refresh_token = cli?.google_refresh_token || null;
       google_calendar_id   = cli?.google_calendar_id   || null;
+      logo_negocio         = (cli?.logo_url && !cli.logo_url.startsWith('data:')) ? cli.logo_url : null;
     } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
 
     let gc_debug = { token: !!google_refresh_token, client_id: !!process.env.GOOGLE_CLIENT_ID };
+    let video_url = null;
     if (google_refresh_token && process.env.GOOGLE_CLIENT_ID) {
       gc_debug.resultado = await gcCrearEvento({
         supabaseUrl: SUPABASE_URL, sh, cita_id: cita.id, cliente_id,
         nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion,
-        refresh_token: decryptToken(google_refresh_token), google_calendar_id
+        refresh_token: decryptToken(google_refresh_token), google_calendar_id, modalidad
       });
+      video_url = gc_debug.resultado?.video_url || null;
     }
 
     console.log('crear-cita gc_debug:', JSON.stringify(gc_debug));
@@ -355,9 +721,12 @@ export default async function handler(req, res) {
     const flowSecretKey = metodos_pago?.flow_secret_key;
     const flowSandbox   = metodos_pago?.flow_sandbox;
     const precioNum     = precio ? Math.round(Number(String(precio).replace(/\./g, '').replace(',', '.'))) : 0;
+    const precioFlow    = metodos_pago?.aplica_iva ? Math.round(precioNum * 1.19) : precioNum;
 
     let flow_error = null;
-    if (metodos_pago?.flow && flowApiKey && flowSecretKey && precioNum > 0 && !from_admin) {
+    // Flow solo se genera cuando el admin elige explícitamente "link_flow" — no en booking público
+    const generarFlow = esLinkFlow && flowApiKey && flowSecretKey && precioNum > 0;
+    if (generarFlow) {
       const flowApiUrl = flowSandbox ? 'https://sandbox.flow.cl/api' : 'https://www.flow.cl/api';
       try {
         const fp = {
@@ -365,7 +734,7 @@ export default async function handler(req, res) {
           commerceOrder:   String(cita.id),
           subject:         `Cita ${servicio || 'médica'}${negocio_nombre ? ' — ' + negocio_nombre : ''}`.slice(0, 255),
           currency:        'CLP',
-          amount:          String(precioNum),
+          amount:          String(precioFlow),
           email:           email_paciente,
           urlConfirmation: `${BASE_URL}/api/flow-confirm?cid=${cliente_id}`,
           urlReturn:       `${BASE_URL}/api/flow-return?tipo=cita${slug ? '&slug=' + encodeURIComponent(slug) : ''}`,
@@ -380,12 +749,13 @@ export default async function handler(req, res) {
         const fd = await fr.json();
         if (fd.url && fd.token) {
           flow_url = `${fd.url}?token=${fd.token}`;
-          const soloFlow = !metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo;
+          // pending_payment: si es solo Flow configurado (booking público) O el admin eligió explícitamente link Flow
+          const soloFlow = esLinkFlow || (!metodos_pago.transferencia && !metodos_pago.webpay && !metodos_pago.efectivo);
           if (soloFlow) {
             await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
               method: 'PATCH',
               headers: { ...sh, Prefer: 'return=minimal' },
-              body: JSON.stringify({ estado: 'pending_payment' })
+              body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'flow' })
             });
           }
           console.log('crear-cita: flow_url generado OK, soloFlow:', soloFlow);
@@ -399,7 +769,144 @@ export default async function handler(req, res) {
       }
     }
 
-    const soloFlow = !!(flow_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+    const soloFlow = !!(flow_url && esLinkFlow);
+
+    // Mercado Pago checkout — booking público O admin eligió link_mp
+    let mp_url = null;
+    let mp_error = null;
+    const generarMP = !esPagoPresencial && !esLinkWebpay && !esLinkFlow &&
+                      metodos_pago?.mp_connected && metodos_pago?.mp_access_token && precioNum > 0;
+    if (generarMP) {
+      try {
+        let mpToken = metodos_pago.mp_access_token;
+        const manageLink = manageShortUrl(cita.id);
+        const prefBody = {
+          items: [{ title: `${servicio || 'Cita'} — ${negocio_nombre || ''}`.slice(0, 255), quantity: 1, unit_price: precioNum, currency_id: 'CLP' }],
+          payer: email_paciente ? { email: email_paciente } : undefined,
+          external_reference: `CITA-${cita.id}`,
+          back_urls: { success: `${manageLink}&pago=ok`, failure: `${manageLink}&pago=error`, pending: manageLink },
+          auto_return: 'approved',
+          notification_url: `${BASE_URL}/api/flow?tipo=mp_webhook`
+        };
+        let prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+          body: JSON.stringify(prefBody),
+          signal: AbortSignal.timeout(12000)
+        });
+        if (prefResp.status === 401 && metodos_pago.mp_refresh_token) {
+          const tr = await fetch('https://api.mercadopago.com/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ grant_type: 'refresh_token', client_id: process.env.MP_CLIENT_ID, client_secret: process.env.MP_CLIENT_SECRET, refresh_token: metodos_pago.mp_refresh_token })
+          });
+          const td = await tr.json();
+          if (td.access_token) {
+            metodos_pago.mp_access_token = td.access_token;
+            if (td.refresh_token) metodos_pago.mp_refresh_token = td.refresh_token;
+            await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, { method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' }, body: JSON.stringify({ metodos_pago }) });
+            mpToken = td.access_token;
+            prefResp = await fetch('https://api.mercadopago.com/checkout/preferences', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mpToken}` },
+              body: JSON.stringify(prefBody)
+            });
+          }
+        }
+        const prefData = await prefResp.json();
+        if (prefData.init_point) {
+          mp_url = prefData.init_point;
+          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+            method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
+          }).catch(e => console.error('crear-cita: patch mp pending_payment:', e.message));
+          console.log('crear-cita: mp_url generado OK');
+        } else {
+          mp_error = prefData.message || prefData.error || JSON.stringify(prefData).slice(0, 120);
+          console.error('crear-cita: mp error:', mp_error);
+        }
+      } catch(e) {
+        mp_error = e.name === 'TimeoutError' ? 'timeout conectando con Mercado Pago' : e.message;
+        console.error('crear-cita: mp exception:', mp_error);
+      }
+    }
+    const soloMP = !!(mp_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+
+    // Klap checkout — booking público cuando hay API key configurada y no hay MP
+    let klap_url = null;
+    let klap_error = null;
+    const klapApiKey = metodos_pago?.klap_api_key || process.env.KLAP_API_KEY;
+    const generarKlap = !esPagoPresencial && !esLinkWebpay && !esLinkFlow && !esLinkMP &&
+                        klapApiKey && precioNum > 0;
+    if (generarKlap) {
+      const klapSandbox = metodos_pago?.klap_sandbox !== false && !process.env.KLAP_PROD;
+      const klapBase = klapSandbox ? 'https://api-pasarela-sandbox.mcdesaqa.cl' : 'https://api.pasarela.multicaja.cl';
+      try {
+        const klapRes = await fetch(`${klapBase}/payment-gateway/v1/orders`, {
+          method: 'POST',
+          headers: { apikey: klapApiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reference_id: cita.id,
+            amount: { currency: 'CLP', total: precioNum },
+            description: `Pago de cita${servicio ? ' — ' + servicio : ''}`,
+            methods: ['tarjetas'],
+            user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: (cita.tel_paciente || '').replace(/^\+/, '') || undefined},
+            customs: [
+              { key: 'tarjetas_expiration_minutes', value: '20' },
+              { key: 'tarjetas_payment_indicator', value: 'typed' },
+              { key: 'notify_payment_user', value: 'true' }
+            ],
+            urls: {
+              return_url: `${BASE_URL}/pago-exitoso?tipo=cita${slug ? '&slug=' + encodeURIComponent(slug) : ''}`,
+              cancel_url: manageShortUrl(cita.id)
+            },
+            webhooks: {
+              webhook_validation: `${BASE_URL}/api/flow?tipo=klap_validate`,
+              webhook_confirm:    `${BASE_URL}/api/flow?tipo=klap_confirm`,
+              webhook_reject:     `${BASE_URL}/api/flow?tipo=klap_reject`
+            }
+          }),
+          signal: AbortSignal.timeout(12000)
+        });
+        const klapData = await klapRes.json();
+        if (klapData.redirect_url) {
+          klap_url = klapData.redirect_url;
+          // Siempre marcar klap como metodo_pago (el webhook lo confirma al pagar)
+          await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+            method: 'PATCH', headers: { ...sh, Prefer: 'return=minimal' },
+            body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'klap' })
+          }).catch(e => console.error('crear-cita: patch klap pending_payment:', e.message));
+          console.log('crear-cita: klap_url generado OK', 'coexiste con mp:', !!mp_url);
+        } else {
+          klap_error = klapData.message || JSON.stringify(klapData).slice(0, 120);
+          console.error('crear-cita: klap error:', klap_error);
+        }
+      } catch(e) {
+        klap_error = e.name === 'TimeoutError' ? 'timeout conectando con Klap' : e.message;
+        console.error('crear-cita: klap exception:', klap_error);
+      }
+    }
+    const soloKlap = !!(klap_url && !mp_url && !metodos_pago?.transferencia && !metodos_pago?.webpay && !metodos_pago?.efectivo);
+
+    // Link MP desde admin → marcar pending_payment con metodo_pago='mercadopago'
+    if (esLinkMP && !mp_url) {
+      await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'mercadopago' })
+      }).catch(e => console.error('crear-cita: patch link_mp error', e.message));
+    }
+
+    // Link Webpay desde admin → marcar pending_payment con metodo_pago='webpay'
+    if (esLinkWebpay) {
+      const patchR = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
+        method: 'PATCH',
+        headers: { ...sh, Prefer: 'return=minimal' },
+        body: JSON.stringify({ estado: 'pending_payment', metodo_pago: 'webpay' })
+      }).catch(e => ({ ok: false, _err: e.message }));
+      if (!patchR.ok) console.error('crear-cita: patch pending_payment error', patchR.status, await patchR.text?.().catch(()=>''));
+      else console.log('crear-cita: cita marcada pending_payment webpay');
+    }
 
     // Enviar email de confirmación (después de generar flow_url para incluirlo)
     if (email_paciente && process.env.RESEND_API_KEY && enviar_email !== false) {
@@ -414,12 +921,14 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            subject: `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada ✓`,
+            subject: (soloMP || soloKlap)
+              ? `Completa tu pago para confirmar tu hora en ${negocio_nombre || 'la clínica'}`
+              : `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,
             headers: {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
             },
-            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url })
+            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio, video_url })
           })
         });
         if (!emailRes.ok) {
@@ -435,8 +944,8 @@ export default async function handler(req, res) {
       console.log('crear-cita: email omitido — RESEND_KEY:', !!process.env.RESEND_API_KEY);
     }
 
-    // Confirmar la cita si es booking público y no requiere pago Flow obligatorio
-    if (confirmarDespues && !soloFlow) {
+    // Confirmar la cita si es booking público y no requiere pago Flow, MP ni Klap
+    if (confirmarDespues && !soloFlow && !mp_url && !klap_url) {
       await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}`, {
         method: 'PATCH',
         headers: { ...sh, Prefer: 'return=minimal' },
@@ -444,7 +953,7 @@ export default async function handler(req, res) {
       }).catch(e => console.error('crear-cita: patch confirmed error:', e.message));
     }
 
-    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error });
+    return res.json({ ok: true, cita, flow_url, solo_flow: soloFlow, flow_error, mp_url, solo_mp: soloMP, mp_error, klap_url, solo_klap: soloKlap, klap_error, manage_token: cita?.id ? generateManageToken(cita.id) : null, manage_url: cita?.id ? manageShortUrl(cita.id) : null });
   } catch (e) {
     console.error('crear-cita exception:', e.message);
     return res.status(500).json({ error: 'Error interno' });
@@ -471,7 +980,7 @@ async function gcGetAccessToken(refresh_token) {
   return data.access_token;
 }
 
-function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion }) {
+function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, modalidad, cita_id }) {
   const [y, m, d] = fecha.split('-').map(Number);
   const [hh, mm]  = hora.split(':').map(Number);
   const pad = n => String(n).padStart(2, '0');
@@ -479,17 +988,22 @@ function gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, h
   const endMins = hh * 60 + mm + durMin;
   const startDt = `${y}-${pad(m)}-${pad(d)}T${pad(hh)}:${pad(mm)}:00`;
   const endDt   = `${y}-${pad(m)}-${pad(d)}T${pad(Math.floor(endMins/60))}:${pad(endMins%60)}:00`;
-  return {
+  const event = {
     summary: `Cita: ${nombre_paciente}${nombre_especialista ? ' — ' + nombre_especialista : ''}`,
     description: [
       `Paciente: ${nombre_paciente}`,
       nombre_especialista ? `Profesional: ${nombre_especialista}` : '',
-      servicio            ? `Motivo: ${servicio}`                 : ''
+      servicio            ? `Motivo: ${servicio}`                 : '',
+      modalidad === 'online' ? 'Modalidad: Online (videollamada)' : ''
     ].filter(Boolean).join('\n'),
-    location: direccion || undefined,
+    location: modalidad === 'online' ? undefined : (direccion || undefined),
     start: { dateTime: startDt, timeZone: 'America/Santiago' },
     end:   { dateTime: endDt,   timeZone: 'America/Santiago' }
   };
+  if (modalidad === 'online') {
+    event.conferenceData = { createRequest: { requestId: cita_id || startDt, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
+  }
+  return event;
 }
 
 async function gcGestionarEvento({ supabaseUrl, sh, accion, cliente_id, google_event_id, refresh_token, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion }) {
@@ -540,25 +1054,34 @@ async function gcGetOrCreateCalendar(access_token, supabaseUrl, sh, cliente_id, 
   return cal.id;
 }
 
-async function gcCrearEvento({ supabaseUrl, sh, cita_id, cliente_id, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, refresh_token, google_calendar_id }) {
+async function gcCrearEvento({ supabaseUrl, sh, cita_id, cliente_id, nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, refresh_token, google_calendar_id, modalidad }) {
   try {
     const access_token = await gcGetAccessToken(refresh_token);
     const calendar_id  = await gcGetOrCreateCalendar(access_token, supabaseUrl, sh, cliente_id, google_calendar_id);
-    const event = gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion });
-    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}/events`, {
+    const esOnline = modalidad === 'online';
+    const event = gcBuildEvent({ nombre_paciente, nombre_especialista, servicio, fecha, hora, duracion, direccion, modalidad, cita_id });
+    const urlParams = esOnline ? '?conferenceDataVersion=1' : '';
+    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar_id)}/events${urlParams}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(event)
     });
     const rText = await r.text();
     if (!r.ok) return { error: 'GC POST failed', status: r.status, body: rText };
-    const { id: google_event_id } = JSON.parse(rText);
+    const eventData = JSON.parse(rText);
+    const google_event_id = eventData.id;
+    // Extraer link de Google Meet si se creó
+    const video_url = esOnline
+      ? (eventData.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri || null)
+      : null;
+    const patch = { google_event_id };
+    if (video_url) patch.video_url = video_url;
     await fetch(`${supabaseUrl}/rest/v1/citas?id=eq.${cita_id}`, {
       method: 'PATCH',
       headers: { ...sh, Prefer: 'return=minimal' },
-      body: JSON.stringify({ google_event_id })
+      body: JSON.stringify(patch)
     });
-    return { ok: true, google_event_id, calendar_id };
+    return { ok: true, google_event_id, calendar_id, video_url };
   } catch(e) {
     if (e.invalid) {
       await fetch(`${supabaseUrl}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
@@ -602,28 +1125,30 @@ function buildPagoHtml(metodos_pago, datos_banco) {
   return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
 }
 
-function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url }) {
+function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio, video_url }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
   const dir = htmlEscape(direccion);
   const en  = htmlEscape(email_negocio);
-  const dur = htmlEscape(duracion);
+  const dur = duracion ? htmlEscape(String(parseInt(duracion) || duracion)) + ' minutos' : '';
   const precioStr = precio
     ? htmlEscape(typeof precio === 'number' ? '$' + precio.toLocaleString('es-CL') : precio)
     : '';
+  const logoHdr = logo_negocio
+    ? `<img src="${htmlEscape(logo_negocio)}" alt="${htmlEscape(negocio_nombre||'')}" height="48" style="display:block;margin:0 auto 6px;max-width:180px"><div style="font-size:15px;font-weight:700;color:#fff">${htmlEscape(negocio_nombre||'')}</div>`
+    : `<img src="${BASE_URL}/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
-  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
-  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+<tr><td style="background:#1E1B3A;padding:28px 32px;text-align:center;">
+  ${logoHdr}
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
-  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">¡Cita confirmada! 🎉</h2>
-  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, tu hora está reservada.</p>
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">${mp_url ? '¡Hora apartada! Completa tu pago' : '¡Cita confirmada! 🎉'}</h2>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, ${mp_url ? 'tu hora está reservada. Paga ahora para confirmarla.' : 'tu hora está reservada.'}</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${ne}</span></td></tr>
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;">${htmlEscape(fechaFmt)}</span></td></tr>
@@ -633,12 +1158,27 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     ${precioStr ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total</span><br><span style="color:#6C5CE4;font-size:16px;font-weight:700;">${precioStr}</span></td></tr>` : ''}
     ${buildPagoHtml(metodos_pago, datos_banco)}
   </table>
+  ${video_url ? `\
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
+    <tr><td style="text-align:center;">\
+      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Tu consulta es <strong>online</strong> — únete a la videollamada en el horario de tu cita</p>\
+      <a href="${htmlEscape(video_url)}" target="_blank" style="display:inline-block;padding:13px 28px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Unirse a Google Meet →</a>\
+      <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">${htmlEscape(video_url)}</p>\
+    </td></tr>\
+  </table>` : ''}
   ${flow_url ? `\
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
     <tr><td style="text-align:center;">\
       <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Paga online para confirmar tu reserva</p>\
       <a href="${htmlEscape(flow_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Pagar ahora con Flow →</a>\
       <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este link es de uso único y expira en 24 horas</p>\
+    </td></tr>\
+  </table>` : ''}
+  ${mp_url ? `\
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
+    <tr><td style="text-align:center;">\
+      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Paga de forma segura para confirmar tu hora</p>\
+      <a href="${htmlEscape(mp_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Pagar con Mercado Pago →</a>\
     </td></tr>\
   </table>` : ''}
   ${dir ? `
@@ -652,7 +1192,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     </td></tr>
   </table>` : ''}
   <p style="margin:20px 0 6px;color:#6b7280;font-size:13px;text-align:center;">
-    ¿Necesitas cambios? <a href="${BASE_URL}/gestionar-cita?id=${htmlEscape(cita_id)}&token=${generateManageToken(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
+    ¿Necesitas cambios? <a href="${manageShortUrl(cita_id)}" style="color:#6C5CE4;font-weight:600;text-decoration:none;">Cancelar o reagendar tu cita</a>
   </p>
   ${en ? `<p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">También puedes enviarnos un mail a <a href="mailto:${en}" style="color:#6C5CE4;text-decoration:none;">${en}</a></p>` : ''}
 </td></tr>
@@ -665,23 +1205,25 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
 </body></html>`;
 }
 
-function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, metodos_pago, datos_banco, cita_id }) {
+function emailReagendadoHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, metodos_pago, datos_banco, cita_id, logo_negocio }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
   const dir = htmlEscape(direccion);
   const en  = htmlEscape(email_negocio);
+  const logoHdr = logo_negocio
+    ? `<img src="${htmlEscape(logo_negocio)}" alt="${htmlEscape(negocio_nombre||'')}" height="48" style="display:block;margin:0 auto 6px;max-width:180px"><div style="font-size:15px;font-weight:700;color:#fff">${htmlEscape(negocio_nombre||'')}</div>`
+    : `<img src="${BASE_URL}/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px;"><p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px;">
 <tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10);">
-<tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center;">
-  <img src="${BASE_URL}/logo_attempo.png" alt="Attempo" height="36" style="display:block;margin:0 auto 8px;">
-  <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
+<tr><td style="background:#1E1B3A;padding:28px 32px;text-align:center;">
+  ${logoHdr}
 </td></tr>
 <tr><td style="padding:32px;text-align:center;">
-  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Cita reagendada ✓</h2>
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Cita reagendada</h2>
   <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${np}</strong>, tu cita fue reagendada exitosamente.</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${ne}</span></td></tr>
