@@ -107,7 +107,7 @@ export default async function handler(req, res) {
       } catch(_) {}
     } else if (canal === 'instagram' && accessToken) {
       try {
-        const nr = await fetch(`https://graph.instagram.com/v21.0/${canal_user_id}?fields=name,profile_pic&access_token=${accessToken}`);
+        const nr = await fetch(`https://graph.facebook.com/v20.0/${canal_user_id}?fields=name,profile_pic&access_token=${accessToken}`);
         const nd = await nr.json();
         if (nd.name) canal_user_name = nd.name;
         if (nd.profile_pic) canal_user_photo = nd.profile_pic;
@@ -199,7 +199,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: respuesta } })
       });
     } else if (canal === 'instagram') {
-      sendRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+      sendRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: respuesta } })

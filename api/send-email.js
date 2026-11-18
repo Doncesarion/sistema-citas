@@ -3,6 +3,24 @@ import crypto from 'crypto';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
+function generateManageToken(cita_id) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || !cita_id) return '';
+  return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+}
+
+// Normaliza teléfono a formato internacional WhatsApp (ej: 56912345678)
+function formatWaNumber(tel) {
+  if (!tel) return null;
+  const digits = String(tel).replace(/\D/g, '');
+  if (digits.length === 8) return '569' + digits;        // celular sin 9 ni código país
+  if (digits.length === 9 && digits.startsWith('9')) return '56' + digits;
+  if (digits.length === 11 && digits.startsWith('569')) return digits;
+  if (digits.length === 10 && digits.startsWith('56')) return digits;
+  if (digits.length >= 10) return digits;
+  return null;
+}
+
 function verifySessionToken(token) {
   if (!token) return false;
   const SECRET = process.env.SESSION_SECRET;
@@ -37,7 +55,9 @@ function renderTemplate(template, vars) {
 
 // Template HTML para recordatorio
 function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, negocio, mensaje_extra, cita_id }) {
-  const gestionUrl = `${BASE_URL}/gestionar-cita?id=${he(cita_id || '')}`;
+  const gestionUrl = cita_id
+    ? `${BASE_URL}/gestionar-cita?id=${he(cita_id)}&token=${generateManageToken(cita_id)}`
+    : `${BASE_URL}`;
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:600px){.aw{padding:20px 8px!important}.ac{padding:24px 16px!important}.af{padding:12px 16px!important}}</style></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" class="aw" style="background:#f5f3ff;padding:40px 20px;">
@@ -215,6 +235,21 @@ async function procesarRecordatorios(sh, shJson) {
     for (const cli of clientes) {
       const cfg = cli.recordatorios_config || {};
 
+      // Cache de credenciales WA para este cliente (se carga si hay algún recordatorio WA activo)
+      let _waCache = undefined;
+      async function getWaCreds() {
+        if (_waCache !== undefined) return _waCache;
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cli.id}&select=canales_meta&limit=1`,
+          { headers: sh }
+        );
+        const [d] = await r.json().catch(() => []);
+        _waCache = d?.canales_meta?.wa_phone_number_id && d?.canales_meta?.wa_token
+          ? { phoneId: d.canales_meta.wa_phone_number_id, token: d.canales_meta.wa_token }
+          : null;
+        return _waCache;
+      }
+
       // Compatibilidad formato antiguo
       const lista = Array.isArray(cfg.lista) ? cfg.lista
         : (cfg.email_activo ? [{ id: 'rec_legacy_0', activo: true, tiempo: cfg.email_tiempo || '24h',
@@ -259,7 +294,7 @@ async function procesarRecordatorios(sh, shJson) {
             let enviado = false;
 
             // — Enviar Email —
-            if (rec.email_activo) {
+            if (rec.email_activo && cita.email_paciente) {
               const asunto       = renderTemplate(rec.email_asunto || 'Recordatorio: tu cita en {negocio}', vars);
               const mensajeExtra = renderTemplate(rec.email_mensaje || '', vars);
               const emailRes = await fetch('https://api.resend.com/emails', {
@@ -274,7 +309,47 @@ async function procesarRecordatorios(sh, shJson) {
                 })
               });
               if (emailRes.ok) { enviados++; enviado = true; }
-              else { const errTxt = await emailRes.text().catch(() => ''); console.error('recordatorio email error', emailRes.status, errTxt); errores.push(`cita ${cita.id}: ${emailRes.status}`); }
+              else { const errTxt = await emailRes.text().catch(() => ''); console.error('recordatorio email error', emailRes.status, errTxt); errores.push(`cita ${cita.id}: email ${emailRes.status}`); }
+            }
+
+            // — Enviar WhatsApp (opcional, requiere credenciales Meta en el negocio) —
+            if (rec.wa_activo && cita.tel_paciente) {
+              try {
+                const wa = await getWaCreds();
+                if (wa) {
+                  const telNum = formatWaNumber(cita.tel_paciente);
+                  if (telNum) {
+                    const gestionUrl = `${BASE_URL}/gestionar-cita?id=${cita.id}&token=${generateManageToken(cita.id)}`;
+                    const waMensaje  = renderTemplate(
+                      rec.wa_mensaje || 'Hola {nombre}, te recordamos tu cita en {negocio} el {fecha} a las {hora}. Gestiona tu cita: ' + gestionUrl,
+                      vars
+                    );
+                    const waRes = await fetch(`https://graph.facebook.com/v20.0/${wa.phoneId}/messages`, {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${wa.token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        messaging_product: 'whatsapp',
+                        to: telNum,
+                        type: 'text',
+                        text: { body: waMensaje }
+                      })
+                    });
+                    if (waRes.ok) { enviados++; enviado = true; }
+                    else {
+                      const waErr = await waRes.json().catch(() => ({}));
+                      // Si falla por ventana de 24h (error 131026/131047), loguear sin contar como error crítico
+                      const waErrCode = waErr?.error?.code;
+                      if (waErrCode === 131026 || waErrCode === 131047) {
+                        console.warn(`WA recordatorio fuera de ventana 24h cita ${cita.id}: necesita template aprobado`);
+                      } else {
+                        errores.push(`cita ${cita.id}: wa ${waRes.status}`);
+                      }
+                    }
+                  }
+                }
+              } catch(e) {
+                console.error('WA recordatorio error:', e.message);
+              }
             }
 
             // — Marcar como enviado para no reenviar —

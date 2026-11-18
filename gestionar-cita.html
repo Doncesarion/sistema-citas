@@ -155,8 +155,14 @@ let calAbierto  = false;
 
 /* ── BADGES ── */
 function estadoBadge(estado) {
-  const map = { pending:['estado-pending','Pendiente'], canceled:['estado-canceled','Cancelada'], done:['estado-done','Realizada'] };
-  const [cls, lbl] = map[estado] || ['',''];
+  const map = {
+    pending:         ['estado-pending',  'Pendiente'],
+    confirmed:       ['estado-done',     'Confirmada'],
+    pending_payment: ['estado-pending',  'Pago pendiente'],
+    canceled:        ['estado-canceled', 'Cancelada'],
+    done:            ['estado-done',     'Realizada']
+  };
+  const [cls, lbl] = map[estado] || ['estado-pending', estado || ''];
   return `<span class="estado-badge ${cls}">${lbl}</span>`;
 }
 
