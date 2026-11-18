@@ -48,16 +48,22 @@ body::before{
 .hero-body{padding:0 20px 24px}
 .hero-profile{display:contents}
 .hero-avatar{
-  width:110px;height:110px;border-radius:18px;
+  width:152px;height:152px;border-radius:22px;
   background:linear-gradient(135deg,var(--a),var(--a3));
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:32px;font-weight:600;color:#fff;
-  box-shadow:0 6px 24px rgba(108,92,228,.3);
-  border:4px solid #fff;
-  margin:-55px auto 14px;
+  font-family:var(--mono);font-size:40px;font-weight:600;color:#fff;
+  box-shadow:0 8px 28px rgba(108,92,228,.3);
+  border:5px solid #fff;
+  margin:-76px auto 16px;
   position:relative;z-index:2;overflow:hidden;
 }
-.hero-avatar img{width:100%;height:100%;object-fit:cover;border-radius:14px}
+.hero-avatar img{width:100%;height:100%;object-fit:cover;border-radius:17px}
+.hero-rating{display:none;align-items:center;gap:6px;justify-content:center;margin-bottom:10px}
+.hero-stars{color:#FBBF24;font-size:17px;letter-spacing:1.5px;line-height:1}
+.hero-rating-score{font-size:14px;font-weight:700;color:var(--t1)}
+.hero-rating-count{font-size:12px;color:var(--t3)}
+.hero-desc-box{max-width:480px;margin:10px auto 14px;background:rgba(108,92,228,.04);border:1px solid var(--b1);border-radius:10px;padding:12px 16px;text-align:left}
+.hero-desc-box p{font-size:13px;color:var(--t2);line-height:1.65;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .hero-info{display:contents}
 .hero-name{
   font-size:22px;font-weight:800;color:var(--t1);letter-spacing:-.03em;
@@ -268,7 +274,7 @@ body::before{
 @media(max-width:600px){
   .hero-banner{height:110px}
   .hero-body{padding:0 16px 20px}
-  .hero-avatar{width:88px;height:88px;font-size:24px;margin-top:-44px;border-radius:14px}
+  .hero-avatar{width:120px;height:120px;font-size:30px;margin-top:-60px;border-radius:17px}
   .hero-name{font-size:19px}
   .svc-list{grid-template-columns:1fr}
   .sbi-lbl{font-size:10px;overflow:hidden;text-overflow:ellipsis}
@@ -311,9 +317,16 @@ body::before{
       <div class="hero-body">
         <div class="hero-avatar" id="biz-logo-ini">AT</div>
         <h1 class="hero-name" id="biz-name">Cargando...</h1>
-        <div class="hero-spec" id="biz-desc" style="display:none"></div>
+        <div class="hero-rating" id="hero-rating">
+          <span class="hero-stars" id="hero-stars"></span>
+          <span class="hero-rating-score" id="hero-rating-score"></span>
+          <span class="hero-rating-count" id="hero-rating-count"></span>
+        </div>
+        <div class="hero-desc-box" id="hero-desc-box" style="display:none">
+          <p id="biz-desc"></p>
+        </div>
         <div class="hero-badges">
-          <div class="biz-open" id="biz-status"><span class="dot-pulse"></span><span id="biz-status-lbl">Verificando...</span></div>
+          <div id="biz-status" style="display:none"><span id="biz-status-lbl"></span></div>
           <div class="hero-badge" id="biz-dir-wrap" style="display:none">
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
             <span id="biz-dir"></span>
@@ -634,7 +647,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
     document.title = `${negocioData.nombre_negocio} — Reserva tu hora`;
     if (negocioData.descripcion) {
       document.getElementById('biz-desc').textContent = negocioData.descripcion;
-      document.getElementById('biz-desc').style.display = 'block';
+      document.getElementById('hero-desc-box').style.display = 'block';
     }
     const sedes = Array.isArray(negocioData.ubicaciones) ? negocioData.ubicaciones.filter(s => s.nombre) : [];
     if (sedes.length > 0) {
@@ -668,6 +681,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
     try {
       const rd = rRatings ? await rRatings.json() : null;
       if (rd?.resumen) rd.resumen.forEach(r => { ratingsMap[r.especialista_id] = r; });
+      renderHeroRating();
     } catch(_) {}
 
     renderServicios(negocioData.servicios || []);
@@ -727,6 +741,19 @@ function resumirHorario(h) {
     } else { prev = cur; }
   }
   return grupos.join(' · ');
+}
+
+/* ── RATING GLOBAL ── */
+function renderHeroRating() {
+  const vals = Object.values(ratingsMap).filter(r => r.total > 0);
+  if (!vals.length) return;
+  const totalEvals = vals.reduce((s, r) => s + r.total, 0);
+  const promedio   = vals.reduce((s, r) => s + r.promedio * r.total, 0) / totalEvals;
+  const stars      = Math.round(promedio);
+  document.getElementById('hero-stars').textContent        = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+  document.getElementById('hero-rating-score').textContent = promedio.toFixed(1);
+  document.getElementById('hero-rating-count').textContent = `(${totalEvals} ${totalEvals === 1 ? 'evaluación' : 'evaluaciones'})`;
+  document.getElementById('hero-rating').style.display     = 'flex';
 }
 
 /* ── SERVICIOS ── */
