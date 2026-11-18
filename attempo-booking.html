@@ -29,7 +29,8 @@ body::before{
     radial-gradient(ellipse 55% 35% at 15% 8%,rgba(108,92,228,0.07),transparent 70%),
     radial-gradient(ellipse 40% 50% at 85% 92%,rgba(139,124,248,0.06),transparent 70%);
 }
-.page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:24px 20px 64px;width:100%}
+.page-wrap{background:#fff;border-top:1px solid var(--b1);margin-top:0}
+.page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:28px 20px 64px;width:100%}
 /* ── Hero ───────────────────────────────────────────────────────────── */
 .hero-cover{
   position:relative;z-index:1;
@@ -307,6 +308,7 @@ body::before{
 @media(max-width:600px){
   .hero-body{padding:16px 14px}
   .hero-profile-row{gap:14px}
+  .page-wrap{border-radius:0}
   .hero-avatar{width:140px;height:140px;font-size:34px;border-radius:17px}
   .hero-info-col{padding-top:4px}
   .hero-name{font-size:17px}
@@ -391,6 +393,7 @@ body::before{
 
     </div>
 
+  <div class="page-wrap">
   <div class="page">
 
     <!-- BOOK HEADER -->
@@ -644,6 +647,8 @@ body::before{
     </div>
     <div class="eval-cards" id="eval-cards"></div>
   </div>
+
+  </div><!-- /page-wrap -->
 
 </div><!-- /content-wrap -->
 
