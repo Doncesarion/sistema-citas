@@ -383,8 +383,6 @@ body::before{
                 <span class="ldot-g"></span>Reserva en línea
               </div>
             </div>
-            <!-- mini reseñas 3-col -->
-            <div class="hero-reviews-preview" id="hero-reviews-preview" style="display:none"></div>
           </div>
         </div>
       </div>
@@ -878,21 +876,6 @@ function renderReseñas(reseñas) {
   const stars   = Math.round(promedio);
   const meses   = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const fmtFecha = f => { if (!f) return ''; const d = new Date(f + 'T12:00:00'); return `${meses[d.getMonth()]} ${d.getFullYear()}`; };
-
-  // Mini cards en el hero (máx 3)
-  const preview = document.getElementById('hero-reviews-preview');
-  if (preview) {
-    preview.innerHTML = reseñas.slice(0, 3).map(r => `
-      <div class="hrm">
-        <div class="hrm-q">"</div>
-        <div class="hrm-txt">${esc(r.comentario)}</div>
-        <div class="hrm-foot">
-          <span><span class="hrm-stars">${r.estrellas}★</span> ${esc(r.nombre.split(' ')[0])} ${r.nombre.split(' ')[1] ? esc(r.nombre.split(' ')[1][0]) + '.' : ''}</span>
-          <span>${fmtFecha(r.fecha)}</span>
-        </div>
-      </div>`).join('');
-    preview.style.display = 'grid';
-  }
 
   // Lista completa al fondo
   document.getElementById('eval-score-big').textContent  = promedio.toFixed(1);
