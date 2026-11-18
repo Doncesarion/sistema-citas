@@ -283,7 +283,7 @@ body::before{
 .eval-stars-big{color:#FBBF24;font-size:20px;letter-spacing:2px;line-height:1}
 .eval-count{font-size:13px;color:var(--t3)}
 .eval-cards{display:flex;flex-direction:column;gap:10px}
-.eval-card{background:#fff;border:1px solid var(--b1);border-radius:var(--rl);padding:16px 18px}
+.eval-card{background:var(--bg);border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px}
 .eval-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .eval-card-name{font-size:13px;font-weight:600;color:var(--t1)}
 .eval-card-stars{color:#FBBF24;font-size:13px;letter-spacing:1px}
@@ -373,6 +373,22 @@ body::before{
           </div>
         </div>
       </div>
+
+      <!-- RESEÑAS dentro del hero -->
+      <div id="eval-section" style="display:none;max-width:760px;margin:0 auto;padding:24px 20px 8px;border-top:1px solid var(--b1)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h2 style="font-size:15px;font-weight:700;color:var(--t1);letter-spacing:-.02em">Evaluaciones</h2>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="eval-score-big" style="font-size:22px;font-weight:800;color:var(--t1);line-height:1"></span>
+            <div>
+              <div id="eval-stars-big" style="color:#FBBF24;font-size:14px;letter-spacing:1px"></div>
+              <div id="eval-count" style="font-size:11px;color:var(--t3)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="eval-cards" id="eval-cards"></div>
+      </div>
+
     </div>
 
   <div class="page">
@@ -613,21 +629,6 @@ body::before{
     </div>
 
   </div><!-- /page -->
-
-  <!-- RESEÑAS -->
-  <div id="eval-section" class="eval-section" style="display:none;max-width:760px;margin:0 auto;padding:0 20px 48px">
-    <div class="book-header">
-      <h2 class="book-title">Evaluaciones</h2>
-      <div class="eval-score-row" style="margin-bottom:0">
-        <span class="eval-score-big" id="eval-score-big"></span>
-        <div>
-          <div class="eval-stars-big" id="eval-stars-big"></div>
-          <div class="eval-count" id="eval-count"></div>
-        </div>
-      </div>
-    </div>
-    <div class="eval-cards" id="eval-cards"></div>
-  </div>
 
 </div><!-- /content-wrap -->
 
