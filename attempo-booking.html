@@ -276,18 +276,21 @@ body::before{
 .c-row b{color:var(--t1);font-weight:600;min-width:90px;flex-shrink:0}
 .c-row span{color:var(--t2)}
 .c-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-/* ── Reseñas ─────────────────────────────────────────────────────────── */
-.eval-section{margin-top:24px}
-.eval-score-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.eval-score-big{font-size:36px;font-weight:800;color:var(--t1);line-height:1}
-.eval-stars-big{color:#FBBF24;font-size:20px;letter-spacing:2px;line-height:1}
-.eval-count{font-size:13px;color:var(--t3)}
+/* ── Reseñas mini (hero) ──────────────────────────────────────────────── */
+.hero-reviews-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.hrm{background:var(--bg);border:1px solid var(--b1);border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;min-width:0}
+.hrm-q{font-size:22px;font-weight:800;color:var(--a);line-height:1;margin-bottom:5px;opacity:.35}
+.hrm-txt{font-size:11px;color:var(--t2);line-height:1.55;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px}
+.hrm-foot{font-size:10px;color:var(--t3);display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--b1);padding-top:6px;gap:4px;flex-wrap:wrap}
+.hrm-stars{color:#FBBF24;letter-spacing:.5px}
+/* ── Reseñas lista completa (abajo) ──────────────────────────────────── */
+.eval-section{max-width:760px;margin:0 auto;padding:0 20px 48px}
 .eval-cards{display:flex;flex-direction:column;gap:10px}
-.eval-card{background:var(--bg);border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px}
-.eval-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.eval-card{background:#fff;border:1px solid var(--b1);border-radius:var(--rl);padding:14px 16px}
+.eval-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .eval-card-name{font-size:13px;font-weight:600;color:var(--t1)}
 .eval-card-stars{color:#FBBF24;font-size:13px;letter-spacing:1px}
-.eval-card-date{font-size:11px;color:var(--t4)}
+.eval-card-date{font-size:11px;color:var(--t4);margin-bottom:6px}
 .eval-card-txt{font-size:13px;color:var(--t2);line-height:1.6}
 .loading-state{text-align:center;padding:80px 20px;color:var(--t3);font-size:14px}
 .error-state{text-align:center;padding:80px 20px}
@@ -300,6 +303,7 @@ body::before{
   .hero-avatar{width:140px;height:140px;font-size:34px;border-radius:17px}
   .hero-info-col{padding-top:4px}
   .hero-name{font-size:17px}
+  .hero-reviews-preview{grid-template-columns:repeat(3,minmax(140px,1fr));overflow-x:auto;padding-bottom:4px}
   .svc-list{grid-template-columns:1fr}
   .sbi-lbl{font-size:10px;overflow:hidden;text-overflow:ellipsis}
   .page{padding:18px 14px 48px}
@@ -370,23 +374,10 @@ body::before{
                 <span class="ldot-g"></span>Reserva en línea
               </div>
             </div>
+            <!-- mini reseñas 3-col -->
+            <div class="hero-reviews-preview" id="hero-reviews-preview" style="display:none"></div>
           </div>
         </div>
-      </div>
-
-      <!-- RESEÑAS dentro del hero -->
-      <div id="eval-section" style="display:none;max-width:760px;margin:0 auto;padding:24px 20px 8px;border-top:1px solid var(--b1)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <h2 style="font-size:15px;font-weight:700;color:var(--t1);letter-spacing:-.02em">Evaluaciones</h2>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span id="eval-score-big" style="font-size:22px;font-weight:800;color:var(--t1);line-height:1"></span>
-            <div>
-              <div id="eval-stars-big" style="color:#FBBF24;font-size:14px;letter-spacing:1px"></div>
-              <div id="eval-count" style="font-size:11px;color:var(--t3)"></div>
-            </div>
-          </div>
-        </div>
-        <div class="eval-cards" id="eval-cards"></div>
       </div>
 
     </div>
@@ -630,6 +621,21 @@ body::before{
 
   </div><!-- /page -->
 
+  <!-- LISTA COMPLETA RESEÑAS -->
+  <div id="eval-section" class="eval-section" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:8px;border-top:1px solid var(--b1)">
+      <h2 style="font-size:16px;font-weight:700;color:var(--t1);letter-spacing:-.02em">Todas las evaluaciones</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="eval-score-big" style="font-size:24px;font-weight:800;color:var(--t1);line-height:1"></span>
+        <div>
+          <div id="eval-stars-big" style="color:#FBBF24;font-size:15px;letter-spacing:1px"></div>
+          <div id="eval-count" style="font-size:11px;color:var(--t3)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="eval-cards" id="eval-cards"></div>
+  </div>
+
 </div><!-- /content-wrap -->
 
 <footer style="margin-top:auto;border-top:1px solid var(--b1);padding:16px 24px;text-align:center;font-size:11px;color:var(--t4);position:relative;z-index:1">
@@ -820,10 +826,28 @@ function renderReseñas(reseñas) {
   const total   = reseñas.length;
   const promedio = reseñas.reduce((s, r) => s + r.estrellas, 0) / total;
   const stars   = Math.round(promedio);
+  const meses   = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const fmtFecha = f => { if (!f) return ''; const d = new Date(f + 'T12:00:00'); return `${meses[d.getMonth()]} ${d.getFullYear()}`; };
+
+  // Mini cards en el hero (máx 3)
+  const preview = document.getElementById('hero-reviews-preview');
+  if (preview) {
+    preview.innerHTML = reseñas.slice(0, 3).map(r => `
+      <div class="hrm">
+        <div class="hrm-q">"</div>
+        <div class="hrm-txt">${esc(r.comentario)}</div>
+        <div class="hrm-foot">
+          <span><span class="hrm-stars">${r.estrellas}★</span> ${esc(r.nombre.split(' ')[0])} ${r.nombre.split(' ')[1] ? esc(r.nombre.split(' ')[1][0]) + '.' : ''}</span>
+          <span>${fmtFecha(r.fecha)}</span>
+        </div>
+      </div>`).join('');
+    preview.style.display = 'grid';
+  }
+
+  // Lista completa al fondo
   document.getElementById('eval-score-big').textContent  = promedio.toFixed(1);
   document.getElementById('eval-stars-big').textContent  = '★'.repeat(stars) + '☆'.repeat(5 - stars);
   document.getElementById('eval-count').textContent      = `${total} ${total === 1 ? 'evaluación' : 'evaluaciones'}`;
-  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   document.getElementById('eval-cards').innerHTML = reseñas.map(r => {
     const fecha = r.fecha ? (() => { const d = new Date(r.fecha + 'T12:00:00'); return `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`; })() : '';
     return `<div class="eval-card">
@@ -831,7 +855,7 @@ function renderReseñas(reseñas) {
         <span class="eval-card-name">${esc(r.nombre)}</span>
         <span class="eval-card-stars">${'★'.repeat(r.estrellas)}</span>
       </div>
-      ${fecha ? `<div class="eval-card-date" style="margin-bottom:6px">${fecha}</div>` : ''}
+      ${fecha ? `<div class="eval-card-date">${fecha}</div>` : ''}
       <div class="eval-card-txt">${esc(r.comentario)}</div>
     </div>`;
   }).join('');
