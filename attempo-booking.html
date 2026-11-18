@@ -33,7 +33,9 @@ body::before{
 /* ── Hero ───────────────────────────────────────────────────────────── */
 .hero-cover{
   position:relative;z-index:1;
-  padding-bottom:24px;
+  background:#fff;
+  border-bottom:1px solid var(--b1);
+  padding-bottom:28px;
 }
 .hero-banner{
   display:none; /* oculto por defecto; se activa solo con imagen de portada */
@@ -43,7 +45,7 @@ body::before{
 .hero-banner.has-img{display:block}
 .hero-banner::after{
   content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to bottom,transparent 40%,var(--bg) 100%);
+  background:linear-gradient(to bottom,transparent 40%,#fff 100%);
 }
 /* contenedor centrado igual que .page */
 .hero-body{max-width:760px;margin:0 auto;padding:28px 20px 24px}
