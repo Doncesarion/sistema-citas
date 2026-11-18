@@ -30,62 +30,52 @@ body::before{
     radial-gradient(ellipse 40% 50% at 85% 92%,rgba(139,124,248,0.06),transparent 70%);
 }
 .nav{
-  position:sticky;top:0;z-index:50;
-  background:linear-gradient(135deg,#1E1B3A 0%,#16143A 60%,#1A1642 100%);
-  padding:11px 32px;min-height:60px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid rgba(108,92,228,0.25);
+  position:sticky;top:0;z-index:50;background:#fff;
+  border-bottom:1px solid var(--b1);
+  padding:0 20px;min-height:52px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 1px 3px rgba(108,92,228,.06);
 }
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-biz{font-size:14px;font-weight:600;color:#fff;letter-spacing:-.03em}
-.nav-badge{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.07);font-size:12px;color:rgba(255,255,255,0.65)}
-.nav-badge .ldot{width:6px;height:6px;border-radius:50%;background:#16A34A;flex-shrink:0;animation:blink 2.5s ease-in-out infinite}
+.nav-biz{font-size:16px;font-weight:700;color:var(--t1);letter-spacing:-.02em}
+.nav-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t3);font-weight:500}
+.nav-badge .ldot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;animation:blink 2.5s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
 .page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:24px 20px 64px;width:100%}
-/* ── Hero: banner + fila de perfil ─────────────────────────────────── */
-.hero-cover{position:relative}
-.hero-banner{
-  height:120px;position:relative;overflow:hidden;
-  background:linear-gradient(135deg,#1E1B3A 0%,#3B2F9E 50%,#16143A 100%);
-}
-.hero-banner::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(circle 280px at 10% 120%,rgba(108,92,228,.4),transparent),
-    radial-gradient(circle 180px at 90% -20%,rgba(139,124,248,.25),transparent);
-}
-.hero-banner img{width:100%;height:100%;object-fit:cover;display:block}
-.hero-profile{
+/* ── Hero ───────────────────────────────────────────────────────────── */
+.hero-cover{
   background:#fff;border-bottom:1px solid var(--b1);
-  padding:0 24px 16px;
-  display:flex;gap:16px;align-items:flex-start;
+  padding:32px 20px 24px;text-align:center;
 }
+.hero-banner{display:none}
+.hero-profile{display:contents}
 .hero-avatar{
-  width:76px;height:76px;border-radius:50%;flex-shrink:0;
+  width:88px;height:88px;border-radius:50%;
   background:linear-gradient(135deg,var(--a),var(--a3));
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:24px;font-weight:600;color:#fff;
-  border:3px solid #fff;
-  box-shadow:0 4px 16px rgba(108,92,228,.35);
-  margin-top:-38px;position:relative;z-index:1;overflow:hidden;
+  font-family:var(--mono);font-size:28px;font-weight:600;color:#fff;
+  box-shadow:0 6px 24px rgba(108,92,228,.35),0 0 0 6px rgba(108,92,228,.08);
+  margin:0 auto 16px;overflow:hidden;
 }
 .hero-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.hero-info{flex:1;min-width:0;padding-top:12px}
+.hero-info{display:contents}
 .hero-name{
-  font-size:20px;font-weight:800;color:var(--t1);letter-spacing:-.03em;
-  line-height:1.2;margin-bottom:3px;
+  font-size:22px;font-weight:800;color:var(--t1);letter-spacing:-.03em;
+  line-height:1.2;margin-bottom:5px;
 }
-.hero-spec{font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:10px}
-.hero-badges{display:flex;flex-wrap:wrap;gap:6px}
+.hero-spec{
+  font-size:13px;color:var(--t2);line-height:1.6;
+  max-width:400px;margin:0 auto 14px;
+}
+.hero-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:0}
 .hero-badge{
   display:inline-flex;align-items:center;gap:5px;
-  padding:4px 10px;border-radius:100px;
+  padding:4px 11px;border-radius:100px;
   background:var(--adim);border:1px solid var(--b1);
   font-size:11px;font-weight:500;color:var(--t2);
 }
 .hero-badge svg{color:var(--a);flex-shrink:0}
 .biz-open{
   display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
-  padding:4px 10px;border-radius:100px;
+  padding:4px 11px;border-radius:100px;
   background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);
   color:var(--green);
 }
@@ -93,21 +83,35 @@ body::before{
 .biz-open.closed .dot-pulse{background:var(--t3);animation:none}
 .dot-pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:dp 2s infinite;flex-shrink:0}
 @keyframes dp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-.hero-lookup-link{
-  display:inline-flex;align-items:center;gap:4px;margin-top:8px;
-  font-size:11px;color:var(--a);cursor:pointer;font-weight:500;
-  background:none;border:none;font-family:inherit;padding:0;transition:opacity .15s;
-}
-.hero-lookup-link:hover{opacity:.7}
+.hero-lookup-link{display:none}
 /* Lookup panel */
 .lookup-panel{
-  display:none;background:#fff;border-bottom:1px solid var(--b1);
-  padding:16px 24px;
+  display:none;background:var(--adim);border:1px solid var(--b1);border-radius:12px;
+  padding:14px 16px;margin-bottom:16px;
 }
 .lookup-panel.open{display:block}
 .lookup-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .lookup-close{background:none;border:none;cursor:pointer;color:var(--t3);font-size:18px;line-height:1;padding:0 2px;transition:color .15s}
 .lookup-close:hover{color:var(--t1)}
+/* ── Book section header ─────────────────────────────────────────────── */
+.book-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;padding-top:4px;
+}
+.book-title{font-size:18px;font-weight:800;color:var(--t1);letter-spacing:-.03em}
+.book-manage-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 14px;border-radius:8px;
+  border:1.5px solid var(--b2);background:#fff;
+  font-size:12px;font-weight:600;color:var(--a);
+  cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.book-manage-btn:hover{background:var(--adim);border-color:var(--a)}
+/* acc1 sin cromo de accordion — servicios visibles directo */
+#acc1{background:transparent;border:none;box-shadow:none;margin-bottom:0}
+#acc1 .acc-head{display:none}
+#acc1 .acc-body{display:block!important;padding:0;border-top:none}
+#acc1 .acc-body-pad{padding-top:0}
 .sbar{display:flex;margin-bottom:24px;background:#fff;border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1)}
 .sbi{flex:1;padding:13px 6px;text-align:center;position:relative;transition:background .15s}
 .sbi::after{content:'›';position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:13px;color:var(--t4);z-index:1}
@@ -154,30 +158,30 @@ body::before{
 .mod-choice:hover{border-color:var(--b2)}
 .mod-choice.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
 .svc-row{
-  display:flex;align-items:flex-start;gap:16px;
-  padding:20px 20px 16px;
-  border:1.5px solid var(--b1);border-radius:16px;
-  cursor:pointer;transition:all .2s;background:#fff;overflow:hidden;
-  position:relative;
+  display:flex;align-items:center;gap:14px;
+  padding:16px 18px;
+  border:1.5px solid var(--b1);border-radius:14px;
+  cursor:pointer;transition:all .18s;background:#fff;
 }
-.svc-row:hover{border-color:var(--b2);box-shadow:0 6px 24px rgba(108,92,228,.1);transform:translateY(-1px)}
-.svc-row.sel{border-color:var(--a);box-shadow:0 6px 24px rgba(108,92,228,.18);background:rgba(108,92,228,.02)}
-.svc-icon{width:48px;height:48px;border-radius:14px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;margin-top:1px}
+.svc-row:hover{border-color:var(--b2);box-shadow:0 4px 20px rgba(108,92,228,.1);transform:translateY(-1px)}
+.svc-row.sel{border-color:var(--a);box-shadow:0 4px 20px rgba(108,92,228,.16);background:rgba(108,92,228,.02)}
+.svc-icon{width:44px;height:44px;border-radius:12px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .svc-row.sel .svc-icon{background:rgba(108,92,228,.14)}
 .svc-info{flex:1;min-width:0}
-.svc-name{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:5px;line-height:1.2}
-.svc-meta{font-size:12px;color:var(--t3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.svc-meta-pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;background:var(--adim);font-size:11px;font-weight:600;color:var(--a)}
-.svc-desc{font-size:12px;color:var(--t4);margin-top:5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.svc-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;align-self:center}
-.svc-price{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--a);line-height:1}
-.svc-radio{
-  width:22px;height:22px;border-radius:50%;border:1.5px solid var(--b2);
-  flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  transition:all .15s;
+.svc-name{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px;line-height:1.2}
+.svc-meta{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.svc-meta-pill{padding:2px 8px;border-radius:100px;background:var(--adim);font-size:10px;font-weight:600;color:var(--a)}
+.svc-desc{font-size:11px;color:var(--t4);margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.svc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.svc-price{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--a);line-height:1;white-space:nowrap}
+.svc-cta{
+  display:inline-block;padding:6px 14px;
+  background:linear-gradient(135deg,var(--a),var(--a3));
+  color:#fff;border-radius:7px;font-size:11px;font-weight:700;
+  white-space:nowrap;letter-spacing:.01em;pointer-events:none;
 }
-.svc-row.sel .svc-radio{background:var(--a);border-color:var(--a);box-shadow:0 2px 8px rgba(108,92,228,.35)}
-.svc-row.sel .svc-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff}
+.svc-row.sel .svc-cta{background:var(--green)}
+.svc-radio{display:none}
 .prof-list{display:flex;flex-direction:column;gap:7px}
 .prof-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1.5px solid var(--b1);border-radius:var(--rl);cursor:pointer;transition:all .15s;}
 .prof-row:hover{border-color:var(--b2);background:rgba(108,92,228,0.03)}
@@ -261,11 +265,9 @@ body::before{
 .error-state .e-title{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:8px}
 .error-state .e-sub{font-size:13px;color:var(--t3)}
 @media(max-width:600px){
-  .hero-banner{height:90px}
-  .hero-profile{padding:0 16px 14px;gap:12px}
-  .hero-avatar{width:64px;height:64px;font-size:20px;margin-top:-32px}
-  .hero-name{font-size:17px}
-  .hero-info{padding-top:10px}
+  .hero-cover{padding:24px 16px 20px}
+  .hero-avatar{width:72px;height:72px;font-size:22px}
+  .hero-name{font-size:19px}
   .sbi-lbl{font-size:10px;overflow:hidden;text-overflow:ellipsis}
   .page{padding:18px 14px 48px}
   .acc-head{padding:15px 16px}
@@ -287,10 +289,7 @@ body::before{
 <body>
 
 <nav class="nav">
-  <a class="nav-logo" href="https://attempo.cl" target="_blank" rel="noopener">
-    <img src="/logo_attempo.png" alt="Attempo" width="28" height="28" style="border-radius:8px;display:block;flex-shrink:0">
-    <span class="nav-biz" id="nav-biz">Cargando...</span>
-  </a>
+  <span class="nav-biz" id="nav-biz">Cargando...</span>
   <span class="nav-badge"><span class="ldot"></span>Reserva en línea</span>
 </nav>
 
@@ -309,51 +308,53 @@ body::before{
 
     <!-- HERO -->
     <div class="hero-cover">
-      <!-- Banner superior (gradiente o imagen de portada) -->
-      <div class="hero-banner" id="hero-banner"></div>
-      <!-- Fila de perfil -->
-      <div class="hero-profile">
-        <div class="hero-avatar" id="biz-logo-ini">AT</div>
-        <div class="hero-info">
-          <h1 class="hero-name" id="biz-name">Cargando...</h1>
-          <div class="hero-spec" id="biz-desc" style="display:none"></div>
-          <div class="hero-badges">
-            <div class="biz-open" id="biz-status"><span class="dot-pulse"></span><span id="biz-status-lbl">Verificando...</span></div>
-            <div class="hero-badge" id="biz-dir-wrap" style="display:none">
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
-              <span id="biz-dir"></span>
-            </div>
-            <div id="biz-sedes-wrap" style="display:none" class="hero-badge">
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
-              <div id="biz-sedes-content"></div>
-            </div>
-            <div class="hero-badge" id="biz-horario-wrap" style="display:none">
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3v3l2 1.5"/></svg>
-              <span id="biz-horario-txt"></span>
-            </div>
-          </div>
-          <button class="hero-lookup-link" onclick="document.getElementById('lookup-panel').classList.toggle('open')">¿Ya tienes una cita?</button>
+      <div class="hero-avatar" id="biz-logo-ini">AT</div>
+      <h1 class="hero-name" id="biz-name">Cargando...</h1>
+      <div class="hero-spec" id="biz-desc" style="display:none"></div>
+      <div class="hero-badges">
+        <div class="biz-open" id="biz-status"><span class="dot-pulse"></span><span id="biz-status-lbl">Verificando...</span></div>
+        <div class="hero-badge" id="biz-dir-wrap" style="display:none">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
+          <span id="biz-dir"></span>
+        </div>
+        <div id="biz-sedes-wrap" style="display:none" class="hero-badge">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
+          <div id="biz-sedes-content"></div>
+        </div>
+        <div class="hero-badge" id="biz-horario-wrap" style="display:none">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3v3l2 1.5"/></svg>
+          <span id="biz-horario-txt"></span>
         </div>
       </div>
+    </div>
+
+  <div class="page">
+
+    <!-- BOOK HEADER -->
+    <div class="book-header">
+      <h2 class="book-title">Agenda tu hora</h2>
+      <button class="book-manage-btn" onclick="document.getElementById('lookup-panel').classList.toggle('open')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Gestionar cita
+      </button>
     </div>
 
     <!-- LOOKUP PANEL (desplegable) -->
     <div class="lookup-panel" id="lookup-panel">
       <div class="lookup-header">
-        <span style="font-size:14px;font-weight:700;color:var(--t1)">Buscar mi cita</span>
+        <span style="font-size:13px;font-weight:700;color:var(--t1)">Buscar mi cita</span>
         <button class="lookup-close" onclick="document.getElementById('lookup-panel').classList.remove('open')">✕</button>
       </div>
-      <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-XXXXXXXX" autocomplete="email"
-        style="padding:10px 12px;border:1.5px solid var(--b2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t1);background:#fff;outline:none;width:100%;margin-bottom:8px"
-        onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
-        onkeydown="if(event.key==='Enter')buscarCita()">
-      <button onclick="buscarCita()" id="gc-btn"
-        style="width:100%;padding:10px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s"
-        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Buscar</button>
+      <div style="display:flex;gap:8px">
+        <input id="gc-email" type="text" placeholder="tu@correo.cl o AT-XXXXXXXX" autocomplete="email"
+          style="flex:1;padding:9px 12px;border:1.5px solid var(--b2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t1);background:#fff;outline:none"
+          onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b2)'"
+          onkeydown="if(event.key==='Enter')buscarCita()">
+        <button onclick="buscarCita()" id="gc-btn"
+          style="padding:9px 18px;background:var(--a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">Buscar</button>
+      </div>
       <div id="gc-result" style="margin-top:10px;display:none"></div>
     </div>
-
-  <div class="page">
 
     <!-- STEPS BAR -->
     <nav class="sbar" id="sbar" aria-label="Pasos de la reserva">
@@ -567,8 +568,8 @@ body::before{
   </div><!-- /page -->
 </div><!-- /content-wrap -->
 
-<footer style="margin-top:auto;border-top:1px solid var(--b1);padding:14px 24px;text-align:center;font-size:11px;color:var(--t4);position:relative;z-index:1">
-  Powered by <a href="https://attempo.cl" style="color:var(--a);text-decoration:none">attempo</a> · <a href="/privacidad" style="color:var(--t4);text-decoration:none">Privacidad</a> · <a href="/terminos" style="color:var(--t4);text-decoration:none">Términos</a>
+<footer style="margin-top:auto;border-top:1px solid var(--b1);padding:16px 24px;text-align:center;font-size:11px;color:var(--t4);position:relative;z-index:1">
+  Reservas online con <a href="https://attempo.cl" style="color:var(--a);text-decoration:none;font-weight:600">attempo</a> · <a href="/privacidad" style="color:var(--t4);text-decoration:none">Privacidad</a> · <a href="/terminos" style="color:var(--t4);text-decoration:none">Términos</a>
 </footer>
 
 <script>
@@ -759,7 +760,7 @@ function renderServicios(servicios) {
       </div>
       <div class="svc-right">
         ${precioStr ? `<div class="svc-price">${precioStr}</div>` : ''}
-        <div class="svc-radio"></div>
+        <span class="svc-cta">Agendar hora →</span>
       </div>
     </div>`;
   }).join('');
