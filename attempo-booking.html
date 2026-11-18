@@ -36,34 +36,35 @@ body::before{
   background:#fff;border-bottom:1px solid var(--b1);
 }
 .hero-banner{
-  height:124px;
-  background:linear-gradient(135deg,var(--a3) 0%,var(--a) 50%,var(--a2) 100%);
+  height:150px;
+  background:linear-gradient(160deg,#5B4ED8 0%,#7868EC 55%,#E8E3FF 100%);
+  background-size:cover;background-position:center;
   position:relative;
 }
 .hero-banner::after{
-  content:'';position:absolute;inset:0;
-  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,transparent 50%,rgba(248,247,255,.85) 100%);
 }
 /* contenedor centrado igual que .page */
 .hero-body{max-width:760px;margin:0 auto;padding:0 20px 24px}
 .hero-profile-row{
   display:flex;align-items:flex-start;gap:20px;
-  margin-top:-82px;margin-bottom:16px;
+  margin-top:-96px;margin-bottom:16px;
   position:relative;z-index:2;
 }
 .hero-avatar{
-  width:164px;height:164px;border-radius:22px;flex-shrink:0;
+  width:210px;height:210px;border-radius:22px;flex-shrink:0;
   background:linear-gradient(135deg,var(--a),var(--a3));
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:42px;font-weight:600;color:#fff;
-  box-shadow:0 6px 24px rgba(108,92,228,.28);
+  font-family:var(--mono);font-size:52px;font-weight:600;color:#fff;
+  box-shadow:0 8px 28px rgba(108,92,228,.3);
   border:5px solid #fff;
   overflow:hidden;
 }
 .hero-avatar img{width:100%;height:100%;object-fit:cover;border-radius:17px}
 .hero-info-col{
   flex:1;min-width:0;
-  padding-top:86px; /* empieza justo debajo del banner */
+  padding-top:96px; /* empieza justo debajo del banner */
 }
 .hero-name{
   font-size:21px;font-weight:800;color:var(--t1);letter-spacing:-.03em;
@@ -284,11 +285,11 @@ body::before{
 .error-state .e-title{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:8px}
 .error-state .e-sub{font-size:13px;color:var(--t3)}
 @media(max-width:600px){
-  .hero-banner{height:96px}
+  .hero-banner{height:110px}
   .hero-body{padding:0 14px 20px}
-  .hero-profile-row{margin-top:-64px;gap:14px}
-  .hero-avatar{width:128px;height:128px;font-size:30px;border-radius:17px}
-  .hero-info-col{padding-top:68px}
+  .hero-profile-row{margin-top:-70px;gap:14px}
+  .hero-avatar{width:140px;height:140px;font-size:34px;border-radius:17px}
+  .hero-info-col{padding-top:72px}
   .hero-name{font-size:17px}
   .svc-list{grid-template-columns:1fr}
   .sbi-lbl{font-size:10px;overflow:hidden;text-overflow:ellipsis}
@@ -652,7 +653,7 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
 
   try {
     const r = await fetch(
-      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,descripcion,rubro,email,metodos_pago,datos_banco,horario_negocio,descanso_minutos,ubicaciones&limit=1`,
+      `${SURL}/rest/v1/clientes_sistema?booking_slug=eq.${encodeURIComponent(slug)}&select=id,nombre_negocio,servicios,direccion,descripcion,rubro,email,metodos_pago,datos_banco,horario_negocio,descanso_minutos,ubicaciones,banner_url,logo_url&limit=1`,
       { headers: SH }
     );
     const rows = await r.json();
@@ -663,7 +664,16 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
     horarioNegocio = rows[0].horario_negocio || null;
 
     document.getElementById('biz-name').textContent   = negocioData.nombre_negocio;
-    document.getElementById('biz-logo-ini').textContent = iniciales(negocioData.nombre_negocio);
+    // Banner y logo personalizados (requieren columnas banner_url / logo_url en clientes_sistema)
+    if (negocioData.banner_url) {
+      document.getElementById('hero-banner').style.backgroundImage = `url(${negocioData.banner_url})`;
+    }
+    const avatarEl = document.getElementById('biz-logo-ini');
+    if (negocioData.logo_url) {
+      avatarEl.innerHTML = `<img src="${negocioData.logo_url}" alt="${esc(negocioData.nombre_negocio)}">`;
+    } else {
+      avatarEl.textContent = iniciales(negocioData.nombre_negocio);
+    }
     document.title = `${negocioData.nombre_negocio} — Reserva tu hora`;
     if (negocioData.descripcion) {
       document.getElementById('biz-desc').textContent = negocioData.descripcion;
