@@ -34,17 +34,28 @@ body::before{
 .hero-cover{
   position:relative;z-index:1;
   background:#fff;border-bottom:1px solid var(--b1);
-  padding:36px 20px 24px;text-align:center;
+  text-align:center;overflow:hidden;
 }
-.hero-banner{display:none}
+.hero-banner{
+  height:140px;
+  background:linear-gradient(135deg,var(--a3) 0%,var(--a) 50%,var(--a2) 100%);
+  position:relative;
+}
+.hero-banner::after{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-body{padding:0 20px 24px}
 .hero-profile{display:contents}
 .hero-avatar{
-  width:88px;height:88px;border-radius:50%;
+  width:96px;height:96px;border-radius:50%;
   background:linear-gradient(135deg,var(--a),var(--a3));
   display:flex;align-items:center;justify-content:center;
   font-family:var(--mono);font-size:28px;font-weight:600;color:#fff;
-  box-shadow:0 6px 24px rgba(108,92,228,.35),0 0 0 6px rgba(108,92,228,.08);
-  margin:0 auto 16px;overflow:hidden;
+  box-shadow:0 4px 20px rgba(108,92,228,.35);
+  border:4px solid #fff;
+  margin:-48px auto 14px;
+  position:relative;z-index:2;overflow:hidden;
 }
 .hero-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .hero-info{display:contents}
@@ -54,14 +65,15 @@ body::before{
 }
 .hero-spec{
   font-size:13px;color:var(--t2);line-height:1.6;
-  max-width:400px;margin:0 auto 14px;
+  max-width:420px;margin:0 auto 14px;
 }
 .hero-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:0}
 .hero-badge{
   display:inline-flex;align-items:center;gap:5px;
   padding:4px 11px;border-radius:100px;
   background:var(--adim);border:1px solid var(--b1);
-  font-size:11px;font-weight:500;color:var(--t2);
+  font-size:11px;font-weight:500;color:var(--t2);max-width:260px;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }
 .hero-badge svg{color:var(--a);flex-shrink:0}
 .hero-badge-online{background:rgba(22,163,74,.06);border-color:rgba(22,163,74,.18);color:var(--green);font-weight:600}
@@ -147,30 +159,28 @@ body::before{
 .horas-panel-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .horas-sub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;margin-bottom:4px}
 .acc-body-pad{padding-top:18px}
-.svc-list{display:flex;flex-direction:column;gap:10px}
+.svc-list{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .mod-choice{padding:14px 10px;border-radius:10px;border:2px solid var(--b1);background:var(--bg2);cursor:pointer;text-align:center;transition:border-color .15s,background .15s;font-family:var(--font);width:100%}
 .mod-choice:hover{border-color:var(--b2)}
 .mod-choice.sel{border-color:var(--a);background:rgba(108,92,228,0.06)}
 .svc-row{
-  display:block;
-  padding:18px 20px;
+  display:flex;flex-direction:column;
+  padding:16px;
   border:1.5px solid var(--b1);border-radius:14px;
   cursor:pointer;transition:all .18s;background:#fff;
 }
-.svc-row:hover{border-color:var(--b2);box-shadow:0 4px 20px rgba(108,92,228,.1);transform:translateY(-1px)}
-.svc-row.sel{border-color:var(--a);box-shadow:0 4px 20px rgba(108,92,228,.16);background:rgba(108,92,228,.02)}
-.svc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
-.svc-icon-name{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
-.svc-icon{width:38px;height:38px;border-radius:10px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.svc-row:hover{border-color:var(--b2);box-shadow:0 4px 16px rgba(108,92,228,.1);transform:translateY(-1px)}
+.svc-row.sel{border-color:var(--a);box-shadow:0 4px 16px rgba(108,92,228,.16);background:rgba(108,92,228,.02)}
+.svc-top{flex:1;margin-bottom:12px}
+.svc-icon{width:40px;height:40px;border-radius:10px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--a);margin-bottom:10px;flex-shrink:0}
 .svc-row.sel .svc-icon{background:rgba(108,92,228,.14)}
-.svc-name{font-size:15px;font-weight:700;color:var(--t1);line-height:1.3}
-.svc-price{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--a);white-space:nowrap;flex-shrink:0}
-.svc-fields{display:flex;gap:24px;margin-bottom:10px}
-.svc-field-lbl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
-.svc-field-val{font-size:13px;font-weight:500;color:var(--t2)}
-.svc-desc{font-size:12px;color:var(--t3);line-height:1.55;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.svc-footer{display:flex;justify-content:flex-end}
-.svc-cta{display:inline-flex;align-items:center;padding:8px 18px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;letter-spacing:.01em;pointer-events:none}
+.svc-name{font-size:14px;font-weight:700;color:var(--t1);line-height:1.35;margin-bottom:8px}
+.svc-pills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.svc-pill{font-size:10px;font-weight:500;color:var(--t3);background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:2px 7px}
+.svc-desc{font-size:11px;color:var(--t3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.svc-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px solid var(--b1)}
+.svc-price{font-size:15px;font-weight:700;color:var(--t1);white-space:nowrap}
+.svc-cta{display:inline-flex;align-items:center;padding:7px 14px;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;border-radius:7px;font-size:11px;font-weight:700;white-space:nowrap;letter-spacing:.01em;pointer-events:none;flex-shrink:0}
 .svc-row.sel .svc-cta{background:var(--green)}
 .svc-radio{display:none}
 .prof-list{display:flex;flex-direction:column;gap:7px}
@@ -256,9 +266,11 @@ body::before{
 .error-state .e-title{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:8px}
 .error-state .e-sub{font-size:13px;color:var(--t3)}
 @media(max-width:600px){
-  .hero-cover{padding:24px 16px 20px}
-  .hero-avatar{width:72px;height:72px;font-size:22px}
+  .hero-banner{height:110px}
+  .hero-body{padding:0 16px 20px}
+  .hero-avatar{width:80px;height:80px;font-size:22px;margin-top:-40px}
   .hero-name{font-size:19px}
+  .svc-list{grid-template-columns:1fr}
   .sbi-lbl{font-size:10px;overflow:hidden;text-overflow:ellipsis}
   .page{padding:18px 14px 48px}
   .acc-head{padding:15px 16px}
@@ -295,25 +307,28 @@ body::before{
 
     <!-- HERO -->
     <div class="hero-cover">
-      <div class="hero-avatar" id="biz-logo-ini">AT</div>
-      <h1 class="hero-name" id="biz-name">Cargando...</h1>
-      <div class="hero-spec" id="biz-desc" style="display:none"></div>
-      <div class="hero-badges">
-        <div class="biz-open" id="biz-status"><span class="dot-pulse"></span><span id="biz-status-lbl">Verificando...</span></div>
-        <div class="hero-badge" id="biz-dir-wrap" style="display:none">
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
-          <span id="biz-dir"></span>
-        </div>
-        <div id="biz-sedes-wrap" style="display:none" class="hero-badge">
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
-          <div id="biz-sedes-content"></div>
-        </div>
-        <div class="hero-badge" id="biz-horario-wrap" style="display:none">
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3v3l2 1.5"/></svg>
-          <span id="biz-horario-txt"></span>
-        </div>
-        <div class="hero-badge hero-badge-online">
-          <span class="ldot-g"></span>Reserva en línea
+      <div class="hero-banner" id="hero-banner"></div>
+      <div class="hero-body">
+        <div class="hero-avatar" id="biz-logo-ini">AT</div>
+        <h1 class="hero-name" id="biz-name">Cargando...</h1>
+        <div class="hero-spec" id="biz-desc" style="display:none"></div>
+        <div class="hero-badges">
+          <div class="biz-open" id="biz-status"><span class="dot-pulse"></span><span id="biz-status-lbl">Verificando...</span></div>
+          <div class="hero-badge" id="biz-dir-wrap" style="display:none">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
+            <span id="biz-dir"></span>
+          </div>
+          <div id="biz-sedes-wrap" style="display:none" class="hero-badge">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 1C4 1 2.5 2.5 2.5 4.5c0 2.5 3.5 6.5 3.5 6.5s3.5-4 3.5-6.5C9.5 2.5 8 1 6 1z"/><circle cx="6" cy="4.5" r="1"/></svg>
+            <span id="biz-sedes-content"></span>
+          </div>
+          <div class="hero-badge" id="biz-horario-wrap" style="display:none">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M6 3v3l2 1.5"/></svg>
+            <span id="biz-horario-txt"></span>
+          </div>
+          <div class="hero-badge hero-badge-online">
+            <span class="ldot-g"></span>Reserva en línea
+          </div>
         </div>
       </div>
     </div>
@@ -627,16 +642,10 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
       if (sedes.length === 1) {
         const s = sedes[0];
         const partes = [s.nombre];
-        if (s.direccion) partes.push(s.direccion);
         if (s.ciudad) partes.push(s.ciudad);
         content.textContent = partes.join(' · ');
       } else {
-        content.innerHTML = sedes.map(s => {
-          const partes = [`<strong>${esc(s.nombre)}</strong>`];
-          if (s.direccion) partes.push(esc(s.direccion));
-          if (s.ciudad) partes.push(esc(s.ciudad));
-          return `<div style="line-height:1.6">${partes.join(' · ')}</div>`;
-        }).join('');
+        content.textContent = `${sedes.length} sedes`;
       }
       document.getElementById('biz-sedes-wrap').style.display = 'flex';
     } else if (negocioData.direccion) {
@@ -645,7 +654,8 @@ const st = { svc: null, prof: null, fecha: null, hora: null, modalidad: null };
     }
     const horarioTxt = resumirHorario(horarioNegocio);
     if (horarioTxt) {
-      document.getElementById('biz-horario-txt').textContent = horarioTxt;
+      const primerGrupo = horarioTxt.split(' · ')[0];
+      document.getElementById('biz-horario-txt').textContent = primerGrupo;
       document.getElementById('biz-horario-wrap').style.display = 'flex';
     }
 
@@ -737,28 +747,19 @@ function renderServicios(servicios) {
     const precioStr  = precioBase ? `$${precioBase.toLocaleString('es-CL')}` : '';
     const dataStr    = JSON.stringify({ nom: s.nombre, duracion: s.duracion || 60, precio: s.precio || 0, icon, modalidad: s.modalidad || 'presencial' });
     const modalidadLabel = s.modalidad === 'online' ? 'Online' : s.modalidad === 'ambos' ? 'Presencial · Online' : 'Presencial';
-    const hasFields  = durStr || modalidadLabel;
     return `<div class="svc-row" data-svc='${dataStr.replace(/'/g,"&#39;")}' onclick="selSvc(this)">
-      <div class="svc-header">
-        <div class="svc-icon-name">
-          <div class="svc-icon">${icon}</div>
-          <div class="svc-name">${esc(s.nombre)}</div>
+      <div class="svc-top">
+        <div class="svc-icon">${icon}</div>
+        <div class="svc-name">${esc(s.nombre)}</div>
+        <div class="svc-pills">
+          ${durStr ? `<span class="svc-pill">${durStr}</span>` : ''}
+          <span class="svc-pill">${modalidadLabel}</span>
         </div>
-        ${precioStr ? `<div class="svc-price">${precioStr}</div>` : ''}
+        ${s.descripcion ? `<div class="svc-desc">${esc(s.descripcion)}</div>` : ''}
       </div>
-      ${hasFields ? `<div class="svc-fields">
-        <div class="svc-field">
-          <div class="svc-field-lbl">Modalidad</div>
-          <div class="svc-field-val">${modalidadLabel}</div>
-        </div>
-        ${durStr ? `<div class="svc-field">
-          <div class="svc-field-lbl">Duración</div>
-          <div class="svc-field-val">${durStr}</div>
-        </div>` : ''}
-      </div>` : ''}
-      ${s.descripcion ? `<div class="svc-desc">${esc(s.descripcion)}</div>` : ''}
-      <div class="svc-footer">
-        <span class="svc-cta">Agendar hora →</span>
+      <div class="svc-bottom">
+        ${precioStr ? `<span class="svc-price">${precioStr}</span>` : '<span></span>'}
+        <span class="svc-cta">Agendar →</span>
       </div>
     </div>`;
   }).join('');
