@@ -1332,6 +1332,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
       <button class="ntab"     onclick="sv('reportes',this)"      id="ntab-reportes">Reportes</button>
       <button class="ntab"     onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Mis transferencias</button>
       <button class="ntab"     onclick="sv('evaluaciones',this)"  id="ntab-evaluaciones">Evaluaciones</button>
+      <button class="ntab"     onclick="sv('contactos',this)"    id="ntab-contactos" style="position:relative">Contactos <span id="contactos-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"     onclick="sv('config',this)"        id="ntab-config">Configuración</button>
     </div>
   </div>
@@ -1594,6 +1595,27 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
     <div id="sb-clientes-list" style="overflow-y:auto;flex:1"></div>
   </div>
 </div><!-- end sb-clientes -->
+
+<!-- ── CONTACTOS CONTEXT ── -->
+<div id="sb-contactos" class="sb-ctx">
+  <div class="sb-section">
+    <div class="sb-label">Buscar contacto</div>
+    <div style="margin:0 10px 4px;position:relative">
+      <input type="text" id="sb-contactos-q" placeholder="Nombre, email o teléfono..." oninput="sbFilterContactos(this.value);document.getElementById('sb-contactos-x').style.display=this.value?'flex':'none'" style="width:100%;padding:7px 28px 7px 10px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:12px;font-family:var(--font);box-sizing:border-box;outline:none">
+      <button id="sb-contactos-x" onclick="document.getElementById('sb-contactos-q').value='';sbFilterContactos('');this.style.display='none'" style="display:none;position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t4);font-size:15px;line-height:1;padding:0 2px" title="Limpiar">×</button>
+    </div>
+  </div>
+  <div class="sb-section" style="padding:0 10px 8px">
+    <label style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:5px;cursor:pointer">
+      <input type="checkbox" id="sb-cont-atencion" onchange="sbFilterContactos(document.getElementById('sb-contactos-q').value)">
+      Solo requieren atención
+    </label>
+  </div>
+  <div class="sb-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div class="sb-label" id="sb-contactos-count" style="font-size:10px">Todos los contactos</div>
+    <div id="sb-contactos-list" style="overflow-y:auto;flex:1"></div>
+  </div>
+</div><!-- end sb-contactos -->
 
 <!-- ── CONFIG CONTEXT ── -->
 <div id="sb-config" class="sb-ctx"></div>
@@ -1926,6 +1948,177 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
           <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando clientes...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONTACTOS CRM ═══ -->
+<style>
+/* ── WRAP ─────────────────────────────────────────────────────────────── */
+.crm-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+
+/* ── HEADER ───────────────────────────────────────────────────────────── */
+.crm-topbar{flex-shrink:0;border-bottom:1px solid var(--b1);background:var(--surface-hi)}
+.crm-header-row{display:flex;align-items:center;padding:20px 28px 18px;flex-wrap:wrap;gap:12px}
+.crm-title{font-size:22px;font-weight:800;color:var(--t1);letter-spacing:-.035em;white-space:nowrap}
+.crm-title-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:rgba(220,38,38,.1);color:#dc2626;border:1px solid rgba(220,38,38,.22);display:none;animation:crm-pulse 2.2s ease infinite}
+@keyframes crm-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.crm-stat-chips{display:flex;align-items:stretch;border:1px solid var(--b2);border-radius:12px;overflow:hidden;background:var(--surface);margin-left:auto;flex-shrink:0;box-shadow:var(--sh1)}
+.crm-stat{padding:10px 20px;border-right:1px solid var(--b1);min-width:72px;cursor:default;text-align:center;transition:background .15s}
+.crm-stat:last-child{border-right:none}
+.crm-stat:hover{background:var(--adim)}
+.crm-stat-val{font-size:22px;font-weight:700;color:var(--t1);font-family:var(--mono);letter-spacing:-.04em;line-height:1.1;display:block}
+.crm-stat-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);margin-top:2px;white-space:nowrap;display:block}
+
+/* ── FILTER BAR ───────────────────────────────────────────────────────── */
+.crm-filterbar{display:flex;align-items:center;gap:8px;padding:12px 28px;border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap;background:var(--bg)}
+.crm-search{display:flex;align-items:center;gap:7px;background:var(--surface-hi);border:1.5px solid var(--b1);border-radius:10px;padding:0 12px;height:36px;flex:1;max-width:280px;transition:border .15s,box-shadow .15s;box-shadow:var(--sh1)}
+.crm-search:focus-within{border-color:var(--a);box-shadow:0 0 0 3px rgba(108,92,228,.1)}
+.crm-search input{border:none;background:transparent;outline:none;font-size:13px;color:var(--t1);font-family:var(--font);width:100%}
+.crm-pill{font-size:12px;font-weight:600;padding:0 14px;border-radius:18px;border:1.5px solid var(--b1);color:var(--t3);background:var(--surface-hi);cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:36px;box-sizing:border-box}
+.crm-pill:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.crm-pill.on{background:var(--a);border-color:var(--a);color:#fff;box-shadow:0 2px 10px rgba(108,92,228,.35)}
+.crm-results-lbl{font-size:11px;font-weight:500;color:var(--t4);margin-left:auto;white-space:nowrap}
+
+/* ── BODY ─────────────────────────────────────────────────────────────── */
+.crm-body{display:flex;flex:1;min-height:0;overflow:hidden;position:relative}
+
+/* ── TABLE ────────────────────────────────────────────────────────────── */
+.crm-table-wrap{flex:1;overflow:auto;min-width:0}
+.crm-table{width:100%;border-collapse:collapse;min-width:580px}
+.crm-thead{position:sticky;top:0;z-index:2;background:var(--bg)}
+.crm-th{padding:11px 16px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t4);border-bottom:2px solid var(--b1);white-space:nowrap;user-select:none}
+.crm-th:first-child{padding-left:28px}
+.crm-th:last-child{padding-right:28px;text-align:right}
+.crm-tr{cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s}
+.crm-tr:hover td{background:rgba(108,92,228,.03)}
+.crm-tr.on td{background:var(--adim)}
+.crm-tr.urgent td{background:rgba(220,38,38,.025)}
+.crm-tr.urgent:hover td{background:rgba(220,38,38,.045)}
+.crm-tr.urgent td:first-child{box-shadow:inset 3px 0 0 #dc2626}
+.crm-td{padding:14px 16px;vertical-align:middle;color:var(--t2);font-size:13px}
+.crm-td:first-child{padding-left:28px}
+.crm-td:last-child{padding-right:28px;text-align:right}
+/* avatar circular v2 */
+.crm-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.crm-av-sq{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+/* canal & lead badges */
+.crm-canal-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.crm-canal-pill.whatsapp{background:#dcfce7;color:#15803d}
+.crm-canal-pill.instagram{background:#fce7f3;color:#be185d}
+.crm-canal-pill.messenger{background:#dbeafe;color:#1d4ed8}
+.crm-canal-pill.attia,.crm-canal-pill.web{background:var(--adim);color:var(--a)}
+.crm-lead-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700}
+.crm-lead-badge.nuevo{background:var(--bdim);color:var(--blue)}
+.crm-lead-badge.calificado{background:var(--adm2);color:var(--amber)}
+.crm-lead-badge.agendado{background:var(--gdim);color:var(--green)}
+.crm-lead-badge.perdido{background:rgba(0,0,0,.04);color:var(--t3)}
+.crm-lead-badge.pendiente{background:var(--rdim);color:var(--red)}
+
+/* ── DRAWER ───────────────────────────────────────────────────────────── */
+.crm-drawer{position:absolute;right:0;top:0;bottom:0;width:420px;border-left:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1);background:var(--surface-hi);z-index:10}
+.crm-body.drawer-open .crm-drawer{transform:translateX(0);box-shadow:-8px 0 32px rgba(108,92,228,.1)}
+.crm-drawer-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--surface)}
+.crm-drawer-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t4)}
+.crm-close-btn{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--b1);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t4);transition:all .15s;font-size:14px;line-height:1}
+.crm-close-btn:hover{background:var(--adim);color:var(--a);border-color:var(--b2)}
+/* drawer header centrado estilo app */
+.crm-dh{flex-shrink:0;padding:28px 20px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;border-bottom:1px solid var(--b1);background:linear-gradient(180deg,var(--adim) 0%,transparent 100%)}
+.crm-dav{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(108,92,228,.28)}
+.crm-dh-info{flex:1;min-width:0;width:100%}
+.crm-dh-name{font-size:18px;font-weight:700;color:var(--t1);line-height:1.2}
+.crm-dh-email{font-size:12px;color:var(--t4);margin-top:3px}
+.crm-dh-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+/* action buttons con color semántico */
+.crm-action-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid var(--b1);color:var(--t2);background:var(--surface);cursor:pointer;transition:all .15s;text-decoration:none}
+.crm-action-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.crm-action-btn.wa{background:#f0fdf4;border-color:#86efac;color:#15803d}
+.crm-action-btn.wa:hover{background:#dcfce7;border-color:#4ade80}
+.crm-action-btn.tel{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.crm-action-btn.tel:hover{background:#dbeafe}
+.crm-action-btn.mail{background:var(--adim);border-color:var(--b2);color:var(--a)}
+.crm-action-btn.mail:hover{background:rgba(108,92,228,.12)}
+.crm-canal-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;color:var(--t4);background:var(--surface);border:1px solid var(--b1)}
+.crm-section{padding:18px 20px;border-bottom:1px solid var(--b1)}
+.crm-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t4);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.crm-fields{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--b1);border-radius:10px;overflow:hidden;border:1px solid var(--b1)}
+.crm-field{background:var(--surface);padding:11px 14px}
+.crm-field-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t4);margin-bottom:4px}
+.crm-field-val{font-size:13px;font-weight:500;color:var(--t1)}
+.crm-notes{width:100%;box-sizing:border-box;min-height:76px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--b1);background:var(--surface);color:var(--t1);font-size:13px;font-family:var(--font);resize:vertical;transition:border .15s,box-shadow .15s;line-height:1.5}
+.crm-notes:focus{outline:none;border-color:var(--a);box-shadow:0 0 0 3px rgba(108,92,228,.08)}
+.crm-timeline{display:flex;flex-direction:column;gap:2px}
+.crm-titem{display:flex;gap:12px;padding:10px 0;position:relative}
+.crm-titem:not(:last-child)::after{content:'';position:absolute;left:13px;top:30px;bottom:-2px;width:1.5px;background:var(--b1)}
+.crm-tdot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;border:1.5px solid var(--b1);background:var(--surface);color:var(--t4)}
+.crm-tdot.pending{background:var(--rdim);color:#dc2626;border-color:rgba(220,38,38,.25);box-shadow:0 0 0 3px rgba(220,38,38,.07)}
+.crm-tdot.done{background:var(--gdim);color:#16a34a;border-color:rgba(34,197,94,.25)}
+.crm-ttext{flex:1;min-width:0;padding-top:3px}
+.crm-ttext strong{font-size:13px;color:var(--t1);display:block;line-height:1.3}
+.crm-ttext span{font-size:11px;color:var(--t4)}
+.crm-ttext p{font-size:12px;color:var(--t3);margin:4px 0 0;line-height:1.4}
+.crm-no-derivaciones{font-size:13px;color:var(--t4);padding:8px 0;text-align:center}
+</style>
+
+<div id="v-contactos" style="display:none">
+  <div class="crm-wrap">
+
+    <!-- Header: título + stat chips inline -->
+    <div class="crm-topbar">
+      <div class="crm-header-row">
+        <div>
+          <div class="crm-title">Contactos
+            <span id="cont-badge-atencion" class="crm-title-badge"></span>
+          </div>
+        </div>
+        <div class="crm-stat-chips">
+          <div class="crm-stat">
+            <span class="crm-stat-val" id="crm-stat-total">—</span>
+            <span class="crm-stat-lbl">Total</span>
+          </div>
+          <div class="crm-stat">
+            <span class="crm-stat-val" id="crm-stat-atencion">—</span>
+            <span class="crm-stat-lbl">Atención</span>
+          </div>
+          <div class="crm-stat">
+            <span class="crm-stat-val" id="crm-stat-wa">—</span>
+            <span class="crm-stat-lbl">WhatsApp</span>
+          </div>
+          <div class="crm-stat">
+            <span class="crm-stat-val" id="crm-stat-social">—</span>
+            <span class="crm-stat-lbl">Social</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="crm-filterbar">
+      <div class="crm-search">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="5.5" cy="5.5" r="4"/><path d="M9 9l3 3"/></svg>
+        <input id="cont-search" placeholder="Buscar nombre, email o teléfono..." oninput="crmFilter()">
+      </div>
+      <button class="crm-pill on" id="cpill-todos"    onclick="crmSetPill(this,'')">Todos</button>
+      <button class="crm-pill"   id="cpill-wa"        onclick="crmSetPill(this,'whatsapp')"><svg width="11" height="11" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.015.502 3.912 1.383 5.573L0 24l6.615-1.337A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.818 0-3.527-.483-5.004-1.329l-.358-.213-3.726.754.785-3.613-.234-.372A9.782 9.782 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182S21.818 6.591 21.818 12 17.409 21.818 12 21.818z"/></svg> WhatsApp</button>
+      <button class="crm-pill"   id="cpill-ig"        onclick="crmSetPill(this,'instagram')"><svg width="11" height="11" viewBox="0 0 24 24" fill="#e1306c"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg> Instagram</button>
+      <button class="crm-pill"   id="cpill-ms"        onclick="crmSetPill(this,'messenger')"><svg width="11" height="11" viewBox="0 0 24 24" fill="#0084ff"><path d="M12 0C5.373 0 0 5.144 0 11.5c0 3.613 1.793 6.837 4.609 8.953V24l4.123-2.274c1.1.305 2.267.472 3.468.472 6.627 0 12-5.144 12-11.5S18.627 0 12 0zm1.191 15.467l-3.054-3.263-5.964 3.263 6.556-6.956 3.129 3.263 5.889-3.263-6.556 6.956z"/></svg> Messenger</button>
+      <button class="crm-pill"   id="cpill-atencion"  onclick="crmToggleAtencion(this)">● Pendientes</button>
+      <span class="crm-results-lbl" id="crm-results-lbl"></span>
+    </div>
+
+    <!-- Body: tabla + drawer -->
+    <div class="crm-body" id="crm-body">
+
+      <!-- Tabla de contactos -->
+      <div class="crm-table-wrap">
+        <div id="crm-list-wrap">
+          <div style="text-align:center;padding:48px;color:var(--t4);font-size:13px">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- Drawer (abre al hacer click en una fila) -->
+      <div class="crm-drawer" id="crm-detail-panel"></div>
+
     </div>
   </div>
 </div>
@@ -4726,7 +4919,7 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <script>
 /* ════ VIEW SWITCHING ════ */
 function sv(v, btn, skipPush) {
-  const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones','evaluaciones'];
+  const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones','evaluaciones','contactos'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
     if (!el) return;
@@ -4758,7 +4951,7 @@ function sv(v, btn, skipPush) {
   const _mobActive = document.getElementById('mobt-' + v);
   if (_mobActive) _mobActive.classList.add('on');
 
-  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias',evaluaciones:'Evaluaciones'};
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias',evaluaciones:'Evaluaciones',contactos:'Contactos CRM'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')        cargarVentas();
@@ -4767,6 +4960,7 @@ function sv(v, btn, skipPush) {
   if (v === 'liquidaciones') cargarLiquidaciones();
   if (v === 'clientes')      loadClientesView();
   if (v === 'evaluaciones')  loadEvaluaciones();
+  if (v === 'contactos')     loadContactosView();
   if (v === 'config')        showCfg('general', document.getElementById('ctab-general'), true);
   if (v === 'bandeja') { initBandeja(); const _bPerms = PLAN_PERMISOS[planActual()] || PLAN_PERMISOS.inicio; showBandejaTab((_bPerms.bsecTabs || ['conversaciones'])[0], null, true); }
   if (!skipPush) {
@@ -18641,6 +18835,334 @@ async function revertirPagoManual() {
     toastErr('Error al revertir el pago');
   }
 }
+</script>
+
+<!-- ═══ CONTACTOS CRM JS ═══ -->
+<script>
+let _contData = [];
+let _contSelected = null;
+let _crmCanalFilter = '';
+let _crmSoloAtencion = false;
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+const _AV_COLORS = ['#6C5CE4','#5b4fc9','#7c6ef0','#4338ca','#0d9488','#0891b2','#7c3aed','#9333ea','#c026d3','#0284c7'];
+function _avColor(id) { const h = id ? id.split('').reduce((a,c)=>a+c.charCodeAt(0),0) : 0; return _AV_COLORS[h % _AV_COLORS.length]; }
+function _avGrad(id) { return _avColor(id); }
+function _crmInitial(c) { return (c.nombre || c.canal_user_id || '?').charAt(0).toUpperCase(); }
+function _crmTimeAgo(isoStr) {
+  if (!isoStr) return '—';
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const m = Math.floor(diff/60000);
+  if (m < 2)  return 'ahora mismo';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.floor(m/60);
+  if (h < 24) return `hace ${h}h`;
+  const d = Math.floor(h/24);
+  if (d < 7)  return `hace ${d}d`;
+  return new Date(isoStr).toLocaleDateString('es-CL');
+}
+function _crmCanonCanal(c) { return (c.canal||'web').toLowerCase(); }
+function _crmCanalIcon(canal, size=13) {
+  const s = size;
+  const icons = {
+    whatsapp: `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.015.502 3.912 1.383 5.573L0 24l6.615-1.337A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.818 0-3.527-.483-5.004-1.329l-.358-.213-3.726.754.785-3.613-.234-.372A9.782 9.782 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182S21.818 6.591 21.818 12 17.409 21.818 12 21.818z"/></svg>`,
+    instagram:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#e1306c"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`,
+    messenger:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#0084ff"><path d="M12 0C5.373 0 0 5.144 0 11.5c0 3.613 1.793 6.837 4.609 8.953V24l4.123-2.274c1.1.305 2.267.472 3.468.472 6.627 0 12-5.144 12-11.5S18.627 0 12 0zm1.191 15.467l-3.054-3.263-5.964 3.263 6.556-6.956 3.129 3.263 5.889-3.263-6.556 6.956z"/></svg>`,
+    web:      `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="var(--a)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>`,
+  };
+  return icons[canal] || icons.web;
+}
+
+// ── loadContactosView ──────────────────────────────────────────────────────
+async function loadContactosView() {
+
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const listWrap = document.getElementById('crm-list-wrap');
+  if (listWrap) listWrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t4);font-size:13px">Cargando...</div>';
+
+  try {
+    const r = await fetch('/api/bandeja?op=contactos', { headers: { 'x-session-token': tok } });
+    if (!r.ok) { if (listWrap) listWrap.innerHTML = '<div style="padding:20px;font-size:12px;color:var(--t4)">Error cargando contactos.</div>'; return; }
+    const data = await r.json();
+    _contData = Array.isArray(data.contactos) ? data.contactos : [];
+
+    // Stats
+    const total = _contData.length;
+    const atencion = _contData.filter(c => c.requiere_atencion).length;
+    const wa = _contData.filter(c => _crmCanonCanal(c) === 'whatsapp').length;
+    const social = _contData.filter(c => ['instagram','messenger'].includes(_crmCanonCanal(c))).length;
+    document.getElementById('crm-stat-total').textContent    = total;
+    document.getElementById('crm-stat-atencion').textContent = atencion;
+    document.getElementById('crm-stat-wa').textContent       = wa;
+    document.getElementById('crm-stat-social').textContent   = social;
+
+    // Nav badge
+    const navBadge = document.getElementById('contactos-badge');
+    if (navBadge) { navBadge.textContent = atencion||''; navBadge.style.display = atencion > 0 ? '' : 'none'; }
+    const topBadge = document.getElementById('cont-badge-atencion');
+    if (topBadge) { topBadge.textContent = atencion > 0 ? `${atencion} pendiente${atencion>1?'s':''}` : ''; topBadge.style.display = atencion > 0 ? 'inline' : 'none'; }
+
+    // Sidebar also
+    _crmSidebarRender(_contData);
+    crmFilter();
+  } catch(e) {
+    if (listWrap) listWrap.innerHTML = `<div style="padding:20px;font-size:12px;color:var(--t4)">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Filter & render list ───────────────────────────────────────────────────
+function crmSetPill(btn, canal) {
+  _crmCanalFilter = canal;
+  document.querySelectorAll('.crm-pill[id^="cpill-"]').forEach(p => {
+    if (!p.id.includes('atencion')) p.classList.remove('on');
+  });
+  btn.classList.add('on');
+  crmFilter();
+}
+function crmToggleAtencion(btn) {
+  _crmSoloAtencion = !_crmSoloAtencion;
+  btn.classList.toggle('on', _crmSoloAtencion);
+  crmFilter();
+}
+function crmFilter() {
+  const q = (document.getElementById('cont-search')?.value || '').toLowerCase();
+  const filtered = _contData.filter(c => {
+    if (_crmCanalFilter && _crmCanonCanal(c) !== _crmCanalFilter) return false;
+    if (_crmSoloAtencion && !c.requiere_atencion) return false;
+    if (!q) return true;
+    return (c.nombre||'').toLowerCase().includes(q) ||
+           (c.email||'').toLowerCase().includes(q) ||
+           (c.telefono||'').toLowerCase().includes(q) ||
+           (c.canal_user_id||'').toLowerCase().includes(q);
+  });
+  _crmListRender(filtered);
+  _crmSidebarRender(filtered);
+}
+function sbFilterContactos(q) { document.getElementById('cont-search').value=q; crmFilter(); }
+
+function _crmLeadBadge(c) {
+  if (c.requiere_atencion) return '<span class="crm-lead-badge pendiente">● Pendiente</span>';
+  const st = (c.estado_lead || '').toLowerCase();
+  if (st === 'calificado') return '<span class="crm-lead-badge calificado">Calificado</span>';
+  if (st === 'agendado')   return '<span class="crm-lead-badge agendado">Agendado</span>';
+  if (st === 'perdido')    return '<span class="crm-lead-badge perdido">Perdido</span>';
+  if (st === 'nuevo')      return '<span class="crm-lead-badge nuevo">Nuevo</span>';
+  return '';
+}
+function _crmListRender(items) {
+  const wrap = document.getElementById('crm-list-wrap');
+  if (!wrap) return;
+  // actualizar contador
+  const lbl = document.getElementById('crm-results-lbl');
+  if (lbl) lbl.textContent = items.length !== _contData.length
+    ? `${items.length} de ${_contData.length} contactos`
+    : `${_contData.length} contacto${_contData.length !== 1 ? 's' : ''}`;
+  if (!items.length) {
+    wrap.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;padding:72px 32px;gap:12px;text-align:center">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity=".15"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <div style="font-size:14px;font-weight:600;color:var(--t2)">Sin contactos</div>
+      <div style="font-size:12px;color:var(--t4);max-width:260px;line-height:1.6">Los contactos se crean automáticamente cuando alguien interactúa con el bot</div>
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = `<table class="crm-table">
+    <thead class="crm-thead"><tr>
+      <th class="crm-th">Contacto</th>
+      <th class="crm-th">Canal</th>
+      <th class="crm-th">Teléfono / Email</th>
+      <th class="crm-th">Último mensaje</th>
+      <th class="crm-th" style="text-align:right">Estado</th>
+    </tr></thead>
+    <tbody>${items.map(c => {
+      const canal = _crmCanonCanal(c);
+      const isUrg = c.requiere_atencion;
+      const contacto = c.telefono || c.email || c.canal_user_id || '—';
+      return `<tr class="crm-tr${_contSelected===c.id?' on':''}${isUrg?' urgent':''}" onclick="openContactoCRM('${c.id}')">
+        <td class="crm-td"><div style="display:flex;align-items:center;gap:11px">
+          <div class="crm-av" style="background:${_avColor(c.id)}">${_crmInitial(c)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1);line-height:1.3">${c.nombre || c.canal_user_id || '—'}</div>
+            ${c.email&&c.nombre?`<div style="font-size:11px;color:var(--t4);margin-top:1px">${c.email}</div>`:''}
+          </div>
+        </div></td>
+        <td class="crm-td"><span class="crm-canal-pill ${canal}">${_crmCanalIcon(canal,11)} ${canal.charAt(0).toUpperCase()+canal.slice(1)}</span></td>
+        <td class="crm-td" style="color:var(--t3);font-size:12px">${contacto}</td>
+        <td class="crm-td" style="color:var(--t4);font-size:12px;white-space:nowrap">${_crmTimeAgo(c.ultimo_contacto)}</td>
+        <td class="crm-td">${_crmLeadBadge(c)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function _crmSidebarRender(items) {
+  const list = document.getElementById('sb-contactos-list');
+  if (!list) return;
+  const countEl = document.getElementById('sb-contactos-count');
+  if (countEl) countEl.textContent = `${(items||_contData).length} contacto${(items||_contData).length !== 1 ? 's' : ''}`;
+  const src = items || _contData;
+  if (!src.length) { list.innerHTML = '<div style="padding:12px 10px;font-size:12px;color:var(--t4)">Sin resultados</div>'; return; }
+  list.innerHTML = src.map(c => {
+    const canal = _crmCanonCanal(c);
+    return `<div onclick="openContactoCRM('${c.id}')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-radius:var(--r);transition:background .1s;border-left:3px solid ${c.requiere_atencion?'#dc2626':'transparent'}${c.id===_contSelected?';background:var(--adim)':''}" onmouseover="this.style.background='var(--adim)'" onmouseout="this.style.background='${c.id===_contSelected?'var(--adim)':''}'">
+      <div style="width:22px;height:22px;border-radius:50%;background:${_avColor(c.id)};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0">${_crmInitial(c)}</div>
+      <div style="min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre||c.canal_user_id||'—'}</div>
+        <div style="font-size:10px;color:var(--t4)">${canal.charAt(0).toUpperCase()+canal.slice(1)}${c.requiere_atencion?' · <span style="color:#dc2626;font-weight:700">● Pend.</span>':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Detail panel ───────────────────────────────────────────────────────────
+async function openContactoCRM(id) {
+  _contSelected = id;
+  crmFilter();
+
+  const c = _contData.find(x => x.id === id);
+  if (!c) return;
+
+  const panel = document.getElementById('crm-detail-panel');
+  if (!panel) return;
+  panel.innerHTML = '<div style="padding:28px;color:var(--t4);font-size:13px">Cargando...</div>';
+
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  let derivaciones = [];
+  try {
+    const rd = await fetch(`/api/bandeja?op=derivaciones&id=${id}`, { headers: { 'x-session-token': tok } });
+    if (rd.ok) derivaciones = (await rd.json()).derivaciones || [];
+  } catch(_) {}
+
+  const canal = _crmCanonCanal(c);
+  const fechaReg = c.creado_en ? new Date(c.creado_en).toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'}) : '—';
+
+  const waLink = c.telefono ? `<a href="https://wa.me/${c.telefono.replace(/\D/g,'')}" target="_blank" class="crm-action-btn wa">
+    ${_crmCanalIcon('whatsapp',13)} WhatsApp</a>` : '';
+  const telLink = c.telefono ? `<a href="tel:${c.telefono}" class="crm-action-btn tel">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127 1.14.361 2.26.7 3.35a2 2 0 01-.45 2.11L6.09 9.41a16 16 0 006.5 6.5l1.27-1.27a2 2 0 012.11-.45c1.09.339 2.21.573 3.35.7A2 2 0 0122 16.92z"/></svg>
+    Llamar</a>` : '';
+  const mailLink = c.email ? `<a href="mailto:${c.email}" class="crm-action-btn mail">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    Email</a>` : '';
+
+  document.getElementById('crm-body').classList.add('drawer-open');
+
+  panel.innerHTML = `
+    <div class="crm-drawer-topbar">
+      <span class="crm-drawer-label">Ficha de contacto</span>
+      <button class="crm-close-btn" onclick="crmCloseDrawer()" title="Cerrar">✕</button>
+    </div>
+    <div class="crm-dh">
+      <div class="crm-dav" style="background:${_avColor(c.id)}">${_crmInitial(c)}</div>
+      <div class="crm-dh-info">
+        <div class="crm-dh-name">${c.nombre || '—'}</div>
+        <div class="crm-dh-email">${c.email || c.canal_user_id || ''}</div>
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <span class="crm-canal-pill ${canal}">${_crmCanalIcon(canal,11)} ${canal.charAt(0).toUpperCase()+canal.slice(1)}</span>
+          ${_crmLeadBadge(c)}
+        </div>
+      </div>
+      <div class="crm-dh-actions">${waLink}${telLink}${mailLink}
+        ${c.requiere_atencion ? `<button onclick="crmMarcarAtendido('${c.id}')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;background:#22c55e;color:#fff;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(34,197,94,.3)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Atendido</button>` : ''}
+      </div>
+    </div>
+
+    <div class="crm-section">
+      <div class="crm-section-title">Información</div>
+      <div class="crm-fields">
+        <div class="crm-field">
+          <div class="crm-field-lbl">Teléfono</div>
+          <div class="crm-field-val">${c.telefono || '—'}</div>
+        </div>
+        <div class="crm-field">
+          <div class="crm-field-lbl">Canal</div>
+          <div class="crm-field-val">${canal.charAt(0).toUpperCase()+canal.slice(1)}</div>
+        </div>
+        <div class="crm-field" style="grid-column:1/-1">
+          <div class="crm-field-lbl">Email</div>
+          <div class="crm-field-val">${c.email || '—'}</div>
+        </div>
+        <div class="crm-field">
+          <div class="crm-field-lbl">Registrado</div>
+          <div class="crm-field-val" style="font-size:12px">${fechaReg}</div>
+        </div>
+        <div class="crm-field">
+          <div class="crm-field-lbl">Último contacto</div>
+          <div class="crm-field-val" style="font-size:12px">${_crmTimeAgo(c.ultimo_contacto)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="crm-section">
+      <div class="crm-section-title">Notas internas</div>
+      <textarea id="crm-notes-${c.id}" class="crm-notes" placeholder="Agrega notas, contexto o seguimientos sobre este contacto..." onblur="crmGuardarNotas('${c.id}',this.value)">${c.notas||''}</textarea>
+      <div style="font-size:11px;color:var(--t4);margin-top:5px">Se guarda al hacer click fuera del campo</div>
+    </div>
+
+    <div class="crm-section" style="border-bottom:none">
+      <div class="crm-section-title" style="display:flex;align-items:center;justify-content:space-between">
+        Derivaciones
+        <span style="font-size:11px;font-weight:500;color:var(--t4);text-transform:none;letter-spacing:0">${derivaciones.length} en total</span>
+      </div>
+      ${!derivaciones.length
+        ? '<div class="crm-no-derivaciones">Sin derivaciones registradas</div>'
+        : `<div class="crm-timeline">${derivaciones.map(d => `
+          <div class="crm-titem">
+            <div class="crm-tdot ${d.estado==='pendiente'?'pending':'done'}">${d.estado==='pendiente'?'!':'✓'}</div>
+            <div class="crm-ttext">
+              <strong>${d.motivo||'Sin motivo'}</strong>
+              <span>${_crmTimeAgo(d.creado_en)} · <span style="font-weight:600;color:${d.estado==='pendiente'?'#dc2626':'#16a34a'}">${d.estado==='pendiente'?'Pendiente':'Atendida'}</span></span>
+              ${d.mensaje_contexto ? `<p>${d.mensaje_contexto}</p>` : ''}
+              ${d.estado==='pendiente' ? `<button onclick="crmAtenderDerivacion('${d.id}','${c.id}')" style="margin-top:6px;font-size:11px;padding:4px 12px;border-radius:6px;background:var(--a);color:#fff;border:none;cursor:pointer;font-weight:600">Marcar atendida</button>` : ''}
+            </div>
+          </div>`).join('')}</div>`}
+    </div>
+  `;
+}
+
+// ── Acciones ───────────────────────────────────────────────────────────────
+async function crmGuardarNotas(id, notas) {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const c = _contData.find(x => x.id === id);
+  if (c) c.notas = notas;
+  await fetch(`/api/bandeja?op=contacto&id=${id}`, {
+    method:'PATCH', headers:{'x-session-token':tok,'Content-Type':'application/json'},
+    body: JSON.stringify({ notas })
+  }).catch(() => {});
+}
+
+async function crmMarcarAtendido(id) {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  await fetch(`/api/bandeja?op=contacto&id=${id}`, {
+    method:'PATCH', headers:{'x-session-token':tok,'Content-Type':'application/json'},
+    body: JSON.stringify({ requiere_atencion: false })
+  }).catch(() => {});
+  const c = _contData.find(x => x.id === id);
+  if (c) c.requiere_atencion = false;
+  const p = _contData.filter(x => x.requiere_atencion).length;
+  const nb = document.getElementById('contactos-badge');
+  if (nb) { nb.textContent = p||''; nb.style.display = p>0?'':'none'; }
+  document.getElementById('crm-stat-atencion').textContent = p;
+  openContactoCRM(id);
+  crmFilter();
+}
+
+async function crmAtenderDerivacion(derivId, contactoId) {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  await fetch(`/api/bandeja?op=derivacion&id=${derivId}`, {
+    method:'PATCH', headers:{'x-session-token':tok,'Content-Type':'application/json'},
+    body: JSON.stringify({ estado:'atendida', atendida_en: new Date().toISOString() })
+  }).catch(() => {});
+  openContactoCRM(contactoId);
+}
+
+function crmCloseDrawer() {
+  _contSelected = null;
+  document.getElementById('crm-body')?.classList.remove('drawer-open');
+  crmFilter();
+}
+
+function openContactoFicha(id) { openContactoCRM(id); }
+function filterContactos(q) { crmFilter(); }
 </script>
 
 <!-- ═══ EVALUACIONES JS ═══ -->
