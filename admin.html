@@ -115,6 +115,11 @@ body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad
 }
 .nav-name{font-size:14px;font-weight:600;letter-spacing:-.03em;color:#fff}
 .nav-divider{width:1px;height:18px;background:rgba(255,255,255,0.12);margin:0 4px}
+/* ── Modo toggle ── */
+.modo-toggle{display:flex;align-items:center;background:rgba(255,255,255,.07);border-radius:8px;padding:3px;border:1px solid rgba(255,255,255,.1);flex-shrink:0;gap:1px}
+.modo-btn{padding:5px 14px;border-radius:6px;font-size:12px;font-weight:500;border:none;background:transparent;color:rgba(255,255,255,.45);cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap;line-height:1}
+.modo-btn:hover{color:rgba(255,255,255,.8)}
+.modo-btn.on{background:rgba(255,255,255,.16);color:#fff;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 
 .nav-tabs{display:flex;align-items:center;gap:1px;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .nav-tabs::-webkit-scrollbar{display:none}
@@ -1324,17 +1329,25 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <span class="nav-name">attempo</span>
     </div>
     <div class="nav-divider"></div>
+    <div class="modo-toggle">
+      <button class="modo-btn on" id="modo-btn-agenda" onclick="setModo('agenda')">Agenda</button>
+      <button class="modo-btn"    id="modo-btn-crm"    onclick="setModo('crm')">CRM</button>
+    </div>
+    <div class="nav-divider"></div>
     <div class="nav-tabs">
-      <button class="ntab on"  onclick="sv('agenda',this)"        id="ntab-agenda">Agenda</button>
-      <button class="ntab"     onclick="sv('clientes',this)"      id="ntab-clientes">Clientes</button>
-      <button class="ntab"     onclick="sv('ventas',this)"        id="ntab-ventas">Ventas</button>
-      <button class="ntab"     onclick="sv('cotizaciones',this)"  id="ntab-cotizaciones">Cotizaciones</button>
-      <button class="ntab"     onclick="sv('bandeja',this)"       id="ntab-bandeja" style="position:relative">Mensajes <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
-      <button class="ntab"     onclick="sv('reportes',this)"      id="ntab-reportes">Reportes</button>
-      <button class="ntab"     onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Mis transferencias</button>
-      <button class="ntab"     onclick="sv('evaluaciones',this)"  id="ntab-evaluaciones">Evaluaciones</button>
-      <button class="ntab"     onclick="sv('contactos',this)"    id="ntab-contactos" style="position:relative">Contactos <span id="contactos-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
-      <button class="ntab"     onclick="sv('config',this)"        id="ntab-config">Configuración</button>
+      <!-- Modo Agenda -->
+      <button class="ntab on" data-modo="agenda" onclick="sv('agenda',this)"        id="ntab-agenda">Agenda</button>
+      <button class="ntab"    data-modo="agenda" onclick="sv('clientes',this)"      id="ntab-clientes">Clientes</button>
+      <button class="ntab"    data-modo="agenda" onclick="sv('ventas',this)"        id="ntab-ventas">Ventas</button>
+      <button class="ntab"    data-modo="agenda" onclick="sv('cotizaciones',this)"  id="ntab-cotizaciones">Cotizaciones</button>
+      <button class="ntab"    data-modo="agenda" onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Transferencias</button>
+      <!-- Modo CRM -->
+      <button class="ntab"    data-modo="crm" onclick="sv('contactos',this)"   id="ntab-contactos" style="position:relative;display:none">Contactos <span id="contactos-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
+      <button class="ntab"    data-modo="crm" onclick="sv('bandeja',this)"     id="ntab-bandeja"   style="position:relative;display:none">Mensajes <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
+      <button class="ntab"    data-modo="crm" onclick="sv('evaluaciones',this)" id="ntab-evaluaciones" style="display:none">Evaluaciones</button>
+      <button class="ntab"    data-modo="crm" onclick="sv('reportes',this)"    id="ntab-reportes"  style="display:none">Reportes</button>
+      <!-- Ambos modos -->
+      <button class="ntab"    data-modo="both" onclick="sv('config',this)"     id="ntab-config">Configuración</button>
     </div>
   </div>
   <div class="nav-r">
@@ -4953,6 +4966,36 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 <script>
 /* ════ VIEW SWITCHING ════ */
+/* ════ MODO: AGENDA / CRM ════ */
+const _VISTAS_AGENDA = ['agenda','clientes','ventas','cotizaciones','liquidaciones'];
+const _VISTAS_CRM    = ['contactos','bandeja','evaluaciones','reportes'];
+let _modoActual = 'agenda';
+
+function setModo(modo, skipNav) {
+  _modoActual = modo;
+  localStorage.setItem('attempo_modo', modo);
+
+  const btnA = document.getElementById('modo-btn-agenda');
+  const btnC = document.getElementById('modo-btn-crm');
+  if (btnA) { btnA.classList.toggle('on', modo === 'agenda'); }
+  if (btnC) { btnC.classList.toggle('on', modo === 'crm'); }
+
+  document.querySelectorAll('.ntab[data-modo]').forEach(btn => {
+    const bm = btn.getAttribute('data-modo');
+    btn.style.display = (bm === 'both' || bm === modo) ? '' : 'none';
+  });
+
+  if (!skipNav) {
+    const primerTab = document.querySelector(`.ntab[data-modo="${modo}"]`);
+    if (primerTab) primerTab.click();
+  }
+}
+
+function initModo() {
+  const modo = localStorage.getItem('attempo_modo') || 'agenda';
+  setModo(modo, true);
+}
+
 function sv(v, btn, skipPush) {
   const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones','evaluaciones','contactos'];
   views.forEach(n => {
@@ -10817,6 +10860,7 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch(_e) {}
 
   aplicarRestriccionesChatbot();
+  initModo();
 
   // Manejar callback de Google Calendar OAuth
   const urlParams = new URLSearchParams(window.location.search);
@@ -12594,6 +12638,11 @@ function routeFromURL() {
   const calSubs = ['semana','dia','mes','lista'];
   const cfgSubs = ['general','profesionales','horarios','servicios','pagos','facturacion'];
 
+  const _crmSections = ['contactos','bandeja','evaluaciones','reportes'];
+  const _agendaSections = ['agenda','clientes','ventas','cotizaciones','liquidaciones'];
+  if (_crmSections.includes(section)) setModo('crm', true);
+  else if (_agendaSections.includes(section)) setModo('agenda', true);
+
   if (!section || section === 'admin' || section === 'admin.html' || section === 'agenda') {
     sv('agenda', null, true);
     setCalView(calSubs.includes(sub) ? sub : 'semana', null, true);
@@ -12602,15 +12651,19 @@ function routeFromURL() {
   } else if (section === 'ventas') {
     sv('ventas', null, true);
   } else if (section === 'reportes') {
-    sv('reportes', null, true);
+    setModo('crm', true); sv('reportes', null, true);
   } else if (section === 'bandeja') {
-    sv('bandeja', null, true);
+    setModo('crm', true); sv('bandeja', null, true);
     var banSubs = ['conversaciones','chatbot','canales','recordatorios','widget'];
     showBandejaTab(banSubs.includes(sub) ? sub : 'conversaciones', null, true);
   } else if (section === 'cotizaciones') {
     sv('cotizaciones', null, true);
   } else if (section === 'liquidaciones') {
     sv('liquidaciones', null, true);
+  } else if (section === 'contactos') {
+    setModo('crm', true); sv('contactos', null, true);
+  } else if (section === 'evaluaciones') {
+    setModo('crm', true); sv('evaluaciones', null, true);
   } else if (section === 'configuracion') {
     sv('config', null, true);
     showCfg(cfgSubs.includes(sub) ? sub : 'general', null, true);
