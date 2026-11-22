@@ -19558,6 +19558,7 @@ function crmFilter() {
   });
   _crmListRender(filtered);
   _crmSidebarRender(filtered);
+  if (localStorage.getItem('crm_vista') === 'kanban') { _kbData = filtered; _renderKanban(); }
 }
 function sbFilterContactos(q) { document.getElementById('cont-search').value=q; crmFilter(); }
 
