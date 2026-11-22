@@ -2214,6 +2214,9 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 .crm-ttext span{font-size:11px;color:var(--t4)}
 .crm-ttext p{font-size:12px;color:var(--t3);margin:4px 0 0;line-height:1.4}
 .crm-no-derivaciones{font-size:13px;color:var(--t4);padding:8px 0;text-align:center}
+.mp-opt{padding:9px 12px;border-radius:9px;border:1.5px solid var(--b2);background:var(--surface-hi);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);text-align:left;transition:border .15s,background .15s,color .15s}
+.mp-opt:hover{border-color:var(--a);color:var(--a)}
+.mp-opt.sel{border-color:var(--a);background:rgba(139,124,248,.12);color:var(--a)}
 </style>
 
 <div id="v-contactos" style="display:none">
@@ -19288,14 +19291,16 @@ function _initKDrop(col) {
     if (!lead || lead.estado === newStage) return;
     lead.estado = newStage;
     _renderKanban();
-    const tok = localStorage.getItem('attempo_session_token') || '';
-    try {
+    if (newStage === 'perdido') {
+      crmPedirMotivoPerdida(leadId);
+    } else {
+      const tok = localStorage.getItem('attempo_session_token') || '';
       await fetch(`/api/bandeja?action=lead-estado&id=${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-session-token': tok },
         body: JSON.stringify({ estado: newStage })
-      });
-    } catch(e) { console.error('kban drop error', e); }
+      }).catch(() => {});
+    }
   });
 }
 
@@ -19324,11 +19329,15 @@ function crmSetVista(vista) {
 }
 
 async function crmGuardarEstado(id, estado) {
-  const tok = localStorage.getItem('attempo_session_token') || '';
   const c = _contData.find(x => x.id === id);
   if (c) c.estado = estado;
   _kbData = _contData;
   if (localStorage.getItem('crm_vista') === 'kanban') _renderKanban();
+  if (estado === 'perdido') {
+    crmPedirMotivoPerdida(id);
+    return;
+  }
+  const tok = localStorage.getItem('attempo_session_token') || '';
   await fetch(`/api/bandeja?action=lead-estado&id=${id}`, {
     method: 'PATCH',
     headers: { 'x-session-token': tok, 'Content-Type': 'application/json' },
@@ -19338,6 +19347,59 @@ async function crmGuardarEstado(id, estado) {
 
 function abrirCrearLead(stage) {
   sv('contactos', null, true);
+}
+
+// ── MOTIVO PÉRDIDA ──────────────────────────────────────────────────────────
+let _mpLeadId = null, _mpMotivoSel = null;
+const _MP_MOTIVOS = ['Precio muy alto','Eligió otro prestador','No respondió','Canceló sin reagendar','Solo consultaba','Otro...'];
+
+function crmPedirMotivoPerdida(leadId) {
+  _mpLeadId = leadId;
+  _mpMotivoSel = null;
+  const grid = document.getElementById('mp-opts-grid');
+  const otroWrap = document.getElementById('mp-otro-wrap');
+  const txt = document.getElementById('mp-otro-txt');
+  if (txt) txt.value = '';
+  if (otroWrap) otroWrap.style.display = 'none';
+  if (grid) grid.innerHTML = _MP_MOTIVOS.map(m =>
+    `<button class="mp-opt" onclick="_mpSel(this,'${m.replace(/'/g,"\\'")}')">${m}</button>`
+  ).join('');
+  const wrap = document.getElementById('modal-perdida-wrap');
+  if (wrap) wrap.style.display = 'flex';
+}
+
+function _mpSel(btn, motivo) {
+  _mpMotivoSel = motivo;
+  document.querySelectorAll('#mp-opts-grid .mp-opt').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  const otroWrap = document.getElementById('mp-otro-wrap');
+  if (otroWrap) otroWrap.style.display = motivo === 'Otro...' ? 'block' : 'none';
+}
+
+async function crmCerrarMotivoPerdida(guardar) {
+  const wrap = document.getElementById('modal-perdida-wrap');
+  if (wrap) wrap.style.display = 'none';
+  if (!_mpLeadId) return;
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const body = { estado: 'perdido' };
+  if (guardar && _mpMotivoSel) {
+    body.motivo_perdida = _mpMotivoSel === 'Otro...'
+      ? (document.getElementById('mp-otro-txt')?.value.trim() || 'Otro')
+      : _mpMotivoSel;
+  }
+  const id = _mpLeadId;
+  _mpLeadId = null;
+  await fetch(`/api/bandeja?action=lead-estado&id=${id}`, {
+    method: 'PATCH',
+    headers: { 'x-session-token': tok, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).catch(() => {});
+  const c = _contData.find(x => x.id === id);
+  if (c) { c.estado = 'perdido'; if (body.motivo_perdida) c.motivo_perdida = body.motivo_perdida; }
+  _kbData = _contData;
+  if (localStorage.getItem('crm_vista') === 'kanban') _renderKanban();
+  const panel = document.getElementById('crm-detail-panel');
+  if (panel && c && panel.innerHTML.includes(id)) crmOpenContact(c);
 }
 
 // ── CRM REPORTES ──────────────────────────────────────────────────────────
@@ -19651,6 +19713,13 @@ async function openContactoCRM(id) {
       </div>
     </div>
 
+    ${c.estado === 'perdido' ? `<div class="crm-section" style="background:rgba(239,68,68,.06);border-left:3px solid #ef4444">
+      <div class="crm-section-title" style="color:#ef4444">Motivo de pérdida</div>
+      ${c.motivo_perdida
+        ? `<div style="font-size:13px;color:var(--t1);font-weight:600;padding:4px 0">${c.motivo_perdida}</div>`
+        : `<div style="font-size:12px;color:var(--t4);padding:4px 0">No registrado — <button onclick="crmPedirMotivoPerdida('${c.id}')" style="background:none;border:none;color:var(--a);font-size:12px;cursor:pointer;font-weight:600;padding:0;font-family:var(--font)">agregar motivo</button></div>`}
+    </div>` : ''}
+
     <div class="crm-section">
       <div class="crm-section-title">Notas internas</div>
       <textarea id="crm-notes-${c.id}" class="crm-notes" placeholder="Agrega notas, contexto o seguimientos sobre este contacto..." onblur="crmGuardarNotas('${c.id}',this.value)">${c.notas||''}</textarea>
@@ -19910,6 +19979,27 @@ async function reenviarEvaluacion(evalId, btn) {
 
 <!-- Undo toast post-reagendar -->
 <div id="undo-toast"><span id="undo-msg"></span><button id="undo-btn">↩ Deshacer</button></div>
+
+<!-- ═══ MODAL MOTIVO PÉRDIDA ═══ -->
+<div id="modal-perdida-wrap" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9100;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+  <div id="modal-perdida" style="background:var(--bg);border:1.5px solid var(--b2);border-radius:18px;width:min(440px,92vw);box-shadow:var(--sh4);overflow:hidden">
+    <div style="padding:24px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--t1);letter-spacing:-.03em;line-height:1.2">¿Por qué se perdió?</div>
+        <div style="font-size:13px;color:var(--t3);margin-top:5px">Registrar el motivo ayuda a mejorar el seguimiento</div>
+      </div>
+      <button onclick="crmCerrarMotivoPerdida(false)" style="width:28px;height:28px;border-radius:7px;border:1.5px solid var(--b1);background:transparent;cursor:pointer;color:var(--t3);font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+    </div>
+    <div style="padding:18px 24px;display:grid;grid-template-columns:1fr 1fr;gap:8px" id="mp-opts-grid"></div>
+    <div style="padding:0 24px 8px" id="mp-otro-wrap" style="display:none">
+      <textarea id="mp-otro-txt" placeholder="Describe el motivo..." style="width:100%;box-sizing:border-box;min-height:72px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:13px;font-family:var(--font);resize:vertical;outline:none;transition:border .15s" onfocus="this.style.borderColor='var(--a)'" onblur="this.style.borderColor='var(--b1)'"></textarea>
+    </div>
+    <div style="padding:16px 24px;display:flex;gap:10px;border-top:1px solid var(--b1);background:var(--surface)">
+      <button onclick="crmCerrarMotivoPerdida(false)" style="flex:1;padding:9px;border-radius:9px;border:1.5px solid var(--b1);background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">Omitir</button>
+      <button onclick="crmCerrarMotivoPerdida(true)" style="flex:2;padding:9px;border-radius:9px;border:none;background:var(--a);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">Guardar motivo</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
