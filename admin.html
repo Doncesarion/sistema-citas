@@ -2108,28 +2108,28 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 /* ── HEADER ───────────────────────────────────────────────────────────── */
 .crm-topbar{flex-shrink:0;background:linear-gradient(160deg,#1e1b3a 0%,#16143a 55%,#1e1942 100%);border-bottom:1px solid rgba(108,92,228,.3)}
-.crm-header-row{display:flex;align-items:center;padding:20px 28px 16px;gap:12px}
-.crm-title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.03em;white-space:nowrap;display:flex;align-items:center;gap:10px}
-.crm-title-icon{width:32px;height:32px;border-radius:9px;background:rgba(108,92,228,.35);border:1px solid rgba(108,92,228,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.crm-header-row{display:flex;align-items:center;padding:10px 24px 8px;gap:12px}
+.crm-title{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.03em;white-space:nowrap;display:flex;align-items:center;gap:10px}
+.crm-title-icon{width:26px;height:26px;border-radius:7px;background:rgba(108,92,228,.35);border:1px solid rgba(108,92,228,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .crm-title-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:rgba(220,38,38,.25);color:#fca5a5;border:1px solid rgba(220,38,38,.4);display:none;animation:crm-pulse 2.2s ease infinite;margin-left:6px}
 @keyframes crm-pulse{0%,100%{opacity:1}50%{opacity:.55}}
 /* KPI cards row */
-.crm-kpi-row{display:flex;gap:1px;padding:0;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.07)}
-.crm-kpi{flex:1;min-width:120px;background:rgba(255,255,255,.04);padding:18px 24px;cursor:default;transition:background .15s;position:relative;overflow:hidden;border-right:1px solid rgba(255,255,255,.07)}
+.crm-kpi-row{display:flex;gap:0;padding:0;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.07)}
+.crm-kpi{flex:1;min-width:100px;background:rgba(255,255,255,.03);padding:9px 18px;cursor:default;transition:background .15s;position:relative;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:row;align-items:center;gap:10px}
 .crm-kpi:last-child{border-right:none}
 .crm-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#8B7CF8,#6C5CE4)}
-.crm-kpi:hover{background:rgba(255,255,255,.07)}
-.crm-kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.crm-kpi-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(139,124,248,.2)}
-.crm-kpi-val{font-size:30px;font-weight:800;color:#fff;font-family:var(--mono);letter-spacing:-.05em;line-height:1}
-.crm-kpi-lbl{font-size:11px;font-weight:500;color:rgba(255,255,255,.4);margin-top:5px;text-transform:uppercase;letter-spacing:.06em}
+.crm-kpi:hover{background:rgba(255,255,255,.06)}
+.crm-kpi-top{display:flex;align-items:center;margin-bottom:0;flex-shrink:0}
+.crm-kpi-ic{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(139,124,248,.18)}
+.crm-kpi-val{font-size:19px;font-weight:800;color:#fff;font-family:var(--mono);letter-spacing:-.04em;line-height:1}
+.crm-kpi-lbl{font-size:10px;font-weight:500;color:rgba(255,255,255,.4);margin-top:0;text-transform:uppercase;letter-spacing:.06em;line-height:1.2}
 /* mantener las clases antiguas para no romper si se usan en otro lado */
 .crm-stat-chips{display:none}
 .crm-stat-val{font-size:22px;font-weight:700;color:var(--t1);font-family:var(--mono)}
 .crm-stat-lbl{font-size:9px;color:var(--t4)}
 
 /* ── FILTER BAR ───────────────────────────────────────────────────────── */
-.crm-filterbar{display:flex;align-items:center;gap:8px;padding:12px 28px;border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap;background:var(--surface-hi);box-shadow:0 1px 0 var(--b1)}
+.crm-filterbar{display:flex;align-items:center;gap:8px;padding:8px 24px;border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap;background:var(--surface-hi);box-shadow:0 1px 0 var(--b1)}
 .crm-search{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--b2);border-radius:10px;padding:0 13px;height:38px;flex:1;max-width:300px;transition:border .15s,box-shadow .15s;box-shadow:var(--sh1)}
 .crm-search:focus-within{border-color:var(--a);box-shadow:0 0 0 3px rgba(108,92,228,.12),var(--sh1)}
 .crm-search input{border:none;background:transparent;outline:none;font-size:13px;color:var(--t1);font-family:var(--font);width:100%}
