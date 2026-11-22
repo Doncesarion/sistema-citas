@@ -19532,6 +19532,15 @@ async function loadContactosView() {
 }
 
 // ── Filter & render list ───────────────────────────────────────────────────
+function crmResetFiltros() {
+  _crmCanalFilter = '';
+  _crmSoloAtencion = false;
+  document.querySelectorAll('.crm-pill[id^="cpill-"]').forEach(p => p.classList.remove('on'));
+  const todos = document.getElementById('cpill-todos');
+  if (todos) todos.classList.add('on');
+  if (document.getElementById('cont-search')) document.getElementById('cont-search').value = '';
+  crmFilter();
+}
 function crmSetPill(btn, canal) {
   _crmCanalFilter = canal;
   document.querySelectorAll('.crm-pill[id^="cpill-"]').forEach(p => {
@@ -19581,10 +19590,12 @@ function _crmListRender(items) {
     ? `${items.length} de ${_contData.length} contactos`
     : `${_contData.length} contacto${_contData.length !== 1 ? 's' : ''}`;
   if (!items.length) {
+    const hayFiltro = _crmCanalFilter || _crmSoloAtencion || (document.getElementById('cont-search')?.value || '');
     wrap.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;padding:72px 32px;gap:12px;text-align:center">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity=".15"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      <div style="font-size:14px;font-weight:600;color:var(--t2)">Sin contactos</div>
-      <div style="font-size:12px;color:var(--t4);max-width:260px;line-height:1.6">Los contactos se crean automáticamente cuando alguien interactúa con el bot</div>
+      <div style="font-size:14px;font-weight:600;color:var(--t2)">${hayFiltro ? 'Sin resultados para este filtro' : 'Sin contactos'}</div>
+      <div style="font-size:12px;color:var(--t4);max-width:280px;line-height:1.6">${hayFiltro ? `Hay ${_contData.length} contacto${_contData.length!==1?'s':''} en total — prueba cambiando el filtro.` : 'Los contactos se crean automáticamente cuando alguien interactúa con el bot.'}</div>
+      ${hayFiltro ? `<button onclick="crmResetFiltros()" style="margin-top:4px;padding:7px 18px;border-radius:9px;border:1.5px solid var(--b2);background:transparent;color:var(--a);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ver todos</button>` : ''}
     </div>`;
     return;
   }
