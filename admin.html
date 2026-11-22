@@ -19305,13 +19305,8 @@ function _initKDrop(col) {
 }
 
 function crmOpenLeadFromKanban(leadId) {
-  const lead = _kbData.find(l => l.id === leadId);
-  if (!lead) return;
-  sv('contactos', null, true);
-  setTimeout(() => {
-    _contData = _contData.length > 0 ? _contData : [lead];
-    crmOpenContact(lead);
-  }, 300);
+  crmSetVista('lista');
+  setTimeout(() => openContactoCRM(leadId), 150);
 }
 
 function crmSetVista(vista) {
@@ -19399,7 +19394,7 @@ async function crmCerrarMotivoPerdida(guardar) {
   _kbData = _contData;
   if (localStorage.getItem('crm_vista') === 'kanban') _renderKanban();
   const panel = document.getElementById('crm-detail-panel');
-  if (panel && c && panel.innerHTML.includes(id)) crmOpenContact(c);
+  if (panel && c && panel.innerHTML.includes(id)) openContactoCRM(id);
 }
 
 // ── CRM REPORTES ──────────────────────────────────────────────────────────
@@ -19490,7 +19485,11 @@ async function loadContactosView() {
 
   try {
     const r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok } });
-    if (!r.ok) { if (listWrap) listWrap.innerHTML = '<div style="padding:20px;font-size:12px;color:var(--t4)">Error cargando contactos.</div>'; return; }
+    if (!r.ok) {
+      const errTxt = await r.text().catch(()=>'');
+      if (listWrap) listWrap.innerHTML = `<div style="padding:20px;font-size:12px;color:var(--t4)">Error ${r.status} cargando contactos. ${errTxt.slice(0,80)}</div>`;
+      return;
+    }
     const raw = await r.json();
     _contData = (Array.isArray(raw) ? raw : []).map(l => ({
       ...l,
