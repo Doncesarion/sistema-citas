@@ -19538,11 +19538,13 @@ function crmSetPill(btn, canal) {
     if (!p.id.includes('atencion')) p.classList.remove('on');
   });
   btn.classList.add('on');
+  if (localStorage.getItem('crm_vista') === 'kanban') crmSetVista('lista');
   crmFilter();
 }
 function crmToggleAtencion(btn) {
   _crmSoloAtencion = !_crmSoloAtencion;
   btn.classList.toggle('on', _crmSoloAtencion);
+  if (localStorage.getItem('crm_vista') === 'kanban') crmSetVista('lista');
   crmFilter();
 }
 function crmFilter() {
@@ -19558,7 +19560,6 @@ function crmFilter() {
   });
   _crmListRender(filtered);
   _crmSidebarRender(filtered);
-  if (localStorage.getItem('crm_vista') === 'kanban') { _kbData = filtered; _renderKanban(); }
 }
 function sbFilterContactos(q) { document.getElementById('cont-search').value=q; crmFilter(); }
 
