@@ -1403,8 +1403,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <button class="ntab"    data-modo="agenda" onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Transferencias</button>
       <!-- Modo CRM -->
       <button class="ntab"    data-modo="crm" onclick="sv('contactos',this)"   id="ntab-contactos" style="position:relative;display:none">Contactos <span id="contactos-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
-      <button class="ntab"    data-modo="crm" onclick="sv('bandeja',this)"     id="ntab-bandeja"   style="position:relative;display:none">Mensajes <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
-      <button class="ntab"    data-modo="crm" onclick="sv('embudo',this)"      id="ntab-embudo"      style="display:none">Embudo</button>
+      <button class="ntab"    data-modo="crm" onclick="sv('bandeja',this)"     id="ntab-bandeja"   style="position:relative;display:none">Conversaciones <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"    data-modo="agenda" onclick="sv('evaluaciones',this)" id="ntab-evaluaciones" style="display:none">Evaluaciones</button>
       <button class="ntab"    data-modo="crm" onclick="sv('reportes',this)"    id="ntab-reportes"  style="display:none">Reportes</button>
       <!-- Ambos modos -->
@@ -2101,6 +2100,10 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 .crm-funnel-pct{font-size:12px;font-weight:600;color:var(--t3);width:40px;text-align:right;flex-shrink:0}
 
 /* ── WRAP ─────────────────────────────────────────────────────────────── */
+/* ── CRM VIEW TOGGLE ──────────────────────────────────────────────── */
+.crm-vtog-wrap{display:flex;background:var(--surface);border:1.5px solid var(--b1);border-radius:8px;padding:2px;gap:1px;flex-shrink:0}
+.crm-vtog{padding:4px 12px;border-radius:6px;border:none;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;background:transparent;font-family:var(--font);display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.crm-vtog.on{background:var(--a);color:#fff;box-shadow:0 2px 8px rgba(139,124,248,.3)}
 .crm-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 
 /* ── HEADER ───────────────────────────────────────────────────────────── */
@@ -2273,6 +2276,11 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="5.5" cy="5.5" r="4"/><path d="M9 9l3 3"/></svg>
         <input id="cont-search" placeholder="Buscar nombre, email o teléfono..." oninput="crmFilter()">
       </div>
+      <div class="crm-vtog-wrap">
+        <button class="crm-vtog on" id="cvtog-lista"  onclick="crmSetVista('lista')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Lista</button>
+        <button class="crm-vtog"    id="cvtog-kanban" onclick="crmSetVista('kanban')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="11" rx="1"/><rect x="17" y="3" width="5" height="14" rx="1"/></svg> Kanban</button>
+      </div>
+      <div class="nav-divider" style="height:16px;margin:0 2px"></div>
       <button class="crm-pill on" id="cpill-todos"    onclick="crmSetPill(this,'')">Todos</button>
       <button class="crm-pill"   id="cpill-wa"        onclick="crmSetPill(this,'whatsapp')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.015.502 3.912 1.383 5.573L0 24l6.615-1.337A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.818 0-3.527-.483-5.004-1.329l-.358-.213-3.726.754.785-3.613-.234-.372A9.782 9.782 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182S21.818 6.591 21.818 12 17.409 21.818 12 21.818z"/></svg> WhatsApp</button>
       <button class="crm-pill"   id="cpill-ig"        onclick="crmSetPill(this,'instagram')"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg> Instagram</button>
@@ -2295,6 +2303,55 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <div class="crm-drawer" id="crm-detail-panel"></div>
 
     </div>
+
+    <!-- Vista Kanban (toggle) -->
+    <div id="crm-kanban-wrap" style="display:none;flex:1;overflow:hidden">
+      <div class="kanban-wrap">
+        <div class="kanban-cols" id="kanban-cols">
+          <div class="k-col" data-stage="nuevo">
+            <div class="k-col-hd">
+              <div class="k-col-top"><span class="k-col-dot"></span><span class="k-col-name">Nuevo</span><span class="k-col-cnt" id="kc-nuevo">0</span></div>
+              <div class="k-col-sub">Sin clasificar</div>
+            </div>
+            <div class="k-cards" id="kk-nuevo" data-stage="nuevo"></div>
+            <button class="k-add-card" onclick="abrirCrearLead('nuevo')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Agregar</button>
+          </div>
+          <div class="k-col" data-stage="calificado">
+            <div class="k-col-hd">
+              <div class="k-col-top"><span class="k-col-dot"></span><span class="k-col-name">Calificado</span><span class="k-col-cnt" id="kc-calificado">0</span></div>
+              <div class="k-col-sub">Interés confirmado</div>
+            </div>
+            <div class="k-cards" id="kk-calificado" data-stage="calificado"></div>
+            <button class="k-add-card" onclick="abrirCrearLead('calificado')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Agregar</button>
+          </div>
+          <div class="k-col" data-stage="propuesta">
+            <div class="k-col-hd">
+              <div class="k-col-top"><span class="k-col-dot"></span><span class="k-col-name">Propuesta</span><span class="k-col-cnt" id="kc-propuesta">0</span></div>
+              <div class="k-col-sub">Oferta enviada</div>
+            </div>
+            <div class="k-cards" id="kk-propuesta" data-stage="propuesta"></div>
+            <button class="k-add-card" onclick="abrirCrearLead('propuesta')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Agregar</button>
+          </div>
+          <div class="k-col" data-stage="agendado">
+            <div class="k-col-hd">
+              <div class="k-col-top"><span class="k-col-dot"></span><span class="k-col-name">Agendado</span><span class="k-col-cnt" id="kc-agendado">0</span></div>
+              <div class="k-col-sub">Cita confirmada</div>
+            </div>
+            <div class="k-cards" id="kk-agendado" data-stage="agendado"></div>
+            <button class="k-add-card" onclick="abrirCrearLead('agendado')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Agregar</button>
+          </div>
+          <div class="k-col" data-stage="perdido">
+            <div class="k-col-hd">
+              <div class="k-col-top"><span class="k-col-dot"></span><span class="k-col-name">Perdido</span><span class="k-col-cnt" id="kc-perdido">0</span></div>
+              <div class="k-col-sub">No convirtió</div>
+            </div>
+            <div class="k-cards" id="kk-perdido" data-stage="perdido"></div>
+            <button class="k-add-card" onclick="abrirCrearLead('perdido')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Agregar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -4036,98 +4093,6 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 </div><!-- end bandeja -->
 
-<!-- ═══ EMBUDO / PIPELINE CRM ═══ -->
-<div id="v-embudo" style="display:none;flex:1;min-height:0;display:none;flex-direction:column">
-  <div class="kanban-wrap">
-    <div class="kanban-header">
-      <div>
-        <div class="kanban-title">Pipeline</div>
-      </div>
-      <div class="kanban-actions">
-        <button class="btn-sm" onclick="loadEmbudoView()">↻ Actualizar</button>
-        <button class="btn-sm btn-primary" onclick="abrirCrearLead()">+ Agregar lead</button>
-      </div>
-    </div>
-    <div class="kanban-cols" id="kanban-cols">
-      <div class="k-col" data-stage="nuevo">
-        <div class="k-col-hd">
-          <div class="k-col-top">
-            <span class="k-col-dot"></span>
-            <span class="k-col-name">Nuevo</span>
-            <span class="k-col-cnt" id="kc-nuevo">0</span>
-          </div>
-          <div class="k-col-sub">Sin clasificar</div>
-        </div>
-        <div class="k-cards" id="kk-nuevo" data-stage="nuevo"></div>
-        <button class="k-add-card" onclick="abrirCrearLead('nuevo')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Agregar
-        </button>
-      </div>
-      <div class="k-col" data-stage="calificado">
-        <div class="k-col-hd">
-          <div class="k-col-top">
-            <span class="k-col-dot"></span>
-            <span class="k-col-name">Calificado</span>
-            <span class="k-col-cnt" id="kc-calificado">0</span>
-          </div>
-          <div class="k-col-sub">Interés confirmado</div>
-        </div>
-        <div class="k-cards" id="kk-calificado" data-stage="calificado"></div>
-        <button class="k-add-card" onclick="abrirCrearLead('calificado')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Agregar
-        </button>
-      </div>
-      <div class="k-col" data-stage="propuesta">
-        <div class="k-col-hd">
-          <div class="k-col-top">
-            <span class="k-col-dot"></span>
-            <span class="k-col-name">Propuesta</span>
-            <span class="k-col-cnt" id="kc-propuesta">0</span>
-          </div>
-          <div class="k-col-sub">Oferta enviada</div>
-        </div>
-        <div class="k-cards" id="kk-propuesta" data-stage="propuesta"></div>
-        <button class="k-add-card" onclick="abrirCrearLead('propuesta')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Agregar
-        </button>
-      </div>
-      <div class="k-col" data-stage="agendado">
-        <div class="k-col-hd">
-          <div class="k-col-top">
-            <span class="k-col-dot"></span>
-            <span class="k-col-name">Agendado</span>
-            <span class="k-col-cnt" id="kc-agendado">0</span>
-          </div>
-          <div class="k-col-sub">Cita confirmada</div>
-        </div>
-        <div class="k-cards" id="kk-agendado" data-stage="agendado"></div>
-        <button class="k-add-card" onclick="abrirCrearLead('agendado')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Agregar
-        </button>
-      </div>
-      <div class="k-col" data-stage="perdido">
-        <div class="k-col-hd">
-          <div class="k-col-top">
-            <span class="k-col-dot"></span>
-            <span class="k-col-name">Perdido</span>
-            <span class="k-col-cnt" id="kc-perdido">0</span>
-          </div>
-          <div class="k-col-sub">No convirtió</div>
-        </div>
-        <div class="k-cards" id="kk-perdido" data-stage="perdido"></div>
-        <button class="k-add-card" onclick="abrirCrearLead('perdido')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Agregar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ═══ EVALUACIONES ═══ -->
 <div id="v-evaluaciones" style="display:none">
   <div class="vp">
@@ -5216,7 +5181,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 /* ════ VIEW SWITCHING ════ */
 /* ════ MODO: AGENDA / CRM ════ */
 const _VISTAS_AGENDA = ['agenda','clientes','ventas','cotizaciones','liquidaciones'];
-const _VISTAS_CRM    = ['contactos','embudo','bandeja','reportes'];
+const _VISTAS_CRM    = ['contactos','bandeja','reportes'];
 let _modoActual = 'agenda';
 
 function setModo(modo, skipNav) {
@@ -5300,7 +5265,6 @@ function sv(v, btn, skipPush) {
   if (v === 'liquidaciones') cargarLiquidaciones();
   if (v === 'clientes')      loadClientesView();
   if (v === 'evaluaciones')  loadEvaluaciones();
-  if (v === 'embudo')        loadEmbudoView();
   if (v === 'reportes' && _modoActual === 'crm') { showCrmReportes(); loadCrmReportes(); }
   if (v === 'contactos')     loadContactosView();
   if (v === 'config')        showCfg('general', document.getElementById('ctab-general'), true);
@@ -12903,7 +12867,7 @@ function routeFromURL() {
   const calSubs = ['semana','dia','mes','lista'];
   const cfgSubs = ['general','profesionales','horarios','servicios','pagos','facturacion'];
 
-  const _crmSections = ['contactos','embudo','bandeja','reportes'];
+  const _crmSections = ['contactos','bandeja','reportes'];
   const _agendaSections = ['agenda','clientes','ventas','cotizaciones','liquidaciones'];
   if (_crmSections.includes(section)) setModo('crm', true);
   else if (_agendaSections.includes(section)) setModo('agenda', true);
@@ -12927,8 +12891,6 @@ function routeFromURL() {
     sv('liquidaciones', null, true);
   } else if (section === 'contactos') {
     setModo('crm', true); sv('contactos', null, true);
-  } else if (section === 'embudo') {
-    setModo('crm', true); sv('embudo', null, true);
   } else if (section === 'evaluaciones') {
     setModo('agenda', true); sv('evaluaciones', null, true);
   } else if (section === 'configuracion') {
@@ -19347,6 +19309,33 @@ function crmOpenLeadFromKanban(leadId) {
   }, 300);
 }
 
+function crmSetVista(vista) {
+  localStorage.setItem('crm_vista', vista);
+  const isList = vista === 'lista';
+  const body    = document.getElementById('crm-body');
+  const kanban  = document.getElementById('crm-kanban-wrap');
+  const tl = document.getElementById('cvtog-lista');
+  const tk = document.getElementById('cvtog-kanban');
+  if (body)   body.style.display   = isList ? '' : 'none';
+  if (kanban) kanban.style.display = isList ? 'none' : '';
+  if (tl) tl.classList.toggle('on', isList);
+  if (tk) tk.classList.toggle('on', !isList);
+  if (!isList) { _kbData = _contData; _renderKanban(); }
+}
+
+async function crmGuardarEstado(id, estado) {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const c = _contData.find(x => x.id === id);
+  if (c) c.estado = estado;
+  _kbData = _contData;
+  if (localStorage.getItem('crm_vista') === 'kanban') _renderKanban();
+  await fetch(`/api/bandeja?action=lead-estado&id=${id}`, {
+    method: 'PATCH',
+    headers: { 'x-session-token': tok, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado })
+  }).catch(() => {});
+}
+
 function abrirCrearLead(stage) {
   sv('contactos', null, true);
 }
@@ -19438,10 +19427,14 @@ async function loadContactosView() {
   if (listWrap) listWrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t4);font-size:13px">Cargando...</div>';
 
   try {
-    const r = await fetch('/api/bandeja?op=contactos', { headers: { 'x-session-token': tok } });
+    const r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok } });
     if (!r.ok) { if (listWrap) listWrap.innerHTML = '<div style="padding:20px;font-size:12px;color:var(--t4)">Error cargando contactos.</div>'; return; }
-    const data = await r.json();
-    _contData = Array.isArray(data.contactos) ? data.contactos : [];
+    const raw = await r.json();
+    _contData = (Array.isArray(raw) ? raw : []).map(l => ({
+      ...l,
+      creado_en:       l.creado_en       || l.created_at,
+      ultimo_contacto: l.ultimo_contacto || l.ultimo_mensaje,
+    }));
 
     // Stats
     const total = _contData.length;
@@ -19461,6 +19454,9 @@ async function loadContactosView() {
 
     // Sidebar also
     _crmSidebarRender(_contData);
+    _kbData = _contData;
+    const _vistaGuardada = localStorage.getItem('crm_vista') || 'lista';
+    if (_vistaGuardada === 'kanban') { crmSetVista('kanban'); } else { crmSetVista('lista'); }
     crmFilter();
   } catch(e) {
     if (listWrap) listWrap.innerHTML = `<div style="padding:20px;font-size:12px;color:var(--t4)">Error: ${e.message}</div>`;
@@ -19590,7 +19586,7 @@ async function openContactoCRM(id) {
   } catch(_) {}
 
   const canal = _crmCanonCanal(c);
-  const fechaReg = c.creado_en ? new Date(c.creado_en).toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  const fechaReg = (c.creado_en || c.created_at) ? new Date(c.creado_en || c.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'}) : '—';
 
   const waLink = c.telefono ? `<a href="https://wa.me/${c.telefono.replace(/\D/g,'')}" target="_blank" class="crm-action-btn wa">
     ${_crmCanalIcon('whatsapp',13)} WhatsApp</a>` : '';
@@ -19615,7 +19611,13 @@ async function openContactoCRM(id) {
         <div class="crm-dh-email">${c.email || c.canal_user_id || ''}</div>
         <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap">
           <span class="crm-canal-pill ${canal}">${_crmCanalIcon(canal,11)} ${canal.charAt(0).toUpperCase()+canal.slice(1)}</span>
-          ${_crmLeadBadge(c)}
+          <select onchange="crmGuardarEstado('${c.id}',this.value)" style="font-size:11px;font-weight:600;border:1.5px solid var(--b2);border-radius:8px;padding:4px 10px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-family:var(--font);margin-top:4px">
+            <option value="nuevo"      ${(c.estado||'nuevo')==='nuevo'      ?'selected':''} style="background:#1a1830;color:#fff">Nuevo</option>
+            <option value="calificado" ${c.estado==='calificado' ?'selected':''} style="background:#1a1830;color:#fff">Calificado</option>
+            <option value="propuesta"  ${c.estado==='propuesta'  ?'selected':''} style="background:#1a1830;color:#fff">Propuesta</option>
+            <option value="agendado"   ${c.estado==='agendado'   ?'selected':''} style="background:#1a1830;color:#fff">Agendado</option>
+            <option value="perdido"    ${c.estado==='perdido'    ?'selected':''} style="background:#1a1830;color:#fff">Perdido</option>
+          </select>
         </div>
       </div>
       <div class="crm-dh-actions">${waLink}${telLink}${mailLink}
@@ -19681,7 +19683,7 @@ async function crmGuardarNotas(id, notas) {
   const tok = localStorage.getItem('attempo_session_token') || '';
   const c = _contData.find(x => x.id === id);
   if (c) c.notas = notas;
-  await fetch(`/api/bandeja?op=contacto&id=${id}`, {
+  await fetch(`/api/bandeja?action=lead-estado&id=${id}`, {
     method:'PATCH', headers:{'x-session-token':tok,'Content-Type':'application/json'},
     body: JSON.stringify({ notas })
   }).catch(() => {});
@@ -19689,7 +19691,7 @@ async function crmGuardarNotas(id, notas) {
 
 async function crmMarcarAtendido(id) {
   const tok = localStorage.getItem('attempo_session_token') || '';
-  await fetch(`/api/bandeja?op=contacto&id=${id}`, {
+  await fetch(`/api/bandeja?action=lead-estado&id=${id}`, {
     method:'PATCH', headers:{'x-session-token':tok,'Content-Type':'application/json'},
     body: JSON.stringify({ requiere_atencion: false })
   }).catch(() => {});

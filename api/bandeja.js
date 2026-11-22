@@ -698,7 +698,7 @@ export default async function handler(req, res) {
     const lead_id = req.query.id;
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRe.test(lead_id)) return res.status(400).json({ error: 'ID inválido' });
-    const { estado, notas } = req.body || {};
+    const { estado, notas, requiere_atencion } = req.body || {};
     const estadosValidos = ['nuevo', 'calificado', 'propuesta', 'agendado', 'perdido'];
     if (estado && !estadosValidos.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
     // Verificar que el lead pertenece a este cliente
@@ -711,6 +711,7 @@ export default async function handler(req, res) {
     const patch = {};
     if (estado) patch.estado = estado;
     if (notas !== undefined) patch.notas = notas;
+    if (requiere_atencion !== undefined) patch.requiere_atencion = requiere_atencion;
     await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${lead_id}`, {
       method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' },
       body: JSON.stringify(patch)
