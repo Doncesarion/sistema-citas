@@ -47,42 +47,42 @@
 
 :root{
   /* Backgrounds */
-  --bg:         #F8F7FF;
-  --bg-grad:    linear-gradient(145deg,#EDE9FF 0%,#F8F7FF 28%,#EEF2FF 58%,#F3EFFE 85%,#F8F7FF 100%);
-  --surface:    rgba(255,255,255,0.92);
-  --surface-hi: rgba(255,255,255,0.98);
-  --glass:      rgba(255,255,255,0.6);
+  --bg:         #111028;
+  --bg-grad:    linear-gradient(145deg,#111028 0%,#0E0C22 50%,#111028 100%);
+  --surface:    rgba(255,255,255,.05);
+  --surface-hi: rgba(255,255,255,.08);
+  --glass:      rgba(255,255,255,.03);
 
   /* Borders */
-  --b1: rgba(108,92,228,0.08);
-  --b2: rgba(108,92,228,0.15);
-  --b3: rgba(108,92,228,0.25);
+  --b1: rgba(255,255,255,.08);
+  --b2: rgba(255,255,255,.14);
+  --b3: rgba(255,255,255,.24);
 
   /* Text */
-  --t1: #16143A;
-  --t2: #5E5880;
-  --t3: #9C96B4;
-  --t4: #C6C1D8;
+  --t1: rgba(255,255,255,.90);
+  --t2: rgba(255,255,255,.60);
+  --t3: rgba(255,255,255,.38);
+  --t4: rgba(255,255,255,.22);
 
-  /* Accent — logo gradient */
-  --a:    #6C5CE4;
-  --a2:   #8B7CF8;
-  --a3:   #4F3EE0;
-  --adim: rgba(108,92,228,0.08);
-  --aglow:rgba(108,92,228,0.2);
+  /* Accent */
+  --a:    #8B7CF8;
+  --a2:   #A99FFF;
+  --a3:   #6C5CE4;
+  --adim: rgba(139,124,248,.14);
+  --aglow:rgba(139,124,248,.28);
 
   /* Semantic */
-  --green:  #16A34A;  --gdim: rgba(22,163,74,0.08);
-  --red:    #DC2626;  --rdim: rgba(220,38,38,0.07);
-  --amber:  #D97706;  --adm2: rgba(217,119,6,0.08);
-  --blue:   #2563EB;  --bdim: rgba(37,99,235,0.08);
-  --teal:   #0D9488;  --tdim: rgba(13,148,136,0.08);
+  --green:  #4ade80;  --gdim: rgba(74,222,128,.12);
+  --red:    #f87171;  --rdim: rgba(248,113,113,.12);
+  --amber:  #fbbf24;  --adm2: rgba(251,191,36,.12);
+  --blue:   #60a5fa;  --bdim: rgba(96,165,250,.12);
+  --teal:   #2dd4bf;  --tdim: rgba(45,212,191,.12);
 
   /* Shadows */
-  --sh1: 0 1px 2px rgba(108,92,228,0.06), 0 0 0 1px rgba(108,92,228,0.05);
-  --sh2: 0 4px 16px rgba(108,92,228,0.1),  0 1px 3px rgba(0,0,0,0.04);
-  --sh3: 0 16px 48px rgba(108,92,228,0.15), 0 2px 8px rgba(0,0,0,0.06);
-  --sh4: 0 24px 64px rgba(108,92,228,0.18), 0 4px 12px rgba(0,0,0,0.08);
+  --sh1: 0 1px 3px rgba(0,0,0,.5),  0 0 0 1px rgba(255,255,255,.06);
+  --sh2: 0 4px 16px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
+  --sh3: 0 16px 48px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.4);
+  --sh4: 0 24px 64px rgba(0,0,0,.7),0 4px 12px rgba(0,0,0,.5);
 
   --font: 'Geist', system-ui, sans-serif;
   --mono: 'Geist Mono', monospace;
@@ -91,6 +91,48 @@
   --rx: 14px;
   --rxx:18px;
 }
+/* ── DARK MODE — hardcoded overrides ────────────────────────────────── */
+/* Cards & panels */
+.card,.tw,.rc,.sc{background:var(--surface)!important;border-color:var(--b1)!important}
+.modal,.ficha-panel{background:#1C1A32!important;border-color:var(--b2)!important;box-shadow:0 24px 64px rgba(0,0,0,.7)!important}
+.toast{background:#1C1A32!important;border-color:var(--b1)!important;color:var(--t1)!important}
+.pt-drop,.bestado-drop{background:#1A1830!important;border-color:var(--b2)!important;box-shadow:0 12px 40px rgba(0,0,0,.6)!important}
+/* Table rows */
+.crm-tr td{background:var(--surface)!important}
+.crm-tr:hover td{background:rgba(139,124,248,.08)!important}
+.crm-tr.urgent td{background:rgba(248,113,113,.05)!important}
+.crm-tr.urgent:hover td{background:rgba(248,113,113,.1)!important}
+/* CRM drawer */
+.crm-drawer{background:#15132A!important;border-left-color:var(--b2)!important}
+.crm-body.drawer-open .crm-drawer{box-shadow:-12px 0 40px rgba(0,0,0,.6)!important}
+/* CRM pills */
+.crm-pill{background:var(--surface)!important;border-color:var(--b1)!important;color:var(--t3)!important}
+/* CRM canal pills on dark bg */
+.crm-canal-pill.whatsapp,.crm-canal-pill.instagram,.crm-canal-pill.messenger{background:rgba(255,255,255,.08)!important;color:var(--t2)!important}
+/* Nav new button */
+nav .btn-new{background:var(--adim)!important;color:var(--a)!important;border:1px solid var(--b2)!important;box-shadow:none!important}
+/* Config & lista rows */
+.cfg-row,.lista-row{background:var(--surface)!important;color:var(--t1)!important}
+.cfg-row:hover,.lista-row:hover{background:var(--surface-hi)!important}
+/* Tab pills */
+.ptab.on,.blist-tab.on,.mrm-tab.on{background:var(--surface-hi)!important;color:var(--t1)!important;box-shadow:var(--sh1)!important}
+/* Chat areas */
+.bch-ig,.bch-ig .bthread-msgs,.bch-ms,.bch-ms .bthread-msgs,.blist{background:var(--surface)!important}
+.bthread-input{background:var(--surface-hi)!important;border-top-color:var(--b1)!important;box-shadow:none!important}
+.bmsg-wrap.usuario .bmsg,.bch-wa .bmsg-wrap.usuario .bmsg{background:rgba(255,255,255,.1)!important;color:var(--t1)!important;box-shadow:none!important}
+.bch-wa .bday-sep{background:rgba(255,255,255,.1)!important;color:var(--t3)!important}
+/* Inputs */
+.fi,.blist-search{background:rgba(255,255,255,.07)!important;color:var(--t1)!important;border-color:var(--b1)!important}
+.fi::placeholder,.blist-search::placeholder{color:var(--t4)!important}
+.fi:focus,.fp-textarea:focus,.binput-area:focus,.blist-search:focus{background:rgba(255,255,255,.1)!important;border-color:var(--a)!important}
+.bname-input{background:rgba(255,255,255,.1)!important;color:var(--t1)!important}
+/* Bottom bars */
+#bulk-bar,#mob-nav{background:#1C1A32!important;border-color:var(--b1)!important}
+#drag-ghost{background:#1C1A32!important;color:var(--a)!important;border-color:var(--b2)!important}
+/* Banner button */
+.bbot-banner-btn{background:transparent!important;border-color:var(--amber)!important;color:var(--amber)!important}
+/* Native inputs */
+input,select,textarea{color-scheme:dark}
 
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad);color:var(--t1);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overscroll-behavior-y:none}
@@ -297,7 +339,7 @@ nav .btn-new:hover{background:#f3f1ff;box-shadow:0 4px 16px rgba(0,0,0,0.22);tra
   transition:transform .12s,box-shadow .12s,filter .12s;
 }
 .ev:hover{transform:scale(1.015) translateY(-1px);box-shadow:var(--sh2);filter:brightness(1.04)}
-.ev-rag{position:absolute;bottom:3px;right:4px;opacity:0;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,0.6);border:none;color:var(--t1);cursor:pointer;transition:opacity .12s;font-family:var(--font)}
+.ev-rag{position:absolute;bottom:3px;right:4px;opacity:0;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(0,0,0,0.35);border:none;color:#fff;cursor:pointer;transition:opacity .12s;font-family:var(--font)}
 .ev:hover .ev-rag{opacity:1}
 .sobrecupo-btn{position:absolute;top:4px;right:3px;width:18px;height:18px;border-radius:50%;background:var(--a);color:#fff;border:none;font-size:16px;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s;z-index:6;padding:0;display:flex;align-items:center;justify-content:center;font-family:var(--font)}
 .slot:hover .sobrecupo-btn{opacity:.85}
@@ -417,7 +459,7 @@ body.is-dragging,body.is-dragging *{cursor:grabbing!important;user-select:none!i
 
 .fg{display:flex;flex-direction:column;gap:5px}
 .fl{font-size:11px;font-weight:500;color:var(--t2);letter-spacing:.02em}
-.fi{padding:8px 11px;border-radius:var(--r);border:1px solid var(--b1);background:#FAFAFE;color:var(--t1);font-size:13px;font-family:var(--font);outline:none;transition:all .14s;width:100%}
+.fi{padding:8px 11px;border-radius:var(--r);border:1px solid var(--b1);background:var(--surface-hi);color:var(--t1);font-size:13px;font-family:var(--font);outline:none;transition:all .14s;width:100%}
 .input-rel{position:relative}
 .input-rel .fi{padding-right:38px}
 .fi-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t3);display:flex;padding:4px}
