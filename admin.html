@@ -1958,45 +1958,64 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .crm-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 
 /* ── HEADER ───────────────────────────────────────────────────────────── */
-.crm-topbar{flex-shrink:0;border-bottom:1px solid var(--b1);background:var(--surface-hi)}
-.crm-header-row{display:flex;align-items:center;padding:20px 28px 18px;flex-wrap:wrap;gap:12px}
-.crm-title{font-size:22px;font-weight:800;color:var(--t1);letter-spacing:-.035em;white-space:nowrap}
-.crm-title-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:rgba(220,38,38,.1);color:#dc2626;border:1px solid rgba(220,38,38,.22);display:none;animation:crm-pulse 2.2s ease infinite}
+.crm-topbar{flex-shrink:0;background:linear-gradient(160deg,#1e1b3a 0%,#16143a 55%,#1e1942 100%);border-bottom:1px solid rgba(108,92,228,.3)}
+.crm-header-row{display:flex;align-items:center;padding:20px 28px 16px;gap:12px}
+.crm-title{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.03em;white-space:nowrap;display:flex;align-items:center;gap:10px}
+.crm-title-icon{width:32px;height:32px;border-radius:9px;background:rgba(108,92,228,.35);border:1px solid rgba(108,92,228,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.crm-title-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:rgba(220,38,38,.25);color:#fca5a5;border:1px solid rgba(220,38,38,.4);display:none;animation:crm-pulse 2.2s ease infinite;margin-left:6px}
 @keyframes crm-pulse{0%,100%{opacity:1}50%{opacity:.55}}
-.crm-stat-chips{display:flex;align-items:stretch;border:1px solid var(--b2);border-radius:12px;overflow:hidden;background:var(--surface);margin-left:auto;flex-shrink:0;box-shadow:var(--sh1)}
-.crm-stat{padding:10px 20px;border-right:1px solid var(--b1);min-width:72px;cursor:default;text-align:center;transition:background .15s}
-.crm-stat:last-child{border-right:none}
-.crm-stat:hover{background:var(--adim)}
-.crm-stat-val{font-size:22px;font-weight:700;color:var(--t1);font-family:var(--mono);letter-spacing:-.04em;line-height:1.1;display:block}
-.crm-stat-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t4);margin-top:2px;white-space:nowrap;display:block}
+/* KPI cards row */
+.crm-kpi-row{display:flex;gap:12px;padding:16px 28px 20px;flex-wrap:wrap}
+.crm-kpi{flex:1;min-width:120px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;cursor:default;transition:background .15s;position:relative;overflow:hidden}
+.crm-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.crm-kpi:hover{background:rgba(255,255,255,.09)}
+.crm-kpi.total::before{background:linear-gradient(90deg,#6C5CE4,#8B7CF8)}
+.crm-kpi.atencion::before{background:linear-gradient(90deg,#dc2626,#f87171)}
+.crm-kpi.wa::before{background:linear-gradient(90deg,#16a34a,#4ade80)}
+.crm-kpi.social::before{background:linear-gradient(90deg,#0084ff,#60a5fa)}
+.crm-kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.crm-kpi-ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.crm-kpi.total .crm-kpi-ic{background:rgba(108,92,228,.25)}
+.crm-kpi.atencion .crm-kpi-ic{background:rgba(220,38,38,.2)}
+.crm-kpi.wa .crm-kpi-ic{background:rgba(22,163,74,.2)}
+.crm-kpi.social .crm-kpi-ic{background:rgba(0,132,255,.2)}
+.crm-kpi-val{font-size:28px;font-weight:800;color:#fff;font-family:var(--mono);letter-spacing:-.05em;line-height:1}
+.crm-kpi-lbl{font-size:11px;font-weight:500;color:rgba(255,255,255,.45);margin-top:4px}
+/* mantener las clases antiguas para no romper si se usan en otro lado */
+.crm-stat-chips{display:none}
+.crm-stat-val{font-size:22px;font-weight:700;color:var(--t1);font-family:var(--mono)}
+.crm-stat-lbl{font-size:9px;color:var(--t4)}
 
 /* ── FILTER BAR ───────────────────────────────────────────────────────── */
-.crm-filterbar{display:flex;align-items:center;gap:8px;padding:12px 28px;border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap;background:var(--bg)}
-.crm-search{display:flex;align-items:center;gap:7px;background:var(--surface-hi);border:1.5px solid var(--b1);border-radius:10px;padding:0 12px;height:36px;flex:1;max-width:280px;transition:border .15s,box-shadow .15s;box-shadow:var(--sh1)}
-.crm-search:focus-within{border-color:var(--a);box-shadow:0 0 0 3px rgba(108,92,228,.1)}
+.crm-filterbar{display:flex;align-items:center;gap:8px;padding:12px 28px;border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap;background:var(--surface-hi);box-shadow:0 1px 0 var(--b1)}
+.crm-search{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--b2);border-radius:10px;padding:0 13px;height:38px;flex:1;max-width:300px;transition:border .15s,box-shadow .15s;box-shadow:var(--sh1)}
+.crm-search:focus-within{border-color:var(--a);box-shadow:0 0 0 3px rgba(108,92,228,.12),var(--sh1)}
 .crm-search input{border:none;background:transparent;outline:none;font-size:13px;color:var(--t1);font-family:var(--font);width:100%}
-.crm-pill{font-size:12px;font-weight:600;padding:0 14px;border-radius:18px;border:1.5px solid var(--b1);color:var(--t3);background:var(--surface-hi);cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:36px;box-sizing:border-box}
-.crm-pill:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
-.crm-pill.on{background:var(--a);border-color:var(--a);color:#fff;box-shadow:0 2px 10px rgba(108,92,228,.35)}
+.crm-pill{font-size:12px;font-weight:600;padding:0 14px;border-radius:18px;border:1.5px solid var(--b2);color:var(--t3);background:#fff;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:38px;box-sizing:border-box;box-shadow:var(--sh1)}
+.crm-pill:hover{border-color:var(--a);color:var(--a);background:var(--adim);box-shadow:none}
+.crm-pill.on{background:var(--a);border-color:var(--a);color:#fff;box-shadow:0 3px 12px rgba(108,92,228,.4)}
 .crm-results-lbl{font-size:11px;font-weight:500;color:var(--t4);margin-left:auto;white-space:nowrap}
 
 /* ── BODY ─────────────────────────────────────────────────────────────── */
-.crm-body{display:flex;flex:1;min-height:0;overflow:hidden;position:relative}
+.crm-body{display:flex;flex:1;min-height:0;overflow:hidden;position:relative;background:var(--bg)}
 
 /* ── TABLE ────────────────────────────────────────────────────────────── */
 .crm-table-wrap{flex:1;overflow:auto;min-width:0}
-.crm-table{width:100%;border-collapse:collapse;min-width:580px}
-.crm-thead{position:sticky;top:0;z-index:2;background:var(--bg)}
-.crm-th{padding:11px 16px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t4);border-bottom:2px solid var(--b1);white-space:nowrap;user-select:none}
+.crm-table{width:100%;border-collapse:separate;border-spacing:0;min-width:580px}
+.crm-thead{position:sticky;top:0;z-index:2}
+.crm-th{padding:11px 16px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t4);background:var(--surface-hi);border-bottom:2px solid var(--b2);white-space:nowrap;user-select:none}
 .crm-th:first-child{padding-left:28px}
 .crm-th:last-child{padding-right:28px;text-align:right}
-.crm-tr{cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s}
-.crm-tr:hover td{background:rgba(108,92,228,.03)}
+.crm-tr{cursor:pointer;transition:all .12s}
+.crm-tr td{border-bottom:1px solid var(--b1);background:#fff}
+.crm-tr:hover td{background:rgba(108,92,228,.04);transform:none}
+.crm-tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--a)}
 .crm-tr.on td{background:var(--adim)}
-.crm-tr.urgent td{background:rgba(220,38,38,.025)}
-.crm-tr.urgent:hover td{background:rgba(220,38,38,.045)}
+.crm-tr.on td:first-child{box-shadow:inset 3px 0 0 var(--a)}
+.crm-tr.urgent td{background:rgba(220,38,38,.03)}
+.crm-tr.urgent:hover td{background:rgba(220,38,38,.06)}
 .crm-tr.urgent td:first-child{box-shadow:inset 3px 0 0 #dc2626}
-.crm-td{padding:14px 16px;vertical-align:middle;color:var(--t2);font-size:13px}
+.crm-td{padding:15px 16px;vertical-align:middle;color:var(--t2);font-size:13px}
 .crm-td:first-child{padding-left:28px}
 .crm-td:last-child{padding-right:28px;text-align:right}
 /* avatar circular v2 */
@@ -2016,19 +2035,19 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 .crm-lead-badge.pendiente{background:var(--rdim);color:var(--red)}
 
 /* ── DRAWER ───────────────────────────────────────────────────────────── */
-.crm-drawer{position:absolute;right:0;top:0;bottom:0;width:420px;border-left:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1);background:var(--surface-hi);z-index:10}
-.crm-body.drawer-open .crm-drawer{transform:translateX(0);box-shadow:-8px 0 32px rgba(108,92,228,.1)}
-.crm-drawer-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--surface)}
-.crm-drawer-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t4)}
+.crm-drawer{position:absolute;right:0;top:0;bottom:0;width:420px;border-left:1px solid rgba(108,92,228,.15);overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);background:#fff;z-index:10}
+.crm-body.drawer-open .crm-drawer{transform:translateX(0);box-shadow:-12px 0 40px rgba(108,92,228,.14)}
+.crm-drawer-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--surface-hi)}
+.crm-drawer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t4)}
 .crm-close-btn{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--b1);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t4);transition:all .15s;font-size:14px;line-height:1}
 .crm-close-btn:hover{background:var(--adim);color:var(--a);border-color:var(--b2)}
-/* drawer header centrado estilo app */
-.crm-dh{flex-shrink:0;padding:28px 20px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;border-bottom:1px solid var(--b1);background:linear-gradient(180deg,var(--adim) 0%,transparent 100%)}
-.crm-dav{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(108,92,228,.28)}
+/* drawer header con gradiente de acento */
+.crm-dh{flex-shrink:0;padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;border-bottom:1px solid var(--b1);background:linear-gradient(160deg,#1e1b3a 0%,#1a1642 100%)}
+.crm-dav{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 0 4px rgba(255,255,255,.12),0 8px 24px rgba(0,0,0,.3)}
 .crm-dh-info{flex:1;min-width:0;width:100%}
-.crm-dh-name{font-size:18px;font-weight:700;color:var(--t1);line-height:1.2}
-.crm-dh-email{font-size:12px;color:var(--t4);margin-top:3px}
-.crm-dh-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+.crm-dh-name{font-size:18px;font-weight:700;color:#fff;line-height:1.2}
+.crm-dh-email{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px}
+.crm-dh-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
 /* action buttons con color semántico */
 .crm-action-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid var(--b1);color:var(--t2);background:var(--surface);cursor:pointer;transition:all .15s;text-decoration:none}
 .crm-action-btn:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
@@ -2063,31 +2082,53 @@ tr:hover td{background:rgba(108,92,228,0.018);cursor:pointer}
 <div id="v-contactos" style="display:none">
   <div class="crm-wrap">
 
-    <!-- Header: título + stat chips inline -->
+    <!-- Header con KPI cards -->
     <div class="crm-topbar">
       <div class="crm-header-row">
-        <div>
-          <div class="crm-title">Contactos
-            <span id="cont-badge-atencion" class="crm-title-badge"></span>
+        <div class="crm-title">
+          <div class="crm-title-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
           </div>
+          Contactos
+          <span id="cont-badge-atencion" class="crm-title-badge"></span>
         </div>
-        <div class="crm-stat-chips">
-          <div class="crm-stat">
-            <span class="crm-stat-val" id="crm-stat-total">—</span>
-            <span class="crm-stat-lbl">Total</span>
+      </div>
+      <div class="crm-kpi-row">
+        <div class="crm-kpi total">
+          <div class="crm-kpi-top">
+            <div class="crm-kpi-ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(139,124,248,.9)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
           </div>
-          <div class="crm-stat">
-            <span class="crm-stat-val" id="crm-stat-atencion">—</span>
-            <span class="crm-stat-lbl">Atención</span>
+          <div class="crm-kpi-val" id="crm-stat-total">—</div>
+          <div class="crm-kpi-lbl">Contactos</div>
+        </div>
+        <div class="crm-kpi atencion">
+          <div class="crm-kpi-top">
+            <div class="crm-kpi-ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,.9)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
           </div>
-          <div class="crm-stat">
-            <span class="crm-stat-val" id="crm-stat-wa">—</span>
-            <span class="crm-stat-lbl">WhatsApp</span>
+          <div class="crm-kpi-val" id="crm-stat-atencion">—</div>
+          <div class="crm-kpi-lbl">Requieren atención</div>
+        </div>
+        <div class="crm-kpi wa">
+          <div class="crm-kpi-top">
+            <div class="crm-kpi-ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="rgba(74,222,128,.9)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.015.502 3.912 1.383 5.573L0 24l6.615-1.337A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.818 0-3.527-.483-5.004-1.329l-.358-.213-3.726.754.785-3.613-.234-.372A9.782 9.782 0 012.182 12C2.182 6.591 6.591 2.182 12 2.182S21.818 6.591 21.818 12 17.409 21.818 12 21.818z"/></svg>
+            </div>
           </div>
-          <div class="crm-stat">
-            <span class="crm-stat-val" id="crm-stat-social">—</span>
-            <span class="crm-stat-lbl">Social</span>
+          <div class="crm-kpi-val" id="crm-stat-wa">—</div>
+          <div class="crm-kpi-lbl">WhatsApp</div>
+        </div>
+        <div class="crm-kpi social">
+          <div class="crm-kpi-top">
+            <div class="crm-kpi-ic">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="rgba(96,165,250,.9)"><path d="M12 0C5.373 0 0 5.144 0 11.5c0 3.613 1.793 6.837 4.609 8.953V24l4.123-2.274c1.1.305 2.267.472 3.468.472 6.627 0 12-5.144 12-11.5S18.627 0 12 0zm1.191 15.467l-3.054-3.263-5.964 3.263 6.556-6.956 3.129 3.263 5.889-3.263-6.556 6.956z"/></svg>
+            </div>
           </div>
+          <div class="crm-kpi-val" id="crm-stat-social">—</div>
+          <div class="crm-kpi-lbl">Redes sociales</div>
         </div>
       </div>
     </div>
