@@ -683,7 +683,7 @@ export default async function handler(req, res) {
   // ── GET ?action=leads — listar leads del pipeline ────────────────────────────
   if (req.method === 'GET' && req.query.action === 'leads') {
     const estado = req.query.estado; // nuevo | calificado | agendado | perdido | undefined
-    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    const estadosValidos = ['nuevo', 'calificado', 'propuesta', 'agendado', 'perdido'];
     let url = `${SUPABASE_URL}/rest/v1/leads?cliente_id=eq.${cliente_id}&order=created_at.desc&limit=200&select=*`;
     if (estado && estadosValidos.includes(estado)) {
       url += `&estado=eq.${estado}`;
@@ -699,7 +699,7 @@ export default async function handler(req, res) {
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRe.test(lead_id)) return res.status(400).json({ error: 'ID inválido' });
     const { estado, notas } = req.body || {};
-    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    const estadosValidos = ['nuevo', 'calificado', 'propuesta', 'agendado', 'perdido'];
     if (estado && !estadosValidos.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
     // Verificar que el lead pertenece a este cliente
     const rc = await fetch(
@@ -739,7 +739,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST' && req.query.action === 'crear-lead') {
     const { nombre, telefono, interes, notas, estado } = req.body || {};
     if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
-    const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+    const estadosValidos = ['nuevo', 'calificado', 'propuesta', 'agendado', 'perdido'];
     const estadoFinal = estadosValidos.includes(estado) ? estado : 'nuevo';
     const canal_user_id = (telefono || '').replace(/\D/g, '') || `m_${Date.now()}`;
     const payload = {
@@ -878,7 +878,7 @@ ${chatContext}`;
           } catch (_) {}
         }
 
-        const estadosValidos = ['nuevo', 'calificado', 'agendado', 'perdido'];
+        const estadosValidos = ['nuevo', 'calificado', 'propuesta', 'agendado', 'perdido'];
         const estado = estadosValidos.includes(cls.estado) ? cls.estado : 'nuevo';
         const nombre = cls.nombre || conv.canal_user_name || null;
         const interes = cls.interes || null;
@@ -956,6 +956,60 @@ ${textos}`;
     } catch {
       return res.status(200).json({ categorias: [], total: leads.length, raw });
     }
+  }
+
+  // ── CRM: Contactos y Derivaciones ────────────────────────────────────────
+  const { op } = req.query;
+
+  if (op === 'contactos' && req.method === 'GET') {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/contactos?cliente_id=eq.${cliente_id}&order=ultimo_contacto.desc.nullslast&limit=500`,
+      { headers: sh }
+    );
+    if (!r.ok) return res.status(502).json({ error: 'Error consultando contactos' });
+    return res.status(200).json({ contactos: await r.json() });
+  }
+
+  if (op === 'contacto' && req.method === 'PATCH') {
+    const { id } = req.query;
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID inválido' });
+    const body = req.body || {};
+    const allowed = ['nombre','email','telefono','notas','etiquetas','estado','requiere_atencion'];
+    const patch = { actualizado_en: new Date().toISOString() };
+    for (const k of allowed) if (k in body) patch[k] = body[k];
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/contactos?id=eq.${id}&cliente_id=eq.${cliente_id}`,
+      { method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(patch) }
+    );
+    if (!r.ok) return res.status(502).json({ error: 'Error actualizando contacto' });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (op === 'derivaciones' && req.method === 'GET') {
+    const { id } = req.query;
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID inválido' });
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/derivaciones?contacto_id=eq.${id}&cliente_id=eq.${cliente_id}&order=creado_en.desc&limit=50`,
+      { headers: sh }
+    );
+    if (!r.ok) return res.status(502).json({ error: 'Error consultando derivaciones' });
+    return res.status(200).json({ derivaciones: await r.json() });
+  }
+
+  if (op === 'derivacion' && req.method === 'PATCH') {
+    const { id } = req.query;
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID inválido' });
+    const body = req.body || {};
+    const patch = {};
+    if (body.estado)       patch.estado = body.estado;
+    if (body.atendida_en)  patch.atendida_en = body.atendida_en;
+    if (body.atendida_por) patch.atendida_por = body.atendida_por;
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/derivaciones?id=eq.${id}&cliente_id=eq.${cliente_id}`,
+      { method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(patch) }
+    );
+    if (!r.ok) return res.status(502).json({ error: 'Error actualizando derivación' });
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(405).end();

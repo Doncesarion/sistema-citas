@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,42 +47,42 @@
 
 :root{
   /* Backgrounds */
-  --bg:         #111028;
-  --bg-grad:    linear-gradient(145deg,#111028 0%,#0E0C22 50%,#111028 100%);
-  --surface:    rgba(255,255,255,.05);
-  --surface-hi: rgba(255,255,255,.08);
-  --glass:      rgba(255,255,255,.03);
+  --bg:         #F8F7FF;
+  --bg-grad:    linear-gradient(145deg,#EDE9FF 0%,#F8F7FF 28%,#EEF2FF 58%,#F3EFFE 85%,#F8F7FF 100%);
+  --surface:    rgba(255,255,255,0.92);
+  --surface-hi: rgba(255,255,255,0.98);
+  --glass:      rgba(255,255,255,0.6);
 
   /* Borders */
-  --b1: rgba(255,255,255,.08);
-  --b2: rgba(255,255,255,.14);
-  --b3: rgba(255,255,255,.24);
+  --b1: rgba(108,92,228,0.08);
+  --b2: rgba(108,92,228,0.15);
+  --b3: rgba(108,92,228,0.25);
 
   /* Text */
-  --t1: rgba(255,255,255,.90);
-  --t2: rgba(255,255,255,.60);
-  --t3: rgba(255,255,255,.38);
-  --t4: rgba(255,255,255,.22);
+  --t1: #16143A;
+  --t2: #5E5880;
+  --t3: #9C96B4;
+  --t4: #C6C1D8;
 
   /* Accent */
-  --a:    #8B7CF8;
-  --a2:   #A99FFF;
-  --a3:   #6C5CE4;
-  --adim: rgba(139,124,248,.14);
-  --aglow:rgba(139,124,248,.28);
+  --a:    #6C5CE4;
+  --a2:   #8B7CF8;
+  --a3:   #4F3EE0;
+  --adim: rgba(108,92,228,0.08);
+  --aglow:rgba(108,92,228,0.2);
 
   /* Semantic */
-  --green:  #4ade80;  --gdim: rgba(74,222,128,.12);
-  --red:    #f87171;  --rdim: rgba(248,113,113,.12);
-  --amber:  #fbbf24;  --adm2: rgba(251,191,36,.12);
-  --blue:   #60a5fa;  --bdim: rgba(96,165,250,.12);
-  --teal:   #2dd4bf;  --tdim: rgba(45,212,191,.12);
+  --green:  #16A34A;  --gdim: rgba(22,163,74,0.08);
+  --red:    #DC2626;  --rdim: rgba(220,38,38,0.07);
+  --amber:  #D97706;  --adm2: rgba(217,119,6,0.08);
+  --blue:   #2563EB;  --bdim: rgba(37,99,235,0.08);
+  --teal:   #0D9488;  --tdim: rgba(13,148,136,0.08);
 
   /* Shadows */
-  --sh1: 0 1px 3px rgba(0,0,0,.5),  0 0 0 1px rgba(255,255,255,.06);
-  --sh2: 0 4px 16px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
-  --sh3: 0 16px 48px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.4);
-  --sh4: 0 24px 64px rgba(0,0,0,.7),0 4px 12px rgba(0,0,0,.5);
+  --sh1: 0 1px 2px rgba(108,92,228,0.06), 0 0 0 1px rgba(108,92,228,0.05);
+  --sh2: 0 4px 16px rgba(108,92,228,0.1),  0 1px 3px rgba(0,0,0,0.04);
+  --sh3: 0 16px 48px rgba(108,92,228,0.15), 0 2px 8px rgba(0,0,0,0.06);
+  --sh4: 0 24px 64px rgba(108,92,228,0.18), 0 4px 12px rgba(0,0,0,0.08);
 
   --font: 'Geist', system-ui, sans-serif;
   --mono: 'Geist Mono', monospace;
@@ -91,48 +91,66 @@
   --rx: 14px;
   --rxx:18px;
 }
-/* ── DARK MODE — hardcoded overrides ────────────────────────────────── */
-/* Cards & panels */
-.card,.tw,.rc,.sc{background:var(--surface)!important;border-color:var(--b1)!important}
-.modal,.ficha-panel{background:#1C1A32!important;border-color:var(--b2)!important;box-shadow:0 24px 64px rgba(0,0,0,.7)!important}
-.toast{background:#1C1A32!important;border-color:var(--b1)!important;color:var(--t1)!important}
-.pt-drop,.bestado-drop{background:#1A1830!important;border-color:var(--b2)!important;box-shadow:0 12px 40px rgba(0,0,0,.6)!important}
-/* Table rows */
-.crm-tr td{background:var(--surface)!important}
-.crm-tr:hover td{background:rgba(139,124,248,.08)!important}
-.crm-tr.urgent td{background:rgba(248,113,113,.05)!important}
-.crm-tr.urgent:hover td{background:rgba(248,113,113,.1)!important}
-/* CRM drawer */
-.crm-drawer{background:#15132A!important;border-left-color:var(--b2)!important}
-.crm-body.drawer-open .crm-drawer{box-shadow:-12px 0 40px rgba(0,0,0,.6)!important}
-/* CRM pills */
-.crm-pill{background:var(--surface)!important;border-color:var(--b1)!important;color:var(--t3)!important}
-/* CRM canal pills on dark bg */
-.crm-canal-pill.whatsapp,.crm-canal-pill.instagram,.crm-canal-pill.messenger{background:rgba(255,255,255,.08)!important;color:var(--t2)!important}
-/* Nav new button */
-nav .btn-new{background:var(--adim)!important;color:var(--a)!important;border:1px solid var(--b2)!important;box-shadow:none!important}
-/* Config & lista rows */
-.cfg-row,.lista-row{background:var(--surface)!important;color:var(--t1)!important}
-.cfg-row:hover,.lista-row:hover{background:var(--surface-hi)!important}
-/* Tab pills */
-.ptab.on,.blist-tab.on,.mrm-tab.on{background:var(--surface-hi)!important;color:var(--t1)!important;box-shadow:var(--sh1)!important}
-/* Chat areas */
-.bch-ig,.bch-ig .bthread-msgs,.bch-ms,.bch-ms .bthread-msgs,.blist{background:var(--surface)!important}
-.bthread-input{background:var(--surface-hi)!important;border-top-color:var(--b1)!important;box-shadow:none!important}
-.bmsg-wrap.usuario .bmsg,.bch-wa .bmsg-wrap.usuario .bmsg{background:rgba(255,255,255,.1)!important;color:var(--t1)!important;box-shadow:none!important}
-.bch-wa .bday-sep{background:rgba(255,255,255,.1)!important;color:var(--t3)!important}
-/* Inputs */
-.fi,.blist-search{background:rgba(255,255,255,.07)!important;color:var(--t1)!important;border-color:var(--b1)!important}
-.fi::placeholder,.blist-search::placeholder{color:var(--t4)!important}
-.fi:focus,.fp-textarea:focus,.binput-area:focus,.blist-search:focus{background:rgba(255,255,255,.1)!important;border-color:var(--a)!important}
-.bname-input{background:rgba(255,255,255,.1)!important;color:var(--t1)!important}
-/* Bottom bars */
-#bulk-bar,#mob-nav{background:#1C1A32!important;border-color:var(--b1)!important}
-#drag-ghost{background:#1C1A32!important;color:var(--a)!important;border-color:var(--b2)!important}
-/* Banner button */
-.bbot-banner-btn{background:transparent!important;border-color:var(--amber)!important;color:var(--amber)!important}
-/* Native inputs */
-input,select,textarea{color-scheme:dark}
+[data-theme=dark]{
+  --bg:         #111028;
+  --bg-grad:    linear-gradient(145deg,#111028 0%,#0E0C22 50%,#111028 100%);
+  --surface:    rgba(255,255,255,.05);
+  --surface-hi: rgba(255,255,255,.08);
+  --glass:      rgba(255,255,255,.03);
+  --b1: rgba(255,255,255,.08);
+  --b2: rgba(255,255,255,.14);
+  --b3: rgba(255,255,255,.24);
+  --t1: rgba(255,255,255,.90);
+  --t2: rgba(255,255,255,.60);
+  --t3: rgba(255,255,255,.38);
+  --t4: rgba(255,255,255,.22);
+  --a:    #8B7CF8;
+  --a2:   #A99FFF;
+  --a3:   #6C5CE4;
+  --adim: rgba(139,124,248,.14);
+  --aglow:rgba(139,124,248,.28);
+  --green:  #4ade80;  --gdim: rgba(74,222,128,.12);
+  --red:    #f87171;  --rdim: rgba(248,113,113,.12);
+  --amber:  #fbbf24;  --adm2: rgba(251,191,36,.12);
+  --blue:   #60a5fa;  --bdim: rgba(96,165,250,.12);
+  --teal:   #2dd4bf;  --tdim: rgba(45,212,191,.12);
+  --sh1: 0 1px 3px rgba(0,0,0,.5),  0 0 0 1px rgba(255,255,255,.06);
+  --sh2: 0 4px 16px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
+  --sh3: 0 16px 48px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.4);
+  --sh4: 0 24px 64px rgba(0,0,0,.7),0 4px 12px rgba(0,0,0,.5);
+}
+/* ── DARK MODE component overrides ──────────────────────────────── */
+[data-theme=dark] .card,[data-theme=dark] .tw,[data-theme=dark] .rc,[data-theme=dark] .sc{background:var(--surface)!important;border-color:var(--b1)!important}
+[data-theme=dark] .modal,[data-theme=dark] .ficha-panel{background:#1C1A32!important;border-color:var(--b2)!important;box-shadow:0 24px 64px rgba(0,0,0,.7)!important}
+[data-theme=dark] .toast{background:#1C1A32!important;border-color:var(--b1)!important;color:var(--t1)!important}
+[data-theme=dark] .pt-drop,[data-theme=dark] .bestado-drop{background:#1A1830!important;border-color:var(--b2)!important;box-shadow:0 12px 40px rgba(0,0,0,.6)!important}
+[data-theme=dark] .crm-tr td{background:var(--surface)!important}
+[data-theme=dark] .crm-tr:hover td{background:rgba(139,124,248,.08)!important}
+[data-theme=dark] .crm-tr.urgent td{background:rgba(248,113,113,.05)!important}
+[data-theme=dark] .crm-tr.urgent:hover td{background:rgba(248,113,113,.1)!important}
+[data-theme=dark] .crm-drawer{background:#15132A!important;border-left-color:var(--b2)!important}
+[data-theme=dark] .crm-body.drawer-open .crm-drawer{box-shadow:-12px 0 40px rgba(0,0,0,.6)!important}
+[data-theme=dark] .crm-pill{background:var(--surface)!important;border-color:var(--b1)!important;color:var(--t3)!important}
+[data-theme=dark] .crm-canal-pill.whatsapp,[data-theme=dark] .crm-canal-pill.instagram,[data-theme=dark] .crm-canal-pill.messenger{background:rgba(255,255,255,.08)!important;color:var(--t2)!important}
+[data-theme=dark] nav .btn-new{background:var(--adim)!important;color:var(--a)!important;border:1px solid var(--b2)!important;box-shadow:none!important}
+[data-theme=dark] .cfg-row,[data-theme=dark] .lista-row{background:var(--surface)!important;color:var(--t1)!important}
+[data-theme=dark] .cfg-row:hover,[data-theme=dark] .lista-row:hover{background:var(--surface-hi)!important}
+[data-theme=dark] .ptab.on,[data-theme=dark] .blist-tab.on,[data-theme=dark] .mrm-tab.on{background:var(--surface-hi)!important;color:var(--t1)!important;box-shadow:var(--sh1)!important}
+[data-theme=dark] .bch-ig,[data-theme=dark] .bch-ig .bthread-msgs,[data-theme=dark] .bch-ms,[data-theme=dark] .bch-ms .bthread-msgs,[data-theme=dark] .blist{background:var(--surface)!important}
+[data-theme=dark] .bthread-input{background:var(--surface-hi)!important;border-top-color:var(--b1)!important;box-shadow:none!important}
+[data-theme=dark] .bmsg-wrap.usuario .bmsg,[data-theme=dark] .bch-wa .bmsg-wrap.usuario .bmsg{background:rgba(255,255,255,.1)!important;color:var(--t1)!important;box-shadow:none!important}
+[data-theme=dark] .bch-wa .bday-sep{background:rgba(255,255,255,.1)!important;color:var(--t3)!important}
+[data-theme=dark] .fi,[data-theme=dark] .blist-search{background:rgba(255,255,255,.07)!important;color:var(--t1)!important;border-color:var(--b1)!important}
+[data-theme=dark] .fi::placeholder,[data-theme=dark] .blist-search::placeholder{color:var(--t4)!important}
+[data-theme=dark] .fi:focus,[data-theme=dark] .fp-textarea:focus,[data-theme=dark] .binput-area:focus,[data-theme=dark] .blist-search:focus{background:rgba(255,255,255,.1)!important;border-color:var(--a)!important}
+[data-theme=dark] .bname-input{background:rgba(255,255,255,.1)!important;color:var(--t1)!important}
+[data-theme=dark] #bulk-bar,[data-theme=dark] #mob-nav{background:#1C1A32!important;border-color:var(--b1)!important}
+[data-theme=dark] #drag-ghost{background:#1C1A32!important;color:var(--a)!important;border-color:var(--b2)!important}
+[data-theme=dark] .bbot-banner-btn{background:transparent!important;border-color:var(--amber)!important;color:var(--amber)!important}
+[data-theme=dark] input,[data-theme=dark] select,[data-theme=dark] textarea{color-scheme:dark}
+[data-theme=dark] .k-col{background:var(--surface)!important;border-color:var(--b1)!important}
+[data-theme=dark] .k-card{background:var(--surface-hi)!important;border-color:var(--b1)!important}
+[data-theme=dark] .k-col.drag-over{background:rgba(139,124,248,.1)!important;border-color:var(--a)!important}
 
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--font);background:var(--bg);background-image:var(--bg-grad);color:var(--t1);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overscroll-behavior-y:none}
@@ -1386,7 +1404,8 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <!-- Modo CRM -->
       <button class="ntab"    data-modo="crm" onclick="sv('contactos',this)"   id="ntab-contactos" style="position:relative;display:none">Contactos <span id="contactos-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"    data-modo="crm" onclick="sv('bandeja',this)"     id="ntab-bandeja"   style="position:relative;display:none">Mensajes <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
-      <button class="ntab"    data-modo="crm" onclick="sv('evaluaciones',this)" id="ntab-evaluaciones" style="display:none">Evaluaciones</button>
+      <button class="ntab"    data-modo="crm" onclick="sv('embudo',this)"      id="ntab-embudo"      style="display:none">Embudo</button>
+      <button class="ntab"    data-modo="agenda" onclick="sv('evaluaciones',this)" id="ntab-evaluaciones" style="display:none">Evaluaciones</button>
       <button class="ntab"    data-modo="crm" onclick="sv('reportes',this)"    id="ntab-reportes"  style="display:none">Reportes</button>
       <!-- Ambos modos -->
       <button class="ntab"    data-modo="both" onclick="sv('config',this)"     id="ntab-config">Configuración</button>
@@ -1397,6 +1416,10 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <span class="ldot"></span>
       <span id="nav-citas-hoy">En línea</span>
     </div>
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar tema">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="theme-icon-dark"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none" id="theme-icon-light" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
     <button class="nav-help-btn" onclick="openHelp()" title="Ayuda y soporte">?</button>
     <button class="btn-new" onclick="openModal()">
       <span class="btn-new-txt">+ Nueva reserva</span>
@@ -2010,6 +2033,73 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 <!-- ═══ CONTACTOS CRM ═══ -->
 <style>
+/* ── THEME TOGGLE ─────────────────────────────────────────────── */
+.theme-toggle{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);transition:all .15s;flex-shrink:0}
+.theme-toggle:hover{background:rgba(255,255,255,.18);color:#fff}
+[data-theme=light] .theme-toggle{border-color:var(--b2);background:var(--surface-hi);color:var(--t2)}
+[data-theme=light] .theme-toggle:hover{border-color:var(--a);color:var(--a)}
+
+/* ── KANBAN EMBUDO ────────────────────────────────────────────── */
+.kanban-wrap{flex:1;overflow-x:auto;overflow-y:hidden;padding:20px 24px 24px;display:flex;flex-direction:column;min-height:0;gap:0}
+.kanban-header{flex-shrink:0;padding:0 0 16px;display:flex;align-items:center;justify-content:space-between}
+.kanban-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em}
+.kanban-actions{display:flex;gap:8px;align-items:center}
+.kanban-cols{display:flex;gap:12px;min-width:max-content;flex:1;min-height:0;align-items:flex-start;padding-bottom:8px}
+.k-col{width:272px;flex-shrink:0;border-radius:14px;border:1.5px solid var(--b1);background:var(--surface);display:flex;flex-direction:column;max-height:calc(100vh - 220px);overflow:hidden;transition:border-color .15s,background .15s}
+.k-col.drag-over{border-color:var(--a);background:var(--adim)}
+.k-col-hd{padding:14px 16px 12px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.k-col-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.k-col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.k-col-name{font-size:13px;font-weight:700;color:var(--t1)}
+.k-col-cnt{margin-left:auto;min-width:22px;height:22px;border-radius:11px;background:var(--adim);color:var(--a);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px}
+.k-col-sub{font-size:11px;color:var(--t4);line-height:1}
+.k-cards{padding:10px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;flex:1}
+.k-cards::-webkit-scrollbar{width:3px}
+.k-cards::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.k-card{background:var(--surface-hi);border:1.5px solid var(--b1);border-radius:10px;padding:12px 14px;cursor:grab;transition:all .15s;position:relative;user-select:none}
+.k-card:active{cursor:grabbing}
+.k-card:hover{border-color:var(--b2);box-shadow:var(--sh2);transform:translateY(-1px)}
+.k-card.dragging{opacity:.4;transform:scale(.97)}
+.k-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.k-card-av{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.k-card-info{flex:1;min-width:0}
+.k-card-name{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k-card-canal{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px;margin-top:2px}
+.k-card-msg{font-size:11px;color:var(--t3);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:9px}
+.k-card-ft{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.k-card-date{font-size:10px;color:var(--t4)}
+.k-urgente{font-size:10px;font-weight:700;color:var(--red);background:var(--rdim);border-radius:5px;padding:2px 7px}
+.k-add-card{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;border:1.5px dashed var(--b2);color:var(--t4);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;background:transparent;width:100%;font-family:var(--font);margin:0 10px 10px;width:calc(100% - 20px)}
+.k-add-card:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.k-empty{padding:20px 10px;text-align:center;color:var(--t4);font-size:12px;line-height:1.5}
+/* Stage colors */
+.k-col[data-stage=nuevo] .k-col-dot{background:#60a5fa}
+.k-col[data-stage=calificado] .k-col-dot{background:#fbbf24}
+.k-col[data-stage=propuesta] .k-col-dot{background:#a78bfa}
+.k-col[data-stage=agendado] .k-col-dot{background:#4ade80}
+.k-col[data-stage=perdido] .k-col-dot{background:#f87171}
+/* CRM Reportes */
+.crm-rep-wrap{flex:1;overflow-y:auto;padding:24px 28px}
+.crm-rep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px}
+.crm-rep-card{background:var(--surface);border:1px solid var(--b1);border-radius:var(--rx);padding:20px;position:relative;overflow:hidden}
+.crm-rep-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.crm-rep-card.c-blue::before{background:#60a5fa}
+.crm-rep-card.c-green::before{background:#4ade80}
+.crm-rep-card.c-purple::before{background:var(--a)}
+.crm-rep-card.c-amber::before{background:#fbbf24}
+.crm-rep-card.c-red::before{background:#f87171}
+.crm-rep-num{font-size:32px;font-weight:800;color:var(--t1);letter-spacing:-.04em;line-height:1}
+.crm-rep-lbl{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-top:6px}
+.crm-rep-sub{font-size:12px;color:var(--t4);margin-top:4px}
+.crm-funnel-wrap{background:var(--surface);border:1px solid var(--b1);border-radius:var(--rx);padding:24px;margin-bottom:24px}
+.crm-funnel-title{font-size:14px;font-weight:700;color:var(--t1);margin-bottom:18px}
+.crm-funnel-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.crm-funnel-label{font-size:12px;font-weight:600;color:var(--t2);width:100px;flex-shrink:0}
+.crm-funnel-bar-wrap{flex:1;background:var(--b1);border-radius:4px;height:28px;overflow:hidden}
+.crm-funnel-bar{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;padding-left:10px}
+.crm-funnel-cnt{font-size:11px;font-weight:700;color:#fff}
+.crm-funnel-pct{font-size:12px;font-weight:600;color:var(--t3);width:40px;text-align:right;flex-shrink:0}
+
 /* ── WRAP ─────────────────────────────────────────────────────────────── */
 .crm-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 
@@ -2079,6 +2169,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 .crm-lead-badge.calificado{background:var(--adm2);color:var(--amber)}
 .crm-lead-badge.agendado{background:var(--gdim);color:var(--green)}
 .crm-lead-badge.perdido{background:rgba(0,0,0,.04);color:var(--t3)}
+.crm-lead-badge.propuesta{background:rgba(13,148,136,.1);color:var(--teal)}
 .crm-lead-badge.pendiente{background:var(--rdim);color:var(--red)}
 
 /* ── DRAWER ───────────────────────────────────────────────────────────── */
@@ -2496,6 +2587,35 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <button onclick="document.getElementById('modal-mis-pagos').style.display='none'" style="border:1px solid var(--b1);background:#fff;border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--t2)">Cerrar</button>
     </div>
     <div id="mis-pagos-content" style="overflow-y:auto;flex:1"></div>
+  </div>
+</div>
+
+<!-- ═══ REPORTES CRM ═══ -->
+<div id="v-reportes-crm" style="display:none;flex:1;min-height:0;flex-direction:column">
+  <div class="crm-rep-wrap" id="crm-rep-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-.03em">Reportes CRM</div>
+      <button class="btn-sm" onclick="loadCrmReportes()">↻ Actualizar</button>
+    </div>
+    <div class="crm-rep-grid" id="crm-rep-kpis">
+      <div class="crm-rep-card c-blue"><div class="crm-rep-num" id="crep-total">—</div><div class="crm-rep-lbl">Total leads</div><div class="crm-rep-sub">en el pipeline</div></div>
+      <div class="crm-rep-card c-green"><div class="crm-rep-num" id="crep-agendados">—</div><div class="crm-rep-lbl">Agendados</div><div class="crm-rep-sub">conversión exitosa</div></div>
+      <div class="crm-rep-card c-amber"><div class="crm-rep-num" id="crep-calificados">—</div><div class="crm-rep-lbl">Calificados</div><div class="crm-rep-sub">en proceso</div></div>
+      <div class="crm-rep-card c-red"><div class="crm-rep-num" id="crep-perdidos">—</div><div class="crm-rep-lbl">Perdidos</div><div class="crm-rep-sub">no convirtieron</div></div>
+      <div class="crm-rep-card c-purple"><div class="crm-rep-num" id="crep-conversion">—%</div><div class="crm-rep-lbl">Conversión</div><div class="crm-rep-sub">nuevo → agendado</div></div>
+    </div>
+    <div class="crm-funnel-wrap">
+      <div class="crm-funnel-title">Embudo de conversión</div>
+      <div id="crm-funnel-bars">
+        <div style="text-align:center;padding:20px;color:var(--t4);font-size:12px">Cargando...</div>
+      </div>
+    </div>
+    <div class="crm-funnel-wrap">
+      <div class="crm-funnel-title">Leads por canal</div>
+      <div id="crm-canal-bars">
+        <div style="text-align:center;padding:20px;color:var(--t4);font-size:12px">Cargando...</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3916,6 +4036,98 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 </div><!-- end bandeja -->
 
+<!-- ═══ EMBUDO / PIPELINE CRM ═══ -->
+<div id="v-embudo" style="display:none;flex:1;min-height:0;display:none;flex-direction:column">
+  <div class="kanban-wrap">
+    <div class="kanban-header">
+      <div>
+        <div class="kanban-title">Pipeline</div>
+      </div>
+      <div class="kanban-actions">
+        <button class="btn-sm" onclick="loadEmbudoView()">↻ Actualizar</button>
+        <button class="btn-sm btn-primary" onclick="abrirCrearLead()">+ Agregar lead</button>
+      </div>
+    </div>
+    <div class="kanban-cols" id="kanban-cols">
+      <div class="k-col" data-stage="nuevo">
+        <div class="k-col-hd">
+          <div class="k-col-top">
+            <span class="k-col-dot"></span>
+            <span class="k-col-name">Nuevo</span>
+            <span class="k-col-cnt" id="kc-nuevo">0</span>
+          </div>
+          <div class="k-col-sub">Sin clasificar</div>
+        </div>
+        <div class="k-cards" id="kk-nuevo" data-stage="nuevo"></div>
+        <button class="k-add-card" onclick="abrirCrearLead('nuevo')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar
+        </button>
+      </div>
+      <div class="k-col" data-stage="calificado">
+        <div class="k-col-hd">
+          <div class="k-col-top">
+            <span class="k-col-dot"></span>
+            <span class="k-col-name">Calificado</span>
+            <span class="k-col-cnt" id="kc-calificado">0</span>
+          </div>
+          <div class="k-col-sub">Interés confirmado</div>
+        </div>
+        <div class="k-cards" id="kk-calificado" data-stage="calificado"></div>
+        <button class="k-add-card" onclick="abrirCrearLead('calificado')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar
+        </button>
+      </div>
+      <div class="k-col" data-stage="propuesta">
+        <div class="k-col-hd">
+          <div class="k-col-top">
+            <span class="k-col-dot"></span>
+            <span class="k-col-name">Propuesta</span>
+            <span class="k-col-cnt" id="kc-propuesta">0</span>
+          </div>
+          <div class="k-col-sub">Oferta enviada</div>
+        </div>
+        <div class="k-cards" id="kk-propuesta" data-stage="propuesta"></div>
+        <button class="k-add-card" onclick="abrirCrearLead('propuesta')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar
+        </button>
+      </div>
+      <div class="k-col" data-stage="agendado">
+        <div class="k-col-hd">
+          <div class="k-col-top">
+            <span class="k-col-dot"></span>
+            <span class="k-col-name">Agendado</span>
+            <span class="k-col-cnt" id="kc-agendado">0</span>
+          </div>
+          <div class="k-col-sub">Cita confirmada</div>
+        </div>
+        <div class="k-cards" id="kk-agendado" data-stage="agendado"></div>
+        <button class="k-add-card" onclick="abrirCrearLead('agendado')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar
+        </button>
+      </div>
+      <div class="k-col" data-stage="perdido">
+        <div class="k-col-hd">
+          <div class="k-col-top">
+            <span class="k-col-dot"></span>
+            <span class="k-col-name">Perdido</span>
+            <span class="k-col-cnt" id="kc-perdido">0</span>
+          </div>
+          <div class="k-col-sub">No convirtió</div>
+        </div>
+        <div class="k-cards" id="kk-perdido" data-stage="perdido"></div>
+        <button class="k-add-card" onclick="abrirCrearLead('perdido')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ EVALUACIONES ═══ -->
 <div id="v-evaluaciones" style="display:none">
   <div class="vp">
@@ -5004,7 +5216,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 /* ════ VIEW SWITCHING ════ */
 /* ════ MODO: AGENDA / CRM ════ */
 const _VISTAS_AGENDA = ['agenda','clientes','ventas','cotizaciones','liquidaciones'];
-const _VISTAS_CRM    = ['contactos','bandeja','evaluaciones','reportes'];
+const _VISTAS_CRM    = ['contactos','embudo','bandeja','reportes'];
 let _modoActual = 'agenda';
 
 function setModo(modo, skipNav) {
@@ -5033,7 +5245,7 @@ function initModo() {
 }
 
 function sv(v, btn, skipPush) {
-  const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones','evaluaciones','contactos'];
+  const views = ['agenda','clientes','ventas','cotizaciones','bandeja','reportes','config','liquidaciones','evaluaciones','contactos','embudo'];
   views.forEach(n => {
     const el = document.getElementById('v-' + n);
     if (!el) return;
@@ -5047,6 +5259,20 @@ function sv(v, btn, skipPush) {
       el.style.display = 'none';
     }
   });
+  // CRM reportes: show/hide v-reportes-crm vs v-reportes
+  const _crmRep = document.getElementById('v-reportes-crm');
+  if (_crmRep) {
+    if (v === 'reportes' && _modoActual === 'crm') {
+      _crmRep.style.display = 'flex';
+      _crmRep.style.flexDirection = 'column';
+      _crmRep.style.flex = '1';
+      _crmRep.style.minHeight = '0';
+      const _agRep = document.getElementById('v-reportes');
+      if (_agRep) _agRep.style.display = 'none';
+    } else {
+      _crmRep.style.display = 'none';
+    }
+  }
   document.querySelectorAll('.ntab').forEach(t => t.classList.remove('on'));
   const activeTab = document.querySelector(`.ntab[onclick*="'${v}'"]`);
   if (activeTab) activeTab.classList.add('on');
@@ -5065,7 +5291,7 @@ function sv(v, btn, skipPush) {
   const _mobActive = document.getElementById('mobt-' + v);
   if (_mobActive) _mobActive.classList.add('on');
 
-  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias',evaluaciones:'Evaluaciones',contactos:'Contactos CRM'};
+  const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias',evaluaciones:'Evaluaciones',contactos:'Contactos CRM',embudo:'Pipeline CRM','reportes-crm':'Reportes CRM'};
   document.title = 'Attempo — ' + (_titles[v] || 'Dashboard');
 
   if (v === 'ventas')        cargarVentas();
@@ -5074,6 +5300,8 @@ function sv(v, btn, skipPush) {
   if (v === 'liquidaciones') cargarLiquidaciones();
   if (v === 'clientes')      loadClientesView();
   if (v === 'evaluaciones')  loadEvaluaciones();
+  if (v === 'embudo')        loadEmbudoView();
+  if (v === 'reportes' && _modoActual === 'crm') { showCrmReportes(); loadCrmReportes(); }
   if (v === 'contactos')     loadContactosView();
   if (v === 'config')        showCfg('general', document.getElementById('ctab-general'), true);
   if (v === 'bandeja') { initBandeja(); const _bPerms = PLAN_PERMISOS[planActual()] || PLAN_PERMISOS.inicio; showBandejaTab((_bPerms.bsecTabs || ['conversaciones'])[0], null, true); }
@@ -10896,6 +11124,7 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch(_e) {}
 
   aplicarRestriccionesChatbot();
+  initTheme();
   initModo();
 
   // Manejar callback de Google Calendar OAuth
@@ -12674,7 +12903,7 @@ function routeFromURL() {
   const calSubs = ['semana','dia','mes','lista'];
   const cfgSubs = ['general','profesionales','horarios','servicios','pagos','facturacion'];
 
-  const _crmSections = ['contactos','bandeja','evaluaciones','reportes'];
+  const _crmSections = ['contactos','embudo','bandeja','reportes'];
   const _agendaSections = ['agenda','clientes','ventas','cotizaciones','liquidaciones'];
   if (_crmSections.includes(section)) setModo('crm', true);
   else if (_agendaSections.includes(section)) setModo('agenda', true);
@@ -12698,8 +12927,10 @@ function routeFromURL() {
     sv('liquidaciones', null, true);
   } else if (section === 'contactos') {
     setModo('crm', true); sv('contactos', null, true);
+  } else if (section === 'embudo') {
+    setModo('crm', true); sv('embudo', null, true);
   } else if (section === 'evaluaciones') {
-    setModo('crm', true); sv('evaluaciones', null, true);
+    setModo('agenda', true); sv('evaluaciones', null, true);
   } else if (section === 'configuracion') {
     sv('config', null, true);
     showCfg(cfgSubs.includes(sub) ? sub : 'general', null, true);
@@ -18985,6 +19216,208 @@ function _crmTimeAgo(isoStr) {
   if (d < 7)  return `hace ${d}d`;
   return new Date(isoStr).toLocaleDateString('es-CL');
 }
+// ── THEME TOGGLE ──────────────────────────────────────────────────────────
+function initTheme() {
+  const saved = localStorage.getItem('attempo_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  _updateThemeIcon(saved);
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('attempo_theme', next);
+  _updateThemeIcon(next);
+}
+function _updateThemeIcon(theme) {
+  const sun = document.getElementById('theme-icon-dark');
+  const moon = document.getElementById('theme-icon-light');
+  if (sun) sun.style.display  = theme === 'dark'  ? '' : 'none';
+  if (moon) moon.style.display = theme === 'light' ? '' : 'none';
+}
+
+// ── EMBUDO / PIPELINE CRM ─────────────────────────────────────────────────
+const _KB_STAGES = [
+  { id:'nuevo',      label:'Nuevo',      color:'#60a5fa' },
+  { id:'calificado', label:'Calificado', color:'#fbbf24' },
+  { id:'propuesta',  label:'Propuesta',  color:'#a78bfa' },
+  { id:'agendado',   label:'Agendado',   color:'#4ade80' },
+  { id:'perdido',    label:'Perdido',    color:'#f87171' },
+];
+let _kbData = [];
+
+async function loadEmbudoView() {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  _KB_STAGES.forEach(s => {
+    const col = document.getElementById('kk-' + s.id);
+    if (col) col.innerHTML = '<div class="k-empty">Cargando...</div>';
+  });
+  try {
+    const r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok } });
+    if (!r.ok) throw new Error('API error');
+    const leads = await r.json();
+    _kbData = Array.isArray(leads) ? leads : (leads.leads || []);
+    _renderKanban();
+  } catch(e) {
+    console.error('loadEmbudoView', e);
+  }
+}
+
+function _renderKanban() {
+  const groups = {};
+  _KB_STAGES.forEach(s => groups[s.id] = []);
+  _kbData.forEach(l => {
+    const st = l.estado || 'nuevo';
+    if (groups[st]) groups[st].push(l);
+    else groups.nuevo.push(l);
+  });
+  _KB_STAGES.forEach(s => {
+    const col = document.getElementById('kk-' + s.id);
+    const cnt = document.getElementById('kc-' + s.id);
+    if (!col) return;
+    const items = groups[s.id];
+    if (cnt) cnt.textContent = items.length;
+    col.innerHTML = items.length === 0
+      ? '<div class="k-empty">Sin leads en esta etapa</div>'
+      : items.map(l => _renderKCard(l, s.color)).join('');
+    _initKDrop(col);
+  });
+  document.querySelectorAll('.k-card[data-lead-id]').forEach(card => _initKDrag(card));
+}
+
+function _renderKCard(lead, stageColor) {
+  const canal = (lead.canal || 'web').toLowerCase();
+  const name  = lead.nombre || 'Sin nombre';
+  const inits = name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const msg   = (lead.ultimo_mensaje || lead.interes || '').slice(0, 70);
+  const date  = lead.created_at ? new Date(lead.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'short'}) : '';
+  const urgent = lead.requiere_atencion ? '<span class="k-urgente">Urgente</span>' : '';
+  return `<div class="k-card" data-lead-id="${lead.id}" draggable="true" onclick="crmOpenLeadFromKanban('${lead.id}')">
+    <div class="k-card-top">
+      <div class="k-card-av" style="background:${stageColor}">${inits}</div>
+      <div class="k-card-info">
+        <div class="k-card-name">${name}</div>
+        <div class="k-card-canal">${_crmCanalIcon(canal,10)} ${canal.charAt(0).toUpperCase()+canal.slice(1)}</div>
+      </div>
+    </div>
+    ${msg ? `<div class="k-card-msg">${msg}</div>` : ''}
+    <div class="k-card-ft"><span class="k-card-date">${date}</span>${urgent}</div>
+  </div>`;
+}
+
+function _initKDrag(card) {
+  card.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', card.dataset.leadId);
+    setTimeout(() => card.classList.add('dragging'), 0);
+  });
+  card.addEventListener('dragend', () => card.classList.remove('dragging'));
+}
+
+function _initKDrop(col) {
+  col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+  col.addEventListener('dragleave', e => { if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over'); });
+  col.addEventListener('drop', async e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    const leadId = e.dataTransfer.getData('text/plain');
+    const newStage = col.dataset.stage;
+    if (!leadId || !newStage) return;
+    const lead = _kbData.find(l => l.id === leadId);
+    if (!lead || lead.estado === newStage) return;
+    lead.estado = newStage;
+    _renderKanban();
+    const tok = localStorage.getItem('attempo_session_token') || '';
+    try {
+      await fetch(`/api/bandeja?action=lead-estado&id=${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-session-token': tok },
+        body: JSON.stringify({ estado: newStage })
+      });
+    } catch(e) { console.error('kban drop error', e); }
+  });
+}
+
+function crmOpenLeadFromKanban(leadId) {
+  const lead = _kbData.find(l => l.id === leadId);
+  if (!lead) return;
+  sv('contactos', null, true);
+  setTimeout(() => {
+    _contData = _contData.length > 0 ? _contData : [lead];
+    crmOpenContact(lead);
+  }, 300);
+}
+
+function abrirCrearLead(stage) {
+  sv('contactos', null, true);
+}
+
+// ── CRM REPORTES ──────────────────────────────────────────────────────────
+function showCrmReportes() {
+  const agenda = document.getElementById('v-reportes');
+  const crm    = document.getElementById('v-reportes-crm');
+  if (agenda) agenda.style.display = 'none';
+  if (crm)    { crm.style.display = 'flex'; crm.style.flexDirection = 'column'; }
+}
+
+async function loadCrmReportes() {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  try {
+    const r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok } });
+    if (!r.ok) return;
+    const leads = await r.json();
+    const all = Array.isArray(leads) ? leads : (leads.leads || []);
+    const counts = { nuevo:0, calificado:0, propuesta:0, agendado:0, perdido:0 };
+    const canals = {};
+    all.forEach(l => {
+      const st = l.estado || 'nuevo';
+      if (counts[st] !== undefined) counts[st]++;
+      const c = (l.canal || 'web').toLowerCase();
+      canals[c] = (canals[c] || 0) + 1;
+    });
+    const total = all.length;
+    const conv  = total > 0 ? Math.round((counts.agendado / total) * 100) : 0;
+    _setId('crep-total',      total);
+    _setId('crep-agendados',  counts.agendado);
+    _setId('crep-calificados',counts.calificado + counts.propuesta);
+    _setId('crep-perdidos',   counts.perdido);
+    _setId('crep-conversion', conv + '%');
+    // Funnel bars
+    const stages = [
+      { id:'nuevo',      label:'Nuevo',      color:'#60a5fa', n: counts.nuevo },
+      { id:'calificado', label:'Calificado', color:'#fbbf24', n: counts.calificado },
+      { id:'propuesta',  label:'Propuesta',  color:'#a78bfa', n: counts.propuesta },
+      { id:'agendado',   label:'Agendado',   color:'#4ade80', n: counts.agendado },
+      { id:'perdido',    label:'Perdido',    color:'#f87171', n: counts.perdido },
+    ];
+    const maxN = Math.max(1, ...stages.map(s=>s.n));
+    document.getElementById('crm-funnel-bars').innerHTML = stages.map(s => `
+      <div class="crm-funnel-row">
+        <div class="crm-funnel-label">${s.label}</div>
+        <div class="crm-funnel-bar-wrap">
+          <div class="crm-funnel-bar" style="width:${Math.round((s.n/maxN)*100)}%;background:${s.color}">
+            <span class="crm-funnel-cnt">${s.n > 0 ? s.n : ''}</span>
+          </div>
+        </div>
+        <div class="crm-funnel-pct">${total>0?Math.round((s.n/total)*100)+'%':'-'}</div>
+      </div>`).join('');
+    // Canal bars
+    const canalEntries = Object.entries(canals).sort((a,b)=>b[1]-a[1]);
+    const maxC = Math.max(1, ...canalEntries.map(([,n])=>n));
+    const canalColors = { whatsapp:'#4ade80', instagram:'#f87171', messenger:'#60a5fa', attia:'#a78bfa', web:'#9C96B4' };
+    document.getElementById('crm-canal-bars').innerHTML = canalEntries.map(([c,n]) => `
+      <div class="crm-funnel-row">
+        <div class="crm-funnel-label">${c.charAt(0).toUpperCase()+c.slice(1)}</div>
+        <div class="crm-funnel-bar-wrap">
+          <div class="crm-funnel-bar" style="width:${Math.round((n/maxC)*100)}%;background:${canalColors[c]||'#9C96B4'}">
+            <span class="crm-funnel-cnt">${n > 0 ? n : ''}</span>
+          </div>
+        </div>
+        <div class="crm-funnel-pct">${total>0?Math.round((n/total)*100)+'%':'-'}</div>
+      </div>`).join('');
+  } catch(e) { console.error('loadCrmReportes', e); }
+}
+function _setId(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
 function _crmCanonCanal(c) { return (c.canal||'web').toLowerCase(); }
 function _crmCanalIcon(canal, size=13) {
   const s = size;
