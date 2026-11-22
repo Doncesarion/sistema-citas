@@ -19478,16 +19478,22 @@ function _crmCanalIcon(canal, size=13) {
 
 // ── loadContactosView ──────────────────────────────────────────────────────
 async function loadContactosView() {
-
   const tok = localStorage.getItem('attempo_session_token') || '';
   const listWrap = document.getElementById('crm-list-wrap');
+  if (!tok) {
+    if (listWrap) listWrap.innerHTML = '<div style="padding:20px;font-size:13px;color:#ef4444;font-weight:700">Sin sesión — recarga la página.</div>';
+    return;
+  }
   if (listWrap) listWrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--t4);font-size:13px">Cargando...</div>';
 
+  const ctrl = new AbortController();
+  const tmo  = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok } });
+    const r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok }, signal: ctrl.signal });
+    clearTimeout(tmo);
     if (!r.ok) {
       const errTxt = await r.text().catch(()=>'');
-      if (listWrap) listWrap.innerHTML = `<div style="padding:20px;font-size:12px;color:var(--t4)">Error ${r.status} cargando contactos. ${errTxt.slice(0,80)}</div>`;
+      if (listWrap) listWrap.innerHTML = `<div style="padding:20px;font-size:13px;font-weight:700;color:#ef4444">Error ${r.status}: ${errTxt.slice(0,120)||'No autorizado — recarga la página.'}</div>`;
       return;
     }
     const raw = await r.json();
@@ -19498,14 +19504,14 @@ async function loadContactosView() {
     }));
 
     // Stats
-    const total = _contData.length;
+    const total   = _contData.length;
     const atencion = _contData.filter(c => c.requiere_atencion).length;
-    const wa = _contData.filter(c => _crmCanonCanal(c) === 'whatsapp').length;
-    const social = _contData.filter(c => ['instagram','messenger'].includes(_crmCanonCanal(c))).length;
-    document.getElementById('crm-stat-total').textContent    = total;
-    document.getElementById('crm-stat-atencion').textContent = atencion;
-    document.getElementById('crm-stat-wa').textContent       = wa;
-    document.getElementById('crm-stat-social').textContent   = social;
+    const wa      = _contData.filter(c => _crmCanonCanal(c) === 'whatsapp').length;
+    const social  = _contData.filter(c => ['instagram','messenger'].includes(_crmCanonCanal(c))).length;
+    const st = document.getElementById('crm-stat-total');    if (st) st.textContent = total;
+    const sa = document.getElementById('crm-stat-atencion'); if (sa) sa.textContent = atencion;
+    const sw = document.getElementById('crm-stat-wa');       if (sw) sw.textContent = wa;
+    const ss = document.getElementById('crm-stat-social');   if (ss) ss.textContent = social;
 
     // Nav badge
     const navBadge = document.getElementById('contactos-badge');
@@ -19513,14 +19519,15 @@ async function loadContactosView() {
     const topBadge = document.getElementById('cont-badge-atencion');
     if (topBadge) { topBadge.textContent = atencion > 0 ? `${atencion} pendiente${atencion>1?'s':''}` : ''; topBadge.style.display = atencion > 0 ? 'inline' : 'none'; }
 
-    // Sidebar also
     _crmSidebarRender(_contData);
     _kbData = _contData;
     const _vistaGuardada = localStorage.getItem('crm_vista') || 'lista';
     if (_vistaGuardada === 'kanban') { crmSetVista('kanban'); } else { crmSetVista('lista'); }
     crmFilter();
   } catch(e) {
-    if (listWrap) listWrap.innerHTML = `<div style="padding:20px;font-size:12px;color:var(--t4)">Error: ${e.message}</div>`;
+    clearTimeout(tmo);
+    const msg = e?.name === 'AbortError' ? 'Tiempo de espera agotado — recarga la página.' : (e?.message || String(e));
+    if (listWrap) listWrap.innerHTML = `<div style="padding:20px;font-size:13px;font-weight:700;color:#ef4444">${msg}</div>`;
   }
 }
 
@@ -19556,7 +19563,7 @@ function sbFilterContactos(q) { document.getElementById('cont-search').value=q; 
 
 function _crmLeadBadge(c) {
   if (c.requiere_atencion) return '<span class="crm-lead-badge pendiente">● Pendiente</span>';
-  const st = (c.estado_lead || '').toLowerCase();
+  const st = (c.estado || '').toLowerCase();
   if (st === 'calificado') return '<span class="crm-lead-badge calificado">Calificado</span>';
   if (st === 'agendado')   return '<span class="crm-lead-badge agendado">Agendado</span>';
   if (st === 'perdido')    return '<span class="crm-lead-badge perdido">Perdido</span>';
