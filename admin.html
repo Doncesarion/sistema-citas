@@ -18287,8 +18287,8 @@ async function saveCotLogo() {
   finally { btn.disabled = false; btn.textContent = 'Guardar logo'; }
 }
 
-// Iniciar routing — aquí todas las funciones ya están definidas
-try { routeFromURL(); } catch(e) { console.error('routeFromURL error:', e); }
+// Iniciar routing después de que todos los <script> del documento hayan ejecutado
+setTimeout(function() { try { routeFromURL(); } catch(e) { console.error('routeFromURL error:', e); } }, 0);
 (function(){ const s = document.getElementById('pre-route-style'); if (s) s.remove(); })();
 
 // ── Base de Conocimiento ─────────────────────────────────────────────────────
