@@ -861,9 +861,9 @@ export default async function handler(req, res) {
               cancel_url: manageShortUrl(cita.id)
             },
             webhooks: {
-              webhook_validation: `${BASE_URL}/api/flow?tipo=klap_validate`,
-              webhook_confirm:    `${BASE_URL}/api/flow?tipo=klap_confirm`,
-              webhook_reject:     `${BASE_URL}/api/flow?tipo=klap_reject`
+              ...(klapSandbox ? { webhook_validation: `${BASE_URL}/api/flow?tipo=klap_validate` } : {}),
+              webhook_confirm: `${BASE_URL}/api/flow?tipo=klap_confirm`,
+              webhook_reject:  `${BASE_URL}/api/flow?tipo=klap_reject`
             }
           }),
           signal: AbortSignal.timeout(12000)

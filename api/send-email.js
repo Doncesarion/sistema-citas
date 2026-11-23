@@ -1439,9 +1439,7 @@ ${bannerBlock}
 function buildPagoHtml(metodos_pago, datos_banco) {
   if (!metodos_pago) return '';
   const activos = [];
-  if (metodos_pago.webpay)        activos.push('Webpay / Transbank');
   if (metodos_pago.transferencia) activos.push('Transferencia bancaria');
-  if (metodos_pago.efectivo)      activos.push('Efectivo en el local');
   if (!activos.length) return '';
   let bancoRows = '';
   if (metodos_pago.transferencia && datos_banco && Object.keys(datos_banco).length) {
