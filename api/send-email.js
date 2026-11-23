@@ -224,6 +224,25 @@ async function procesarReactivacion(sh, shJson) {
   return { procesadas: sesiones.length, enviadas };
 }
 
+// ── Notificación de fallos de recordatorio al negocio ────────────────────────
+async function notificarFallosRecordatorio(resend_key, emailNegocio, negocioNombre, fallas) {
+  if (!resend_key || !emailNegocio || !fallas.length) return;
+  const fechaStr = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago', weekday: 'long', day: 'numeric', month: 'long' });
+  const filas = fallas.map(f =>
+    `<tr><td style="padding:8px 12px;border-bottom:1px solid #f0eeff">${he(f.nombre)}</td><td style="padding:8px 12px;border-bottom:1px solid #f0eeff">${he(f.canal)}</td><td style="padding:8px 12px;border-bottom:1px solid #f0eeff;color:#9ca3af;font-size:12px">${he(f.detalle)}</td></tr>`
+  ).join('');
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resend_key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'attempo <contacto@attempo.cl>',
+      to: [emailNegocio],
+      subject: `⚠️ ${fallas.length} recordatorio(s) no se pudo enviar — ${fechaStr}`,
+      html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head><body style="font-family:Inter,Arial,sans-serif;background:#f5f3ff;margin:0;padding:40px 20px"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,.1)"><tr><td style="background:#6C5CE4;padding:20px 24px"><p style="margin:0;color:#fff;font-size:15px;font-weight:600">attempo · Aviso de envío</p></td></tr><tr><td style="padding:28px 24px"><h2 style="margin:0 0 8px;color:#2d2d2d;font-size:18px">Algunos recordatorios no se enviaron</h2><p style="margin:0 0 20px;color:#6b7280;font-size:14px">El <strong>${fechaStr}</strong> no pudimos entregar los siguientes recordatorios automáticos de <strong>${he(negocioNombre)}</strong>:</p><table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #ede9fe;border-radius:10px;overflow:hidden;font-size:13px"><thead><tr style="background:#f5f3ff"><th style="padding:8px 12px;text-align:left;color:#6C5CE4;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Paciente</th><th style="padding:8px 12px;text-align:left;color:#6C5CE4;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Canal</th><th style="padding:8px 12px;text-align:left;color:#6C5CE4;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Error</th></tr></thead><tbody>${filas}</tbody></table><p style="margin:20px 0 0;color:#374151;font-size:13px">Revisa el email o teléfono de estos pacientes en <strong>Clientes</strong> dentro de tu panel de attempo y corrígelos para que el próximo recordatorio llegue sin problemas.</p></td></tr><tr><td style="background:#f9f8ff;padding:14px 24px;text-align:center;border-top:1px solid #ede9fe"><p style="margin:0;color:#9ca3af;font-size:12px">Aviso automático de <a href="https://attempo.cl" style="color:#6C5CE4;text-decoration:none">attempo</a></p></td></tr></table></body></html>`
+    })
+  }).catch(e => console.error('notifFallos email error:', e.message));
+}
+
 // ── Lógica de envío de recordatorios ─────────────────────────────────────────
 // Corre cada hora: calcula dinámicamente qué citas entran en la ventana de cada recordatorio.
 // Ejemplo: si son las 14:00 y el recordatorio es "2h antes", busca citas de las 16:xx de hoy.
@@ -283,6 +302,7 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
 
       const activos = lista.filter(r => r.activo && (r.email_activo || r.wa_activo));
       if (!activos.length) continue;
+      const cliErroresFallas = [];
 
       for (const rec of activos) {
         const anteMin  = minutosAnticipacion[rec.tiempo] || 60;
@@ -339,7 +359,12 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
                 })
               });
               if (emailRes.ok) { enviados++; enviado = true; recCount++; }
-              else { const errTxt = await emailRes.text().catch(() => ''); console.error('recordatorio email error', emailRes.status, errTxt); errores.push(`cita ${cita.id}: ${emailRes.status}`); }
+              else {
+                const errTxt = await emailRes.text().catch(() => '');
+                console.error('recordatorio email error', emailRes.status, errTxt);
+                errores.push(`cita ${cita.id}: ${emailRes.status}`);
+                cliErroresFallas.push({ nombre: cita.nombre_paciente || cita.id, canal: 'email', detalle: `Error ${emailRes.status} — revisa el email del paciente` });
+              }
             } else if (rec.email_activo && recCount >= recLimite) {
               console.log(`Cliente ${cli.id}: límite recordatorios alcanzado (${recCount}/${recLimite}), omitiendo email cita ${cita.id}`);
             }
@@ -370,6 +395,7 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
                     const errTxt = await waRes.text().catch(() => '');
                     console.error('recordatorio wa error', waRes.status, errTxt);
                     errores.push(`cita ${cita.id} wa: ${waRes.status}`);
+                    cliErroresFallas.push({ nombre: cita.nombre_paciente || cita.id, canal: 'WhatsApp', detalle: `Error ${waRes.status} — revisa el teléfono del paciente` });
                   }
                 }
               }
@@ -390,6 +416,11 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
           console.error(`error procesando cliente ${cli.id} rec ${rec.id}:`, e.message);
           errores.push(`cliente ${cli.id}: ${e.message}`);
         }
+      }
+
+      // Notificar al negocio si hubo fallos
+      if (cliErroresFallas.length && cli.email) {
+        await notificarFallosRecordatorio(resend_key, cli.email, cli.nombre_negocio || 'tu negocio', cliErroresFallas);
       }
 
       // Actualizar contador mensual si hubo envíos
