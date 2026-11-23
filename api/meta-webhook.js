@@ -211,13 +211,64 @@ export default async function handler(req, res) {
   if (body.object === 'whatsapp_business_account') {
     const change = body.entry?.[0]?.changes?.[0];
     const msg    = change?.value?.messages?.[0];
-    if (!msg || msg.type !== 'text') return res.status(200).end();
+    if (!msg) return res.status(200).end();
+    const isAudio = msg.type === 'audio' || msg.type === 'voice';
+    if (!isAudio && msg.type !== 'text') return res.status(200).end();
     canal           = 'whatsapp';
     canal_user_id   = msg.from;
     canal_user_name = change?.value?.contacts?.[0]?.profile?.name || msg.from;
-    mensaje         = msg.text.body;
     channelKey      = 'wa_phone_number_id';
     channelValue    = change?.value?.metadata?.phone_number_id;
+
+    if (isAudio) {
+      const mediaId  = msg.audio?.id || msg.voice?.id;
+      const waToken  = change?.value?.metadata ? await (async () => {
+        // Obtener access token del cliente
+        try {
+          const pid = channelValue;
+          const rr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?canales_meta->>wa_phone_number_id=eq.${encodeURIComponent(pid)}&select=canales_meta&limit=1`, { headers: sh });
+          const [cli] = await rr.json();
+          return cli?.canales_meta?.wa_token || null;
+        } catch { return null; }
+      })() : null;
+      if (mediaId && waToken && process.env.OPENAI_API_KEY) {
+        try {
+          // 1. Obtener URL del archivo de audio
+          const urlRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
+            headers: { Authorization: `Bearer ${waToken}` }
+          });
+          const urlData = await urlRes.json();
+          // 2. Descargar el audio
+          const audioRes = await fetch(urlData.url, {
+            headers: { Authorization: `Bearer ${waToken}` }
+          });
+          const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+          // 3. Transcribir con Whisper
+          const form = new FormData();
+          form.append('file', new Blob([audioBuffer], { type: 'audio/ogg' }), 'audio.ogg');
+          form.append('model', 'whisper-1');
+          form.append('language', 'es');
+          const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+            body: form
+          });
+          const whisperData = await whisperRes.json();
+          if (whisperData.text) {
+            mensaje = `[Audio] ${whisperData.text.trim()}`;
+          } else {
+            return res.status(200).end(); // sin transcripción, ignorar
+          }
+        } catch(e) {
+          console.error('meta-webhook: audio transcription error:', e.message);
+          return res.status(200).end();
+        }
+      } else {
+        return res.status(200).end(); // sin key de OpenAI, ignorar audio por ahora
+      }
+    } else {
+      mensaje = msg.text.body;
+    }
   } else if (body.object === 'page') {
     const messaging = body.entry?.[0]?.messaging?.[0];
     if (!messaging?.message?.text) return res.status(200).end();
