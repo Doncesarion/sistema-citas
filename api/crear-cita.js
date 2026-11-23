@@ -511,13 +511,15 @@ export default async function handler(req, res) {
 
           if (cita?.email_paciente) {
             let nombre_especialista = null;
+            let email_esp_reag = null;
             if (cita.especialista_id) {
-              const re = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${cita.especialista_id}&select=nombre&limit=1`, { headers: sh });
+              const re = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${cita.especialista_id}&select=nombre,email&limit=1`, { headers: sh });
               const [esp] = await re.json();
               nombre_especialista = esp?.nombre || null;
+              email_esp_reag = esp?.email || null;
             }
 
-            const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,direccion,email,metodos_pago,datos_banco,google_refresh_token,logo_url&limit=1`, { headers: sh });
+            const rcli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cita.cliente_id}&select=nombre_negocio,direccion,email,emails_cc,metodos_pago,datos_banco,google_refresh_token,logo_url&limit=1`, { headers: sh });
             const [cliente] = await rcli.json();
 
             const fechaFmt = new Date(nueva_fecha + 'T12:00:00').toLocaleDateString('es-CL', {
@@ -530,7 +532,7 @@ export default async function handler(req, res) {
               body: JSON.stringify({
                 from: 'Attempo <contacto@attempo.cl>',
                 to: cita.email_paciente,
-                reply_to: cliente?.email || undefined,
+                reply_to: [email_esp_reag, cliente?.email, ...(Array.isArray(cliente?.emails_cc) ? cliente.emails_cc : [])].filter(Boolean) || undefined,
                 subject: `Tu cita en ${cliente?.nombre_negocio || 'la clínica'} fue reagendada`,
                 headers: {
                   'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
@@ -719,10 +721,10 @@ export default async function handler(req, res) {
       }
     }
 
-    let direccion = null, email_negocio = null, metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null, logo_negocio = null;
+    let direccion = null, email_negocio = null, emails_cc = [], metodos_pago = null, datos_banco = null, google_refresh_token = null, google_calendar_id = null, logo_negocio = null;
     try {
       const rc = await fetch(
-        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,metodos_pago,datos_banco,google_refresh_token,google_calendar_id,logo_url&limit=1`,
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=direccion,email,emails_cc,metodos_pago,datos_banco,google_refresh_token,google_calendar_id,logo_url&limit=1`,
         { headers: sh }
       );
       const rcBody = await rc.json();
@@ -730,12 +732,23 @@ export default async function handler(req, res) {
       const [cli] = Array.isArray(rcBody) ? rcBody : [];
       direccion            = cli?.direccion            || null;
       email_negocio        = cli?.email                || null;
+      emails_cc            = Array.isArray(cli?.emails_cc) ? cli.emails_cc : [];
       metodos_pago         = cli?.metodos_pago         || null;
       datos_banco          = cli?.datos_banco          || null;
       google_refresh_token = cli?.google_refresh_token || null;
       google_calendar_id   = cli?.google_calendar_id   || null;
       logo_negocio         = (cli?.logo_url && !cli.logo_url.startsWith('data:')) ? cli.logo_url : null;
     } catch(e) { console.error('crear-cita: clientes_sistema exception:', e.message); }
+
+    // Fetch email del especialista para Reply-To
+    let email_especialista = null;
+    if (especialista_id) {
+      try {
+        const rEsp = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&select=email&limit=1`, { headers: sh });
+        const [espData] = await rEsp.json();
+        email_especialista = espData?.email || null;
+      } catch(e) { /* no crítico */ }
+    }
 
     let gc_debug = { token: !!google_refresh_token, client_id: !!process.env.GOOGLE_CLIENT_ID };
     let video_url = null;
@@ -956,7 +969,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            reply_to: email_negocio || undefined,
+            reply_to: [email_especialista, email_negocio, ...emails_cc].filter(Boolean) || undefined,
             subject: (mp_url || klap_url)
               ? `Completa tu pago para confirmar tu hora en ${negocio_nombre || 'la clínica'}`
               : `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,

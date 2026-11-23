@@ -1023,12 +1023,13 @@ export async function handleEvaluar(req, res) {
     if (!cita?.email_paciente) return res.status(400).json({ error: 'El paciente no tiene email registrado' });
     if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: 'Sin configuración de email' });
 
-    let espNombre = 'el profesional';
+    let espNombre = 'el profesional', email_esp_eval = null;
     if (ev.especialista_id) {
-      const [esp] = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${ev.especialista_id}&select=nombre&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
+      const [esp] = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${ev.especialista_id}&select=nombre,email&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
       espNombre = esp?.nombre || espNombre;
+      email_esp_eval = esp?.email || null;
     }
-    const [cli] = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
+    const [cli] = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=nombre_negocio,email,emails_cc&limit=1`, { headers: sh }).then(r => r.json()).catch(() => []);
     const negocio = cli?.nombre_negocio || 'tu negocio';
     const evalUrl = `${BASE_URL}/evaluar?token=${ev.token}`;
     const nombre = ev.paciente_nombre || cita.nombre_paciente || 'Estimado/a';
@@ -1038,7 +1039,7 @@ export async function handleEvaluar(req, res) {
     const emailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `${negocio} vía Attempo <contacto@attempo.cl>`, to: [cita.email_paciente], reply_to: cli?.email || undefined, subject: `¿Cómo fue tu consulta con ${espNombre}? Deja tu evaluación`, html })
+      body: JSON.stringify({ from: `${negocio} vía Attempo <contacto@attempo.cl>`, to: [cita.email_paciente], reply_to: [email_esp_eval, cli?.email, ...(Array.isArray(cli?.emails_cc) ? cli.emails_cc : [])].filter(Boolean) || undefined, subject: `¿Cómo fue tu consulta con ${espNombre}? Deja tu evaluación`, html })
     });
     if (!emailRes.ok) {
       const errTxt = await emailRes.text().catch(() => '');
