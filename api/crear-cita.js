@@ -550,7 +550,7 @@ export default async function handler(req, res) {
   // ── POST: crear nueva cita ─────────────────────────────────────────────────
   const {
     cliente_id, nombre_especialista,
-    nombre_paciente, tel_paciente, email_paciente,
+    nombre_paciente, tel_paciente, email_paciente, rut_paciente,
     servicio, fecha, hora, negocio_nombre, duracion, precio,
     enviar_email, estado_admin, slug,
     metodo_pago_admin, modalidad
@@ -627,6 +627,7 @@ export default async function handler(req, res) {
           nombre_paciente,
           tel_paciente:   tel_paciente   || null,
           email_paciente: email_paciente || null,
+          rut_paciente:   rut_paciente   || null,
           servicio:       servicio       || 'Consulta',
           fecha,
           hora,

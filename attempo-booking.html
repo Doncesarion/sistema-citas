@@ -558,6 +558,7 @@ body::before{
             <input class="fi" id="d-tel" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" oninput="checkForm(); validarTel()">
             <span id="tel-hint" style="display:none;font-size:11px;color:#DC2626;margin-top:2px">Ingresa un número chileno válido: +56 9 XXXX XXXX</span>
           </div>
+          <div class="fg"><label class="fl">RUT <span style="color:var(--t4)">(opcional)</span></label><input class="fi" id="d-rut" placeholder="12.345.678-9" maxlength="13" oninput="fmtRut(this)" autocomplete="off"></div>
           <div class="fg"><label class="fl">Notas <span style="color:var(--t4)">(opcional)</span></label><textarea class="fi" id="d-nota" rows="3" placeholder="Cuéntanos el motivo de tu consulta..." style="resize:vertical;min-height:68px"></textarea></div>
           <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="/terminos" style="color:var(--a)" target="_blank" rel="noopener noreferrer">términos de uso</a> y la <a href="/privacidad" style="color:var(--a)" target="_blank" rel="noopener noreferrer">política de privacidad</a> *</span></label>
           <div class="policy-notice" id="policy-notice">
@@ -1338,6 +1339,12 @@ function updateResumen() {
 }
 
 /* ── VALIDACIÓN FORM ── */
+function fmtRut(el) {
+  var v = el.value.replace(/[^0-9kK]/g, '');
+  if (v.length > 1) v = v.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + v.slice(-1).toUpperCase();
+  el.value = v;
+}
+
 function validarTel() {
   const val = document.getElementById('d-tel').value.trim();
   const digits = val.replace(/\D/g, '');
@@ -1390,6 +1397,7 @@ async function confirmar() {
     const ap    = document.getElementById('d-ap').value.trim();
     const email = document.getElementById('d-em').value.trim();
     const tel   = document.getElementById('d-tel').value.trim();
+    const rut   = (document.getElementById('d-rut')?.value || '').trim();
     const nota  = document.getElementById('d-nota').value.trim();
 
     const { y, m, d } = st.fecha;
@@ -1412,6 +1420,7 @@ async function confirmar() {
       nombre_paciente:   `${nom} ${ap}`,
       email_paciente:    email,
       tel_paciente:      tel,
+      rut_paciente:      rut || null,
       servicio:          st.svc.nom,
       fecha:             fechaStr,
       hora:              st.hora,
@@ -1730,7 +1739,7 @@ function resetear() {
   calM = NOW.getMonth();
   calWeekOffset = 0;
   document.querySelectorAll('.svc-row,.prof-row').forEach(r => r.classList.remove('sel'));
-  ['d-nom','d-ap','d-em','d-tel','d-nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  ['d-nom','d-ap','d-em','d-tel','d-rut','d-nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('chk-t').checked = false;
   ['prev1','prev2','prev3','prev4'].forEach(id => { document.getElementById(id).textContent = ''; });
   ['btn2','btn3','btn4'].forEach(id => { document.getElementById(id).disabled = true; });
