@@ -19491,15 +19491,21 @@ async function loadContactosView() {
 
   let raw;
   try {
-    const r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok } });
+    const ctrl = new AbortController();
+    const tId  = setTimeout(() => ctrl.abort(), 20000);
+    let r;
+    try {
+      r = await fetch('/api/bandeja?action=leads', { headers: { 'x-session-token': tok }, signal: ctrl.signal });
+    } finally { clearTimeout(tId); }
     if (!r.ok) {
       const errTxt = await r.text().catch(()=>'');
-      _crmShowErr(`Error ${r.status}: ${errTxt.slice(0,160) || 'Sesión inválida — recarga la página.'}`);
+      _crmShowErr(`Error ${r.status}: ${errTxt.slice(0,200) || 'Sesión inválida — recarga la página.'}<br><small style="font-weight:400">Token (inicio): ${tok.slice(0,30)}…</small><br><button onclick="loadContactosView()" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1.5px solid #ef4444;background:transparent;color:#ef4444;font-size:12px;cursor:pointer">Reintentar</button>`);
       return;
     }
     raw = await r.json();
   } catch(e) {
-    _crmShowErr(`Error de red: ${e?.message || String(e)}`);
+    const msg = e?.name === 'AbortError' ? 'Sin respuesta del servidor (20 s) — puede ser cold start de Vercel.' : `Error de red: ${e?.message || String(e)}`;
+    _crmShowErr(`${msg}<br><button onclick="loadContactosView()" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1.5px solid #ef4444;background:transparent;color:#ef4444;font-size:12px;cursor:pointer">Reintentar</button>`);
     return;
   }
 

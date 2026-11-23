@@ -689,7 +689,18 @@ export default async function handler(req, res) {
       url += `&estado=eq.${estado}`;
     }
     const r = await fetch(url, { headers: sh });
+    if (!r.ok) {
+      const errBody = await r.text().catch(() => '');
+      return res.status(502).json({ error: 'supabase_error', status: r.status, body: errBody.slice(0,200), cliente_id });
+    }
     const data = await r.json();
+    if (req.query.debug === '1') {
+      const rAll = await fetch(`${SUPABASE_URL}/rest/v1/leads?select=cliente_id&limit=50`, { headers: sh });
+      const allLeads = await rAll.json().catch(() => []);
+      const byClient = {};
+      (Array.isArray(allLeads) ? allLeads : []).forEach(l => { byClient[l.cliente_id] = (byClient[l.cliente_id]||0)+1; });
+      return res.status(200).json({ leads: Array.isArray(data) ? data : [], debug_cliente_id: cliente_id, debug_by_client: byClient });
+    }
     return res.status(200).json(Array.isArray(data) ? data : []);
   }
 
