@@ -1130,6 +1130,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
   .ag-bar{flex-wrap:wrap;padding:8px 12px;gap:0;row-gap:0}
   .ag-nav{width:100%;order:1;display:flex;align-items:center;gap:7px;padding-bottom:6px}
   .ag-right{width:100%;order:2;justify-content:space-between;padding-top:6px;margin-top:0;border-top:1px solid var(--b1)}
+  #ag-mob-prof-row{display:flex!important}
   .ag-period{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ag-sync{font-size:11px}
 
@@ -2053,6 +2054,13 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
       <button class="ag-btn" onclick="navCal(-1)">‹</button>
       <button class="ag-btn" onclick="navCal(1)">›</button>
       <span class="ag-period" id="ag-period-lbl">Lunes, 28 abril — Domingo, 4 mayo 2026</span>
+    </div>
+    <!-- Filtro profesional mobile — solo visible en móvil -->
+    <div id="ag-mob-prof-row" style="display:none;width:100%;order:3;padding-top:6px;border-top:1px solid var(--b1)">
+      <select id="ag-mob-prof-sel" onchange="setProf(this.value)"
+        style="width:100%;padding:7px 10px;border:1px solid var(--b1);border-radius:var(--r);font-size:12px;font-family:var(--font);color:var(--t1);background:var(--surface-hi);outline:none;cursor:pointer">
+        <option value="todos">Todos los profesionales</option>
+      </select>
     </div>
     <div class="ag-right">
       <span class="ag-sync"><span class="ldot"></span>&nbsp;Actualizado ahora</span>
@@ -4422,6 +4430,16 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
     </div>
 
   </div><!-- end bsec-leads -->
+
+  <!-- Panel detalle lead -->
+  <div id="lead-detail-overlay" onclick="cerrarDetalleLead()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:600;backdrop-filter:blur(2px)"></div>
+  <div id="lead-detail-panel" style="display:none;position:fixed;top:0;right:0;width:380px;max-width:calc(100vw - 24px);height:100%;background:var(--surface,#fff);border-left:1px solid var(--b1);z-index:601;overflow-y:auto;box-shadow:-8px 0 32px rgba(0,0,0,.12);transition:transform .22s cubic-bezier(.4,0,.2,1);transform:translateX(100%)">
+    <div style="padding:18px 20px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface,#fff);z-index:2">
+      <span style="font-size:14px;font-weight:700;color:var(--t1)">Detalle del lead</span>
+      <button onclick="cerrarDetalleLead()" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:20px;line-height:1;padding:2px 6px;border-radius:6px" onmouseenter="this.style.color='var(--t1)'" onmouseleave="this.style.color='var(--t3)'">×</button>
+    </div>
+    <div id="lead-detail-body" style="padding:20px"></div>
+  </div>
 
 </div><!-- end bandeja -->
 
@@ -7250,7 +7268,7 @@ function _renderLeadsKanban(filtered) {
         ? '<div style="font-size:10px;color:#9ca3af;line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden">' + _escHtml(resumen) + '</div>'
         : '';
 
-      return '<div style="background:#fff;border:1px solid #e8eaf0;border-left:3px solid ' + stage.accent + ';border-radius:10px;padding:12px 13px;transition:box-shadow .15s,transform .12s;cursor:default;box-shadow:0 1px 2px rgba(0,0,0,.04)" '
+      return '<div onclick="abrirDetalleLead(\'' + l.id + '\')" style="background:#fff;border:1px solid #e8eaf0;border-left:3px solid ' + stage.accent + ';border-radius:10px;padding:12px 13px;transition:box-shadow .15s,transform .12s;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)" '
         + 'onmouseover="this.style.boxShadow=\'0 6px 20px rgba(0,0,0,.09)\';this.style.transform=\'translateY(-1px)\'" '
         + 'onmouseout="this.style.boxShadow=\'0 1px 2px rgba(0,0,0,.04)\';this.style.transform=\'\'">'
         // Row 1: Avatar + Name + Channel
@@ -7395,6 +7413,144 @@ async function eliminarLead(id) {
     renderLeadsBoard();
   } catch(e) {
     alert('Error al eliminar el lead');
+  }
+}
+
+// ── Lead detail panel ─────────────────────────────────────────────────────
+var _currentLeadId = null;
+
+function abrirDetalleLead(id) {
+  var lead = _leadsData.find(function(l){ return l.id === id; });
+  if (!lead) return;
+  _currentLeadId = id;
+  var overlay = document.getElementById('lead-detail-overlay');
+  var panel   = document.getElementById('lead-detail-panel');
+  if (!overlay || !panel) return;
+  overlay.style.display = 'block';
+  panel.style.display   = 'block';
+  _renderLeadDetail(lead);
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() { panel.style.transform = 'translateX(0)'; });
+  });
+}
+
+function cerrarDetalleLead() {
+  var panel   = document.getElementById('lead-detail-panel');
+  var overlay = document.getElementById('lead-detail-overlay');
+  if (!panel) return;
+  panel.style.transform = 'translateX(100%)';
+  if (overlay) overlay.style.display = 'none';
+  setTimeout(function() { if (panel.style.transform === 'translateX(100%)') panel.style.display = 'none'; }, 240);
+  _currentLeadId = null;
+}
+
+function _renderLeadDetail(lead) {
+  var body = document.getElementById('lead-detail-body');
+  if (!body) return;
+  var nombre = lead.nombre || lead.canal_user_name || 'Sin nombre';
+  var parts = nombre.trim().split(/\s+/);
+  var initials = ((parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '')).toUpperCase() || '?';
+  var avatarColor = _leadsInitialsColor(nombre);
+  var html = '';
+
+  // Avatar + name
+  html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">'
+    + '<div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,' + avatarColor + ' 0%,' + avatarColor + 'bb 100%);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;box-shadow:0 2px 12px ' + avatarColor + '55">' + initials + '</div>'
+    + '<div style="flex:1;min-width:0">'
+    + '<div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _escHtml(nombre) + '</div>'
+    + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+    + _leadsCanalBadge(lead.canal)
+    + (lead.telefono ? '<span style="font-size:12px;color:var(--t3)">' + _escHtml(lead.telefono) + '</span>' : '')
+    + '</div>'
+    + '</div>'
+    + '</div>';
+
+  // Stage selector
+  html += '<div style="margin-bottom:16px">'
+    + '<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Etapa</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + _LEADS_STAGES.map(function(s) {
+        var active = s.id === lead.estado;
+        return '<button onclick="cambiarEstadoLeadPanel(\'' + lead.id + '\',\'' + s.id + '\')" '
+          + 'style="padding:5px 12px;border-radius:99px;border:1.5px solid ' + s.accent + ';background:' + (active ? s.accent : 'transparent') + ';color:' + (active ? '#fff' : s.text) + ';font-size:11px;font-weight:700;cursor:pointer;transition:all .12s">'
+          + _escHtml(s.label) + '</button>';
+      }).join('')
+    + '</div>'
+    + '</div>';
+
+  // Fecha
+  html += '<div style="font-size:11px;color:var(--t3);margin-bottom:16px">Registrado ' + _leadsRelTime(lead.created_at) + '</div>';
+
+  // AI interest
+  if (lead.interes) {
+    html += '<div style="margin-bottom:14px">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Interés detectado</div>'
+      + '<div style="background:#f5f3ff;border:1px solid #e9e5fd;border-radius:8px;padding:10px 12px;font-size:13px;color:#374151;line-height:1.5">' + _escHtml(lead.interes) + '</div>'
+      + '</div>';
+  }
+
+  // AI summary
+  if (lead.resumen && lead.resumen !== lead.interes) {
+    html += '<div style="margin-bottom:14px">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Resumen IA</div>'
+      + '<div style="font-size:12px;color:var(--t2);line-height:1.55">' + _escHtml(lead.resumen) + '</div>'
+      + '</div>';
+  }
+
+  // Notes
+  html += '<div style="margin-bottom:16px">'
+    + '<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Notas</div>'
+    + '<textarea id="lead-det-notas" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1.5px solid var(--b1);border-radius:8px;font-size:12px;color:var(--t1);resize:vertical;min-height:80px;font-family:inherit;line-height:1.5;outline:none;background:var(--surface,#fff)" placeholder="Agregar notas...">' + _escHtml(lead.notas || '') + '</textarea>'
+    + '<button id="lead-det-save-btn" onclick="guardarNotasLead(\'' + lead.id + '\')" style="margin-top:6px;padding:7px 16px;background:#6C5CE4;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .12s" onmouseover="this.style.opacity=.85" onmouseout="this.style.opacity=1">Guardar notas</button>'
+    + '</div>';
+
+  // WhatsApp quick action
+  if (lead.telefono) {
+    var tel = lead.telefono.replace(/\D/g,'');
+    if (tel.length === 9) tel = '56' + tel;
+    var waMsg = encodeURIComponent('Hola ' + _escHtml(parts[0] || nombre) + ', te contactamos desde attempo.');
+    html += '<div style="border-top:1px solid var(--b1);padding-top:14px">'
+      + '<a href="https://wa.me/' + tel + '?text=' + waMsg + '" target="_blank" rel="noopener" '
+      + 'style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#22c55e14;border:1.5px solid #22c55e55;border-radius:9px;text-decoration:none;color:#166534;font-size:13px;font-weight:600;transition:all .12s" '
+      + 'onmouseover="this.style.background=\'#22c55e22\'" onmouseout="this.style.background=\'#22c55e14\'">'
+      + '<svg width="18" height="18" viewBox="0 0 24 24" fill="#22c55e"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>'
+      + 'Escribir por WhatsApp'
+      + '</a>'
+      + '</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+function cambiarEstadoLeadPanel(id, estado) {
+  cambiarEstadoLead(id, estado);
+  setTimeout(function() {
+    var updated = _leadsData.find(function(l){ return l.id === id; });
+    if (updated && _currentLeadId === id) _renderLeadDetail(updated);
+  }, 60);
+}
+
+async function guardarNotasLead(id) {
+  var notas = (document.getElementById('lead-det-notas') || {}).value || '';
+  var lead = _leadsData.find(function(l){ return l.id === id; });
+  if (!lead) return;
+  var saveBtn = document.getElementById('lead-det-save-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando...'; }
+  try {
+    var r = await fetch('/api/bandeja?action=lead-estado&id=' + id, {
+      method: 'PATCH',
+      headers: Object.assign({'Content-Type':'application/json'}, _citasH()),
+      body: JSON.stringify({ notas: notas.trim() || null })
+    });
+    if (!r.ok) throw new Error();
+    lead.notas = notas.trim() || null;
+    if (saveBtn) { saveBtn.textContent = '✓ Guardado'; saveBtn.style.background = '#22c55e'; }
+    setTimeout(function() {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar notas'; saveBtn.style.background = '#6C5CE4'; }
+    }, 1500);
+  } catch(e) {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar notas'; }
+    toastErr('Error al guardar las notas');
   }
 }
 
@@ -10897,6 +11053,13 @@ function renderProfDrop() {
   // Restore checkmark for currentProf
   const ck = document.getElementById(currentProf === 'todos' ? 'check-todos' : 'check-prof-' + currentProf);
   if (ck) ck.style.display = 'block';
+  // Sync mobile select
+  const mobSel = document.getElementById('ag-mob-prof-sel');
+  if (mobSel) {
+    mobSel.innerHTML = '<option value="todos">Todos los profesionales</option>'
+      + _agendaEsps.map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+    mobSel.value = currentProf;
+  }
 }
 
 function setProf(prof) {
@@ -10914,6 +11077,9 @@ function setProf(prof) {
   const label = prof === 'todos' ? 'Todos los profesionales' : (esp?.nombre || 'Todos los profesionales');
   const lbl = document.getElementById('prof-label');
   if (lbl) lbl.textContent = label;
+  // Sync mobile select
+  const mobSel2 = document.getElementById('ag-mob-prof-sel');
+  if (mobSel2) mobSel2.value = prof;
 
   // Filter calendar events by data-prof attribute (UUID)
   document.querySelectorAll('.ev[data-prof]').forEach(ev => {
