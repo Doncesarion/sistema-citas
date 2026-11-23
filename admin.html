@@ -16675,14 +16675,9 @@ async function cargarStatsIA() {
   const limiteRec = REC_LIMITE[plan] || REC_LIMITE.inicio;
 
   const _usoPanel = document.getElementById('sb-uso-panel');
-  if (_usoPanel) _usoPanel.style.display = '';
   const _planLabels = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Chatbot 2K', chatbot_5k:'Chatbot 5K', chatbot_8k:'Chatbot 8K', chatbot_2k_agenda:'Chatbot 2K', chatbot_5k_agenda:'Chatbot 5K', chatbot_8k_agenda:'Chatbot 8K', demo:'Demo' };
   const badge = document.getElementById('uso-plan-badge');
   if (badge) badge.textContent = _planLabels[plan] || plan;
-  if (limiteIA > 0) {
-    const iaRow = document.getElementById('uso-ia-row');
-    if (iaRow) iaRow.style.display = '';
-  }
 
   try {
     const r = await fetch('/api/bandeja?action=stats', { headers: _bandejaH() });
@@ -16691,22 +16686,25 @@ async function cargarStatsIA() {
     const { msg_ia_mes, rec_mes_count = 0, rec_mes_limit_extra = 0, rec_limite_extra_mensual = 0 } = data;
 
     // — Contador IA —
+    let pctIA = 0;
     if (limiteIA > 0) {
       _bMsgIaCached = msg_ia_mes;
-      const pct = Math.min(100, Math.round((msg_ia_mes / limiteIA) * 100));
+      pctIA = Math.min(100, Math.round((msg_ia_mes / limiteIA) * 100));
       const _fmt = n => n >= 1000 ? (n/1000).toFixed(n%1000===0?0:1).replace('.',',')+'K' : String(n);
       const numsText = `${_fmt(msg_ia_mes)} / ${_fmt(limiteIA)}`;
-      const fillClass = 'sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
+      const fillClass = 'sb-msg-counter-fill' + (pctIA >= 100 ? ' full' : pctIA >= 80 ? ' warn' : '');
       const nums = document.getElementById('sb-msg-nums');
       const fill = document.getElementById('sb-msg-fill');
       if (nums) nums.textContent = numsText;
-      if (fill) { fill.style.width = pct + '%'; fill.className = fillClass; }
+      if (fill) { fill.style.width = pctIA + '%'; fill.className = fillClass; }
+      const iaRow = document.getElementById('uso-ia-row');
+      if (iaRow) iaRow.style.display = pctIA >= 70 ? '' : 'none';
       document.querySelectorAll('.inline-ia-counter').forEach(el => {
         el.style.display = 'block';
         const n = el.querySelector('.inline-ia-nums');
         const f = el.querySelector('.inline-ia-fill');
         if (n) n.textContent = numsText;
-        if (f) { f.style.width = pct + '%'; f.className = 'inline-ia-fill sb-msg-counter-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : ''); }
+        if (f) { f.style.width = pctIA + '%'; f.className = 'inline-ia-fill sb-msg-counter-fill' + (pctIA >= 100 ? ' full' : pctIA >= 80 ? ' warn' : ''); }
       });
     }
 
@@ -16717,6 +16715,8 @@ async function cargarStatsIA() {
     const numsTextRec = `${_fmtR(rec_mes_count)} / ${_fmtR(totalLimiteRec)}`;
     const fillClassRec = 'sb-msg-counter-fill' + (pctRec >= 100 ? ' full' : pctRec >= 80 ? ' warn' : '');
     const mostrarBoton = pctRec >= 80;
+    const recRow = document.getElementById('uso-rec-row');
+    if (recRow) recRow.style.display = pctRec >= 70 ? '' : 'none';
 
     const sbRecNums = document.getElementById('sb-rec-nums');
     const sbRecFill = document.getElementById('sb-rec-fill');
@@ -16735,7 +16735,6 @@ async function cargarStatsIA() {
       if (b) b.style.display = mostrarBoton ? '' : 'none';
     });
 
-    // Guardar para el modal
     window._recStatsCache = { rec_mes_count, totalLimiteRec, pctRec };
 
     // — Contador Mensajes WA Bot —
@@ -16743,8 +16742,9 @@ async function cargarStatsIA() {
     const wa_limite  = data.mensajes_wa_limite || 0;
     const wa_extra   = data.mensajes_wa_extra  || 0;
     const wa_total   = wa_limite + wa_extra;
+    let pctWa = 0;
     if (wa_total > 0) {
-      const pctWa      = Math.min(100, Math.round((wa_usados / wa_total) * 100));
+      pctWa = Math.min(100, Math.round((wa_usados / wa_total) * 100));
       const _fmtW = n => n >= 1000 ? (n/1000).toFixed(n%1000===0?0:1).replace('.',',')+'K' : String(n);
       const numsWa     = `${_fmtW(wa_usados)} / ${_fmtW(wa_total)}`;
       const fillWaCls  = 'sb-msg-counter-fill' + (pctWa >= 100 ? ' full' : pctWa >= 80 ? ' warn' : '');
@@ -16752,14 +16752,18 @@ async function cargarStatsIA() {
       const sbWaFill   = document.getElementById('sb-wa-fill');
       const sbWaBtn    = document.getElementById('sb-wa-btn');
       const waRow      = document.getElementById('uso-wa-row');
-      if (waRow)    waRow.style.display   = '';
+      if (waRow)    waRow.style.display   = pctWa >= 70 ? '' : 'none';
       if (sbWaNums) sbWaNums.textContent  = numsWa;
       if (sbWaFill) { sbWaFill.style.width = pctWa + '%'; sbWaFill.className = fillWaCls; }
       if (sbWaBtn)  sbWaBtn.style.display = pctWa >= 80 ? '' : 'none';
       window._waStatsCache = { wa_usados, wa_total, pctWa };
     }
+
+    // Mostrar panel solo si alguna métrica supera el 70%
+    if (_usoPanel) _usoPanel.style.display = (pctIA >= 70 || pctRec >= 70 || pctWa >= 70) ? '' : 'none';
   } catch (e) {
     console.error('bandeja: error cargando stats', e);
+    if (_usoPanel) _usoPanel.style.display = 'none';
   }
 }
 
