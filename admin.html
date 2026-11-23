@@ -12063,10 +12063,17 @@ function renderVentasChart() {
     ? `M${pts.replace(/ /g,' L')} L${lastX},${H} L${firstX},${H} Z`
     : `M${firstX},${yOf(days[0]?.pagado||0)} L${lastX},${H} Z`;
 
-  // X labels — only on regular steps, never force last label to avoid crowding
+  // X labels — muestra último día, desplaza el penúltimo si quedan pegados
   const labelEvery = n <= 7 ? 1 : n <= 14 ? 2 : n <= 31 ? Math.ceil(n/16) : Math.ceil(n/10);
+  const labelSet = new Set();
+  for (let i = 0; i < n; i += labelEvery) labelSet.add(i);
+  if (!labelSet.has(n - 1)) {
+    const prevLabel = Math.floor((n - 2) / labelEvery) * labelEvery;
+    if ((n - 1) - prevLabel < labelEvery) labelSet.delete(prevLabel);
+    labelSet.add(n - 1);
+  }
   const xLabels = days.map((d,i) => {
-    if (i % labelEvery !== 0) return '';
+    if (!labelSet.has(i)) return '';
     const fill = d.isToday ? '#6C5CE4' : '#9C96B4';
     const fw   = d.isToday ? '600' : 'normal';
     return `<text x="${xOf(i).toFixed(1)}" y="170" font-size="9" fill="${fill}" text-anchor="middle" font-family="Geist Mono,monospace" font-weight="${fw}">${d.label}</text>`;
