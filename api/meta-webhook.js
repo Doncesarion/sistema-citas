@@ -222,49 +222,91 @@ export default async function handler(req, res) {
 
     if (isAudio) {
       const mediaId  = msg.audio?.id || msg.voice?.id;
-      const waToken  = change?.value?.metadata ? await (async () => {
-        // Obtener access token del cliente
+      const mimeRaw  = msg.audio?.mime_type || msg.voice?.mime_type || 'audio/ogg';
+      const baseMime = mimeRaw.split(';')[0].trim();
+      const extMap   = { 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a',
+                         'audio/aac': 'aac', 'audio/amr': 'amr', 'audio/webm': 'webm' };
+      const audioExt = extMap[baseMime] || 'ogg';
+
+      if (!process.env.GROQ_API_KEY) {
+        console.warn('meta-webhook: GROQ_API_KEY no configurado — audio no transcrito');
+        mensaje = '[Audio no transcrito]';
+      } else if (!mediaId) {
+        console.warn('meta-webhook: audio sin mediaId, tipo:', msg.type);
+        mensaje = '[Audio no transcrito]';
+      } else {
+        // Obtener waToken del cliente
+        let waToken = null;
         try {
           const pid = channelValue;
-          const rr = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?canales_meta->>wa_phone_number_id=eq.${encodeURIComponent(pid)}&select=canales_meta&limit=1`, { headers: sh });
+          const rr = await fetch(
+            `${SUPABASE_URL}/rest/v1/clientes_sistema?canales_meta->>wa_phone_number_id=eq.${encodeURIComponent(pid)}&select=canales_meta&limit=1`,
+            { headers: sh }
+          );
           const [cli] = await rr.json();
-          return cli?.canales_meta?.wa_token || null;
-        } catch { return null; }
-      })() : null;
-      if (mediaId && waToken && process.env.GROQ_API_KEY) {
-        try {
-          // 1. Obtener URL del archivo de audio
-          const urlRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
-            headers: { Authorization: `Bearer ${waToken}` }
-          });
-          const urlData = await urlRes.json();
-          // 2. Descargar el audio
-          const audioRes = await fetch(urlData.url, {
-            headers: { Authorization: `Bearer ${waToken}` }
-          });
-          const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
-          // 3. Transcribir con Groq Whisper (gratis, open source)
-          const form = new FormData();
-          form.append('file', new Blob([audioBuffer], { type: 'audio/ogg' }), 'audio.ogg');
-          form.append('model', 'whisper-large-v3-turbo');
-          form.append('language', 'es');
-          const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
-            body: form
-          });
-          const whisperData = await whisperRes.json();
-          if (whisperData.text) {
-            mensaje = `[Audio] ${whisperData.text.trim()}`;
-          } else {
+          waToken = cli?.canales_meta?.wa_token || null;
+        } catch(e) {
+          console.error('meta-webhook: error obteniendo waToken:', e.message);
+        }
+
+        if (!waToken) {
+          console.warn('meta-webhook: waToken no encontrado para phone_number_id:', channelValue, '— audio no transcrito');
+          mensaje = '[Audio no transcrito]';
+        } else {
+          try {
+            // 1. Obtener URL del archivo de audio desde Meta
+            const urlRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
+              headers: { Authorization: `Bearer ${waToken}` }
+            });
+            if (!urlRes.ok) {
+              const errData = await urlRes.json().catch(() => ({}));
+              console.error('meta-webhook: error obteniendo URL de audio:', urlRes.status, errData.error?.message || '');
+              throw new Error(`media URL fetch: ${urlRes.status}`);
+            }
+            const urlData = await urlRes.json();
+            if (!urlData.url) {
+              console.error('meta-webhook: respuesta Meta sin URL:', JSON.stringify(urlData).slice(0, 200));
+              throw new Error('sin URL en respuesta Meta');
+            }
+
+            // 2. Descargar el audio
+            const audioRes = await fetch(urlData.url, {
+              headers: { Authorization: `Bearer ${waToken}` }
+            });
+            if (!audioRes.ok) {
+              console.error('meta-webhook: error descargando audio:', audioRes.status);
+              throw new Error(`audio download: ${audioRes.status}`);
+            }
+            const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+
+            // 3. Transcribir con Groq Whisper
+            const form = new FormData();
+            form.append('file', new Blob([audioBuffer], { type: baseMime }), `audio.${audioExt}`);
+            form.append('model', 'whisper-large-v3-turbo');
+            form.append('language', 'es');
+            const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
+              body: form,
+              signal: AbortSignal.timeout(25000)
+            });
+            if (!whisperRes.ok) {
+              const errData = await whisperRes.json().catch(() => ({}));
+              console.error('meta-webhook: Groq Whisper error:', whisperRes.status, errData.error?.message || '');
+              throw new Error(`Whisper: ${whisperRes.status}`);
+            }
+            const whisperData = await whisperRes.json();
+            if (whisperData.text?.trim()) {
+              mensaje = `[Audio] ${whisperData.text.trim()}`;
+            } else {
+              console.warn('meta-webhook: Whisper retornó texto vacío, user:', canal_user_id, 'mime:', baseMime);
+              mensaje = '[Audio no transcrito]';
+            }
+          } catch(e) {
+            console.error('meta-webhook: fallo en transcripción de audio:', e.message);
             mensaje = '[Audio no transcrito]';
           }
-        } catch(e) {
-          console.error('meta-webhook: audio transcription error:', e.message);
-          mensaje = '[Audio no transcrito]';
         }
-      } else {
-        mensaje = '[Audio no transcrito]';
       }
     } else {
       mensaje = msg.text.body;
