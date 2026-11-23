@@ -548,16 +548,6 @@ body::before{
       </div>
       <div class="acc-body">
         <div class="acc-body-pad">
-          <div class="r2">
-            <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="d-nom" placeholder="Tu nombre" autocomplete="given-name" oninput="checkForm()"></div>
-            <div class="fg"><label class="fl">Apellido *</label><input class="fi" id="d-ap" placeholder="Tu apellido" autocomplete="family-name" oninput="checkForm()"></div>
-          </div>
-          <div class="fg"><label class="fl">Email *</label><input class="fi" id="d-em" type="email" placeholder="correo@ejemplo.com" autocomplete="email" oninput="checkForm()"></div>
-          <div class="fg" id="fg-tel">
-            <label class="fl">Teléfono / WhatsApp *</label>
-            <input class="fi" id="d-tel" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" oninput="checkForm(); validarTel()">
-            <span id="tel-hint" style="display:none;font-size:11px;color:#DC2626;margin-top:2px">Ingresa un número chileno válido: +56 9 XXXX XXXX</span>
-          </div>
           <div class="fg">
             <label class="fl">RUT *</label>
             <div style="position:relative">
@@ -568,6 +558,16 @@ body::before{
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               <span id="rut-found-txt">Datos recuperados automáticamente</span>
             </div>
+          </div>
+          <div class="r2">
+            <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="d-nom" placeholder="Tu nombre" autocomplete="given-name" oninput="checkForm()"></div>
+            <div class="fg"><label class="fl">Apellido *</label><input class="fi" id="d-ap" placeholder="Tu apellido" autocomplete="family-name" oninput="checkForm()"></div>
+          </div>
+          <div class="fg"><label class="fl">Email *</label><input class="fi" id="d-em" type="email" placeholder="correo@ejemplo.com" autocomplete="email" oninput="checkForm()"></div>
+          <div class="fg" id="fg-tel">
+            <label class="fl">Teléfono / WhatsApp *</label>
+            <input class="fi" id="d-tel" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" oninput="checkForm(); validarTel()">
+            <span id="tel-hint" style="display:none;font-size:11px;color:#DC2626;margin-top:2px">Ingresa un número chileno válido: +56 9 XXXX XXXX</span>
           </div>
           <div class="fg"><label class="fl">Notas <span style="color:var(--t4)">(opcional)</span></label><textarea class="fi" id="d-nota" rows="3" placeholder="Cuéntanos el motivo de tu consulta..." style="resize:vertical;min-height:68px"></textarea></div>
           <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="/terminos" style="color:var(--a)" target="_blank" rel="noopener noreferrer">términos de uso</a> y la <a href="/privacidad" style="color:var(--a)" target="_blank" rel="noopener noreferrer">política de privacidad</a> *</span></label>
