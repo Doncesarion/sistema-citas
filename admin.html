@@ -16380,7 +16380,7 @@ function renderListaBandeja() {
             <div class="bitem-canal-btns">${canalBtns}</div>
           </div>
           <div class="bitem-row2">
-            <span class="bitem-preview">${escH(item.ultimoMensaje || '')}</span>
+            <span class="bitem-preview">${escH(_previewMsg(item.ultimoMensaje || ''))}</span>
             <span class="bitem-time" style="flex-shrink:0">${tiempo}</span>${totalUnread}
           </div>
         </div>
@@ -16570,6 +16570,40 @@ async function cargarMensajesHilo(conv_id, silent = false) {
   }
 }
 
+// ── Formateo de texto de mensajes ────────────────────────────────────────────
+// Versión limpia para el preview de 1 línea en la lista (sin HTML)
+function _previewMsg(text) {
+  if (!text) return '';
+  return text
+    .replace(/^\[(Audio|Imagen|Sticker|Video|Documento|Ubicaci[oó]n)\]/i, (_, t) => `[${t}]`)
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/_([^_\n]+)_/g, '$1')
+    .replace(/~([^~\n]+)~/g, '$1')
+    .replace(/\n+/g, ' ')
+    .trim();
+}
+
+function _fmtMsg(text, canal) {
+  if (!text) return '';
+  let s = escH(text);
+  // Indicadores visuales para mensajes de audio/media
+  s = s.replace(/^\[Audio\]/,        '<span style="font-size:11px;opacity:.6;margin-right:4px">🎤 Audio</span>');
+  s = s.replace(/^\[Imagen\]/,       '<span style="font-size:11px;opacity:.6;margin-right:4px">🖼 Imagen</span>');
+  s = s.replace(/^\[Sticker\]/,      '<span style="font-size:11px;opacity:.6;margin-right:4px">🎭 Sticker</span>');
+  s = s.replace(/^\[Video\]/,        '<span style="font-size:11px;opacity:.6;margin-right:4px">🎬 Video</span>');
+  s = s.replace(/^\[Documento\]/,    '<span style="font-size:11px;opacity:.6;margin-right:4px">📄 Documento</span>');
+  s = s.replace(/^\[Ubicaci&#xF3;n\]/,'<span style="font-size:11px;opacity:.6;margin-right:4px">📍 Ubicación</span>');
+  // Formato WhatsApp: *negrita*, _cursiva_, ~tachado~
+  s = s.replace(/\*([^*\n<]+)\*/g, '<strong>$1</strong>');
+  s = s.replace(/_([^_\n<]+)_/g,   '<em>$1</em>');
+  s = s.replace(/~([^~\n<]+)~/g,   '<s>$1</s>');
+  // Links clicables
+  s = s.replace(/(https?:\/\/[^\s<"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;opacity:.85;word-break:break-all">$1</a>');
+  // Saltos de línea
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+
 // ── Render hilo de mensajes ───────────────────────────────────────────────────
 function renderHilo(silent = false) {
   const cont = document.getElementById('bthread-msgs');
@@ -16597,18 +16631,19 @@ function renderHilo(silent = false) {
     const rolLabel = m.rol === 'bot' ? 'Attia' : m.rol === 'admin' ? 'Tú' : '';
     let html = '';
     if (dia !== lastDay) { lastDay = dia; html += `<div class="bday-sep">${dia}</div>`; }
+    const canal = _bConvActual?.canal || '';
     if (m.rol === 'usuario') {
       html += `<div class="bmsg-wrap usuario">
         ${avatarHtml}
         <div class="bmsg-content">
-          <div class="bmsg">${escH(m.contenido)}</div>
+          <div class="bmsg">${_fmtMsg(m.contenido, canal)}</div>
           <div class="bmsg-meta">${hora}</div>
         </div>
       </div>`;
     } else {
       html += `<div class="bmsg-wrap ${m.rol}">
         <div class="bmsg-rolabel">${rolLabel}</div>
-        <div class="bmsg">${escH(m.contenido)}</div>
+        <div class="bmsg">${_fmtMsg(m.contenido, canal)}</div>
         <div class="bmsg-meta">${hora}</div>
       </div>`;
     }
