@@ -3789,7 +3789,8 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
   <!-- ══════ SECCIÓN: RECORDATORIOS DE CITA ══════ -->
   <div id="rmtab-content-rec">
     <div style="background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.15);border-radius:var(--r);padding:12px 16px;margin-bottom:20px">
-      <div style="font-size:12px;color:var(--t2);line-height:1.55">Los recordatorios se envían automáticamente cada hora. Si tienes uno de "2 horas antes", se dispara exactamente 2 horas antes de cada cita. Puedes crear varios — cada uno con su propio horario, canal y mensaje personalizado.</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.55">Los recordatorios se procesan automáticamente <strong>dos veces al día</strong> (8 AM y 8 PM Santiago). Cada recordatorio verifica si hay citas próximas dentro de su ventana de tiempo y las notifica por email o WhatsApp. La deduplicación garantiza que el mismo recordatorio nunca se envíe dos veces.</div>
+      <div style="margin-top:8px;font-size:11.5px;color:var(--t3)">Para cobertura completa cada hora (ideal para recordatorios de "30 min antes" o "1 hora antes"), activa un cron externo gratuito en <strong>cron-job.org</strong> apuntando a <code style="font-size:11px;background:var(--bg2);padding:1px 5px;border-radius:4px">GET /api/send-email</code> con el header <code style="font-size:11px;background:var(--bg2);padding:1px 5px;border-radius:4px">Authorization: Bearer {INTERNAL_API_SECRET}</code>.</div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
@@ -8935,33 +8936,16 @@ const _REC_PLANTILLA_BASE = [
   {
     id: 'rec_base_0', activo: true, tiempo: '24h',
     email_activo: true,
-    email_asunto: 'Recordatorio: tu cita en {negocio}',
+    email_asunto: 'Tu cita en {negocio} es mañana',
+    email_intro: 'te escribimos para recordarte que tienes una cita programada para mañana.',
     email_mensaje: '',
-    wa_activo: false, wa_mensaje: ''
-  },
-  {
-    id: 'rec_base_1', activo: true, tiempo: '2h',
-    email_activo: true,
-    email_asunto: 'Tu cita en {negocio} comienza en 2 horas',
-    email_mensaje: '',
-    wa_activo: false, wa_mensaje: ''
-  },
-  {
-    id: 'rec_base_2', activo: true, tiempo: '24h',
-    email_activo: false, email_asunto: '', email_mensaje: '',
     wa_activo: true,
-    wa_mensaje: 'Hola {nombre},\n\nTe escribimos de {negocio}.\nTienes una cita programada para el {fecha} a las {hora}.\n\n¿Confirmas que vas a asistir? Responde este mensaje.\n\n¡Te esperamos!'
-  },
-  {
-    id: 'rec_base_3', activo: true, tiempo: '2h',
-    email_activo: false, email_asunto: '', email_mensaje: '',
-    wa_activo: true,
-    wa_mensaje: 'Hola {nombre},\n\nTe escribimos de {negocio}.\nEste es un recordatorio de tu cita de hoy a las {hora}.\n\n¡Te esperamos!'
+    wa_mensaje: 'Hola {nombre}, mañana tienes cita en {negocio} 📅\n\n{fecha} a las {hora}\n{profesional}\n\nSi necesitas cancelar o cambiar la hora, responde este mensaje y te ayudamos. ¡Hasta mañana!'
   }
 ];
 
 async function cargarPlantillaBase() {
-  if (!confirm('Esto reemplazará los recordatorios actuales con 4 plantillas de ejemplo (Email 24h, Email 2h, WhatsApp confirmación 24h, WhatsApp recordatorio 2h).\n\n¿Continuar?')) return;
+  if (!confirm('Esto reemplazará tus recordatorios actuales con 1 recordatorio optimizado (Email + WhatsApp, 24h antes). Es el setup recomendado: un solo envío por cita, sin costo extra.\n\n¿Continuar?')) return;
   _recLista = _REC_PLANTILLA_BASE.map(r => ({ ...r }));
   try {
     await fetch('/api/slots', {
@@ -9015,6 +8999,7 @@ async function loadRecordatorios() {
     renderRecLista();
     updateRecPreview();
     updatePromoPreview();
+    if (_botCfgCache) calcularSaludBot(_botCfgCache, _ckEntries);
     const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
     const emailField = document.getElementById('promo-prueba-email');
     if (emailField && !emailField.value && u.email) emailField.value = u.email;
@@ -9060,13 +9045,14 @@ function abrirFormRec(idx) {
   const titulo = document.getElementById('rec-form-titulo');
   if (titulo) titulo.textContent = rec ? 'Editar recordatorio' : 'Nuevo recordatorio';
   const g = id => document.getElementById(id);
+  const esNuevo = (rec === null);
   g('rf-tiempo').value = rec?.tiempo || '24h';
-  g('rf-email-activo').checked = rec?.email_activo === true;
-  g('rf-email-asunto').value   = rec?.email_asunto  || '';
-  g('rf-email-intro').value    = rec?.email_intro   || '';
+  g('rf-email-activo').checked = esNuevo ? true : rec?.email_activo === true;
+  g('rf-email-asunto').value   = rec?.email_asunto  || (esNuevo ? 'Tu cita en {negocio} es mañana' : '');
+  g('rf-email-intro').value    = rec?.email_intro   || (esNuevo ? 'te escribimos para recordarte que tienes una cita programada para mañana.' : '');
   g('rf-email-mensaje').value  = rec?.email_mensaje || '';
-  g('rf-wa-activo').checked    = rec?.wa_activo === true;
-  g('rf-wa-mensaje').value     = rec?.wa_mensaje || '';
+  g('rf-wa-activo').checked    = esNuevo ? true : rec?.wa_activo === true;
+  g('rf-wa-mensaje').value     = rec?.wa_mensaje || (esNuevo ? 'Hola {nombre}, mañana tienes cita en {negocio} 📅\n\n{fecha} a las {hora}\n{profesional}\n\nSi necesitas cancelar o cambiar la hora, responde este mensaje y te ayudamos. ¡Hasta mañana!' : '');
   toggleRfEmail(); toggleRfWa();
   const form = document.getElementById('rec-form');
   if (form) { form.style.display = 'block'; form.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
@@ -19436,6 +19422,14 @@ function calcularSaludBot(cfg, knowledge) {
       det: Array.isArray(_serviciosCache) ? `${_serviciosCache.filter(s=>s.precio||s.descripcion).length} de ${_serviciosCache.length}` : '',
       peso: 15,
       accion: () => showName('config')
+    },
+    {
+      key: 'recordatorios',
+      label: 'Al menos 1 recordatorio automático activo',
+      ok: Array.isArray(_recLista) && _recLista.some(r => r.activo && (r.email_activo || r.wa_activo)),
+      det: Array.isArray(_recLista) ? `${_recLista.filter(r=>r.activo&&(r.email_activo||r.wa_activo)).length} activo(s)` : '0 activos',
+      peso: 10,
+      accion: () => showBandejaTab('recordatorios', document.getElementById('bsectab-recordatorios'))
     },
   ];
 

@@ -89,8 +89,8 @@ function emailRecordatorioHtml({ nombre, fecha, hora, profesional, servicio, neg
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Todo a tu tiempo</p>
 </td></tr>
 <tr><td class="ac" style="padding:28px 24px;text-align:center;">
-  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Recordatorio de cita</h2>
-  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>, ${he(intro || 'te recordamos que tienes una cita próximamente.')}</p>
+  <h2 style="margin:0 0 6px;color:#2d2d2d;font-size:20px;">Recordatorio de tu cita</h2>
+  <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Hola <strong>${he(nombre)}</strong>, ${he(intro || 'te escribimos para recordarte que tienes una cita programada.')}</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;border-radius:12px;padding:20px;">
     ${profesional ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Profesional</span><br><span style="color:#2d2d2d;font-size:15px;">${he(profesional)}</span></td></tr>` : ''}
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br><span style="color:#2d2d2d;font-size:15px;font-weight:600;">${he(fecha)}</span></td></tr>
@@ -291,9 +291,13 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
 
         // Fecha e hora objetivo en Santiago
         const targetFechaISO = targetDate.toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
-        const targetHora     = horaStgo(targetMs);
-        const horaDesde      = `${targetHora}:00`;
-        const horaHasta      = `${targetHora}:59`;
+        const targetHoraNum  = parseInt(horaStgo(targetMs), 10);
+        // Ventana ±6h: con 2 crons diarios (8 AM y 8 PM Santiago) cubre todo el horario de atención.
+        // La deduplicación (rec_enviados) garantiza que nunca se envíe dos veces el mismo recordatorio.
+        const hDesde = Math.max(0,  targetHoraNum - 6);
+        const hHasta = Math.min(23, targetHoraNum + 6);
+        const horaDesde = `${String(hDesde).padStart(2, '0')}:00`;
+        const horaHasta = `${String(hHasta).padStart(2, '0')}:59`;
 
         try {
           const url = `${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${cli.id}&fecha=eq.${targetFechaISO}&estado=neq.canceled&hora=gte.${horaDesde}&hora=lte.${horaHasta}&select=id,nombre_paciente,email_paciente,telefono_paciente,hora,servicio,fecha,rec_enviados,email_rec_enviado,especialistas(nombre)`;
@@ -320,7 +324,7 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
 
             // — Enviar Email —
             if (rec.email_activo && recCount < recLimite) {
-              const asunto       = renderTemplate(rec.email_asunto || 'Recordatorio: tu cita en {negocio}', vars);
+              const asunto       = renderTemplate(rec.email_asunto || 'Tu cita en {negocio} es mañana', vars);
               const mensajeExtra = renderTemplate(rec.email_mensaje || '', vars);
               const emailRes = await fetch('https://api.resend.com/emails', {
                 method: 'POST',

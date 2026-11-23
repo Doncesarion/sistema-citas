@@ -610,7 +610,19 @@ CÓMO ESCRIBIR (crítico para mantener costos bajos):
 - Si verificar_disponibilidad retorna sobrecupo_disponible: true, ofrece las horas de slots_sobrecupo como fuera de agenda. Si acepta, confirma normalmente.
 - Si no hay profesionales activos: díselo brevemente y sugiere intentar más tarde.
 - Hoy es ${hoy}. Convierte "mañana", "el lunes", etc. a YYYY-MM-DD.
-- El cliente_id para crear_cita es siempre: ${cliente_id}`;
+- El cliente_id para crear_cita es siempre: ${cliente_id}
+
+CONFIRMACIÓN DE EMAIL ANTES DE RESERVAR:
+- Cuando el paciente entregue su email, repítelo de vuelta: "tu email es [email], ¿está bien?" Avanza solo cuando confirme. Esto evita errores de tipeo.
+
+CUANDO confirmar_reserva RETORNA ok:false (HORARIO YA TOMADO):
+- El slot fue reservado por otra persona mientras conversábamos. Di: "ese horario acaba de ser tomado. ¿Te ofrezco el siguiente disponible?" y llama de nuevo a verificar_disponibilidad para ese día.
+
+URGENCIAS Y CRISIS (SALUD MENTAL O FÍSICA):
+- Si el paciente expresa dolor intenso, urgencia real o pensamiento de hacerse daño: NO intentes agendar. Di: "entiendo que es urgente. llama al SAPU más cercano o al 600 360 7777 (MINSAL). si quieres te aviso al equipo ahora." y para la conversación.
+
+PREGUNTAS SIN RESPUESTA EN TU INFORMACIÓN (Fonasa, estacionamiento, seguros, acceso):
+- Si la pregunta no está en las FAQs, el catálogo ni la información del negocio: NO inventes. Di: "no tengo esa info con certeza, te recomiendo consultarlo directamente con el negocio." Nunca inventes cobertura, precios ni condiciones de acceso.`;
 
   const tools = [
     {
