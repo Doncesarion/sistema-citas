@@ -530,6 +530,7 @@ export default async function handler(req, res) {
               body: JSON.stringify({
                 from: 'Attempo <contacto@attempo.cl>',
                 to: cita.email_paciente,
+                reply_to: cliente?.email || undefined,
                 subject: `Tu cita en ${cliente?.nombre_negocio || 'la clínica'} fue reagendada`,
                 headers: {
                   'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
@@ -955,6 +956,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
+            reply_to: email_negocio || undefined,
             subject: (mp_url || klap_url)
               ? `Completa tu pago para confirmar tu hora en ${negocio_nombre || 'la clínica'}`
               : `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,
