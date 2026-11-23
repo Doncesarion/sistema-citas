@@ -1398,6 +1398,189 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 #v-ventas .btn-new{background:linear-gradient(135deg,#6C5CE4,#4a38b0)!important;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(108,92,228,.42)!important;border:none!important}
 #v-ventas .btn-sm{border-radius:8px;border-color:var(--b2)!important}
 #v-ventas .btn-sm:hover{background:var(--adim)!important;border-color:var(--a)!important;color:var(--a)}
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN REFINEMENTS v3.1 — Polish global todas las vistas
+   Funciona en light + dark mode usando CSS variables
+════════════════════════════════════════════════════════════ */
+
+/* ── 1. Base surfaces: eliminar fondos blancos hardcoded ─── */
+.card{background:var(--surface-hi);transition:box-shadow .2s,border-color .2s}
+.tw{background:var(--surface-hi)}
+.rc{background:var(--surface-hi)}
+.cfg-row{background:var(--surface-hi)}
+.modal{background:var(--surface-hi)}
+.pt-drop{background:var(--surface-hi)}
+
+/* ── 2. Tablas — headers más legibles, hover más visible ── */
+th{
+  font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--t3);padding:12px 18px;text-align:left;
+  border-bottom:1px solid var(--b1);
+  background:var(--surface-hi);white-space:nowrap
+}
+td{padding:14px 18px;border-bottom:1px solid var(--b1);font-size:13px;color:var(--t2)}
+tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
+[data-theme=dark] tr:hover td{background:rgba(139,124,248,.07)!important}
+
+/* ── 3. KPI cards (.sc) — labels y valores más claros ───── */
+.sc-lbl{font-size:10px;color:var(--t3)!important;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.sc-val{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-.05em;color:var(--t1);line-height:1;margin-bottom:5px}
+.sc-delta{font-size:11px;display:flex;align-items:center;gap:3px;color:var(--t3)}
+.sc:hover{box-shadow:var(--sh3);border-color:var(--b2);transform:translateY(-2px)}
+
+/* ── 4. Section headers (.vh) — más estructura y peso ───── */
+.vh{
+  font-size:22px;font-weight:800;letter-spacing:-.05em;color:var(--t1);
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;padding-bottom:18px;
+  border-bottom:1px solid var(--b1);
+}
+
+/* ── 5. Tabla toolbar (.thb) ── */
+.thb{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;border-bottom:1px solid var(--b1);
+  background:var(--surface-hi);flex-wrap:wrap;gap:10px
+}
+.tt{font-size:14px;font-weight:700;letter-spacing:-.02em;color:var(--t1)}
+
+/* ── 6. Config — group labels y rows ──────────────────────── */
+.cfg-row{cursor:pointer;transition:background .12s}
+.cfg-row:hover{background:rgba(108,92,228,.03)}
+[data-theme=dark] .cfg-row:hover{background:rgba(139,124,248,.07)!important}
+.cfg-t{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px;line-height:1.3}
+.cfg-s{font-size:12px;color:var(--t3);line-height:1.4}
+
+/* ── 7. Config group section labels ───────────────────────── */
+.cfg-grp-lbl{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:7px;padding-left:2px;
+  display:flex;align-items:center;gap:6px
+}
+.cfg-grp-lbl::before{
+  content:'';display:inline-block;width:3px;height:12px;
+  background:linear-gradient(180deg,var(--a),var(--a2));
+  border-radius:2px;flex-shrink:0
+}
+
+/* ── 8. Period selector tabs (.ptab) ──────────────────────── */
+.period-sel{display:flex;gap:1px;background:var(--adim);border-radius:var(--r);padding:2px;width:fit-content;margin-bottom:16px}
+.ptab{padding:5px 14px;border-radius:4px;font-size:12px;font-weight:500;color:var(--t3);cursor:pointer;border:none;background:none;font-family:var(--font);transition:all .14s;white-space:nowrap}
+.ptab:hover{color:var(--t1)}
+.ptab.on{background:var(--surface-hi);color:var(--a);font-weight:700;box-shadow:var(--sh1)}
+[data-theme=dark] .ptab.on{background:rgba(139,124,248,.18)!important;color:var(--a)!important}
+
+/* ── 9. Reportes — modules y cards ───────────────────────── */
+.rep-module{
+  background:var(--surface-hi);border:1px solid var(--b1);
+  border-radius:var(--rl);margin-bottom:14px;overflow:hidden;
+  box-shadow:var(--sh1);transition:box-shadow .2s,border-color .2s
+}
+.rep-module:hover{box-shadow:var(--sh2);border-color:var(--b2)}
+.rep-module.dragging{opacity:.4;box-shadow:var(--sh4)}
+.rep-module.drag-over{border-color:var(--a);box-shadow:0 0 0 2px var(--aglow)}
+.mod-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px 12px;border-bottom:1px solid var(--b1);
+  font-size:13px;font-weight:700;letter-spacing:-.01em;color:var(--t1);
+  background:var(--surface-hi)
+}
+.mod-handle{cursor:grab;display:flex;align-items:center;gap:8px;user-select:none}
+.mod-handle:active{cursor:grabbing}
+.mod-handle .grip{opacity:.3;flex-shrink:0;transition:opacity .12s}
+.mod-module:hover .grip,.rep-module:hover .grip{opacity:.6}
+.mod-body{padding:18px}
+
+/* ── 10. Insight banner Reportes ─────────────────────────── */
+.rep-insight{
+  display:none;align-items:center;gap:14px;padding:14px 18px;
+  background:linear-gradient(135deg,rgba(108,92,228,.07),rgba(108,92,228,.03));
+  border:1px solid rgba(108,92,228,.14);border-radius:var(--rl);margin-bottom:20px
+}
+.rep-insight.show{display:flex}
+.rep-insight.up{background:linear-gradient(135deg,rgba(22,163,74,.08),rgba(22,163,74,.02));border-color:rgba(22,163,74,.18)}
+.rep-insight.down{background:linear-gradient(135deg,rgba(217,119,6,.08),rgba(217,119,6,.02));border-color:rgba(217,119,6,.18)}
+.ins-icon{width:36px;height:36px;border-radius:10px;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ins-main{font-size:15px;font-weight:700;color:var(--t1);letter-spacing:-.02em}
+.ins-sub{font-size:12px;color:var(--t3);margin-top:3px}
+.ins-badge{margin-left:auto;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;flex-shrink:0;border:1px solid transparent}
+.ins-badge.neu{color:var(--a);background:var(--adim);border-color:var(--b2)}
+.ins-badge.up{color:var(--green);background:var(--gdim);border-color:rgba(22,163,74,.2)}
+.ins-badge.down{color:var(--amber);background:var(--adm2);border-color:rgba(217,119,6,.2)}
+
+/* ── 11. Report chart cards (.rc) ───────────────────────── */
+.rc{border:1px solid var(--b1);border-radius:var(--rl);padding:20px;box-shadow:var(--sh1)}
+.rc-title{font-size:14px;font-weight:700;letter-spacing:-.02em;color:var(--t1);margin-bottom:3px}
+.rc-sub{font-size:12px;color:var(--t3);margin-bottom:14px;line-height:1.4}
+
+/* ── 12. Buttons — polish global ────────────────────────── */
+.btn-sm{
+  padding:5px 11px;border-radius:var(--r);border:1px solid var(--b2);
+  background:none;color:var(--t2);font-size:12px;cursor:pointer;
+  font-family:var(--font);transition:all .12s;white-space:nowrap
+}
+.btn-sm:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.btn-g:hover{background:var(--adim)!important;border-color:var(--b2);color:var(--t1)}
+
+/* ── 13. Badges / tags ───────────────────────────────────── */
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.tg{background:var(--gdim);color:var(--green);border-color:rgba(22,163,74,.2)}
+.tp{background:var(--adim);color:var(--a);border-color:var(--b2)}
+.ty{background:var(--adm2);color:var(--amber);border-color:rgba(217,119,6,.2)}
+.tr{background:var(--rdim);color:var(--red);border-color:rgba(220,38,38,.2)}
+.tn{background:var(--surface);color:var(--t3);border-color:var(--b1)}
+
+/* ── 14. Dark mode — ajustes adicionales ────────────────── */
+[data-theme=dark] .card{background:rgba(255,255,255,.06)!important;border-color:var(--b1)!important}
+[data-theme=dark] .tw{background:rgba(255,255,255,.04)!important;border-color:var(--b1)!important}
+[data-theme=dark] .rc{background:rgba(255,255,255,.04)!important;border-color:var(--b1)!important}
+[data-theme=dark] .rep-module{background:rgba(255,255,255,.04)!important;border-color:var(--b1)!important}
+[data-theme=dark] .mod-header{background:rgba(255,255,255,.03)!important;border-bottom-color:var(--b1)!important}
+[data-theme=dark] .thb{background:rgba(255,255,255,.03)!important;border-bottom-color:var(--b1)!important}
+[data-theme=dark] th{background:rgba(255,255,255,.03)!important;border-bottom-color:var(--b1)!important;color:var(--t3)!important}
+[data-theme=dark] td{color:var(--t2)!important;border-bottom-color:var(--b1)!important}
+
+/* ── 15. Agenda — slot hover más visible ─────────────────── */
+.slot:hover{background:var(--adim)!important;border-color:var(--b2)!important}
+
+/* ── 16. Sidebar polish ──────────────────────────────────── */
+.sbi{
+  display:flex;align-items:center;gap:9px;padding:9px 14px;
+  border-radius:var(--r);cursor:pointer;position:relative;
+  font-size:13px;color:var(--t2);transition:color .12s,background .12s;
+  font-family:var(--font);border:none;background:none;width:100%;text-align:left
+}
+.sbi:hover{color:var(--t1);background:rgba(108,92,228,.05)}
+.sbi.on{color:var(--a);background:var(--adim);font-weight:600}
+.sbi.on::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:linear-gradient(180deg,var(--a),var(--a2));border-radius:0 3px 3px 0}
+
+/* ── 17. Vistas individuales — view padding y estructura ─── */
+.vp>*{max-width:1100px;margin-left:auto;margin-right:auto}
+
+/* ── 18. Modal polish ────────────────────────────────────── */
+.modal-head{padding:20px 22px 0}
+.modal-title{font-size:16px;font-weight:700;letter-spacing:-.03em;color:var(--t1)}
+.mbody{padding:20px 22px;gap:16px}
+.mfoot{padding:16px 22px;border-top:1px solid var(--b1);background:var(--surface-hi)}
+[data-theme=dark] .mfoot{background:rgba(255,255,255,.03)!important}
+
+/* ── 19. Inputs polish ───────────────────────────────────── */
+.fi{
+  padding:8px 12px;border-radius:var(--r);border:1px solid var(--b1);
+  background:var(--surface-hi);color:var(--t1);font-size:13px;
+  font-family:var(--font);outline:none;transition:all .14s;width:100%
+}
+.fi:hover{border-color:var(--b2)}
+.fi:focus{border-color:var(--a);box-shadow:0 0 0 3px var(--adim)}
+[data-theme=dark] .fi{background:rgba(255,255,255,.07)!important;border-color:var(--b1)!important}
+[data-theme=dark] .fi:focus{background:rgba(255,255,255,.1)!important;border-color:var(--a)!important}
+
+/* ── 20. Empty states ────────────────────────────────────── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 20px;color:var(--t4);gap:12px;text-align:center}
+.empty-state-icon{font-size:36px;opacity:.5}
+.empty-state-text{font-size:13px;font-weight:500;color:var(--t3)}
+.empty-state-sub{font-size:12px;color:var(--t4)}
 </style>
 </head>
 <style id="pre-route-style">body{opacity:0}</style>
@@ -4316,7 +4499,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <div class="vh" style="margin-bottom:16px">Configuración</div>
 
       <!-- Grupo: Mi suscripción -->
-      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Mi suscripción</div>
+      <div class="cfg-grp-lbl">Mi suscripción</div>
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div style="padding:16px 18px">
           <div id="plan-status-loading" style="color:var(--t4);font-size:13px">Cargando...</div>
@@ -4340,7 +4523,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       </div>
 
       <!-- Grupo: Tu negocio -->
-      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Tu negocio</div>
+      <div class="cfg-grp-lbl">Tu negocio</div>
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div class="cfg-row" onclick="openCfgModal('negocio')"><div><div class="cfg-t">Mi negocio</div><div class="cfg-s">Nombre, logo y descripción de tu negocio</div></div><span style="color:var(--t4)">›</span></div>
         <div style="height:1px;background:var(--b1)"></div>
@@ -4354,7 +4537,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       </div>
 
       <!-- Grupo: Reservas y comunicación -->
-      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Reservas y comunicación</div>
+      <div class="cfg-grp-lbl">Reservas y comunicación</div>
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div class="cfg-row" onclick="openCfgModal('sitio')"><div><div class="cfg-t">Sitio web de reservas</div><div class="cfg-s">Link de reservas en línea y política de cancelación</div></div><div style="display:flex;align-items:center;gap:8px"><span class="tag tg">Activo</span><span style="color:var(--t4)">›</span></div></div>
         <div style="height:1px;background:var(--b1)"></div>
@@ -4363,13 +4546,13 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       </div>
 
       <!-- Grupo: Finanzas -->
-      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Finanzas</div>
+      <div class="cfg-grp-lbl">Finanzas</div>
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div class="cfg-row" onclick="showCfg('facturacion',document.getElementById('ctab-facturacion'))"><div><div class="cfg-t">Boletas y facturación</div><div class="cfg-s">RUT emisor, razón social y numeración</div></div><span style="color:var(--t4)">›</span></div>
       </div>
 
       <!-- Grupo: Avanzado -->
-      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t3);margin-bottom:6px;padding-left:2px">Avanzado</div>
+      <div class="cfg-grp-lbl">Avanzado</div>
       <div style="border:1px solid var(--b1);border-radius:var(--rx);overflow:hidden;box-shadow:var(--sh1);margin-bottom:20px">
         <div class="cfg-row" onclick="openCfgModal('integraciones')"><div><div class="cfg-t">Integraciones</div><div class="cfg-s">Google Calendar, API pública para desarrolladores</div></div><span style="color:var(--t4)">›</span></div>
         <div style="height:1px;background:var(--b1)"></div>
