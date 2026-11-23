@@ -1688,16 +1688,21 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'No autorizado' });
     }
     try {
-      const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const cutoffMp   = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const cutoffKlap = new Date(Date.now() - 20 * 60 * 1000).toISOString();
       const sh = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
-      const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/citas?estado=eq.pending_payment&metodo_pago=eq.mercadopago&created_at=lt.${encodeURIComponent(cutoff)}`,
-        { method: 'DELETE', headers: { ...sh, Prefer: 'return=representation' } }
-      );
-      const eliminadas = await r.json().catch(() => []);
-      const n = Array.isArray(eliminadas) ? eliminadas.length : 0;
-      if (n > 0) console.log(`limpiar_pendientes: ${n} cita(s) eliminadas por pago no completado`);
-      return res.status(200).json({ ok: true, eliminadas: n });
+      const [rMp, rKlap] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/citas?estado=eq.pending_payment&metodo_pago=eq.mercadopago&created_at=lt.${encodeURIComponent(cutoffMp)}`,
+          { method: 'DELETE', headers: { ...sh, Prefer: 'return=representation' } }),
+        fetch(`${SUPABASE_URL}/rest/v1/citas?estado=eq.pending_payment&metodo_pago=eq.klap&created_at=lt.${encodeURIComponent(cutoffKlap)}`,
+          { method: 'DELETE', headers: { ...sh, Prefer: 'return=representation' } })
+      ]);
+      const [elimMp, elimKlap] = await Promise.all([rMp.json().catch(() => []), rKlap.json().catch(() => [])]);
+      const nMp   = Array.isArray(elimMp)   ? elimMp.length   : 0;
+      const nKlap = Array.isArray(elimKlap) ? elimKlap.length : 0;
+      if (nMp > 0)   console.log(`limpiar_pendientes: ${nMp} cita(s) MP eliminadas`);
+      if (nKlap > 0) console.log(`limpiar_pendientes: ${nKlap} cita(s) Klap eliminadas`);
+      return res.status(200).json({ ok: true, eliminadas: nMp + nKlap, mp: nMp, klap: nKlap });
     } catch(e) {
       console.error('limpiar_pendientes error:', e.message);
       return res.status(500).json({ error: 'Error interno' });
