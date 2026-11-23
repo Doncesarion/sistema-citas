@@ -94,7 +94,7 @@
     const tipo_plan = params.get('tipo_plan') || '';
     const t        = params.get('t');
 
-    const PLAN_LABELS = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Clínica IA' };
+    const PLAN_LABELS = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Business' };
     const PLAN_PERIOD = { mensual:'Mensual', anual:'Anual' };
     if (tipo_plan || plan) {
       const label = (PLAN_LABELS[tipo_plan] ? PLAN_LABELS[tipo_plan] + ' ' : '') + (PLAN_PERIOD[plan] || '');

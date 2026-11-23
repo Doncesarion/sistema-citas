@@ -400,7 +400,7 @@
       <select class="form-input" id="mc-tipo-plan" onchange="actualizarModulosPreview()">
         <option value="inicio">Inicio — Agendamiento esencial</option>
         <option value="pro">Pro — Inicio + IA y boletas</option>
-        <option value="clinica_ia">Clínica IA — Pro + Chatbot y automatización</option>
+        <option value="clinica_ia">Business — Pro + Chatbot y automatización</option>
         <optgroup label="── Planes Attia (solo chatbot) ──">
           <option value="chatbot_2k">Attia Starter — 2.000 mensajes IA/mes</option>
           <option value="chatbot_5k">Attia Pro — 5.000 mensajes IA/mes</option>
@@ -437,7 +437,7 @@
         <select class="form-input" id="mp-tipo-plan" onchange="actualizarMontoPago()">
           <option value="inicio">Inicio</option>
           <option value="pro">Pro</option>
-          <option value="clinica_ia">Clínica IA</option>
+          <option value="clinica_ia">Business</option>
         </select>
       </div>
     </div>
@@ -531,7 +531,7 @@
     <input type="hidden" id="wpt-cliente-id">
     <p id="wpt-nombre" style="margin:0 0 14px;font-size:14px;color:var(--gray-500)"></p>
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#92400e;line-height:1.5">
-      Genera un link Webpay real con funcionalidades de <strong>Clínica IA</strong>. Sirve para probar el flujo completo: pago → extensión 30 días → DTEmite → emails.
+      Genera un link Webpay real con funcionalidades de <strong>Business</strong>. Sirve para probar el flujo completo: pago → extensión 30 días → DTEmite → emails.
     </div>
     <div class="form-group">
       <label class="form-label">Monto de prueba ($)</label>
@@ -856,7 +856,7 @@ function renderTabla(lista) {
           const tipoBadgeMap = {
             inicio:     `<span style="font-size:10px;color:var(--gray-400);display:block;margin-top:3px">Inicio</span>`,
             pro:        `<span style="font-size:10px;color:var(--accent);display:block;margin-top:3px;font-weight:600;background:var(--accent-light);padding:1px 7px;border-radius:4px;width:fit-content">Pro</span>`,
-            clinica_ia: `<span style="font-size:10px;color:var(--success);display:block;margin-top:3px;font-weight:600;background:var(--success-light);padding:1px 7px;border-radius:4px;width:fit-content">Clínica IA</span>`,
+            clinica_ia: `<span style="font-size:10px;color:var(--success);display:block;margin-top:3px;font-weight:600;background:var(--success-light);padding:1px 7px;border-radius:4px;width:fit-content">Business</span>`,
             chatbot_2k: `<span style="font-size:10px;color:#0ea5e9;display:block;margin-top:3px;font-weight:600;background:#e0f2fe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Starter</span>`,
             chatbot_5k: `<span style="font-size:10px;color:#0ea5e9;display:block;margin-top:3px;font-weight:600;background:#e0f2fe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Pro</span>`,
             chatbot_8k: `<span style="font-size:10px;color:#0ea5e9;display:block;margin-top:3px;font-weight:600;background:#e0f2fe;padding:1px 7px;border-radius:4px;width:fit-content">Attia Business</span>`,
@@ -1575,7 +1575,7 @@ function actualizarModulosPreview() {
 
   if (tipo === 'clinica_ia') {
     html += `<div class="mod-group">
-      <div class="mod-group-title" style="color:var(--success)">Clínica IA — funcionalidades adicionales</div>
+      <div class="mod-group-title" style="color:var(--success)">Business — funcionalidades adicionales</div>
       ${mkItems(PLAN_MODULOS.clinica_ia.extras, 'super')}
     </div>`;
   }
@@ -2133,7 +2133,7 @@ async function descargarVoucherSA(idx) {
 }
 
 function abrirInvoiceAtmp(p, cli) {
-  const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
+  const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Business', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
   const platLabel = { flow:'Flow.cl', transferencia:'Transferencia bancaria', webpay:'Webpay', mercadopago:'Mercado Pago' };
   const dt      = p.created_at ? new Date(p.created_at) : new Date();
   const dias    = p.plan === 'anual' ? 365 : 30;
