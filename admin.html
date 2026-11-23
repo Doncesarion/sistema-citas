@@ -2464,18 +2464,18 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
     </div>
 
     <!-- Gráfico ingresos diarios -->
-    <div class="card" style="padding:20px;margin-top:0;position:relative">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <div class="card" style="padding:22px 24px 18px;margin-top:0;position:relative">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
         <div>
-          <div style="font-size:14px;font-weight:600;color:var(--t1)">Ingresos por día</div>
-          <div id="vchart-sub" style="font-size:12px;color:var(--t3);margin-top:2px">Cargando...</div>
+          <div style="font-size:15px;font-weight:700;letter-spacing:-.02em;color:var(--t1)">Ingresos por día</div>
+          <div id="vchart-sub" style="font-size:12px;color:var(--t3);margin-top:3px">Cargando...</div>
         </div>
-        <div style="display:flex;gap:14px;font-size:11px;color:var(--t3);align-items:center">
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--a);display:inline-block"></span>Ingresos</span>
-          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block"></span>Citas</span>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--t3);background:var(--surface-hi);padding:4px 10px;border-radius:20px;border:1px solid var(--b1)"><span style="width:8px;height:8px;border-radius:2px;background:#6C5CE4;display:inline-block;flex-shrink:0"></span>Ingresos</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--t3);background:var(--surface-hi);padding:4px 10px;border-radius:20px;border:1px solid var(--b1)"><span style="width:8px;height:8px;border-radius:50%;background:#16A34A;display:inline-block;flex-shrink:0"></span>Citas</span>
         </div>
       </div>
-      <div id="ventas-chart-wrap" style="position:relative;margin-top:8px">
+      <div id="ventas-chart-wrap" style="position:relative">
         <svg id="ventas-chart" viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible"></svg>
         <div id="vchart-tip" style="display:none;position:absolute;background:var(--b2);border:1px solid var(--b3);border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;z-index:10;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,.15)">
           <div id="vchart-tip-date" style="font-weight:600;color:var(--t1);margin-bottom:4px"></div>
@@ -2483,11 +2483,23 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
           <div id="vchart-tip-citas" style="color:var(--t3);margin-top:2px"></div>
         </div>
       </div>
-      <div style="display:flex;gap:24px;margin-top:10px;padding-top:12px;border-top:1px solid var(--b1)">
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Total período</div><div id="vchart-total" style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Día promedio</div><div id="vchart-prom" style="font-size:16px;font-weight:600;color:var(--t1);font-family:var(--mono);margin-top:2px">—</div></div>
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Mejor día</div><div id="vchart-best" style="font-size:16px;font-weight:600;color:var(--a);font-family:var(--mono);margin-top:2px">—</div></div>
-        <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-weight:500">Citas cobradas</div><div id="vchart-cobradas" style="font-size:16px;font-weight:600;color:var(--green);font-family:var(--mono);margin-top:2px">—</div></div>
+      <div style="display:flex;gap:0;margin-top:16px;border-radius:12px;overflow:hidden;border:1px solid var(--b1);background:var(--surface-hi)">
+        <div style="flex:1;padding:11px 14px;border-right:1px solid var(--b1);text-align:center">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:5px">Total período</div>
+          <div id="vchart-total" style="font-size:17px;font-weight:700;font-family:var(--mono);color:var(--t1)">—</div>
+        </div>
+        <div style="flex:1;padding:11px 14px;border-right:1px solid var(--b1);text-align:center">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:5px">Día promedio</div>
+          <div id="vchart-prom" style="font-size:17px;font-weight:700;font-family:var(--mono);color:var(--t1)">—</div>
+        </div>
+        <div style="flex:1;padding:11px 14px;border-right:1px solid var(--b1);text-align:center">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:5px">Mejor día</div>
+          <div id="vchart-best" style="font-size:17px;font-weight:700;font-family:var(--mono);color:#6C5CE4">—</div>
+        </div>
+        <div style="flex:1;padding:11px 14px;text-align:center">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:5px">Citas cobradas</div>
+          <div id="vchart-cobradas" style="font-size:17px;font-weight:700;font-family:var(--mono);color:#16A34A">—</div>
+        </div>
       </div>
     </div>
   </div>
@@ -11850,15 +11862,16 @@ function renderVentasChart() {
   const xOf    = i => PAD_L + (n > 1 ? (i / (n-1)) * cW : cW / 2);
   const yOf    = v  => H - 8 - (v / maxVal) * (H - PAD_TOP - 8);
 
-  // Y axis scale labels
+  // Y axis scale labels — only when there's real data
+  const hasRealData = days.some(d => d.pagado > 0);
   const yStep = maxVal / 4;
-  const fmtK  = v => v >= 1000 ? '$' + Math.round(v/1000) + 'k' : '$' + v;
-  const gridLines = [1,2,3,4].map(i => {
+  const fmtK  = v => v >= 1000000 ? '$' + (v/1000000).toFixed(v%1000000===0?0:1) + 'M' : v >= 1000 ? '$' + Math.round(v/1000) + 'k' : '$' + Math.round(v);
+  const gridLines = hasRealData ? [1,2,3,4].map(i => {
     const val = Math.round(yStep * (4-i));
     const y   = yOf(val);
     return `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(108,92,228,0.06)" stroke-width="1"/>
 <text x="0" y="${y-2}" font-size="9" fill="#9C96B4" font-family="Geist Mono,monospace">${fmtK(val)}</text>`;
-  }).join('');
+  }).join('') : `<line x1="0" y1="${H-8}" x2="${W}" y2="${H-8}" stroke="rgba(108,92,228,0.06)" stroke-width="1"/>`;
 
   // Area + line points
   const pts = days.map((d,i) => `${xOf(i).toFixed(1)},${yOf(d.pagado).toFixed(1)}`).join(' ');
