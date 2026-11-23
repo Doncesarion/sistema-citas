@@ -16,7 +16,7 @@ function generateEvalToken() {
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret || !cita_id) return '';
-  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+  const expire = Math.floor(Date.now() / 1000) + 90 * 24 * 3600;
   const hmac = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
   return expire + '.' + hmac;
 }
@@ -289,7 +289,7 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
         fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cli.id}`, {
           method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
           body: JSON.stringify({ rec_mes_count: 0, rec_mes_key: mesActual, rec_mes_limit_extra: 0 })
-        }).catch(() => {});
+        }).catch(e => console.error(`send-email: error reseteando contador mensual cliente ${cli.id}:`, e.message));
       }
       const recLimite = (REC_LIMITE_PLAN[cli.tipo_plan] || 300) + recLimitExtra + (cli.rec_limite_extra_mensual || 0);
       let recCountInicio = recCount;
@@ -428,7 +428,7 @@ async function procesarRecordatorios(sh, shJson, soloClienteId = null) {
         fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cli.id}`, {
           method: 'PATCH', headers: { ...shJson, Prefer: 'return=minimal' },
           body: JSON.stringify({ rec_mes_count: recCount, rec_mes_key: mesActual })
-        }).catch(() => {});
+        }).catch(e => console.error(`send-email: error actualizando contador mensual cliente ${cli.id}:`, e.message));
       }
     }
   } catch(e) {

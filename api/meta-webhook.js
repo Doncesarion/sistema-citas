@@ -257,14 +257,14 @@ export default async function handler(req, res) {
           if (whisperData.text) {
             mensaje = `[Audio] ${whisperData.text.trim()}`;
           } else {
-            return res.status(200).end(); // sin transcripción, ignorar
+            mensaje = '[Audio no transcrito]';
           }
         } catch(e) {
           console.error('meta-webhook: audio transcription error:', e.message);
-          return res.status(200).end();
+          mensaje = '[Audio no transcrito]';
         }
       } else {
-        return res.status(200).end(); // sin GROQ_API_KEY, ignorar audio por ahora
+        mensaje = '[Audio no transcrito]';
       }
     } else {
       mensaje = msg.text.body;
@@ -382,18 +382,50 @@ export default async function handler(req, res) {
       })
     });
     if (cvRpc.ok) {
-      conversacion_id = await cvRpc.json();
+      const rpcResult = await cvRpc.json();
+      if (typeof rpcResult === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rpcResult)) {
+        conversacion_id = rpcResult;
+      }
     }
 
-    // Si el RPC no devolvió un ID, buscar la conversación directamente
+    // Fallback 1: buscar conversación existente si el RPC no devolvió ID
     if (!conversacion_id) {
       try {
         const rq = await fetch(
-          `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id&limit=1`,
+          `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id&order=created_at.desc&limit=1`,
           { headers: sh }
         );
         const [row] = await rq.json();
         if (row?.id) conversacion_id = row.id;
+      } catch (_) {}
+    }
+
+    // Fallback 2: crear conversación directamente si ningún intento anterior funcionó
+    if (!conversacion_id && cliente_id) {
+      try {
+        const rIns = await fetch(`${SUPABASE_URL}/rest/v1/conversaciones`, {
+          method: 'POST',
+          headers: { ...shJ, Prefer: 'return=representation' },
+          body: JSON.stringify({
+            cliente_id, canal, canal_user_id,
+            canal_user_name: canal_user_name || canal_user_id,
+            ultimo_mensaje: mensaje.slice(0, 120),
+            ultimo_mensaje_at: new Date().toISOString(),
+            no_leidos: 1
+          })
+        });
+        if (rIns.ok) {
+          const [created] = await rIns.json();
+          conversacion_id = created?.id || null;
+        } else {
+          // INSERT falló (probablemente duplicado) — re-leer
+          const rRetry = await fetch(
+            `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id&order=created_at.desc&limit=1`,
+            { headers: sh }
+          );
+          const [retryRow] = await rRetry.json();
+          if (retryRow?.id) conversacion_id = retryRow.id;
+        }
       } catch (_) {}
     }
 

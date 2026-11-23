@@ -207,6 +207,19 @@ export default async function handler(req, res) {
       } catch (_) {}
     }
 
+    // Fallback 3: usar ultimo_mensaje de la conversación si aún no hay nada
+    if (msgs.length === 0 && conv.ultimo_mensaje) {
+      msgs = [{
+        id:              `ult_${conv_id}`,
+        conversacion_id: conv_id,
+        cliente_id,
+        rol:             'usuario',
+        contenido:       conv.ultimo_mensaje,
+        visto:           true,
+        created_at:      conv.ultimo_mensaje_at || conv.created_at || new Date().toISOString()
+      }];
+    }
+
     if (msgs.length === 0) {
       console.log(`[bandeja] conv ${conv_id} sin mensajes — canal:${conv.canal} canal_user_id:${conv.canal_user_id}`);
     }
@@ -252,7 +265,7 @@ export default async function handler(req, res) {
   // ── GET — lista de conversaciones ─────────────────────────────────────────
   if (req.method === 'GET' && !req.query.action) {
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&order=ultimo_mensaje_at.desc&limit=100&select=*`,
+      `${SUPABASE_URL}/rest/v1/conversaciones?cliente_id=eq.${cliente_id}&order=ultimo_mensaje_at.desc&limit=200&select=*`,
       { headers: sh }
     );
     const data = await r.json();
@@ -656,8 +669,20 @@ export default async function handler(req, res) {
     if (!Array.isArray(convs) || convs.length !== ids.length) {
       return res.status(403).json({ error: 'Acceso denegado o IDs inválidos' });
     }
-    const existingCid = convs.find(c => c.contacto_id)?.contacto_id;
-    const contacto_id = existingCid || crypto.randomUUID();
+    const cidCounts = {};
+    for (const c of convs) {
+      if (c.contacto_id) cidCounts[c.contacto_id] = (cidCounts[c.contacto_id] || 0) + 1;
+    }
+    const uniqueCids = Object.keys(cidCounts);
+    let contacto_id;
+    if (uniqueCids.length === 0) {
+      contacto_id = crypto.randomUUID();
+    } else if (uniqueCids.length === 1) {
+      contacto_id = uniqueCids[0];
+    } else {
+      contacto_id = uniqueCids.reduce((a, b) => cidCounts[a] >= cidCounts[b] ? a : b);
+      console.warn('bandeja merge: múltiples contacto_ids, usando el más frecuente:', contacto_id, '(otros:', uniqueCids.filter(c => c !== contacto_id).join(', '), ')');
+    }
     await fetch(
       `${SUPABASE_URL}/rest/v1/conversaciones?id=in.(${ids.join(',')})`,
       { method: 'PATCH', headers: { ...shJ, Prefer: 'return=minimal' }, body: JSON.stringify({ contacto_id }) }
@@ -953,7 +978,7 @@ ${chatContext}`;
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) cls = parsed;
-          } catch (_) {}
+          } catch (e) { console.warn('bandeja: error clasificando lead con Claude:', e.message); }
         }
 
         const estadosValidos = ['nuevo', 'calificado', 'propuesta', 'agendado', 'perdido'];

@@ -56,7 +56,28 @@ function flowSign(params, secret) {
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return '';
-  return crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+  const exp = Math.floor(Date.now() / 1000) + 90 * 24 * 3600;
+  const hmac = crypto.createHmac('sha256', secret).update(`gestionar:${cita_id}:${exp}`).digest('hex').slice(0, 32);
+  return `${hmac}.${exp.toString(36)}`;
+}
+
+function verifyManageToken(token, cita_id) {
+  if (!token) return false;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return false;
+  // Formato nuevo: hmac.expiry_base36
+  if (token.includes('.')) {
+    const dot = token.lastIndexOf('.');
+    const hmacPart = token.slice(0, dot);
+    const expPart  = token.slice(dot + 1);
+    const exp = parseInt(expPart, 36);
+    if (isNaN(exp) || Math.floor(Date.now() / 1000) > exp) return false;
+    const expected = crypto.createHmac('sha256', secret).update(`gestionar:${cita_id}:${exp}`).digest('hex').slice(0, 32);
+    return hmacPart === expected;
+  }
+  // Formato legacy (sin expiración): aceptar por compatibilidad
+  const legacy = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id).digest('hex');
+  return token === legacy;
 }
 
 function generateSubToken(cid, plan, monto, tipo_plan = '') {
@@ -757,9 +778,9 @@ async function handleWebpayCreate(req, res) {
     return res.status(400).send('<!DOCTYPE html><html><body><p>Parámetros inválidos.</p></body></html>');
   }
 
-  if (t !== generateManageToken(cita_id)) {
+  if (!verifyManageToken(t, cita_id)) {
     res.setHeader('Content-Type', 'text/html;charset=utf-8');
-    return res.status(403).send('<!DOCTYPE html><html><body><p>Token inválido.</p></body></html>');
+    return res.status(403).send('<!DOCTYPE html><html><body><p>Token inválido o expirado.</p></body></html>');
   }
 
   const KEY = process.env.SUPABASE_SERVICE_KEY;

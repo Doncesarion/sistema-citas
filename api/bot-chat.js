@@ -4,7 +4,7 @@ const BASE_URL = (process.env.BASE_URL || 'https://app.attempo.cl').trim().repla
 function generateManageToken(cita_id) {
   const secret = process.env.SESSION_SECRET;
   if (!secret || !cita_id) return '';
-  const expire = Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+  const expire = Math.floor(Date.now() / 1000) + 90 * 24 * 3600;
   const hmac = crypto.createHmac('sha256', secret).update('gestionar:' + cita_id + ':' + expire).digest('hex');
   return expire + '.' + hmac;
 }
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ respuesta, pausa: true });
       }
     } else {
-      // Crear nueva sesión
+      // Crear nueva sesión (con fallback por race condition)
       const rc = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions`, {
         method: 'POST',
         headers: { ...shJson, Prefer: 'return=representation' },
@@ -109,7 +109,20 @@ export default async function handler(req, res) {
         })
       });
       const created = await rc.json();
-      if (Array.isArray(created) && created[0]) sessionId = created[0].id;
+      if (Array.isArray(created) && created[0]) {
+        sessionId = created[0].id;
+      } else {
+        // Race condition: otro proceso ya creó la sesión, re-buscar
+        const rr = await fetch(
+          `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id,messages,pausa_bot,conversation_status&limit=1`,
+          { headers: sh }
+        );
+        const [refound] = await rr.json().catch(() => []);
+        if (refound?.id) {
+          sessionId = refound.id;
+          historial = Array.isArray(refound.messages) ? refound.messages : [];
+        }
+      }
     }
   } catch (e) {
     console.error('bot-chat: error cargando sesión:', e.message);
@@ -620,6 +633,7 @@ HOY ES: ${hoyVentas}${leadContexto}`;
           canal_user_name:     canal_user_name || null,
           updated_at:          new Date().toISOString(),
           conversation_status: leadCapturadoVentas ? 'derivado' : 'esperando_respuesta',
+          ...(leadCapturadoVentas ? { pausa_bot: true } : {}),
         })
       }).catch(e => console.error('bot-chat ventas: error guardando sesión:', e.message));
     }
@@ -1503,6 +1517,28 @@ PREGUNTAS SIN RESPUESTA EN TU INFORMACIÓN (Fonasa, estacionamiento, acceso, seg
   }
 
   // ── 10. Guardar historial actualizado en chat_sessions ────────────────────
+  // Recuperar sessionId si falló al inicio
+  if (!sessionId) {
+    try {
+      const rsF = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_sessions?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id&limit=1`,
+        { headers: sh }
+      );
+      const [existSess] = await rsF.json();
+      if (existSess?.id) {
+        sessionId = existSess.id;
+      } else {
+        const rcF = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions`, {
+          method: 'POST',
+          headers: { ...shJson, Prefer: 'return=representation' },
+          body: JSON.stringify({ cliente_id, canal, canal_user_id, canal_user_name: canal_user_name || null, messages: [] })
+        });
+        const [newSess] = await rcF.json();
+        if (newSess?.id) sessionId = newSess.id;
+      }
+    } catch (_) {}
+  }
+
   if (sessionId) {
     // Normalizar mensajes antes de persistir: eliminar bloques tool_use/tool_result
     // y mensajes de sistema interno para evitar errores 400 y confundir a Claude
@@ -1525,6 +1561,7 @@ PREGUNTAS SIN RESPUESTA EN TU INFORMACIÓN (Fonasa, estacionamiento, acceso, seg
         canal_user_name:     canal_user_name || null,
         updated_at:          new Date().toISOString(),
         conversation_status: citaCreada ? 'agendo' : leadCapturado ? 'derivado' : 'esperando_respuesta',
+        ...(leadCapturado ? { pausa_bot: true } : {}),
       })
     }).catch(e => console.error('bot-chat: error guardando sesión:', e.message));
   }
