@@ -680,6 +680,44 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── GET ?action=webhook-info — URL y verify token para configurar Meta ───────
+  if (req.method === 'GET' && req.query.action === 'webhook-info') {
+    return res.status(200).json({
+      webhook_url:   'https://app.attempo.cl/api/meta-webhook',
+      verify_token:  process.env.META_VERIFY_TOKEN || ''
+    });
+  }
+
+  // ── GET ?action=test-canal&canal=whatsapp|messenger|instagram ─────────────
+  if (req.method === 'GET' && req.query.action === 'test-canal') {
+    const canal = req.query.canal;
+    const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`, { headers: sh });
+    const [cli] = await r0.json();
+    const m = cli?.canales_meta || {};
+    if (canal === 'whatsapp') {
+      if (!m.wa_phone_number_id || !m.wa_token) return res.status(200).json({ ok: false, error: 'Sin credenciales guardadas — activa WhatsApp primero.' });
+      const gr = await fetch(`https://graph.facebook.com/v20.0/${m.wa_phone_number_id}?fields=display_phone_number,verified_name,quality_rating&access_token=${m.wa_token}`);
+      const gd = await gr.json();
+      if (gd.error) return res.status(200).json({ ok: false, error: gd.error.message });
+      return res.status(200).json({ ok: true, phone: gd.display_phone_number, name: gd.verified_name, quality: gd.quality_rating });
+    }
+    if (canal === 'messenger') {
+      if (!m.fb_page_id || !m.fb_token) return res.status(200).json({ ok: false, error: 'Sin credenciales guardadas — conecta con Meta primero.' });
+      const gr = await fetch(`https://graph.facebook.com/v20.0/${m.fb_page_id}?fields=name,fan_count&access_token=${m.fb_token}`);
+      const gd = await gr.json();
+      if (gd.error) return res.status(200).json({ ok: false, error: gd.error.message });
+      return res.status(200).json({ ok: true, name: gd.name, fans: gd.fan_count });
+    }
+    if (canal === 'instagram') {
+      if (!m.ig_account_id || !m.ig_token) return res.status(200).json({ ok: false, error: 'Sin credenciales guardadas — conecta con Meta primero.' });
+      const gr = await fetch(`https://graph.facebook.com/v20.0/${m.ig_account_id}?fields=name,username,followers_count&access_token=${m.ig_token}`);
+      const gd = await gr.json();
+      if (gd.error) return res.status(200).json({ ok: false, error: gd.error.message });
+      return res.status(200).json({ ok: true, name: gd.name, username: '@' + (gd.username||''), followers: gd.followers_count });
+    }
+    return res.status(400).json({ error: 'Canal inválido' });
+  }
+
   // ── GET ?action=leads — listar leads del pipeline ────────────────────────────
   if (req.method === 'GET' && req.query.action === 'leads') {
     const estado = req.query.estado; // nuevo | calificado | agendado | perdido | undefined

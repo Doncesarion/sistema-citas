@@ -3263,13 +3263,12 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
   <!-- Panel: Canales (cfg-canales MOVIDO desde v-config) -->
   <div id="bsec-canales" class="vp" style="display:none;flex:1">
     <div id="cfg-canales">
-        <div class="vh" style="margin-bottom:4px">
-          <span>Canales de mensajería</span>
-        </div>
+        <div class="vh" style="margin-bottom:4px"><span>Canales de mensajería</span></div>
         <p style="font-size:12px;color:var(--t3);margin-bottom:20px">Conecta tus canales para que Attia responda y agende automáticamente desde WhatsApp, Messenger e Instagram.</p>
 
-        <!-- WhatsApp -->
+        <!-- ═══════════════ WhatsApp ═══════════════ -->
         <div class="card" style="margin-bottom:12px;overflow:hidden;border-left:3px solid #25D366">
+          <!-- Header -->
           <div style="padding:16px 18px;display:flex;align-items:center;gap:12px">
             <div style="width:40px;height:40px;border-radius:10px;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(37,211,102,0.3)">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.107.547 4.084 1.504 5.798L0 24l6.333-1.482A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.886 0-3.65-.51-5.166-1.395l-.371-.22-3.753.878.894-3.656-.242-.382A9.936 9.936 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
@@ -3280,44 +3279,125 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
             </div>
             <span id="wa-tag" class="tag ta">Sin conectar</span>
           </div>
-          <div style="padding:0 18px 18px;display:grid;gap:12px">
-            <p style="font-size:12px;color:var(--t3);margin:0;line-height:1.5">Ingresa el <strong style="color:var(--t2)">Phone Number ID</strong> y el <strong style="color:var(--t2)">Access Token permanente</strong> de tu app. Los encuentras en <a href="https://developers.facebook.com" target="_blank" style="color:var(--a);text-decoration:none;font-weight:500">Meta for Developers</a> → WhatsApp → API Setup.</p>
-            <div>
-              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Phone Number ID</label>
-              <input id="canal-wa-phone-id" class="fi" placeholder="Ej: 109876543210123" style="font-family:var(--mono);font-size:13px">
-            </div>
-            <div>
-              <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Access Token permanente</label>
-              <div class="input-rel">
-                <input id="canal-wa-token" class="fi" type="password" placeholder="EAAx..." style="font-family:var(--mono);font-size:13px">
-                <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-wa-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+
+          <!-- Body -->
+          <div style="padding:0 18px 18px;display:grid;gap:14px">
+
+            <!-- Paso 1: Webhook URL + Verify Token -->
+            <div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.22);border-radius:10px;padding:14px 16px">
+              <div style="font-size:11px;font-weight:700;color:#059669;margin-bottom:8px;display:flex;align-items:center;gap:5px">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#059669" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Paso 1 · Configura el Webhook en tu Meta App
               </div>
+              <p style="font-size:11px;color:var(--t3);margin:0 0 10px;line-height:1.5">En <strong>developers.facebook.com</strong> → tu app → WhatsApp → Configuration → Edit, ingresa estos datos exactos:</p>
+              <div style="display:grid;gap:8px">
+                <div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Callback URL</div>
+                  <div style="display:flex;gap:6px">
+                    <code id="wh-url-txt" style="flex:1;font-size:11px;background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:8px 10px;color:var(--t1);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">https://app.attempo.cl/api/meta-webhook</code>
+                    <button onclick="copiarCanal('wh-url-txt',this)" style="flex-shrink:0;padding:7px 11px;border:1px solid var(--b1);background:var(--bg2);border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);font-weight:600;white-space:nowrap">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copiar
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:10px;font-weight:700;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Verify Token</div>
+                  <div style="display:flex;gap:6px">
+                    <code id="wh-token-txt" style="flex:1;font-size:11px;background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:8px 10px;color:var(--t1);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Cargando…</code>
+                    <button onclick="copiarCanal('wh-token-txt',this)" style="flex-shrink:0;padding:7px 11px;border:1px solid var(--b1);background:var(--bg2);border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);font-weight:600;white-space:nowrap">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copiar
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p style="font-size:11px;color:var(--t3);margin:10px 0 0;line-height:1.5">Luego suscríbete al campo <code style="background:var(--bg2);padding:1px 5px;border-radius:4px;font-size:10px">messages</code> en la misma pantalla y haz clic en "Verify and save".</p>
             </div>
-            <button class="btn-a" style="width:100%;justify-content:center" onclick="saveCanal('whatsapp')">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              Activar WhatsApp
-            </button>
+
+            <!-- Guía completa collapsible -->
+            <details>
+              <summary style="font-size:12px;color:var(--a);cursor:pointer;user-select:none;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;padding:4px 0">
+                <svg id="wa-guide-arrow" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s"><polyline points="9 18 15 12 9 6"/></svg>
+                Ver guía completa paso a paso
+              </summary>
+              <ol style="margin:14px 0 0;padding-left:20px;display:grid;gap:10px">
+                <li style="font-size:12px;color:var(--t2);line-height:1.6">
+                  <strong style="color:var(--t1)">Crea una cuenta en Meta Business Suite</strong><br>
+                  <span style="color:var(--t3)">Ve a <a href="https://business.facebook.com" target="_blank" style="color:var(--a)">business.facebook.com</a> e inicia sesión con tu cuenta de Facebook. Si no tienes empresa creada, créala ahí.</span>
+                </li>
+                <li style="font-size:12px;color:var(--t2);line-height:1.6">
+                  <strong style="color:var(--t1)">Crea una Meta App del tipo Empresa</strong><br>
+                  <span style="color:var(--t3)">Ve a <a href="https://developers.facebook.com/apps" target="_blank" style="color:var(--a)">developers.facebook.com/apps</a> → "Crear app" → elige tipo <strong>Empresa</strong>. Ponle un nombre y vincúlala a tu cuenta de negocios. Luego agrega el producto <strong>WhatsApp</strong>.</span>
+                </li>
+                <li style="font-size:12px;color:var(--t2);line-height:1.6">
+                  <strong style="color:var(--t1)">Agrega tu número de teléfono</strong><br>
+                  <span style="color:var(--t3)">En tu app → WhatsApp → Gestión de cuentas → "Agregar número de teléfono". Verifica el número con el código SMS o llamada. El número no puede estar registrado ya en la app normal de WhatsApp — debes eliminarlo primero.</span>
+                </li>
+                <li style="font-size:12px;color:var(--t2);line-height:1.6">
+                  <strong style="color:var(--t1)">Configura el Webhook</strong><br>
+                  <span style="color:var(--t3)">En tu app → WhatsApp → Configuration → botón Edit. Pega la <strong>Callback URL</strong> y el <strong>Verify Token</strong> del recuadro verde de arriba. Haz clic en "Verify and save". Luego activa el campo <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;font-size:11px">messages</code>.</span>
+                </li>
+                <li style="font-size:12px;color:var(--t2);line-height:1.6">
+                  <strong style="color:var(--t1)">Obtén el Phone Number ID</strong><br>
+                  <span style="color:var(--t3)">En tu app → WhatsApp → API Setup. En la sección "From", copia el <strong>Phone Number ID</strong> (es un número largo, distinto al número de teléfono).</span>
+                </li>
+                <li style="font-size:12px;color:var(--t2);line-height:1.6">
+                  <strong style="color:var(--t1)">Genera un token permanente</strong><br>
+                  <span style="color:var(--t3)">En Meta Business Suite → Configuración → Usuarios del sistema → "Agregar" → tipo Administrador. Luego "Generar token nuevo" → selecciona tu app → activa el permiso <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;font-size:11px">whatsapp_business_messaging</code>. Copia el token generado (no tiene fecha de expiración).</span>
+                </li>
+                <li style="font-size:12px;color:var(--t2);line-height:1.6">
+                  <strong style="color:var(--t1)">Publica tu app</strong><br>
+                  <span style="color:var(--t3)">En tu app → Panel de apps → Modo → "Cambiar a Activo". Esto es necesario para recibir mensajes de usuarios reales (en modo desarrollo solo los testers pueden escribir).</span>
+                </li>
+              </ol>
+            </details>
+
+            <!-- Paso 2: Credenciales -->
+            <div style="border-top:1px solid var(--b1);padding-top:14px;display:grid;gap:10px">
+              <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Paso 2 · Pega tus credenciales</div>
+              <div>
+                <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Phone Number ID</label>
+                <input id="canal-wa-phone-id" class="fi" placeholder="Ej: 109876543210123" style="font-family:var(--mono);font-size:13px">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Access Token permanente</label>
+                <div class="input-rel">
+                  <input id="canal-wa-token" class="fi" type="password" placeholder="EAAx..." style="font-family:var(--mono);font-size:13px">
+                  <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-wa-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn-a" style="flex:1;justify-content:center" onclick="saveCanal('whatsapp')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Activar WhatsApp
+                </button>
+                <button onclick="testCanal('whatsapp')" style="padding:9px 14px;border:1.5px solid var(--b2);background:transparent;color:var(--t2);border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .15s" onmouseover="this.style.borderColor='var(--a)';this.style.color='var(--a)'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--t2)'">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Probar conexión
+                </button>
+              </div>
+              <div id="test-wa-result" style="display:none"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Messenger + Instagram: conectar con Meta OAuth -->
+        <!-- ═══════════════ Messenger + Instagram ═══════════════ -->
         <div class="card" style="margin-bottom:20px;overflow:hidden;border-left:3px solid #1877F2">
+          <!-- Header -->
           <div style="padding:16px 18px;border-bottom:1px solid var(--b1)">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-              <div style="display:flex;gap:-6px">
-                <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,153,255,0.25)">
+              <div style="display:flex;gap:8px">
+                <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#0099FF,#A033FF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,153,255,0.25)">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M12 0C5.373 0 0 5.37 0 12c0 3.679 1.636 6.973 4.234 9.25V24l3.875-2.127A12.24 12.24 0 0012 22c6.627 0 12-4.37 12-12S18.627 0 12 0zm1.193 15.87l-3.06-3.26-5.969 3.26 6.567-6.972 3.134 3.26 5.896-3.26-6.568 6.972z"/></svg>
                 </div>
-                <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(221,42,123,0.25);margin-left:8px">
+                <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(221,42,123,0.25)">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                 </div>
               </div>
               <div style="flex:1">
                 <div style="font-size:14px;font-weight:600;color:var(--t1)">Messenger + Instagram</div>
-                <div style="font-size:11px;color:var(--t3)">Conecta ambos canales con un clic</div>
+                <div style="font-size:11px;color:var(--t3)">Conecta ambos canales con un clic mediante Facebook</div>
               </div>
             </div>
-            <!-- Estado de cada canal -->
             <div style="display:flex;gap:8px;margin-top:12px">
               <div style="flex:1;padding:8px 12px;background:var(--bg2);border-radius:8px;border:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between">
                 <span style="font-size:12px;color:var(--t2);font-weight:500">Messenger</span>
@@ -3329,51 +3409,74 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
               </div>
             </div>
           </div>
-          <div style="padding:18px">
-            <!-- Botón principal OAuth -->
-            <button id="btn-meta-oauth" onclick="conectarConMeta()" style="width:100%;padding:13px 20px;background:#1877F2;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s;margin-bottom:14px" onmouseover="this.style.background='#166FE5'" onmouseout="this.style.background='#1877F2'">
+
+          <!-- Body -->
+          <div style="padding:18px;display:grid;gap:14px">
+            <!-- Prerequisitos -->
+            <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:12px 14px">
+              <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px">Antes de conectar, necesitas:</div>
+              <ul style="margin:0;padding-left:16px;display:grid;gap:6px">
+                <li style="font-size:12px;color:var(--t2);line-height:1.5">Una <strong>Página de Facebook</strong> activa — <a href="https://www.facebook.com/pages/create" target="_blank" style="color:var(--a);text-decoration:none">crear página →</a></li>
+                <li style="font-size:12px;color:var(--t2);line-height:1.5">Para Instagram: cuenta configurada como <strong>Business o Creator</strong> y vinculada a tu Página — <a href="https://www.facebook.com/help/instagram/570895513091465" target="_blank" style="color:var(--a);text-decoration:none">cómo vincular →</a></li>
+              </ul>
+            </div>
+
+            <!-- OAuth button -->
+            <button id="btn-meta-oauth" onclick="conectarConMeta()" style="width:100%;padding:13px 20px;background:#1877F2;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s" onmouseover="this.style.background='#166FE5'" onmouseout="this.style.background='#1877F2'">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
               Conectar con Meta
             </button>
-            <p style="font-size:11px;color:var(--t4);text-align:center;margin:0;line-height:1.5">Serás redirigido a Facebook para autorizar el acceso.<br>Los tokens se guardan automáticamente.</p>
-            <!-- Desconectar (oculto si no conectado) -->
-            <div id="meta-oauth-connected" style="display:none;margin-top:14px;padding:12px 14px;background:rgba(5,150,105,0.06);border:1px solid rgba(5,150,105,0.2);border-radius:8px;align-items:center;justify-content:space-between;gap:10px">
-              <div style="font-size:12px;color:#059669;font-weight:500">✓ Conectado correctamente</div>
-              <button onclick="desconectarMeta()" style="font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;text-decoration:underline">Desconectar</button>
-            </div>
-          </div>
-          <!-- Campos ocultos para advanced users -->
-          <details style="padding:0 18px 18px">
-            <summary style="font-size:11px;color:var(--t4);cursor:pointer;user-select:none;padding:4px 0">Configuración manual avanzada</summary>
-            <div style="margin-top:12px;display:grid;gap:12px">
-              <div>
-                <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Page ID (Messenger)</label>
-                <input id="canal-fb-page-id" class="fi" placeholder="Ej: 123456789012345" style="font-size:12px;font-family:var(--mono)">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Page Access Token</label>
-                <div class="input-rel">
-                  <input id="canal-fb-token" class="fi" type="password" placeholder="EAAx..." style="font-size:12px;font-family:var(--mono)">
-                  <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-fb-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                </div>
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Instagram Account ID</label>
-                <input id="canal-ig-account-id" class="fi" placeholder="Ej: 178414xxxxx" style="font-size:12px;font-family:var(--mono)">
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Instagram Access Token</label>
-                <div class="input-rel">
-                  <input id="canal-ig-token" class="fi" type="password" placeholder="EAAx..." style="font-size:12px;font-family:var(--mono)">
-                  <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-ig-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                </div>
+            <p style="font-size:11px;color:var(--t4);text-align:center;margin:-4px 0 0;line-height:1.5">Serás redirigido a Facebook para autorizar el acceso a tu Página e Instagram.<br>Los tokens se guardan automáticamente — no necesitas copiar nada.</p>
+
+            <!-- Estado conectado -->
+            <div id="meta-oauth-connected" style="display:none;padding:12px 14px;background:rgba(5,150,105,0.06);border:1px solid rgba(5,150,105,0.2);border-radius:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:12px;color:#059669;font-weight:600">✓ Conectado correctamente</div>
+                <button onclick="desconectarMeta()" style="font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;text-decoration:underline">Desconectar</button>
               </div>
               <div style="display:flex;gap:8px">
-                <button class="btn-a" style="flex:1;justify-content:center" onclick="saveCanal('messenger')">Guardar Messenger</button>
-                <button class="btn-a" style="flex:1;justify-content:center" onclick="saveCanal('instagram')">Guardar Instagram</button>
+                <button onclick="testCanal('messenger')" style="flex:1;padding:7px 10px;border:1px solid rgba(5,150,105,0.4);background:transparent;color:#059669;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer">Probar Messenger</button>
+                <button onclick="testCanal('instagram')" style="flex:1;padding:7px 10px;border:1px solid rgba(131,56,236,0.4);background:transparent;color:#8338ec;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer">Probar Instagram</button>
               </div>
+              <div id="test-fb-result" style="display:none;margin-top:8px"></div>
             </div>
-          </details>
+
+            <!-- Configuración manual avanzada -->
+            <details style="border-top:1px solid var(--b1);padding-top:14px">
+              <summary style="font-size:11px;color:var(--t4);cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:5px;padding:4px 0">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                Configuración manual avanzada
+              </summary>
+              <div style="margin-top:12px;display:grid;gap:12px">
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Page ID (Messenger)</label>
+                  <input id="canal-fb-page-id" class="fi" placeholder="Ej: 123456789012345" style="font-size:12px;font-family:var(--mono)">
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Page Access Token</label>
+                  <div class="input-rel">
+                    <input id="canal-fb-token" class="fi" type="password" placeholder="EAAx..." style="font-size:12px;font-family:var(--mono)">
+                    <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-fb-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Instagram Account ID</label>
+                  <input id="canal-ig-account-id" class="fi" placeholder="Ej: 178414xxxxx" style="font-size:12px;font-family:var(--mono)">
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:5px">Instagram Access Token</label>
+                  <div class="input-rel">
+                    <input id="canal-ig-token" class="fi" type="password" placeholder="EAAx..." style="font-size:12px;font-family:var(--mono)">
+                    <button class="fi-eye" type="button" onclick="var i=document.getElementById('canal-ig-token');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn-a" style="flex:1;justify-content:center" onclick="saveCanal('messenger')">Guardar Messenger</button>
+                  <button class="btn-a" style="flex:1;justify-content:center" onclick="saveCanal('instagram')">Guardar Instagram</button>
+                </div>
+              </div>
+            </details>
+          </div>
         </div>
 
         <!-- Campos ocultos compatibilidad cargarCanales -->
@@ -13065,8 +13168,50 @@ async function cargarCanales() {
     setField('canal-ig-token',      m.ig_token ? '••••••••' : '');
     setStatus('ig', !!m.ig_account_id);
     const oauthDiv = document.getElementById('meta-oauth-connected');
-    if (oauthDiv) oauthDiv.style.display = (!!m.fb_page_id) ? 'flex' : 'none';
+    if (oauthDiv) oauthDiv.style.display = (!!m.fb_page_id) ? 'block' : 'none';
   } catch(e) { console.error('cargarCanales:', e); }
+  // Cargar webhook info (URL + verify token)
+  try {
+    const tok = localStorage.getItem('attempo_session_token') || '';
+    const rw = await fetch('/api/bandeja?action=webhook-info', { headers: { 'x-session-token': tok } });
+    if (rw.ok) {
+      const wd = await rw.json();
+      const el = document.getElementById('wh-token-txt');
+      if (el && wd.verify_token) el.textContent = wd.verify_token;
+    }
+  } catch(e) {}
+}
+
+function copiarCanal(elId, btn) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+    if (btn) { const orig = btn.innerHTML; btn.innerHTML = '✓ Copiado'; btn.style.color = '#059669'; btn.style.borderColor = '#059669'; setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 1800); }
+  }).catch(() => toast('No se pudo copiar'));
+}
+
+async function testCanal(canal) {
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const resId = canal === 'whatsapp' ? 'test-wa-result' : 'test-fb-result';
+  const resEl = document.getElementById(resId);
+  if (!resEl) return;
+  resEl.style.display = 'block';
+  resEl.innerHTML = '<span style="font-size:12px;color:var(--t3)">Verificando conexión…</span>';
+  try {
+    const r = await fetch(`/api/bandeja?action=test-canal&canal=${canal}`, { headers: { 'x-session-token': tok } });
+    const d = await r.json();
+    if (d.ok) {
+      let detail = '';
+      if (canal === 'whatsapp') detail = `${d.name || ''} · ${d.phone || ''} · Calidad: ${d.quality || '—'}`;
+      else if (canal === 'messenger') detail = `Página: ${d.name || ''} · ${d.fans != null ? d.fans + ' seguidores' : ''}`;
+      else detail = `${d.name || ''} · ${d.username || ''} · ${d.followers != null ? d.followers + ' seguidores' : ''}`;
+      resEl.innerHTML = `<div style="font-size:12px;color:#059669;font-weight:600;display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Conexión OK — ${detail}</div>`;
+    } else {
+      resEl.innerHTML = `<div style="font-size:12px;color:#ef4444;font-weight:600">✗ Error: ${d.error || 'Token inválido'}</div>`;
+    }
+  } catch(e) {
+    resEl.innerHTML = `<div style="font-size:12px;color:#ef4444">Error de red: ${e.message}</div>`;
+  }
 }
 
 async function saveCanal(canal) {
