@@ -337,6 +337,18 @@ HOY ES: ${hoy}`;
     if (!Array.isArray(espLista)) espLista = [];
   } catch(_) { espLista = []; }
 
+  let chatbotKnowledge = [];
+  try {
+    const rkn = await fetch(
+      `${SUPABASE_URL}/rest/v1/chatbot_knowledge?cliente_id=eq.${cliente_id}&activo=eq.true&order=orden.asc`,
+      { headers: sh }
+    );
+    if (rkn.ok) {
+      const kData = await rkn.json();
+      if (Array.isArray(kData)) chatbotKnowledge = kData;
+    }
+  } catch(_) {}
+
   // ── Reconocimiento de paciente recurrente + citas próximas ───────────────
   let pacienteContexto = '';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -384,7 +396,7 @@ HOY ES: ${hoy}`;
     ? espLista.map(e => `• ${e.nombre} — ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
 
-  let nombreBot = 'Attia', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null;
+  let nombreBot = 'Attia', generoBot = 'femenino', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null, activoWeb = true;
   let serviciosCatalogo = [], metodosPago = {}, datosBanco = {}, horarioNegocio = null, direccionNegocio = null;
   try {
     const rc = await fetch(
@@ -407,6 +419,7 @@ HOY ES: ${hoy}`;
     const [bc] = await rb.json();
     if (bc) {
       nombreBot       = bc.nombre_bot   || 'Attia';
+      generoBot       = bc.genero       || 'femenino';
       tonoBot         = bc.tono         || 'informal';
       saludoBot       = bc.saludo       || '';
       faqsBot         = Array.isArray(bc.faqs) ? bc.faqs.filter(f => f.pregunta?.trim() && f.respuesta?.trim()) : [];
@@ -414,8 +427,13 @@ HOY ES: ${hoy}`;
       if (Array.isArray(bc.promociones)) promocionesBot = [...promocionesBot, ...bc.promociones];
       modosBot        = Array.isArray(bc.modos)        ? bc.modos       : [];
       modoActivoId    = bc.modo_activo  || null;
+      activoWeb       = bc.activo_web   !== false;
     }
   } catch(_) {}
+
+  if (!activoWeb) {
+    return res.status(200).json({ mensaje: null, slots_disponibles: null, mostrar_calendario: false, especialista_id_cal: null, datos_reserva: null });
+  }
 
   // ── Attia: crear/reanudar conversación en bandeja ──────────────────────────
   let attiaConvId = incomingConvId || null;
@@ -525,7 +543,14 @@ HOY ES: ${hoy}`;
       }).join('\n')}`
     : '';
 
-  const systemPrompt = `Eres ${nombreBot}, la recepcionista virtual de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}${pacienteContexto}
+  const ckBase     = chatbotKnowledge.filter(k => k.categoria !== 'ejemplo');
+  const ckEjemplos = chatbotKnowledge.filter(k => k.categoria === 'ejemplo');
+  const ckTexto    = ckBase.length    ? `\nBASE DE CONOCIMIENTO DEL NEGOCIO:\n${ckBase.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n')}` : '';
+  const ckEjTexto  = ckEjemplos.length ? `\nEJEMPLOS DE CONVERSACIONES REALES (calibra tu tono y estilo — no copies literalmente):\n${ckEjemplos.map(k => `--- ${k.titulo} ---\n${k.contenido}`).join('\n\n')}` : '';
+
+  const articuloRec = generoBot === 'masculino' ? 'el recepcionista virtual' : 'la recepcionista virtual';
+
+  const systemPrompt = `Eres ${nombreBot}, ${articuloRec} de ${negocio_nombre || 'la clínica'}. ${tonoInstruccion}${modoTexto}${pacienteContexto}
 ${saludoBot ? `\nSALUDO INICIAL: cuando alguien te escriba por primera vez, usa este mensaje: "${saludoBot}"\n` : ''}
 PROFESIONALES DISPONIBLES (usa el id exacto al llamar las herramientas):
 ${espTexto}
@@ -541,7 +566,7 @@ ${direccionNegocio || 'No disponible.'}
 
 MÉTODOS DE PAGO ACEPTADOS:
 ${pagosTexto}
-${conocimientoTexto}${promosTextoAI}
+${conocimientoTexto}${promosTextoAI}${ckTexto}${ckEjTexto}
 ${faqsTexto}
 
 CUANDO ALGUIEN QUIERE AGENDAR, sigue este orden:

@@ -361,7 +361,7 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Carga en paralelo: botConfig + knowledge + negocio/sedes + especialistas + paciente ──
-  let botConfig = { nombre_bot: 'Valentina', genero: 'femenino', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '', modos: [], modo_activo: null };
+  let botConfig = { nombre_bot: 'Valentina', genero: 'femenino', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '', modos: [], modo_activo: null, activo_whatsapp: true, activo_instagram: true, activo_messenger: true };
   let chatbotKnowledge = [];
   let sedesContexto = '';
   let pacienteContexto = '';
@@ -411,6 +411,9 @@ export default async function handler(req, res) {
       botConfig.protocolo_urgencia  = bc.protocolo_urgencia  || '';
       botConfig.modos               = Array.isArray(bc.modos) ? bc.modos : [];
       botConfig.modo_activo         = bc.modo_activo         || null;
+      botConfig.activo_whatsapp     = bc.activo_whatsapp     !== false;
+      botConfig.activo_instagram    = bc.activo_instagram    !== false;
+      botConfig.activo_messenger    = bc.activo_messenger    !== false;
     }
     if (process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
       botConfig.tipo_bot = 'ventas';
@@ -625,6 +628,12 @@ HOY ES: ${hoyVentas}${leadContexto}`;
     return res.status(200).json({ respuesta: respuestaVentas || 'Un momento, intenta de nuevo.', cita_creada: null });
   }
   // ── FIN MODO VENTAS ───────────────────────────────────────────────────────
+
+  // — Check canal activo —
+  const canalActivo = botConfig['activo_' + canal];
+  if (canalActivo === false) {
+    return res.status(200).json({ respuesta: '', pausa: false });
+  }
 
   // ── 3. Detección de escalada humana (keywords + fallos repetidos) ─────────
   {

@@ -332,6 +332,20 @@ export default async function handler(req, res) {
         fecha_inicio: /^\d{4}-\d{2}-\d{2}$/.test(p.fecha_inicio || '') ? p.fecha_inicio : null,
         fecha_fin:    /^\d{4}-\d{2}-\d{2}$/.test(p.fecha_fin    || '') ? p.fecha_fin    : null
       })) : [],
+      modos: Array.isArray(body.modos) ? body.modos.slice(0, 20).map(m => ({
+        id:          String(m.id          || '').slice(0, 50),
+        nombre:      String(m.nombre      || '').slice(0, 100),
+        instruccion: String(m.instruccion || '').slice(0, 2000),
+        faqs: Array.isArray(m.faqs) ? m.faqs.slice(0, 20).map(f => ({
+          pregunta:  String(f.pregunta  || '').slice(0, 300),
+          respuesta: String(f.respuesta || '').slice(0, 1000)
+        })) : []
+      })) : [],
+      modo_activo:      body.modo_activo  ? String(body.modo_activo).slice(0, 50) : null,
+      activo_web:       body.activo_web       !== false,
+      activo_whatsapp:  body.activo_whatsapp  !== false,
+      activo_instagram: body.activo_instagram !== false,
+      activo_messenger: body.activo_messenger !== false,
       activo: true
     };
     try {

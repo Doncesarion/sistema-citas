@@ -3307,6 +3307,30 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
             </select>
           </div>
         </div>
+        <!-- Canales activos -->
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:8px">Canales donde responde el bot</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer;font-size:12.5px;color:var(--t2)" id="canal-web-lbl">
+              <input type="checkbox" id="canal-web" checked style="accent-color:var(--a)" onchange="updateCanalUI()">
+              Widget web
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer;font-size:12.5px;color:var(--t2)" id="canal-whatsapp-lbl">
+              <input type="checkbox" id="canal-whatsapp" checked style="accent-color:var(--a)" onchange="updateCanalUI()">
+              WhatsApp
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer;font-size:12.5px;color:var(--t2)" id="canal-instagram-lbl">
+              <input type="checkbox" id="canal-instagram" checked style="accent-color:var(--a)" onchange="updateCanalUI()">
+              Instagram
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--b1);border-radius:var(--r);cursor:pointer;font-size:12.5px;color:var(--t2)" id="canal-messenger-lbl">
+              <input type="checkbox" id="canal-messenger" checked style="accent-color:var(--a)" onchange="updateCanalUI()">
+              Messenger
+            </label>
+          </div>
+          <div style="font-size:11px;color:var(--t4);margin-top:5px">Desactiva un canal para que el bot no responda ahí. Los mensajes seguirán llegando a la bandeja.</div>
+        </div>
+
         <div style="margin-bottom:12px">
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Tono de comunicación</label>
           <div style="display:flex;gap:8px">
@@ -3477,7 +3501,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
                 <label style="font-size:11px;color:var(--a);cursor:pointer;display:flex;align-items:center;gap:4px">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                   Subir archivo .txt
-                  <input type="file" accept=".txt" id="historial-file-input" style="display:none" onchange="historialCargarArchivo(this)">
+                  <input type="file" accept=".txt,.pdf,.docx,.doc" id="historial-file-input" style="display:none" onchange="historialCargarArchivo(this)">
                 </label>
                 <span style="font-size:11px;color:var(--t4)">Máx. 8.000 caracteres</span>
               </div>
@@ -8286,6 +8310,12 @@ async function loadBotConfig() {
         _botModos     = Array.isArray(cfg.modos)       ? cfg.modos      : [];
         _modoActivoId = cfg.modo_activo || null;
         _botCfgCache  = cfg;
+        const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val !== false; };
+        setChk('canal-web',       cfg.activo_web);
+        setChk('canal-whatsapp',  cfg.activo_whatsapp);
+        setChk('canal-instagram', cfg.activo_instagram);
+        setChk('canal-messenger', cfg.activo_messenger);
+        updateCanalUI();
         renderFaqs();
         renderPromociones();
         renderModos();
@@ -8513,18 +8543,85 @@ async function historialEliminar(id) {
 function historialCargarArchivo(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const text = e.target.result || '';
-    const textarea = document.getElementById('historial-new-texto');
-    if (textarea) textarea.value = text.slice(0, 8000);
-    if (!document.getElementById('historial-new-titulo').value) {
-      document.getElementById('historial-new-titulo').value = file.name.replace(/\.txt$/, '');
-    }
-    toast('Archivo cargado — revisa el contenido y guarda');
-  };
-  reader.readAsText(file, 'UTF-8');
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'txt') {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result || '';
+      const textarea = document.getElementById('historial-new-texto');
+      if (textarea) textarea.value = text.slice(0, 8000);
+      if (!document.getElementById('historial-new-titulo').value)
+        document.getElementById('historial-new-titulo').value = file.name.replace(/\.txt$/, '');
+      toast('Archivo cargado — revisa el contenido y guarda');
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else if (ext === 'pdf') {
+    _extractPdf(file);
+  } else if (ext === 'docx' || ext === 'doc') {
+    _extractDocx(file);
+  } else {
+    toast('Formato no soportado. Usa .txt, .pdf o .docx');
+  }
   input.value = '';
+}
+
+async function _extractPdf(file) {
+  toast('Extrayendo texto del PDF...');
+  try {
+    if (!window.pdfjsLib) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages && text.length < 8000; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    text = text.trim().slice(0, 8000);
+    const textarea = document.getElementById('historial-new-texto');
+    if (textarea) textarea.value = text;
+    if (!document.getElementById('historial-new-titulo').value)
+      document.getElementById('historial-new-titulo').value = file.name.replace(/\.pdf$/, '');
+    toast('PDF extraído — revisa el contenido y guarda');
+  } catch(e) {
+    console.error('PDF extract error:', e);
+    toast('No se pudo extraer el texto del PDF. Prueba copiando el texto manualmente.');
+  }
+}
+
+async function _extractDocx(file) {
+  toast('Extrayendo texto del Word...');
+  try {
+    if (!window.mammoth) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await window.mammoth.extractRawText({ arrayBuffer });
+    const text = (result.value || '').trim().slice(0, 8000);
+    const textarea = document.getElementById('historial-new-texto');
+    if (textarea) textarea.value = text;
+    if (!document.getElementById('historial-new-titulo').value)
+      document.getElementById('historial-new-titulo').value = file.name.replace(/\.docx?$/, '');
+    toast('Word extraído — revisa el contenido y guarda');
+  } catch(e) {
+    console.error('DOCX extract error:', e);
+    toast('No se pudo extraer el texto del Word. Prueba copiando el texto manualmente.');
+  }
 }
 
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -8659,6 +8756,10 @@ async function saveBotConfig() {
     delay_max_seg:       document.getElementById('delay-rango').checked ? (parseInt(document.getElementById('delay-max').value) || 5) * 60 : 0,
     mensaje_traspaso:    (document.getElementById('bot-mensaje-traspaso')?.value || '').trim(),
     protocolo_urgencia:  (document.getElementById('bot-protocolo-urgencia')?.value || '').trim(),
+    activo_web:       document.getElementById('canal-web')?.checked !== false,
+    activo_whatsapp:  document.getElementById('canal-whatsapp')?.checked !== false,
+    activo_instagram: document.getElementById('canal-instagram')?.checked !== false,
+    activo_messenger: document.getElementById('canal-messenger')?.checked !== false,
   };
   try {
     const r = await fetch('/api/slots', {
@@ -8679,6 +8780,17 @@ function updateTonoUI(tono) {
   const lbl = { informal: document.getElementById('tono-informal-lbl'), formal: document.getElementById('tono-formal-lbl') };
   if (lbl.informal) lbl.informal.style.borderColor = tono === 'informal' ? 'var(--a)' : 'var(--b1)';
   if (lbl.formal)   lbl.formal.style.borderColor   = tono === 'formal'   ? 'var(--a)' : 'var(--b1)';
+}
+
+function updateCanalUI() {
+  ['web','whatsapp','instagram','messenger'].forEach(c => {
+    const lbl = document.getElementById('canal-' + c + '-lbl');
+    const chk = document.getElementById('canal-' + c);
+    if (lbl && chk) {
+      lbl.style.borderColor = chk.checked ? 'var(--a)' : 'var(--b1)';
+      lbl.style.color = chk.checked ? 'var(--a)' : 'var(--t2)';
+    }
+  });
 }
 
 async function testBotSend() {
