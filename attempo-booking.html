@@ -558,7 +558,17 @@ body::before{
             <input class="fi" id="d-tel" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" oninput="checkForm(); validarTel()">
             <span id="tel-hint" style="display:none;font-size:11px;color:#DC2626;margin-top:2px">Ingresa un número chileno válido: +56 9 XXXX XXXX</span>
           </div>
-          <div class="fg"><label class="fl">RUT <span style="color:var(--t4)">(opcional)</span></label><input class="fi" id="d-rut" placeholder="12.345.678-9" maxlength="13" oninput="fmtRut(this)" autocomplete="off"></div>
+          <div class="fg">
+            <label class="fl">RUT *</label>
+            <div style="position:relative">
+              <input class="fi" id="d-rut" placeholder="12.345.678-9" maxlength="13" oninput="fmtRut(this);onRutInput()" onblur="onRutBlur()" autocomplete="off" style="padding-right:36px">
+              <span id="rut-status" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;display:none"></span>
+            </div>
+            <div id="rut-found-banner" style="display:none;margin-top:6px;padding:7px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;font-size:12px;color:#166534;display:flex;align-items:center;gap:6px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span id="rut-found-txt">Datos recuperados automáticamente</span>
+            </div>
+          </div>
           <div class="fg"><label class="fl">Notas <span style="color:var(--t4)">(opcional)</span></label><textarea class="fi" id="d-nota" rows="3" placeholder="Cuéntanos el motivo de tu consulta..." style="resize:vertical;min-height:68px"></textarea></div>
           <label class="check-label"><input type="checkbox" id="chk-t" onchange="checkForm()"><span class="check-lbl">Acepto los <a href="/terminos" style="color:var(--a)" target="_blank" rel="noopener noreferrer">términos de uso</a> y la <a href="/privacidad" style="color:var(--a)" target="_blank" rel="noopener noreferrer">política de privacidad</a> *</span></label>
           <div class="policy-notice" id="policy-notice">
@@ -1355,16 +1365,77 @@ function validarTel() {
   return ok || digits.length === 0;
 }
 
+function rutValido(v) {
+  // Acepta formatos: 12.345.678-9, 12345678-9, 12345678K
+  return /^\d{1,2}(\.\d{3}){0,2}-[\dkK]$/.test(v) || /^\d{7,8}[\dkK]$/.test(v.replace(/\./g,''));
+}
+
 function checkForm() {
   const telVal = document.getElementById('d-tel').value.trim();
   const telDigits = telVal.replace(/\D/g, '');
   const telOk = /^(\+?56)?9\d{8}$/.test(telDigits) || /^9\d{8}$/.test(telDigits);
+  const rutOk = rutValido(document.getElementById('d-rut')?.value.trim() || '');
   const ok = document.getElementById('d-nom').value.trim() &&
              document.getElementById('d-ap').value.trim() &&
              document.getElementById('d-em').value.trim() &&
-             telOk &&
+             telOk && rutOk &&
              document.getElementById('chk-t').checked;
   document.getElementById('btn4').disabled = !ok;
+}
+
+var _rutTimer = null;
+function onRutInput() {
+  clearTimeout(_rutTimer);
+  var rut = (document.getElementById('d-rut')?.value || '').trim();
+  var status = document.getElementById('rut-status');
+  var banner = document.getElementById('rut-found-banner');
+  if (banner) banner.style.display = 'none';
+  if (!rutValido(rut)) { if (status) status.style.display = 'none'; return; }
+  if (status) { status.textContent = '⟳'; status.style.display = 'block'; }
+  _rutTimer = setTimeout(function() { buscarPorRut(rut); }, 600);
+}
+function onRutBlur() {
+  var rut = (document.getElementById('d-rut')?.value || '').trim();
+  if (rutValido(rut)) buscarPorRut(rut);
+}
+
+async function buscarPorRut(rut) {
+  if (!clienteId || !rut) return;
+  var status = document.getElementById('rut-status');
+  var banner = document.getElementById('rut-found-banner');
+  try {
+    var r = await fetch('/api/crear-cita?rut=' + encodeURIComponent(rut) + '&cid=' + encodeURIComponent(clienteId));
+    if (!r.ok) return;
+    var data = await r.json();
+    if (status) status.style.display = 'none';
+    if (!data.ok || !data.paciente) return;
+    var p = data.paciente;
+    var filled = [];
+    if (p.nombre) {
+      var parts = (p.nombre || '').trim().split(/\s+/);
+      var nom = document.getElementById('d-nom');
+      var ap  = document.getElementById('d-ap');
+      if (nom && !nom.value.trim()) { nom.value = parts[0] || ''; filled.push('nombre'); }
+      if (ap  && !ap.value.trim())  { ap.value  = parts.slice(1).join(' ') || ''; filled.push('apellido'); }
+    }
+    if (p.email) {
+      var em = document.getElementById('d-em');
+      if (em && !em.value.trim()) { em.value = p.email; filled.push('email'); }
+    }
+    if (p.tel) {
+      var tel = document.getElementById('d-tel');
+      if (tel && !tel.value.trim()) { tel.value = p.tel; filled.push('teléfono'); }
+    }
+    if (filled.length > 0) {
+      if (banner) {
+        banner.style.display = 'flex';
+        document.getElementById('rut-found-txt').textContent = 'Datos recuperados: ' + filled.join(', ');
+      }
+      checkForm();
+    }
+  } catch(e) {
+    if (status) status.style.display = 'none';
+  }
 }
 
 /* ── HORARIO ABIERTO/CERRADO ── */

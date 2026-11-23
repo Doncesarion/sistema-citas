@@ -225,6 +225,39 @@ export default async function handler(req, res) {
       }
     }
 
+    // Lookup por RUT: auto-fill datos del paciente en booking
+    if (req.query.rut && req.query.cid) {
+      const rut = String(req.query.rut).trim().toUpperCase();
+      const cid = String(req.query.cid).trim();
+      const UUID_RE_RUT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE_RUT.test(cid)) return res.status(400).json({ error: 'Parámetro inválido' });
+      try {
+        // 1. Buscar en tabla pacientes (rut ya consolidado)
+        const rPac = await fetch(
+          `${SUPABASE_URL}/rest/v1/pacientes?rut=ilike.${encodeURIComponent(rut)}&cliente_id=eq.${cid}&select=nombre,email,telefono&limit=1`,
+          { headers: sh }
+        );
+        const pac = await rPac.json();
+        if (Array.isArray(pac) && pac.length > 0) {
+          return res.json({ ok: true, paciente: { nombre: pac[0].nombre || null, email: pac[0].email || null, tel: pac[0].telefono || null } });
+        }
+        // 2. Fallback: buscar en citas por rut_paciente
+        const rCita = await fetch(
+          `${SUPABASE_URL}/rest/v1/citas?rut_paciente=ilike.${encodeURIComponent(rut)}&cliente_id=eq.${cid}&order=created_at.desc&limit=1&select=nombre_paciente,email_paciente,tel_paciente`,
+          { headers: sh }
+        );
+        const citas = await rCita.json();
+        if (Array.isArray(citas) && citas.length > 0) {
+          const c = citas[0];
+          return res.json({ ok: true, paciente: { nombre: c.nombre_paciente || null, email: c.email_paciente || null, tel: c.tel_paciente || null } });
+        }
+        return res.json({ ok: true, paciente: null });
+      } catch(e) {
+        console.error('rut-lookup error:', e.message);
+        return res.status(500).json({ error: 'Error interno' });
+      }
+    }
+
     // Lookup por número de reserva AT-XXXXXXXX
     const { ref, cid: refCid } = req.query;
     if (ref && refCid) {
