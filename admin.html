@@ -2434,17 +2434,8 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
 <div id="v-contactos" style="display:none">
   <div class="crm-wrap">
 
-    <!-- Header con KPI cards -->
+    <!-- KPI stats bar (sin título redundante) -->
     <div class="crm-topbar">
-      <div class="crm-header-row">
-        <div class="crm-title">
-          <div class="crm-title-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-          </div>
-          Contactos
-          <span id="cont-badge-atencion" class="crm-title-badge"></span>
-        </div>
-      </div>
       <div class="crm-kpi-row">
         <div class="crm-kpi total">
           <div class="crm-kpi-top">
@@ -19673,6 +19664,8 @@ let _contData = [];
 let _contSelected = null;
 let _crmCanalFilter = '';
 let _crmSoloAtencion = false;
+let _crmPage = 0;
+const _CRM_PER_PAGE = 10;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 const _AV_COLORS = ['#6C5CE4','#5b4fc9','#7c6ef0','#4338ca','#0d9488','#0891b2','#7c3aed','#9333ea','#c026d3','#0284c7'];
@@ -20072,6 +20065,7 @@ function crmToggleAtencion(btn) {
   crmFilter();
 }
 function crmFilter() {
+  _crmPage = 0;
   const q = (document.getElementById('cont-search')?.value || '').toLowerCase();
   const filtered = _contData.filter(c => {
     if (_crmCanalFilter && _crmCanonCanal(c) !== _crmCanalFilter) return false;
@@ -20114,6 +20108,23 @@ function _crmListRender(items) {
     </div>`;
     return;
   }
+  // Paginación
+  const totalPages = Math.ceil(items.length / _CRM_PER_PAGE);
+  if (_crmPage >= totalPages) _crmPage = Math.max(0, totalPages - 1);
+  const pageItems = items.slice(_crmPage * _CRM_PER_PAGE, (_crmPage + 1) * _CRM_PER_PAGE);
+  const desde = _crmPage * _CRM_PER_PAGE + 1;
+  const hasta = Math.min((_crmPage + 1) * _CRM_PER_PAGE, items.length);
+
+  const paginationBar = totalPages > 1 ? `
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--b1);background:var(--surface-hi)">
+    <span style="font-size:12px;color:var(--t3)">${desde}–${hasta} de ${items.length} contactos</span>
+    <div style="display:flex;gap:4px;align-items:center">
+      <button onclick="_crmGoPage(${_crmPage-1},event)" ${_crmPage===0?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid var(--b1);background:none;color:${_crmPage===0?'var(--t4)':'var(--t2)'};cursor:${_crmPage===0?'default':'pointer'};font-size:12px;font-family:var(--font)">‹ Anterior</button>
+      ${Array.from({length:totalPages},(_,i)=>`<button onclick="_crmGoPage(${i},event)" style="width:28px;height:28px;border-radius:6px;border:1px solid ${i===_crmPage?'var(--a)':'var(--b1)'};background:${i===_crmPage?'var(--adim)':'none'};color:${i===_crmPage?'var(--a)':'var(--t2)'};font-size:12px;font-weight:${i===_crmPage?700:400};cursor:pointer;font-family:var(--font)">${i+1}</button>`).join('')}
+      <button onclick="_crmGoPage(${_crmPage+1},event)" ${_crmPage===totalPages-1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid var(--b1);background:none;color:${_crmPage===totalPages-1?'var(--t4)':'var(--t2)'};cursor:${_crmPage===totalPages-1?'default':'pointer'};font-size:12px;font-family:var(--font)">Siguiente ›</button>
+    </div>
+  </div>` : '';
+
   wrap.innerHTML = `<table class="crm-table">
     <thead class="crm-thead"><tr>
       <th class="crm-th">Contacto</th>
@@ -20122,7 +20133,7 @@ function _crmListRender(items) {
       <th class="crm-th">Último mensaje</th>
       <th class="crm-th" style="text-align:right">Estado</th>
     </tr></thead>
-    <tbody>${items.map(c => {
+    <tbody>${pageItems.map(c => {
       const canal = _crmCanonCanal(c);
       const isUrg = c.requiere_atencion;
       const contacto = c.telefono || c.email || c.canal_user_id || '—';
@@ -20140,7 +20151,13 @@ function _crmListRender(items) {
         <td class="crm-td">${_crmLeadBadge(c)}</td>
       </tr>`;
     }).join('')}</tbody>
-  </table>`;
+  </table>${paginationBar}`;
+}
+function _crmGoPage(page, e) {
+  if (e) e.stopPropagation();
+  _crmPage = page;
+  crmFilter();
+  document.getElementById('crm-list-wrap')?.closest('.crm-table-wrap')?.scrollTo(0,0);
 }
 
 function _crmSidebarRender(items) {
