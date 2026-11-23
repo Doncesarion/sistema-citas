@@ -231,7 +231,7 @@ export default async function handler(req, res) {
           return cli?.canales_meta?.wa_token || null;
         } catch { return null; }
       })() : null;
-      if (mediaId && waToken && process.env.OPENAI_API_KEY) {
+      if (mediaId && waToken && process.env.GROQ_API_KEY) {
         try {
           // 1. Obtener URL del archivo de audio
           const urlRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
@@ -243,14 +243,14 @@ export default async function handler(req, res) {
             headers: { Authorization: `Bearer ${waToken}` }
           });
           const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
-          // 3. Transcribir con Whisper
+          // 3. Transcribir con Groq Whisper (gratis, open source)
           const form = new FormData();
           form.append('file', new Blob([audioBuffer], { type: 'audio/ogg' }), 'audio.ogg');
-          form.append('model', 'whisper-1');
+          form.append('model', 'whisper-large-v3-turbo');
           form.append('language', 'es');
-          const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+            headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
             body: form
           });
           const whisperData = await whisperRes.json();
@@ -264,7 +264,7 @@ export default async function handler(req, res) {
           return res.status(200).end();
         }
       } else {
-        return res.status(200).end(); // sin key de OpenAI, ignorar audio por ahora
+        return res.status(200).end(); // sin GROQ_API_KEY, ignorar audio por ahora
       }
     } else {
       mensaje = msg.text.body;
