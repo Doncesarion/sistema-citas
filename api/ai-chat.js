@@ -131,7 +131,7 @@ attempo es una plataforma chilena de agendamiento online con chatbot IA. Los pac
 PLANES Y PRECIOS:
 - Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
 - Plan Pro: $44.990/mes + IVA — todo lo anterior + chatbot IA (Attia) que responde y agenda en WhatsApp, Instagram y Messenger.
-- Plan Clínica IA: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro.
+- Plan Business: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro.
 - Todos incluyen 12 días de prueba gratis, sin tarjeta de crédito.
 
 PARA QUIÉN ES:

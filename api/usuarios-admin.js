@@ -337,7 +337,7 @@ export default async function handler(req, res) {
 
       // Email de bienvenida
       if (process.env.RESEND_API_KEY) {
-        const planLabel = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
+        const planLabel = { inicio:'Inicio', pro:'Pro', clinica_ia:'Business', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
         const loginUrl = `${BASE_URL}/login`;
         try {
           const emailResp = await fetch('https://api.resend.com/emails', {

@@ -385,7 +385,7 @@ async function handleSubPayment(req, res, clienteIdOverride = null) {
     pro:       { mensual: 44990,  anual: 431900  },
     clinica_ia:{ mensual: 119990, anual: 1151900 }
   };
-  const PLAN_LABELS_SUB = { inicio: 'Plan Inicio', pro: 'Plan Pro', clinica_ia: 'Plan Clínica IA' };
+  const PLAN_LABELS_SUB = { inicio: 'Plan Inicio', pro: 'Plan Pro', clinica_ia: 'Plan Business' };
   const tipoPlanKey = (req.body?.tipo_plan || 'inicio').toLowerCase().replace(/ /g,'_');
   const montoDefault = (PRECIOS[tipoPlanKey] || PRECIOS.inicio)[plan] || 24990;
   const montoReq = req.body.monto ? parseInt(req.body.monto) : null;
@@ -1078,7 +1078,7 @@ async function handleWebpaySubReturn(req, res) {
     } catch(e) {}
   }
 
-  const PLAN_LABELS = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Clínica IA' };
+  const PLAN_LABELS = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Business' };
   const planLabel = `${PLAN_LABELS[tipo_plan] ? PLAN_LABELS[tipo_plan] + ' ' : ''}${plan === 'anual' ? 'Anual' : 'Mensual'}`;
   const dtePdf = await emitirBoletaAttempo(monto, `Suscripción attempo ${planLabel}`, cli?.nombre_negocio).catch(() => null);
 
@@ -1454,7 +1454,7 @@ async function confirmMPSubPayment(paymentId, extRef) {
   } catch(e) { console.error('mp_sub_confirm rpc error:', e.message); return; }
 
   if (cli?.email && process.env.RESEND_API_KEY) {
-    const PLAN_LABELS_SUB = { inicio: 'Plan Inicio', pro: 'Plan Pro', clinica_ia: 'Plan Clínica IA' };
+    const PLAN_LABELS_SUB = { inicio: 'Plan Inicio', pro: 'Plan Pro', clinica_ia: 'Plan Business' };
     const planLabel = (PLAN_LABELS_SUB[tipo_plan] || 'attempo') + ' ' + (plan === 'anual' ? 'anual' : 'mensual');
     const montoFmt  = '$' + Math.round(monto).toLocaleString('es-CL');
     const htmlOk = `<div style="font-family:Inter,sans-serif;max-width:520px;margin:auto;padding:32px 24px"><img src="${BASE_URL}/logo_attempo.png" alt="attempo" style="height:36px;margin-bottom:28px"><h2 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 8px">¡Pago recibido!</h2><p style="font-size:14px;color:#6b7280;margin:0 0 24px">Hola ${htmlEscape(cli.nombre_negocio)}, tu suscripción <strong>${htmlEscape(planLabel)}</strong> fue activada por <strong style="color:#6C5CE4">${montoFmt}</strong>.</p><a href="${BASE_URL}/admin.html" style="display:inline-block;padding:11px 24px;background:#6C5CE4;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">Ir a mi panel →</a><p style="margin-top:32px;color:#bbb;font-size:11px">attempo · contacto@attempo.cl</p></div>`;

@@ -9530,7 +9530,7 @@ async function openProfile() {
           }
         }
         // Mostrar tipo_plan legible y actualizar restricciones sin re-login
-        const tipoLabels = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
+        const tipoLabels = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Business', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
         if (tipoBadgeEl && d.tipo_plan) tipoBadgeEl.textContent = tipoLabels[d.tipo_plan] || d.tipo_plan;
         if (d.tipo_plan) {
           try {
@@ -12459,7 +12459,7 @@ function salirImpersonacion() {
           <div id="gp-card-clinica" onclick="gpSelectTipo('clinica_ia')" style="grid-column:1/-1;padding:12px 14px;border-radius:var(--r);border:2px solid var(--b1);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between;gap:10px">
             <div>
               <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-size:13px;font-weight:600;color:var(--t1)">Clínica IA</span>
+                <span style="font-size:13px;font-weight:600;color:var(--t1)">Business</span>
                 <span style="font-size:9px;font-weight:700;background:linear-gradient(135deg,var(--a),var(--a3));color:#fff;padding:1px 6px;border-radius:99px">Automatización total</span>
               </div>
               <div style="font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4">Chatbot agenda, cobra y recupera citas 24/7</div>
@@ -15470,7 +15470,7 @@ async function cargarMiPlan() {
     const rows = await r.json();
     const d = rows?.[0];
     if (!d) { loadingEl.textContent = 'Sin datos de plan'; return; }
-    const tipoLabels = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
+    const tipoLabels = { inicio:'Agenda Esencial', pro:'Pro', clinica_ia:'Business', chatbot_2k:'Attia Starter', chatbot_5k:'Attia Pro', chatbot_8k:'Attia Business', chatbot_2k_agenda:'Attia Starter + Agenda', chatbot_5k_agenda:'Attia Pro + Agenda', chatbot_8k_agenda:'Attia Business + Agenda' };
     const tipoBadgeEl = document.getElementById('cfg-tipo-plan-badge');
     if (tipoBadgeEl && d.tipo_plan) tipoBadgeEl.textContent = tipoLabels[d.tipo_plan] || d.tipo_plan;
     // Actualizar localStorage y módulos si cambió
@@ -15480,7 +15480,7 @@ async function cargarMiPlan() {
         if (stored.tipo_plan !== d.tipo_plan) { stored.tipo_plan = d.tipo_plan; localStorage.setItem('attempo_user', JSON.stringify(stored)); aplicarRestriccionesPlan(); }
       } catch(_) {}
     }
-    const planLabel = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Chatbot 2k', chatbot_5k:'Chatbot 5k', chatbot_8k:'Chatbot 8k', mensual:'Mensual', anual:'Anual', demo:'Demo', permanente:'Permanente' };
+    const planLabel = { inicio:'Inicio', pro:'Pro', clinica_ia:'Business', chatbot_2k:'Chatbot 2k', chatbot_5k:'Chatbot 5k', chatbot_8k:'Chatbot 8k', mensual:'Mensual', anual:'Anual', demo:'Demo', permanente:'Permanente' };
     document.getElementById('plan-nombre').textContent = planLabel[d.plan] || (d.plan ? d.plan.charAt(0).toUpperCase() + d.plan.slice(1) : 'Pro');
     const fechaEl = document.getElementById('plan-vence');
     const diasEl  = document.getElementById('plan-dias-badge');
@@ -15532,7 +15532,7 @@ async function abrirHistorialPagosPropios() {
       content.innerHTML = '<div style="padding:48px;text-align:center;color:var(--t4);font-size:13px">Sin pagos registrados</div>';
       return;
     }
-    const planLabel = { mensual:'Mensual', anual:'Anual', demo:'Demo', inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA' };
+    const planLabel = { mensual:'Mensual', anual:'Anual', demo:'Demo', inicio:'Inicio', pro:'Pro', clinica_ia:'Business' };
     const platLabel = { flow:'Flow.cl', transferencia:'Transferencia', webpay:'Webpay', mercadopago:'Mercado Pago' };
     const rows = pagos.map((p,i) => {
       const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'}) : '—';
@@ -15579,7 +15579,7 @@ async function descargarVoucher(idx) {
 }
 
 function abrirInvoice(p, cli) {
-  const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Clínica IA' };
+  const planLabel = { mensual:'Plan Mensual', anual:'Plan Anual', demo:'Demo', inicio:'Plan Inicio', pro:'Plan Pro', clinica_ia:'Plan Business' };
   const platLabel = { flow:'Flow.cl', transferencia:'Transferencia bancaria', webpay:'Webpay', mercadopago:'Mercado Pago' };
   const dt      = p.created_at ? new Date(p.created_at) : new Date();
   const dias    = p.plan === 'anual' ? 365 : 30;
@@ -16914,7 +16914,7 @@ async function cargarStatsIA() {
   const limiteRec = REC_LIMITE[plan] || REC_LIMITE.inicio;
 
   const _usoPanel = document.getElementById('sb-uso-panel');
-  const _planLabels = { inicio:'Inicio', pro:'Pro', clinica_ia:'Clínica IA', chatbot_2k:'Chatbot 2K', chatbot_5k:'Chatbot 5K', chatbot_8k:'Chatbot 8K', chatbot_2k_agenda:'Chatbot 2K', chatbot_5k_agenda:'Chatbot 5K', chatbot_8k_agenda:'Chatbot 8K', demo:'Demo' };
+  const _planLabels = { inicio:'Inicio', pro:'Pro', clinica_ia:'Business', chatbot_2k:'Chatbot 2K', chatbot_5k:'Chatbot 5K', chatbot_8k:'Chatbot 8K', chatbot_2k_agenda:'Chatbot 2K', chatbot_5k_agenda:'Chatbot 5K', chatbot_8k_agenda:'Chatbot 8K', demo:'Demo' };
   const badge = document.getElementById('uso-plan-badge');
   if (badge) badge.textContent = _planLabels[plan] || plan;
 

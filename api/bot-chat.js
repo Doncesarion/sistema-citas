@@ -130,6 +130,25 @@ export default async function handler(req, res) {
     }).catch(e => console.error('bot-chat: error tracking cliente:', e.message));
   }
 
+  // Auto-registrar contacto en CRM (fire-and-forget, no bloquea el flujo)
+  {
+    const _now = new Date().toISOString();
+    const _crmPayload = {
+      cliente_id,
+      canal,
+      canal_user_id,
+      ultimo_contacto: _now,
+      actualizado_en: _now,
+    };
+    if (canal_user_name) _crmPayload.nombre = canal_user_name;
+    if (canal === 'whatsapp') _crmPayload.telefono = canal_user_id;
+    fetch(`${SUPABASE_URL}/rest/v1/contactos?on_conflict=cliente_id%2Ccanal%2Ccanal_user_id`, {
+      method: 'POST',
+      headers: { ...shJson, Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(_crmPayload)
+    }).catch(() => {});
+  }
+
   // ── Capturar lead + pausar bot + alertar al responsable ──────────────────
   async function ejecutarCapturarLead(params, emailDestino, conversacion = []) {
     const { nombre, telefono, email, interes, resumen } = params;
@@ -247,6 +266,95 @@ export default async function handler(req, res) {
           }
         }
       } catch(e) { /* silencioso */ }
+    }
+
+    return { ok: true };
+  }
+
+  // ── Crear o actualizar contacto en CRM ───────────────────────────────────
+  async function ejecutarCrearOActualizarContacto(params) {
+    const { nombre, email, telefono, notas } = params;
+    const telefonoFinal = telefono || (canal === 'whatsapp' ? canal_user_id : null);
+    const now = new Date().toISOString();
+    try {
+      const existing = await fetch(
+        `${SUPABASE_URL}/rest/v1/contactos?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&limit=1`,
+        { headers: sh }
+      ).then(r => r.json());
+
+      const patch = { actualizado_en: now, ultimo_contacto: now };
+      if (nombre) patch.nombre = nombre;
+      if (email) patch.email = email;
+      if (telefonoFinal) patch.telefono = telefonoFinal;
+      if (notas) patch.notas = notas;
+
+      if (Array.isArray(existing) && existing.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/contactos?id=eq.${existing[0].id}`, {
+          method: 'PATCH',
+          headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify(patch)
+        });
+        return { ok: true, action: 'updated', contacto_id: existing[0].id };
+      } else {
+        const created = await fetch(`${SUPABASE_URL}/rest/v1/contactos`, {
+          method: 'POST',
+          headers: { ...shJson, Prefer: 'return=representation' },
+          body: JSON.stringify({ cliente_id, canal, canal_user_id, ...patch })
+        }).then(r => r.json());
+        return { ok: true, action: 'created', contacto_id: Array.isArray(created) ? created[0]?.id : created?.id };
+      }
+    } catch (e) {
+      console.error('crear_o_actualizar_contacto error:', e.message);
+      return { ok: false };
+    }
+  }
+
+  // ── Derivar a humano (CRM-aware, reemplaza capturar_lead en modo atencion) ─
+  async function ejecutarDerivarHumano(params, conversacion = []) {
+    const { motivo, resumen, nombre: paramNombre, telefono: paramTelefono } = params;
+    const nombreFinal = paramNombre || canal_user_name || null;
+    const telefonoFinal = paramTelefono || (canal === 'whatsapp' ? canal_user_id : null);
+
+    // 1. Capturar lead (sistema existente)
+    await ejecutarCapturarLead(
+      { nombre: nombreFinal, telefono: telefonoFinal, interes: motivo, resumen },
+      emailNegocio,
+      conversacion
+    );
+
+    // 2. Buscar o crear contacto para linkear la derivación
+    let contactoId = null;
+    try {
+      const ex = await fetch(
+        `${SUPABASE_URL}/rest/v1/contactos?cliente_id=eq.${cliente_id}&canal=eq.${encodeURIComponent(canal)}&canal_user_id=eq.${encodeURIComponent(canal_user_id)}&select=id&limit=1`,
+        { headers: sh }
+      ).then(r => r.json());
+      if (Array.isArray(ex) && ex[0]) {
+        contactoId = ex[0].id;
+        fetch(`${SUPABASE_URL}/rest/v1/contactos?id=eq.${contactoId}`, {
+          method: 'PATCH',
+          headers: { ...shJson, Prefer: 'return=minimal' },
+          body: JSON.stringify({ requiere_atencion: true, actualizado_en: new Date().toISOString() })
+        }).catch(() => {});
+      }
+    } catch(_) {}
+
+    // 3. Crear registro de derivación
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/derivaciones`, {
+        method: 'POST',
+        headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          cliente_id,
+          contacto_id: contactoId,
+          conversacion_id: sessionId,
+          motivo: motivo || 'Solicitud de atención humana',
+          mensaje_contexto: resumen || null,
+          estado: 'pendiente'
+        })
+      });
+    } catch (e) {
+      console.error('derivar_humano: error guardando derivación:', e.message);
     }
 
     return { ok: true };
@@ -375,7 +483,7 @@ attempo es una plataforma de agendamiento online para profesionales y clínicas 
 PLANES Y PRECIOS:
 - Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
 - Plan Pro: $44.990/mes + IVA — todo lo anterior + chatbot IA (Attia) que responde consultas y agenda citas en WhatsApp, Instagram y Messenger de forma automática.
-- Plan Clínica IA: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro. Para clínicas y centros.
+- Plan Business: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro. Para clínicas y centros.
 - Todos incluyen 12 días de prueba gratis.
 
 PARA QUIÉN ES:
@@ -694,9 +802,11 @@ RESPUESTA TRAS CREAR CITA (solo después de que crear_cita retorne ok:true):
 
 ESCALACIÓN A HUMANO:
 Si el paciente pide hablar directamente con una persona del equipo o dice explícitamente que no quiere seguir con el bot:
-- Usa INMEDIATAMENTE la herramienta capturar_lead con los datos disponibles (nombre, teléfono si es WhatsApp, motivo).
+- Usa INMEDIATAMENTE la herramienta derivar_humano con los datos disponibles (nombre, teléfono si es WhatsApp, motivo).
 - Después di únicamente: "${botConfig.mensaje_traspaso || 'Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad.'}"
 - No ofrezcas más alternativas ni hagas preguntas adicionales.
+
+CRM: Cuando el paciente diga su nombre, email o teléfono, llama crear_o_actualizar_contacto para guardar esa información. Hazlo en paralelo con la respuesta — no lo anuncies al paciente.
 
 REGLAS GENERALES:
 - Una sola pregunta por mensaje.
@@ -762,6 +872,34 @@ REGLAS GENERALES:
           resumen:  { type: 'string', description: 'Resumen breve de la conversación para el equipo' }
         },
         required: []
+      }
+    },
+    {
+      name: 'crear_o_actualizar_contacto',
+      description: 'Guarda o actualiza el perfil del contacto en el CRM. Llama esta herramienta cuando el paciente diga su nombre, email o teléfono durante la conversación, para enriquecer su ficha.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          nombre:   { type: 'string', description: 'Nombre completo del contacto' },
+          email:    { type: 'string', description: 'Email del contacto' },
+          telefono: { type: 'string', description: 'Teléfono — si viene por WhatsApp ya está disponible' },
+          notas:    { type: 'string', description: 'Contexto relevante sobre el contacto o su consulta' }
+        },
+        required: []
+      }
+    },
+    {
+      name: 'derivar_humano',
+      description: 'Deriva la conversación a un humano del equipo. Pausa el bot, registra la derivación en el CRM y notifica al responsable. Usa esta herramienta SIEMPRE en lugar de capturar_lead cuando el modo sea atencion.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          motivo:   { type: 'string', description: 'Razón de la derivación — qué necesita o qué preguntó' },
+          resumen:  { type: 'string', description: 'Resumen breve de la conversación para el equipo' },
+          nombre:   { type: 'string', description: 'Nombre del contacto si se conoce' },
+          telefono: { type: 'string', description: 'Teléfono si se conoce' }
+        },
+        required: ['motivo']
       }
     }
   ];
@@ -1202,6 +1340,12 @@ REGLAS GENERALES:
     }
     if (nombre === 'capturar_lead') {
       return await ejecutarCapturarLead(params, emailNegocio, [...historial, { role: 'user', content: mensaje }]);
+    }
+    if (nombre === 'crear_o_actualizar_contacto') {
+      return await ejecutarCrearOActualizarContacto(params);
+    }
+    if (nombre === 'derivar_humano') {
+      return await ejecutarDerivarHumano(params, [...historial, { role: 'user', content: mensaje }]);
     }
     return { error: 'Herramienta no reconocida' };
   }
