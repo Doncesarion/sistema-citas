@@ -1366,6 +1366,42 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 .onb-step.next:hover{box-shadow:0 4px 14px rgba(108,92,228,0.42);transform:translateY(-1px)}
 .onb-step.pending{color:var(--t4);background:rgba(108,92,228,0.04)}
 .onb-check{font-size:11px;font-weight:700;flex-shrink:0}
+
+/* ══ VENTAS v2 ═══════════════════════════════════════════════════════ */
+#v-ventas .vp{background:#F8F7FF}
+#v-ventas .sg{gap:14px;margin-bottom:24px}
+#v-ventas .sc{border-radius:16px;border:1px solid rgba(108,92,228,.1);padding:22px;box-shadow:0 2px 10px rgba(108,92,228,.06);transition:transform .2s,box-shadow .2s}
+#v-ventas .sc::before{top:0;left:0;right:0;bottom:auto;height:3px;width:100%;border-radius:16px 16px 0 0;opacity:1}
+#v-ventas .sc::after{display:none}
+#v-ventas .sc:nth-child(1){background:linear-gradient(145deg,#fff 55%,#f5f3ff)}
+#v-ventas .sc:nth-child(2){background:linear-gradient(145deg,#fff 55%,#f0fdf4)}
+#v-ventas .sc:nth-child(3){background:linear-gradient(145deg,#fff 55%,#fffbeb)}
+#v-ventas .sc:nth-child(4){background:linear-gradient(145deg,#fff 55%,#eff6ff)}
+#v-ventas .sc:nth-child(1)::before{background:linear-gradient(90deg,#6C5CE4,#9d8ff7)}
+#v-ventas .sc:nth-child(2)::before{background:linear-gradient(90deg,#10b981,#34d399)}
+#v-ventas .sc:nth-child(3)::before{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+#v-ventas .sc:nth-child(4)::before{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+#v-ventas .sc:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(108,92,228,.13)}
+#v-ventas .sc-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#a0aec0;margin-bottom:10px}
+#v-ventas .sc-val{font-size:30px;font-weight:800;letter-spacing:-.05em;line-height:1;margin-bottom:6px}
+#v-ventas .sc-val .hi{background:linear-gradient(135deg,#6C5CE4,#4F3EE0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#v-ventas .sc-delta{font-size:11px;font-weight:500;color:#9ca3af}
+#v-ventas .minibars{margin-top:14px;height:22px;gap:3px}
+#v-ventas .mb{background:rgba(108,92,228,.08);border-radius:3px 3px 0 0}
+#v-ventas .mb.on{background:linear-gradient(180deg,#9d8ff7,#6C5CE4)}
+#v-ventas .tw{border-radius:16px;border:1px solid rgba(0,0,0,.07);box-shadow:0 1px 6px rgba(0,0,0,.04);overflow:hidden;margin-bottom:16px}
+#v-ventas .tw table{border-collapse:collapse;width:100%}
+#v-ventas .tw thead th{padding:11px 18px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;background:#F8F7FF;border-bottom:1px solid rgba(0,0,0,.06);white-space:nowrap}
+#v-ventas .tw tbody td{padding:13px 18px;font-size:13px;border-bottom:1px solid rgba(0,0,0,.04);vertical-align:middle}
+#v-ventas .tw tbody tr:last-child td{border-bottom:none}
+#v-ventas .tw tbody tr:hover td{background:rgba(108,92,228,.025);transition:background .1s}
+#v-ventas .thb{padding:16px 22px;border-bottom:1px solid rgba(0,0,0,.06);background:#fff}
+#v-ventas .tt{font-size:14px;font-weight:700;letter-spacing:-.01em;color:#111827}
+#v-ventas .card{border-radius:16px;border:1px solid rgba(0,0,0,.07);box-shadow:0 1px 6px rgba(0,0,0,.04);background:#fff;margin-top:0}
+#v-ventas .vh{font-size:22px;font-weight:800;letter-spacing:-.04em;padding-bottom:18px;border-bottom:1px solid rgba(0,0,0,.06);margin-bottom:24px;color:#111827}
+#v-ventas .btn-new{background:linear-gradient(135deg,#6C5CE4,#4F3EE0);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(108,92,228,.35)}
+#v-ventas .btn-sm{border-radius:8px;font-size:12px;font-weight:500;border-color:rgba(0,0,0,.1);color:#374151}
+#v-ventas .btn-sm:hover{background:rgba(108,92,228,.06);border-color:rgba(108,92,228,.25);color:#6C5CE4}
 </style>
 </head>
 <style id="pre-route-style">body{opacity:0}</style>
@@ -2363,7 +2399,11 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
     <button onclick="sv('liquidaciones')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Transferencias</button>
   </div>
   <div class="vp">
-    <div class="vh">Ventas
+    <div class="vh">
+      <div>
+        <div>Ingresos</div>
+        <div style="font-size:13px;font-weight:400;color:#9ca3af;letter-spacing:0;margin-top:3px" id="v-periodo-lbl">Este mes</div>
+      </div>
       <button class="btn-new" onclick="openRegistrarPago()">+ Registrar pago</button>
     </div>
 
@@ -2396,7 +2436,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
     <div class="tw" style="margin-bottom:16px">
       <div class="thb">
         <span class="tt">Por profesional</span>
-        <span style="font-size:12px;color:var(--t3)" id="v-periodo-lbl">Este mes</span>
+        <span style="font-size:12px;color:var(--t3)">Este mes</span>
       </div>
       <table>
         <thead><tr><th>Profesional</th><th style="text-align:center">Citas</th><th>Cobrado</th><th>Pendiente</th><th>Ticket prom.</th><th style="min-width:100px">Participación</th></tr></thead>
