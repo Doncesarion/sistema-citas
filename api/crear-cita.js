@@ -1208,7 +1208,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
     <tr><td style="text-align:center;">\
       <p style="margin:0 0 12px;color:#6b7280;font-size:13px;">Elige cómo pagar para confirmar tu hora:</p>\
-      ${mp_url ? `<a href="${htmlEscape(mp_url)}" target="_blank" style="display:inline-block;margin-bottom:8px;padding:13px 32px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;width:240px;box-sizing:border-box;">Pagar con Mercado Pago →</a><br>` : ''}\
+      ${mp_url ? `<a href="${htmlEscape(mp_url)}" target="_blank" style="display:inline-block;margin-bottom:8px;text-decoration:none;border:0"><img src="${BASE_URL}/mp-btn.png" width="300" height="51" alt="Pagar con Mercado Pago" style="display:block;border:0;border-radius:8px"></a><br>` : ''}\
       ${klap_url ? `<a href="${htmlEscape(klap_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#6C3AFA,#4B2FD0);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;width:240px;box-sizing:border-box;">Pagar con tarjeta →</a>` : ''}\
     </td></tr>\
   </table>` : ''}
