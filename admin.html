@@ -1264,7 +1264,7 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 .mod-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}
 .mod-handle{cursor:grab;display:flex;align-items:center;gap:7px;user-select:none;font-size:13px;font-weight:600;color:var(--t1)}
 .mod-handle:active{cursor:grabbing}
-.mod-handle .grip{opacity:.25;flex-shrink:0}
+.mod-handle .grip{opacity:.4;flex-shrink:0}
 .mod-body{padding:0 16px 16px}
 
 /* ── HEATMAP ── */
@@ -1398,6 +1398,11 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 #v-ventas .btn-new{background:linear-gradient(135deg,#6C5CE4,#4a38b0)!important;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(108,92,228,.42)!important;border:none!important}
 #v-ventas .btn-sm{border-radius:8px;border-color:var(--b2)!important}
 #v-ventas .btn-sm:hover{background:var(--adim)!important;border-color:var(--a)!important;color:var(--a)}
+/* Period pills in ventas header */
+.vpill{padding:4px 11px;border-radius:99px;border:1px solid var(--b2);background:none;color:var(--t3);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .13s;white-space:nowrap}
+.vpill:hover{border-color:var(--a);color:var(--a);background:var(--adim)}
+.vpill.on{background:var(--a);color:#fff;border-color:var(--a);font-weight:600}
+[data-theme=dark] .vpill.on{background:var(--a);color:#fff}
 
 /* ═══════════════════════════════════════════════════════════
    DESIGN REFINEMENTS v3.1 — Polish global todas las vistas
@@ -2572,7 +2577,14 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
     <div class="vh">
       <div>
         <div>Ingresos</div>
-        <div style="font-size:13px;font-weight:400;color:#9ca3af;letter-spacing:0;margin-top:3px" id="v-periodo-lbl">Este mes</div>
+        <div style="display:flex;gap:3px;margin-top:10px;flex-wrap:wrap" id="v-periodo-pills">
+          <button onclick="filterVentas('hoy',null);vpillSync('hoy')"   id="vpill-hoy"  class="vpill">Hoy</button>
+          <button onclick="filterVentas('ayer',null);vpillSync('ayer')" id="vpill-ayer" class="vpill">Ayer</button>
+          <button onclick="filterVentas('sem',null);vpillSync('sem')"   id="vpill-sem"  class="vpill">Semana</button>
+          <button onclick="filterVentas('mes',null);vpillSync('mes')"   id="vpill-mes"  class="vpill on">Mes</button>
+          <button onclick="filterVentas('3m',null);vpillSync('3m')"     id="vpill-3m"   class="vpill">3 meses</button>
+          <button onclick="filterVentas('1y',null);vpillSync('1y')"     id="vpill-1y"   class="vpill">Año</button>
+        </div>
       </div>
       <button class="btn-new" onclick="openRegistrarPago()">+ Registrar pago</button>
     </div>
@@ -2582,7 +2594,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
       <div class="sc">
         <div class="sc-lbl" id="vkpi-lbl1">Ingresado</div>
         <div class="sc-val"><span style="color:var(--a)">$</span><span class="hi" id="vkpi-ing">—</span></div>
-        <div class="sc-delta" id="vkpi-d1">Cargando...</div>
+        <div class="sc-delta" id="vkpi-d1">—</div>
         <div class="minibars"><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb"></div><div class="mb on"></div><div class="mb on"></div><div class="mb on"></div></div>
       </div>
       <div class="sc">
@@ -2611,7 +2623,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
       <table>
         <thead><tr><th>Profesional</th><th style="text-align:center">Citas</th><th>Cobrado</th><th>Pendiente</th><th>Ticket prom.</th><th style="min-width:100px">Participación</th></tr></thead>
         <tbody id="v-prof-tbody">
-          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t3);font-size:13px">Cargando...</td></tr>
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t4);font-size:13px">—</td></tr>
         </tbody>
       </table>
     </div>
@@ -11899,9 +11911,15 @@ function ventasVerMas() {
   renderVentasTable();
 }
 
+function vpillSync(p) {
+  document.querySelectorAll('.vpill').forEach(b => b.classList.remove('on'));
+  const el = document.getElementById('vpill-' + p);
+  if (el) el.classList.add('on');
+}
 function filterVentas(p, btn) {
   document.querySelectorAll('#sb-ventas .sb-section:first-child .sbi').forEach(t => t.classList.remove('on'));
   if (btn) btn.classList.add('on');
+  vpillSync(p);
   _ventasPeriodo = p;
   _ventasPage    = 0;
   const picker = document.getElementById('vsb-custom-dates');
@@ -12333,7 +12351,7 @@ async function enviarLinkMPPago(cita_id, nombre) {
 async function enviarLinkKlapPago(cita_id, nombre) {
   if (!cita_id) return;
   try {
-    const r = await fetch('/api/klap-init', { method: 'POST', headers: { ..._citasH(), 'Content-Type': 'application/json' }, body: JSON.stringify({ cita_id }) });
+    const r = await fetch('/api/flow?tipo=klap_init', { method: 'POST', headers: { ..._citasH(), 'Content-Type': 'application/json' }, body: JSON.stringify({ cita_id }) });
     const d = await r.json();
     if (!r.ok || !d.ok) { toastErr(d.error || 'Error Klap'); return; }
     toast('Link Klap enviado');
@@ -13076,20 +13094,31 @@ async function getClienteId() {
 async function cargarVentas() {
   const cid = await getClienteId();
   if (!cid) { console.warn('[cargarVentas] sin cid'); return; }
-  const r = await fetch(`/api/slots?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
-  const citas = await r.json();
-  if (!Array.isArray(citas)) {
-    if (_esErrorAuth(r.status, citas)) { _sesionExpirada(); return; }
-    console.error('[cargarVentas] respuesta no-array:', JSON.stringify(citas)); return;
+  try {
+    const r = await fetch(`/api/slots?select=*,especialistas(nombre)&order=fecha.desc,hora.desc`, { headers: _citasH() });
+    const citas = await r.json();
+    if (!Array.isArray(citas)) {
+      if (_esErrorAuth(r.status, citas)) { _sesionExpirada(); return; }
+      console.error('[cargarVentas] respuesta no-array:', JSON.stringify(citas));
+      _ventasError(); return;
+    }
+    _allVentas  = citas;
+    window._citasAgenda = window._citasAgenda || citas;
+    _ventasPage = 0;
+    _renderVentasSidebarProfs();
+    renderVentasKPIs();
+    renderVentasProfesionales();
+    renderVentasTable();
+    renderVentasChart();
+  } catch(e) {
+    console.error('[cargarVentas] error:', e);
+    _ventasError();
   }
-  _allVentas  = citas;
-  window._citasAgenda = window._citasAgenda || citas;
-  _ventasPage = 0;
-  _renderVentasSidebarProfs();
-  renderVentasKPIs();
-  renderVentasProfesionales();
-  renderVentasTable();
-  renderVentasChart();
+}
+function _ventasError() {
+  ['vkpi-ing','vkpi-ticket','vkpi-pend','vkpi-tasa'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+  ['vkpi-d1','vkpi-d-ticket','vkpi-d3','vkpi-d-tasa'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = 'Error al cargar'; });
+  const tb = document.getElementById('v-prof-tbody'); if (tb) tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--red);font-size:12px">Error al cargar datos</td></tr>';
 }
 
 function _renderVentasSidebarProfs() {
