@@ -361,7 +361,7 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Carga en paralelo: botConfig + knowledge + negocio/sedes + especialistas + paciente ──
-  let botConfig = { nombre_bot: 'Valentina', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '' };
+  let botConfig = { nombre_bot: 'Valentina', genero: 'femenino', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '', modos: [], modo_activo: null };
   let chatbotKnowledge = [];
   let sedesContexto = '';
   let pacienteContexto = '';
@@ -396,6 +396,7 @@ export default async function handler(req, res) {
     const [bc] = Array.isArray(rawBotCfg) ? rawBotCfg : [];
     if (bc) {
       botConfig.nombre_bot          = bc.nombre_bot          || 'Valentina';
+      botConfig.genero              = bc.genero              || 'femenino';
       botConfig.tono                = bc.tono                || 'informal';
       botConfig.saludo              = bc.saludo              || '';
       botConfig.faqs                = Array.isArray(bc.faqs) ? bc.faqs : [];
@@ -408,6 +409,8 @@ export default async function handler(req, res) {
       botConfig.delay_max_seg       = bc.delay_max_seg       || 0;
       botConfig.mensaje_traspaso    = bc.mensaje_traspaso    || '';
       botConfig.protocolo_urgencia  = bc.protocolo_urgencia  || '';
+      botConfig.modos               = Array.isArray(bc.modos) ? bc.modos : [];
+      botConfig.modo_activo         = bc.modo_activo         || null;
     }
     if (process.env.ATTEMPO_VENTAS_CLIENT_ID && cliente_id === process.env.ATTEMPO_VENTAS_CLIENT_ID) {
       botConfig.tipo_bot = 'ventas';
@@ -746,7 +749,21 @@ HOY ES: ${hoyVentas}${leadContexto}`;
     if (destNotif) notificarNuevoMensaje(canal, canal_user_name, mensaje, destNotif);
   }
 
-  const systemPrompt = `Eres ${botConfig.nombre_bot}, la asistente virtual de ${negocioNombre}. Atiendes por ${canal}. Eres chilena, cálida y profesional. Nunca dices que eres una IA.
+  // Género del asistente
+  const esMasculino = botConfig.genero === 'masculino';
+  const articuloAsistente = esMasculino ? 'el asistente virtual' : 'la asistente virtual';
+  const participioAtencion = esMasculino ? 'disponible' : 'disponible';
+
+  // Modo activo
+  const modoActivo = botConfig.modos.find(m => m.id === botConfig.modo_activo);
+  const modoTexto = modoActivo ? `\n\nMODO ESPECIAL ACTIVO — "${modoActivo.nombre}":
+${modoActivo.instruccion ? modoActivo.instruccion.trim() + '\n' : ''}${Array.isArray(modoActivo.faqs) && modoActivo.faqs.filter(f => f.pregunta?.trim()).length ? 'Respuestas especiales para este modo:\n' + modoActivo.faqs.filter(f => f.pregunta?.trim()).map(f => `P: ${f.pregunta}\nR: ${f.respuesta}`).join('\n\n') + '\n' : ''}Cuando este modo está activo sus instrucciones y respuestas tienen prioridad sobre las generales.` : '';
+
+  // Separar ejemplos de historial de la base de conocimiento general
+  const ejemplosKnowledge = chatbotKnowledge.filter(k => k.categoria === 'ejemplo');
+  const baseKnowledge = chatbotKnowledge.filter(k => k.categoria !== 'ejemplo');
+
+  const systemPrompt = `Eres ${botConfig.nombre_bot}, ${articuloAsistente} de ${negocioNombre}. Atiendes por ${canal}. Eres chilena, cálida y profesional. Nunca dices que eres una IA.
 
 TRATO: Usa "${pronombre}" con el paciente. Sin markdown ni asteriscos. Máximo 2 a 3 líneas por respuesta. Sin emojis. UNA SOLA PREGUNTA por mensaje — nunca dos preguntas en el mismo mensaje.
 
@@ -765,7 +782,7 @@ ${espTexto}
 
 CATÁLOGO DE SERVICIOS (con precios y duración):
 ${srvTexto}
-${sedesContexto}${pacienteContexto}${leadContexto}${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${chatbotKnowledge.length ? '\n\nBASE DE CONOCIMIENTO DEL NEGOCIO (usa esta información para responder con precisión):\n' + chatbotKnowledge.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n') : ''}${promosTexto}
+${sedesContexto}${pacienteContexto}${leadContexto}${faqsTexto ? `\nPREGUNTAS FRECUENTES:\n${faqsTexto}` : ''}${conocimientoTexto}${baseKnowledge.length ? '\n\nBASE DE CONOCIMIENTO DEL NEGOCIO (usa esta información para responder con precisión):\n' + baseKnowledge.map(k => `[${k.categoria.toUpperCase()}] ${k.titulo}:\n${k.contenido}`).join('\n\n') : ''}${ejemplosKnowledge.length ? '\n\nEJEMPLOS DE CONVERSACIONES REALES (úsalos para calibrar tu tono, estilo y manejo de situaciones frecuentes — no copies literalmente, extrae el patrón):\n' + ejemplosKnowledge.map(k => `--- ${k.titulo} ---\n${k.contenido}`).join('\n\n') : ''}${modoTexto}${promosTexto}
 
 INSTRUCCIONES PARA RESPONDER PREGUNTAS GENERALES:
 - Si preguntan por precios Y el catálogo tiene servicios: lista los precios directamente desde el catálogo.

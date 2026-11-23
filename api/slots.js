@@ -183,11 +183,12 @@ export default async function handler(req, res) {
         // save (create or update)
         const d = body.data || {};
         if (!d.titulo?.trim() || !d.contenido?.trim()) return res.status(400).json({ error: 'Faltan campos' });
+        const maxChars = d.categoria === 'ejemplo' ? 8000 : 4000;
         const payload = {
           cliente_id,
           categoria: d.categoria || 'general',
           titulo:    d.titulo.trim().slice(0, 200),
-          contenido: d.contenido.trim().slice(0, 4000),
+          contenido: d.contenido.trim().slice(0, maxChars),
           activo:    d.activo !== false,
           orden:     d.orden || 0,
           updated_at: new Date().toISOString()

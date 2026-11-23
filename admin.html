@@ -3343,7 +3343,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
         <div style="border-top:1px solid var(--b1);margin-bottom:16px"></div>
 
         <!-- Tiempo de respuesta (compacto) -->
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px">
           <span style="font-size:11px;color:var(--t3);white-space:nowrap">Tiempo de respuesta</span>
           <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--t2);cursor:pointer">
             <input type="radio" name="delay-tipo" value="0" id="delay-inmediata" checked onchange="updateDelayUI()" style="accent-color:var(--a)">
@@ -3361,7 +3361,22 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
           </div>
           <span id="delay-badge" style="font-size:11px;font-weight:600;color:var(--t3)">Inmediata</span>
         </div>
-        <div style="font-size:11px;color:var(--t4);margin-top:8px">Solo aplica en WhatsApp, Instagram y Messenger. Máximo 5 minutos.</div>
+        <div style="font-size:11px;color:var(--t4);margin-bottom:20px">Solo aplica en WhatsApp, Instagram y Messenger. Máximo 5 minutos.</div>
+
+        <!-- Divisor -->
+        <div style="border-top:1px solid var(--b1);margin-bottom:16px"></div>
+
+        <!-- Traspaso a humano + Protocolo urgencia (movidos aquí desde abajo) -->
+        <div style="margin-bottom:14px">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Mensaje al traspasar a un humano</label>
+          <div style="font-size:11px;color:var(--t4);margin-bottom:5px">Lo que el bot dice justo después de avisar al equipo. Puedes incluir indicaciones de urgencia.</div>
+          <textarea class="fi" id="bot-mensaje-traspaso" rows="2" placeholder="Ej: Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad. Si es urgente, llama al 131 o acude a urgencias." style="resize:vertical"></textarea>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Protocolo de urgencia (bot pausado)</label>
+          <div style="font-size:11px;color:var(--t4);margin-bottom:5px">Cuando el bot está pausado esperando al equipo, este texto reemplaza el mensaje genérico. Ideal para incluir números de emergencia.</div>
+          <textarea class="fi" id="bot-protocolo-urgencia" rows="3" placeholder="Ej: Nuestro equipo te va a responder a la brevedad. Si estás en una situación de emergencia, llama al 131 o acude al servicio de urgencias más cercano." style="resize:vertical"></textarea>
+        </div>
       </div>
 
       <!-- CARD 3: Modos de respuesta -->
@@ -3399,6 +3414,9 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
           </button>
           <button id="ctab-btn-promos" onclick="switchContenidoTab('promos')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
             Promociones
+          </button>
+          <button id="ctab-btn-historial" onclick="switchContenidoTab('historial')" style="flex:1;padding:8px 6px;border:none;border-radius:7px;background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            Historial <span id="historial-count" style="display:none;font-size:10px;opacity:.85"> 0</span>
           </button>
         </div>
 
@@ -3440,6 +3458,37 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
           <div id="gaps-list"><div style="font-size:12px;color:var(--t4);text-align:center;padding:12px 0">Cargando...</div></div>
         </div>
 
+        <!-- Tab: Historial de conversaciones -->
+        <div id="ctab-historial" style="display:none">
+          <div style="font-size:12px;color:var(--t3);margin-bottom:12px;line-height:1.6">
+            Pega aquí conversaciones reales con tus pacientes (WhatsApp, chat, email). La IA las usa para calibrar su tono, aprender de respuestas que funcionaron bien y manejar situaciones frecuentes.
+          </div>
+          <!-- Área para agregar nuevo ejemplo -->
+          <div id="historial-add-area" style="border:1.5px dashed var(--b2);border-radius:var(--rl);padding:14px;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:8px">Agregar conversación</div>
+            <div style="margin-bottom:8px">
+              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Título (opcional)</label>
+              <input class="fi" id="historial-new-titulo" placeholder="Ej: Consultas de precios frecuentes, Manejo de cancelaciones..." style="font-size:12.5px">
+            </div>
+            <div style="margin-bottom:10px">
+              <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Pegar conversación</label>
+              <textarea class="fi" id="historial-new-texto" rows="6" placeholder="Pega aquí el texto de la conversación. Puede ser exportación de WhatsApp, copia de chat, emails, etc. La IA extrae el patrón — no tiene que ser perfecto." style="resize:vertical;line-height:1.6;font-size:12.5px"></textarea>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+                <label style="font-size:11px;color:var(--a);cursor:pointer;display:flex;align-items:center;gap:4px">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Subir archivo .txt
+                  <input type="file" accept=".txt" id="historial-file-input" style="display:none" onchange="historialCargarArchivo(this)">
+                </label>
+                <span style="font-size:11px;color:var(--t4)">Máx. 8.000 caracteres</span>
+              </div>
+            </div>
+            <button class="btn-a" onclick="historialGuardar()" style="font-size:12px">Guardar ejemplo</button>
+          </div>
+          <!-- Lista de ejemplos guardados -->
+          <div id="historial-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div id="historial-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay conversaciones guardadas aún.</div>
+        </div>
+
         <!-- Tab: Promociones -->
         <div id="ctab-promos" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -3465,6 +3514,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
               <option value="protocolos">Protocolos de atención</option>
               <option value="preguntas">Preguntas complejas</option>
               <option value="general">General</option>
+              <option value="ejemplo">Conversación de ejemplo</option>
             </select>
           </div>
           <div style="margin-bottom:12px">
@@ -3497,18 +3547,6 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
           <button class="btn-a" onclick="testBotSend()" id="btn-bot-test-send" style="padding:10px 16px;white-space:nowrap">Enviar</button>
         </div>
         <button class="btn-sm" onclick="resetBotTest()" style="margin-top:8px;font-size:11px;color:var(--t3)">Reiniciar conversación</button>
-      </div>
-
-      <div class="cfg-row-block" style="margin-bottom:16px">
-        <div class="cfg-lbl" style="margin-bottom:4px">Mensaje al traspasar a un humano</div>
-        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">Lo que el bot dice justo después de avisar al equipo. Puedes incluir indicaciones de urgencia.</div>
-        <textarea class="fi" id="bot-mensaje-traspaso" rows="2" placeholder="Ej: Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad. Si es urgente, llama al 131 o acude a urgencias." style="resize:vertical"></textarea>
-      </div>
-
-      <div class="cfg-row-block" style="margin-bottom:16px">
-        <div class="cfg-lbl" style="margin-bottom:4px">Protocolo de urgencia (bot pausado)</div>
-        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">Cuando el bot está pausado esperando respuesta del equipo, este texto reemplaza el mensaje genérico. Ideal para incluir protocolos de seguridad o números de emergencia.</div>
-        <textarea class="fi" id="bot-protocolo-urgencia" rows="3" placeholder="Ej: Nuestro equipo te va a responder a la brevedad. Si estás en una situación de emergencia, llama al 131 o acude al servicio de urgencias más cercano." style="resize:vertical"></textarea>
       </div>
 
       <div style="display:flex;justify-content:flex-end">
@@ -8376,7 +8414,7 @@ function toggleFaqsSection() {
 let _contenidoTab = 'faqs';
 function switchContenidoTab(tab) {
   _contenidoTab = tab;
-  ['faqs','ck','gaps','promos'].forEach(t => {
+  ['faqs','ck','gaps','promos','historial'].forEach(t => {
     const content = document.getElementById('ctab-' + t);
     const btn     = document.getElementById('ctab-btn-' + t);
     if (content) content.style.display = t === tab ? '' : 'none';
@@ -8386,6 +8424,107 @@ function switchContenidoTab(tab) {
     }
   });
   if (tab === 'gaps') loadGaps();
+  if (tab === 'historial') loadHistorial();
+}
+
+// ── Historial de conversaciones ───────────────────────────────────────────────
+let _historialEntries = [];
+
+async function loadHistorial() {
+  try {
+    const r = await fetch('/api/slots?resource=chatbot-knowledge', { headers: _citasH() });
+    if (!r.ok) return;
+    const all = await r.json();
+    _historialEntries = (Array.isArray(all) ? all : []).filter(k => k.categoria === 'ejemplo');
+    renderHistorial();
+  } catch(e) { console.error('loadHistorial:', e); }
+}
+
+function renderHistorial() {
+  const list  = document.getElementById('historial-list');
+  const empty = document.getElementById('historial-empty');
+  const count = document.getElementById('historial-count');
+  if (!list) return;
+  if (!_historialEntries.length) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = '';
+    if (count) count.style.display = 'none';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (count) { count.textContent = ' ' + _historialEntries.length; count.style.display = ''; }
+  list.innerHTML = _historialEntries.map(k => {
+    const preview = (k.contenido || '').slice(0, 120).replace(/\n/g, ' ');
+    return `<div style="border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;background:#fafafe">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <div style="font-size:12.5px;font-weight:600;color:var(--t1)">${escHtml(k.titulo || 'Sin título')}</div>
+        <button onclick="historialEliminar('${k.id}')" style="background:none;border:none;cursor:pointer;color:var(--t4);font-size:16px;line-height:1" title="Eliminar">×</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--t3);line-height:1.5">${escHtml(preview)}${k.contenido?.length > 120 ? '…' : ''}</div>
+      <div style="font-size:10px;color:var(--t4);margin-top:5px">${(k.contenido||'').length.toLocaleString()} caracteres</div>
+    </div>`;
+  }).join('');
+}
+
+async function historialGuardar() {
+  const titulo = (document.getElementById('historial-new-titulo')?.value || '').trim();
+  const texto  = (document.getElementById('historial-new-texto')?.value  || '').trim();
+  if (!texto) { toast('Pega o escribe una conversación antes de guardar'); return; }
+  if (texto.length > 8000) { toast('El texto supera los 8.000 caracteres. Recórtalo un poco.'); return; }
+  try {
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resource: 'chatbot-knowledge',
+        data: {
+          categoria: 'ejemplo',
+          titulo: titulo || 'Conversación de ejemplo',
+          contenido: texto,
+          activo: true
+        }
+      })
+    });
+    if (r.ok) {
+      toast('Ejemplo guardado');
+      document.getElementById('historial-new-titulo').value = '';
+      document.getElementById('historial-new-texto').value = '';
+      await loadHistorial();
+    } else {
+      const err = await r.json().catch(()=>({}));
+      toast('Error al guardar: ' + (err.error || r.status));
+    }
+  } catch(e) { toast('Error al guardar el ejemplo'); }
+}
+
+async function historialEliminar(id) {
+  if (!confirm('¿Eliminar este ejemplo de conversación?')) return;
+  try {
+    const r = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { ..._citasH(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resource: 'chatbot-knowledge', action: 'delete', id })
+    });
+    if (r.ok) { toast('Ejemplo eliminado'); await loadHistorial(); }
+    else { toast('Error al eliminar'); }
+  } catch(e) { toast('Error al eliminar'); }
+}
+
+function historialCargarArchivo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result || '';
+    const textarea = document.getElementById('historial-new-texto');
+    if (textarea) textarea.value = text.slice(0, 8000);
+    if (!document.getElementById('historial-new-titulo').value) {
+      document.getElementById('historial-new-titulo').value = file.name.replace(/\.txt$/, '');
+    }
+    toast('Archivo cargado — revisa el contenido y guarda');
+  };
+  reader.readAsText(file, 'UTF-8');
+  input.value = '';
 }
 
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
