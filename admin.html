@@ -1399,12 +1399,9 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
       <button class="ntab on" data-modo="agenda" onclick="sv('agenda',this)"        id="ntab-agenda">Agenda</button>
       <button class="ntab"    data-modo="agenda" onclick="sv('clientes',this)"      id="ntab-clientes">Clientes</button>
       <button class="ntab"    data-modo="agenda" onclick="sv('ventas',this)"        id="ntab-ventas">Ventas</button>
-      <button class="ntab"    data-modo="agenda" onclick="sv('cotizaciones',this)"  id="ntab-cotizaciones">Cotizaciones</button>
-      <button class="ntab"    data-modo="agenda" onclick="sv('liquidaciones',this)" id="ntab-liquidaciones">Transferencias</button>
       <!-- Modo CRM -->
       <button class="ntab"    data-modo="crm" onclick="sv('contactos',this)"   id="ntab-contactos" style="position:relative;display:none">Contactos <span id="contactos-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
       <button class="ntab"    data-modo="crm" onclick="sv('bandeja',this)"     id="ntab-bandeja"   style="position:relative;display:none">Conversaciones <span id="bandeja-badge" style="display:none;position:absolute;top:4px;right:4px;background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
-      <button class="ntab"    data-modo="agenda" onclick="sv('evaluaciones',this)" id="ntab-evaluaciones" style="display:none">Evaluaciones</button>
       <button class="ntab"    data-modo="crm" onclick="sv('reportes',this)"    id="ntab-reportes"  style="display:none">Reportes</button>
       <!-- Ambos modos -->
       <button class="ntab"    data-modo="both" onclick="sv('config',this)"     id="ntab-config">Configuración</button>
@@ -2360,6 +2357,11 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 <!-- ═══ VENTAS ═══ -->
 <div id="v-ventas" style="display:none">
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--b1);padding:0 16px;background:var(--bg);flex-shrink:0">
+    <button onclick="sv('ventas')" style="padding:10px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer">Ingresos</button>
+    <button onclick="sv('cotizaciones')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Cotizaciones</button>
+    <button onclick="sv('liquidaciones')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Transferencias</button>
+  </div>
   <div class="vp">
     <div class="vh">Ventas
       <button class="btn-new" onclick="openRegistrarPago()">+ Registrar pago</button>
@@ -2457,6 +2459,11 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 <!-- ═══ COTIZACIONES ═══ -->
 <div id="v-cotizaciones" style="display:none">
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--b1);padding:0 16px;background:var(--bg);flex-shrink:0">
+    <button onclick="sv('ventas')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Ingresos</button>
+    <button onclick="sv('cotizaciones')" style="padding:10px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer">Cotizaciones</button>
+    <button onclick="sv('liquidaciones')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Transferencias</button>
+  </div>
   <div class="vp">
     <div class="vh">Cotizaciones
       <div style="display:flex;gap:8px">
@@ -2489,6 +2496,11 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 <!-- ═══ REPORTES ═══ -->
 <div id="v-liquidaciones" style="display:none">
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--b1);padding:0 16px;background:var(--bg);flex-shrink:0">
+    <button onclick="sv('ventas')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Ingresos</button>
+    <button onclick="sv('cotizaciones')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Cotizaciones</button>
+    <button onclick="sv('liquidaciones')" style="padding:10px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer">Transferencias</button>
+  </div>
   <div class="vp">
     <div class="vh">
       Mis transferencias
@@ -2680,6 +2692,10 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 </div>
 
 <div id="v-reportes" style="display:none">
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--b1);padding:0 16px;background:var(--bg);flex-shrink:0">
+    <button onclick="sv('reportes')" style="padding:10px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer">Resumen</button>
+    <button onclick="sv('evaluaciones')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Evaluaciones</button>
+  </div>
   <div class="vp">
     <div class="vh">
       Reportes
@@ -4177,6 +4193,10 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 
 <!-- ═══ EVALUACIONES ═══ -->
 <div id="v-evaluaciones" style="display:none">
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--b1);padding:0 16px;background:var(--bg);flex-shrink:0">
+    <button onclick="sv('reportes')" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Resumen</button>
+    <button onclick="sv('evaluaciones')" style="padding:10px 16px;font-size:13px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--a);margin-bottom:-2px;color:var(--a);cursor:pointer">Evaluaciones</button>
+  </div>
   <div class="vp">
     <div class="vh">
       Evaluaciones
@@ -5320,8 +5340,10 @@ function sv(v, btn, skipPush) {
       _crmRep.style.display = 'none';
     }
   }
+  const _navParent = { cotizaciones: 'ventas', liquidaciones: 'ventas', evaluaciones: 'reportes' };
+  const _navV = _navParent[v] || v;
   document.querySelectorAll('.ntab').forEach(t => t.classList.remove('on'));
-  const activeTab = document.querySelector(`.ntab[onclick*="'${v}'"]`);
+  const activeTab = document.querySelector(`.ntab[onclick*="'${_navV}'"]`);
   if (activeTab) activeTab.classList.add('on');
 
   // Sidebar context switch
@@ -5334,8 +5356,10 @@ function sv(v, btn, skipPush) {
   if (typeof cargarStatsIA === 'function') cargarStatsIA();
   // Sincronizar estado del mobile bottom nav
   const _mobTabs = ['agenda','bandeja','ventas','config'];
+  const _mobParent = { cotizaciones: 'ventas', liquidaciones: 'ventas', evaluaciones: 'reportes' };
+  const _mobV = _mobParent[v] || v;
   document.querySelectorAll('.mob-tab[id^="mobt-"]').forEach(b => b.classList.remove('on'));
-  const _mobActive = document.getElementById('mobt-' + v);
+  const _mobActive = document.getElementById('mobt-' + _mobV);
   if (_mobActive) _mobActive.classList.add('on');
 
   const _titles = {agenda:'Agenda',clientes:'Clientes',ventas:'Ventas',cotizaciones:'Cotizaciones',bandeja:'Mensajes',reportes:'Reportes',config:'Configuración',liquidaciones:'Mis transferencias',evaluaciones:'Evaluaciones',contactos:'Contactos CRM',embudo:'Pipeline CRM','reportes-crm':'Reportes CRM'};
@@ -11031,25 +11055,25 @@ const _BSEC_FULL  = ['conversaciones','chatbot','canales','recordatorios','widge
 const _BSEC_BASIC = ['canales','recordatorios','widget'];
 const PLAN_PERMISOS = {
   inicio: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos'],
     bsecTabs: _BSEC_BASIC, soloWA: true,
     defaultView: 'agenda', nuevaReserva: true
   },
   pro: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
     bsecTabs: _BSEC_BASIC,
     defaultView: 'agenda', nuevaReserva: true
   },
   clinica_ia: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
     bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
   },
   demo: {
-    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-cotizaciones','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'],
+    tabs:    ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-config'],
     cfgTabs: ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'],
     bsecTabs: _BSEC_FULL,
     defaultView: 'agenda', nuevaReserva: true
@@ -11096,7 +11120,7 @@ function aplicarRestriccionesPlan() {
   const plan  = planActual();
   const perms = PLAN_PERMISOS[plan] || PLAN_PERMISOS.inicio;
 
-  const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-liquidaciones','ntab-evaluaciones','ntab-config'];
+  const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-config'];
   const todosCfgTabs  = ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'];
   const todosBsecTabs = ['conversaciones','chatbot','canales','recordatorios','widget'];
 
