@@ -921,14 +921,14 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: 'Attempo <contacto@attempo.cl>',
             to: [email_paciente],
-            subject: (soloMP || soloKlap)
+            subject: (mp_url || klap_url)
               ? `Completa tu pago para confirmar tu hora en ${negocio_nombre || 'la clínica'}`
               : `Tu cita en ${negocio_nombre || 'la clínica'} está confirmada`,
             headers: {
               'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
             },
-            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio, video_url })
+            html: emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id: cita.id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, klap_url, logo_negocio, video_url })
           })
         });
         if (!emailRes.ok) {
@@ -1103,15 +1103,11 @@ function htmlEscape(str) {
     .replace(/'/g, '&#39;');
 }
 
-function buildPagoHtml(metodos_pago, datos_banco) {
-  if (!metodos_pago) return '';
-  const activos = [];
-  if (metodos_pago.webpay)        activos.push('Webpay / Transbank');
-  if (metodos_pago.transferencia) activos.push('Transferencia bancaria');
-  if (metodos_pago.efectivo)      activos.push('Efectivo en el local');
-  if (!activos.length) return '';
+function buildPagoHtml(metodos_pago, datos_banco, { tieneOnline = false } = {}) {
+  // Si hay pago online (MP o Klap), no mostrar métodos alternativos en el email
+  if (!metodos_pago || tieneOnline || !metodos_pago.transferencia) return '';
   let bancoRows = '';
-  if (metodos_pago.transferencia && datos_banco && Object.keys(datos_banco).length) {
+  if (datos_banco && Object.keys(datos_banco).length) {
     const d = datos_banco;
     const filas = [];
     if (d.banco)  filas.push(`Banco: ${htmlEscape(d.banco)}`);
@@ -1122,10 +1118,10 @@ function buildPagoHtml(metodos_pago, datos_banco) {
     if (d.email)  filas.push(`Email: ${htmlEscape(d.email)}`);
     if (filas.length) bancoRows = `<tr><td style="padding:2px 0 10px;text-align:center;font-size:12px;color:#6b7280;line-height:1.8">${filas.join('<br>')}</td></tr>`;
   }
-  return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Métodos de pago</span><br><span style="color:#2d2d2d;font-size:13px;">${activos.join(' · ')}</span></td></tr>${bancoRows}`;
+  return `<tr><td style="padding:10px 0 4px;border-top:1px solid #ede9fe;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Transferencia bancaria</span><br><span style="color:#2d2d2d;font-size:13px;">Los datos de pago se incluyen abajo</span></td></tr>${bancoRows}`;
 }
 
-function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, logo_negocio, video_url }) {
+function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servicio, negocio_nombre, direccion, email_negocio, cita_id, duracion, precio, metodos_pago, datos_banco, flow_url, mp_url, klap_url, logo_negocio, video_url }) {
   const np  = htmlEscape(nombre_paciente);
   const ne  = htmlEscape(nombre_especialista || 'Profesional');
   const sv  = htmlEscape(servicio || 'Consulta');
@@ -1156,7 +1152,7 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
     <tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Motivo</span><br><span style="color:#2d2d2d;font-size:15px;">${sv}</span></td></tr>
     ${dur ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Duración</span><br><span style="color:#2d2d2d;font-size:15px;">${dur}</span></td></tr>` : ''}
     ${precioStr ? `<tr><td style="padding:6px 0;text-align:center;"><span style="color:#6C5CE4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total</span><br><span style="color:#6C5CE4;font-size:16px;font-weight:700;">${precioStr}</span></td></tr>` : ''}
-    ${buildPagoHtml(metodos_pago, datos_banco)}
+    ${buildPagoHtml(metodos_pago, datos_banco, { tieneOnline: !!(mp_url || klap_url) })}
   </table>
   ${video_url ? `\
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
@@ -1174,11 +1170,12 @@ function emailHtml({ nombre_paciente, nombre_especialista, fechaFmt, hora, servi
       <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este link es de uso único y expira en 24 horas</p>\
     </td></tr>\
   </table>` : ''}
-  ${mp_url ? `\
+  ${(mp_url || klap_url) ? `\
   <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">\
     <tr><td style="text-align:center;">\
-      <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">Paga de forma segura para confirmar tu hora</p>\
-      <a href="${htmlEscape(mp_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">Pagar con Mercado Pago →</a>\
+      <p style="margin:0 0 12px;color:#6b7280;font-size:13px;">Elige cómo pagar para confirmar tu hora:</p>\
+      ${mp_url ? `<a href="${htmlEscape(mp_url)}" target="_blank" style="display:inline-block;margin-bottom:8px;padding:13px 32px;background:linear-gradient(135deg,#009EE3,#0076B6);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;width:240px;box-sizing:border-box;">Pagar con Mercado Pago →</a><br>` : ''}\
+      ${klap_url ? `<a href="${htmlEscape(klap_url)}" target="_blank" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#6C3AFA,#4B2FD0);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;width:240px;box-sizing:border-box;">Pagar con tarjeta →</a>` : ''}\
     </td></tr>\
   </table>` : ''}
   ${dir ? `
