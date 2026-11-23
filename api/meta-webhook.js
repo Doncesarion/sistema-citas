@@ -66,10 +66,10 @@ export default async function handler(req, res) {
 
     // Función común: intercambiar code por token largo
     const getLongToken = async () => {
-      const tr = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&client_secret=${APP_SECRET}&code=${code}`);
+      const tr = await fetch(`https://graph.facebook.com/v20.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&client_secret=${APP_SECRET}&code=${code}`);
       const td = await tr.json();
       if (td.error) throw new Error(td.error.message);
-      const lr = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${td.access_token}`);
+      const lr = await fetch(`https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${td.access_token}`);
       const ld = await lr.json();
       return ld.access_token || td.access_token;
     };
@@ -79,16 +79,20 @@ export default async function handler(req, res) {
       try {
         const userToken = await getLongToken();
         // Obtener cuentas WABA del usuario
-        const bizRes = await fetch(`https://graph.facebook.com/v19.0/me/businesses?fields=id,name&access_token=${userToken}`);
+        const bizRes = await fetch(`https://graph.facebook.com/v20.0/me/businesses?fields=id,name&access_token=${userToken}`);
         const bizData = await bizRes.json();
+        console.log('[meta-webhook/wa] businesses response:', JSON.stringify(bizData).slice(0, 500));
         const businesses = bizData.data || [];
-        if (!businesses.length) return res.redirect('/admin?wa_error=no_business');
+        if (!businesses.length) {
+          const dbg = encodeURIComponent(Buffer.from(JSON.stringify({ bizData })).toString('base64').slice(0, 200));
+          return res.redirect(`/admin?wa_error=no_business&dbg=${dbg}`);
+        }
         const phones = [];
         for (const biz of businesses.slice(0, 5)) {
-          const wabaRes = await fetch(`https://graph.facebook.com/v19.0/${biz.id}/owned_whatsapp_business_accounts?fields=id,name&access_token=${userToken}`);
+          const wabaRes = await fetch(`https://graph.facebook.com/v20.0/${biz.id}/owned_whatsapp_business_accounts?fields=id,name&access_token=${userToken}`);
           const wabaData = await wabaRes.json();
           for (const waba of (wabaData.data || []).slice(0, 5)) {
-            const phoneRes = await fetch(`https://graph.facebook.com/v19.0/${waba.id}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating&access_token=${userToken}`);
+            const phoneRes = await fetch(`https://graph.facebook.com/v20.0/${waba.id}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating&access_token=${userToken}`);
             const phoneData = await phoneRes.json();
             for (const ph of (phoneData.data || [])) {
               phones.push({ ...ph, waba_id: waba.id });
@@ -104,7 +108,7 @@ export default async function handler(req, res) {
         // Un solo número: conectar automáticamente
         const phone = phones[0];
         // Suscribir la app de attempo a esta WABA para recibir webhooks
-        await fetch(`https://graph.facebook.com/v19.0/${phone.waba_id}/subscribed_apps`, {
+        await fetch(`https://graph.facebook.com/v20.0/${phone.waba_id}/subscribed_apps`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ access_token: userToken })
         }).catch(() => {});

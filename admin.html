@@ -13349,11 +13349,11 @@ async function conectarWhatsApp() {
   const params = new URLSearchParams({
     client_id:     META_APP_ID,
     redirect_uri:  'https://app.attempo.cl/api/meta-webhook',
-    scope:         'whatsapp_business_management,whatsapp_business_messaging',
+    scope:         'business_management,whatsapp_business_management,whatsapp_business_messaging',
     response_type: 'code',
     state
   });
-  window.location.href = 'https://www.facebook.com/v19.0/dialog/oauth?' + params.toString();
+  window.location.href = 'https://www.facebook.com/v20.0/dialog/oauth?' + params.toString();
 }
 
 // Modal selección cuando hay múltiples números WA
