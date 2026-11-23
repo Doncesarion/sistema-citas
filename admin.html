@@ -3293,20 +3293,9 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:16px">Mi asistente</div>
 
-        <!-- Identidad -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div>
-            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Nombre</label>
-            <input class="fi" id="bot-nombre" placeholder="Ej: Valentina" value="Valentina">
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Género</label>
-            <select class="fs" id="bot-genero" style="width:100%">
-              <option value="femenino">Femenino (ella)</option>
-              <option value="masculino">Masculino (él)</option>
-            </select>
-          </div>
-        </div>
+        <!-- Identidad (nombre y género fijos — no configurables) -->
+        <input type="hidden" id="bot-nombre" value="attia">
+        <input type="hidden" id="bot-genero" value="femenino">
         <!-- Canales activos -->
         <div style="margin-bottom:12px">
           <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:8px">Canales donde responde el bot</label>
@@ -8743,8 +8732,8 @@ async function saveBotConfig() {
   const tono = document.querySelector('input[name="bot-tono"]:checked')?.value || 'informal';
   const payload = {
     resource:     'bot_config',
-    nombre_bot:   document.getElementById('bot-nombre').value.trim() || 'Valentina',
-    genero:       document.getElementById('bot-genero').value,
+    nombre_bot:   'attia',
+    genero:       'femenino',
     tono,
     saludo:       document.getElementById('bot-saludo').value.trim(),
     conocimiento: (document.getElementById('bot-conocimiento')?.value || '').trim(),
@@ -19411,18 +19400,11 @@ async function resolveGap(id) {
 function calcularSaludBot(cfg, knowledge) {
   const items = [
     {
-      key: 'nombre',
-      label: 'Nombre personalizado del asistente',
-      ok: cfg.nombre_bot && cfg.nombre_bot !== 'Valentina' && cfg.nombre_bot.trim().length > 0,
-      peso: 10,
-      accion: () => document.getElementById('bot-nombre')?.focus()
-    },
-    {
       key: 'saludo',
       label: 'Mensaje de bienvenida personalizado',
       ok: cfg.saludo && cfg.saludo.trim().length > 20,
-      peso: 10,
-      accion: () => document.getElementById('bot-saludo')?.focus()
+      peso: 15,
+      accion: () => { showName('chatbot'); setTimeout(() => document.getElementById('bot-saludo')?.focus(), 200); }
     },
     {
       key: 'faqs',
@@ -19430,22 +19412,22 @@ function calcularSaludBot(cfg, knowledge) {
       ok: Array.isArray(cfg.faqs) && cfg.faqs.filter(f => f.pregunta?.trim()).length >= 5,
       det: Array.isArray(cfg.faqs) ? `${cfg.faqs.filter(f=>f.pregunta?.trim()).length} de 5` : '0 de 5',
       peso: 25,
-      accion: null
+      accion: () => { showName('chatbot'); setTimeout(() => switchContenidoTab('faqs'), 200); }
     },
     {
       key: 'knowledge',
       label: 'Base de conocimiento con 3+ entradas',
-      ok: Array.isArray(knowledge) && knowledge.length >= 3,
-      det: Array.isArray(knowledge) ? `${knowledge.length} entrada${knowledge.length !== 1 ? 's' : ''}` : '0 entradas',
+      ok: Array.isArray(knowledge) && knowledge.filter(k => k.categoria !== 'ejemplo').length >= 3,
+      det: Array.isArray(knowledge) ? `${knowledge.filter(k=>k.categoria!=='ejemplo').length} entr.` : '0 entr.',
       peso: 25,
-      accion: null
+      accion: () => { showName('chatbot'); setTimeout(() => switchContenidoTab('ck'), 200); }
     },
     {
       key: 'conocimiento',
-      label: 'Instrucciones de personalidad definidas',
+      label: 'Instrucciones de comportamiento definidas',
       ok: cfg.conocimiento && cfg.conocimiento.trim().length > 30,
-      peso: 15,
-      accion: () => document.getElementById('bot-conocimiento')?.focus()
+      peso: 20,
+      accion: () => { showName('chatbot'); setTimeout(() => document.getElementById('bot-conocimiento')?.focus(), 200); }
     },
     {
       key: 'servicios',
@@ -19453,6 +19435,7 @@ function calcularSaludBot(cfg, knowledge) {
       ok: Array.isArray(_serviciosCache) && _serviciosCache.some(s => s.precio || s.descripcion),
       det: Array.isArray(_serviciosCache) ? `${_serviciosCache.filter(s=>s.precio||s.descripcion).length} de ${_serviciosCache.length}` : '',
       peso: 15,
+      accion: () => showName('config')
     },
   ];
 

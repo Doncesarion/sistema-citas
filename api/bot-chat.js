@@ -361,7 +361,7 @@ export default async function handler(req, res) {
   }
 
   // ── 2. Carga en paralelo: botConfig + knowledge + negocio/sedes + especialistas + paciente ──
-  let botConfig = { nombre_bot: 'Valentina', genero: 'femenino', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '', modos: [], modo_activo: null, activo_whatsapp: true, activo_instagram: true, activo_messenger: true };
+  let botConfig = { nombre_bot: 'attia', genero: 'femenino', tono: 'informal', saludo: '', faqs: [], tipo_bot: 'atencion', conocimiento: '', promociones: [], notif_nuevo_mensaje: false, notif_email: '', delay_min_seg: 0, delay_max_seg: 0, mensaje_traspaso: '', protocolo_urgencia: '', modos: [], modo_activo: null, activo_whatsapp: true, activo_instagram: true, activo_messenger: true };
   let chatbotKnowledge = [];
   let sedesContexto = '';
   let pacienteContexto = '';
@@ -395,7 +395,7 @@ export default async function handler(req, res) {
     // botConfig
     const [bc] = Array.isArray(rawBotCfg) ? rawBotCfg : [];
     if (bc) {
-      botConfig.nombre_bot          = bc.nombre_bot          || 'Valentina';
+      botConfig.nombre_bot          = 'attia';
       botConfig.genero              = bc.genero              || 'femenino';
       botConfig.tono                = bc.tono                || 'informal';
       botConfig.saludo              = bc.saludo              || '';
@@ -481,7 +481,7 @@ export default async function handler(req, res) {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago'
     });
 
-    const ventasSystemPrompt = `Eres Valentina, del equipo de attempo. Atiendes por ${canal === 'whatsapp' ? 'WhatsApp' : canal} a personas interesadas en conocer la plataforma. Eres chilena, directa y cálida.
+    const ventasSystemPrompt = `Eres attia, del equipo de attempo. Atiendes por ${canal === 'whatsapp' ? 'WhatsApp' : canal} a personas interesadas en conocer la plataforma. Eres chilena, directa y cálida.
 
 SOBRE ATTEMPO:
 attempo es una plataforma de agendamiento online para profesionales y clínicas en Chile. Los pacientes reservan citas 24/7 desde el celular, reciben recordatorios automáticos por WhatsApp y pueden pagar con Webpay. Listo en 5 minutos, sin complicaciones técnicas.

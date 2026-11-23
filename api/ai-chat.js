@@ -396,7 +396,7 @@ HOY ES: ${hoy}`;
     ? espLista.map(e => `• ${e.nombre} — ${e.cargo || 'Profesional'} (id: ${e.id})`).join('\n')
     : 'No hay profesionales activos en este momento.';
 
-  let nombreBot = 'Attia', generoBot = 'femenino', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null, activoWeb = true;
+  let nombreBot = 'attia', generoBot = 'femenino', tonoBot = 'informal', saludoBot = '', faqsBot = [], conocimientoBot = '', promocionesBot = [], modosBot = [], modoActivoId = null, activoWeb = true;
   let serviciosCatalogo = [], metodosPago = {}, datosBanco = {}, horarioNegocio = null, direccionNegocio = null;
   try {
     const rc = await fetch(
@@ -418,7 +418,7 @@ HOY ES: ${hoy}`;
     const rb = await fetch(`${SUPABASE_URL}/rest/v1/bot_config?cliente_id=eq.${cliente_id}&limit=1`, { headers: sh });
     const [bc] = await rb.json();
     if (bc) {
-      nombreBot       = bc.nombre_bot   || 'Attia';
+      nombreBot       = 'attia';
       generoBot       = bc.genero       || 'femenino';
       tonoBot         = bc.tono         || 'informal';
       saludoBot       = bc.saludo       || '';
