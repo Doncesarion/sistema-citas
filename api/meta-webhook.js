@@ -54,25 +54,86 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && req.query.code) {
     const { code, state, error } = req.query;
     if (error || !code) return res.redirect('/admin?meta_error=1');
-    let cid;
+    let stateData;
     try {
-      cid = JSON.parse(Buffer.from(state, 'base64').toString()).cid;
-      if (!cid) throw new Error('sin cid');
+      stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+      if (!stateData.cid) throw new Error('sin cid');
     } catch { return res.redirect('/admin?meta_error=1'); }
+    const { cid, flow } = stateData;
     const APP_ID     = process.env.META_APP_ID;
     const APP_SECRET = process.env.META_APP_SECRET;
     const SH = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
+
+    // Función común: intercambiar code por token largo
+    const getLongToken = async () => {
+      const tr = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&client_secret=${APP_SECRET}&code=${code}`);
+      const td = await tr.json();
+      if (td.error) throw new Error(td.error.message);
+      const lr = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${td.access_token}`);
+      const ld = await lr.json();
+      return ld.access_token || td.access_token;
+    };
+
+    // ── Flujo WhatsApp ──────────────────────────────────────────────────────
+    if (flow === 'whatsapp') {
+      try {
+        const userToken = await getLongToken();
+        // Obtener cuentas WABA del usuario
+        const bizRes = await fetch(`https://graph.facebook.com/v19.0/me/businesses?fields=id,name&access_token=${userToken}`);
+        const bizData = await bizRes.json();
+        const businesses = bizData.data || [];
+        if (!businesses.length) return res.redirect('/admin?wa_error=no_business');
+        const phones = [];
+        for (const biz of businesses.slice(0, 5)) {
+          const wabaRes = await fetch(`https://graph.facebook.com/v19.0/${biz.id}/owned_whatsapp_business_accounts?fields=id,name&access_token=${userToken}`);
+          const wabaData = await wabaRes.json();
+          for (const waba of (wabaData.data || []).slice(0, 5)) {
+            const phoneRes = await fetch(`https://graph.facebook.com/v19.0/${waba.id}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating&access_token=${userToken}`);
+            const phoneData = await phoneRes.json();
+            for (const ph of (phoneData.data || [])) {
+              phones.push({ ...ph, waba_id: waba.id });
+            }
+          }
+        }
+        if (!phones.length) return res.redirect('/admin?wa_error=no_phones');
+        // Si hay más de un número, redirigir con opciones para que el usuario elija
+        if (phones.length > 1) {
+          const encoded = encodeURIComponent(Buffer.from(JSON.stringify({ phones, userToken, cid })).toString('base64'));
+          return res.redirect(`/admin?wa_select=1&d=${encoded}`);
+        }
+        // Un solo número: conectar automáticamente
+        const phone = phones[0];
+        // Suscribir la app de attempo a esta WABA para recibir webhooks
+        await fetch(`https://graph.facebook.com/v19.0/${phone.waba_id}/subscribed_apps`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: userToken })
+        }).catch(() => {});
+        // Guardar en Supabase
+        const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: SH });
+        const [cli] = await r0.json();
+        const merged = {
+          ...(cli?.canales_meta || {}),
+          wa_phone_number_id:   phone.id,
+          wa_token:             userToken,
+          wa_display_phone:     phone.display_phone_number,
+          wa_verified_name:     phone.verified_name,
+          wa_waba_id:           phone.waba_id
+        };
+        await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+          method: 'PATCH',
+          headers: { ...SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ canales_meta: merged })
+        });
+        return res.redirect('/admin?wa_ok=1');
+      } catch(e) {
+        console.error('[meta-webhook/oauth-wa]', e.message);
+        return res.redirect('/admin?wa_error=1');
+      }
+    }
+
+    // ── Flujo Messenger + Instagram (existente) ─────────────────────────────
     try {
-      const tokenRes = await fetch(
-        `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&client_secret=${APP_SECRET}&code=${code}`
-      );
-      const tokenData = await tokenRes.json();
-      if (tokenData.error) throw new Error(tokenData.error.message);
-      const longRes = await fetch(
-        `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${tokenData.access_token}`
-      );
-      const longData = await longRes.json();
-      const userToken = longData.access_token || tokenData.access_token;
+      const userToken = await getLongToken();
       const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${userToken}`);
       const pagesData = await pagesRes.json();
       const pages = pagesData.data || [];

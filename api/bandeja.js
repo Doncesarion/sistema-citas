@@ -680,6 +680,33 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── POST ?action=wa-connect-phone — guardar número WA elegido por el usuario ─
+  if (req.method === 'POST' && req.query.action === 'wa-connect-phone') {
+    const { phone, token } = req.body || {};
+    if (!phone?.id || !token) return res.status(400).json({ error: 'Datos incompletos' });
+    // Suscribir app al WABA
+    await fetch(`https://graph.facebook.com/v19.0/${phone.waba_id}/subscribed_apps`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: token })
+    }).catch(() => {});
+    const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`, { headers: sh });
+    const [cli] = await r0.json();
+    const merged = {
+      ...(cli?.canales_meta || {}),
+      wa_phone_number_id: phone.id,
+      wa_token:           token,
+      wa_display_phone:   phone.display_phone_number,
+      wa_verified_name:   phone.verified_name,
+      wa_waba_id:         phone.waba_id
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+      method: 'PATCH',
+      headers: { ...shJ, Prefer: 'return=minimal' },
+      body: JSON.stringify({ canales_meta: merged })
+    });
+    return res.status(200).json({ ok: true });
+  }
+
   // ── GET ?action=webhook-info — URL y verify token para configurar Meta ───────
   if (req.method === 'GET' && req.query.action === 'webhook-info') {
     return res.status(200).json({
