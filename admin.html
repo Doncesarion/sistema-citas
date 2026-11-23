@@ -1367,39 +1367,49 @@ tr:hover td{background:rgba(108,92,228,.03);cursor:pointer}
 .onb-step.pending{color:var(--t4);background:rgba(108,92,228,0.04)}
 .onb-check{font-size:11px;font-weight:700;flex-shrink:0}
 
-/* ══ VENTAS v2 (dark-mode aware) ════════════════════════════════════ */
+/* ══ VENTAS v2 ═══════════════════════════════════════════════════════ */
 #v-ventas .sg{gap:14px;margin-bottom:24px}
 #v-ventas .sc{border-radius:16px!important;padding:22px!important;transition:transform .2s,box-shadow .2s!important;position:relative!important;overflow:hidden!important}
-#v-ventas .sc::before{top:0;left:0;right:0;bottom:auto;height:2px;width:100%;border-radius:0;opacity:1}
+#v-ventas .sc::before{top:0;left:0;right:0;bottom:auto;height:3px;width:100%;border-radius:0;opacity:1}
 #v-ventas .sc::after{display:none!important}
-#v-ventas .sc:nth-child(1){background:linear-gradient(145deg,rgba(139,124,248,.22) 0%,rgba(139,124,248,.06) 100%)!important;border-color:rgba(139,124,248,.28)!important;box-shadow:0 4px 24px rgba(139,124,248,.14)!important}
-#v-ventas .sc:nth-child(2){background:linear-gradient(145deg,rgba(74,222,128,.18) 0%,rgba(74,222,128,.05) 100%)!important;border-color:rgba(74,222,128,.22)!important;box-shadow:0 4px 24px rgba(74,222,128,.1)!important}
-#v-ventas .sc:nth-child(3){background:linear-gradient(145deg,rgba(251,191,36,.18) 0%,rgba(251,191,36,.05) 100%)!important;border-color:rgba(251,191,36,.22)!important;box-shadow:0 4px 24px rgba(251,191,36,.1)!important}
-#v-ventas .sc:nth-child(4){background:linear-gradient(145deg,rgba(96,165,250,.18) 0%,rgba(96,165,250,.05) 100%)!important;border-color:rgba(96,165,250,.22)!important;box-shadow:0 4px 24px rgba(96,165,250,.1)!important}
-#v-ventas .sc:nth-child(1)::before{background:linear-gradient(90deg,#8B7CF8,#a99fff)}
-#v-ventas .sc:nth-child(2)::before{background:linear-gradient(90deg,#4ade80,#22c55e)}
-#v-ventas .sc:nth-child(3)::before{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
-#v-ventas .sc:nth-child(4)::before{background:linear-gradient(90deg,#60a5fa,#3b82f6)}
-#v-ventas .sc:hover{transform:translateY(-2px)!important;box-shadow:0 12px 36px rgba(0,0,0,.35)!important}
+/* Modo claro */
+#v-ventas .sc:nth-child(1){background:linear-gradient(145deg,#edeaff,#f8f7ff)!important;border-color:#d4cfff!important;box-shadow:0 4px 20px rgba(108,92,228,.12)!important}
+#v-ventas .sc:nth-child(2){background:linear-gradient(145deg,#d1fae5,#f0fdf8)!important;border-color:#a7f3d0!important;box-shadow:0 4px 20px rgba(16,185,129,.1)!important}
+#v-ventas .sc:nth-child(3){background:linear-gradient(145deg,#fef3c7,#fffdf0)!important;border-color:#fde68a!important;box-shadow:0 4px 20px rgba(245,158,11,.1)!important}
+#v-ventas .sc:nth-child(4){background:linear-gradient(145deg,#dbeafe,#f0f8ff)!important;border-color:#bfdbfe!important;box-shadow:0 4px 20px rgba(59,130,246,.1)!important}
+#v-ventas .sc:nth-child(1)::before{background:linear-gradient(90deg,#6C5CE4,#9d8ff7)}
+#v-ventas .sc:nth-child(2)::before{background:linear-gradient(90deg,#10b981,#34d399)}
+#v-ventas .sc:nth-child(3)::before{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+#v-ventas .sc:nth-child(4)::before{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+#v-ventas .sc:hover{transform:translateY(-2px)!important;box-shadow:0 12px 32px rgba(108,92,228,.18)!important}
 #v-ventas .sc-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
-#v-ventas .sc-val{font-size:30px;font-weight:800;letter-spacing:-.05em;line-height:1;margin-bottom:6px}
+#v-ventas .sc-val{font-size:32px;font-weight:800;letter-spacing:-.05em;line-height:1;margin-bottom:6px}
 #v-ventas .sc-delta{font-size:11px;font-weight:500}
 #v-ventas .minibars{margin-top:14px;height:22px;gap:3px}
-#v-ventas .mb{background:rgba(255,255,255,.07);border-radius:3px 3px 0 0}
-#v-ventas .mb.on{background:linear-gradient(180deg,#a99fff,#8B7CF8)}
-#v-ventas .tw{border-radius:16px!important;border-color:rgba(255,255,255,.1)!important;box-shadow:0 4px 24px rgba(0,0,0,.25)!important;background:rgba(255,255,255,.04)!important;overflow:hidden;margin-bottom:16px}
+#v-ventas .mb{background:rgba(108,92,228,.1);border-radius:3px 3px 0 0}
+#v-ventas .mb.on{background:linear-gradient(180deg,#9d8ff7,#6C5CE4)}
+/* Modo oscuro — override */
+[data-theme=dark] #v-ventas .sc:nth-child(1){background:linear-gradient(145deg,rgba(108,92,228,.25),rgba(108,92,228,.07))!important;border-color:rgba(108,92,228,.35)!important;box-shadow:0 4px 24px rgba(108,92,228,.18)!important}
+[data-theme=dark] #v-ventas .sc:nth-child(2){background:linear-gradient(145deg,rgba(16,185,129,.22),rgba(16,185,129,.06))!important;border-color:rgba(16,185,129,.28)!important;box-shadow:0 4px 24px rgba(16,185,129,.12)!important}
+[data-theme=dark] #v-ventas .sc:nth-child(3){background:linear-gradient(145deg,rgba(245,158,11,.22),rgba(245,158,11,.06))!important;border-color:rgba(245,158,11,.28)!important;box-shadow:0 4px 24px rgba(245,158,11,.12)!important}
+[data-theme=dark] #v-ventas .sc:nth-child(4){background:linear-gradient(145deg,rgba(59,130,246,.22),rgba(59,130,246,.06))!important;border-color:rgba(59,130,246,.28)!important;box-shadow:0 4px 24px rgba(59,130,246,.12)!important}
+[data-theme=dark] #v-ventas .mb{background:rgba(255,255,255,.07)}
+/* Tablas */
+#v-ventas .tw{border-radius:16px!important;box-shadow:0 2px 16px rgba(0,0,0,.08)!important;overflow:hidden;margin-bottom:16px}
 #v-ventas .tw table{border-collapse:collapse;width:100%}
-#v-ventas .tw thead th{padding:11px 18px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);background:rgba(255,255,255,.04)!important;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
-#v-ventas .tw tbody td{padding:13px 18px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+#v-ventas .tw thead th{padding:11px 18px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);background:var(--surface-hi)!important;border-bottom:1px solid var(--b1);white-space:nowrap}
+#v-ventas .tw tbody td{padding:13px 18px;font-size:13px;border-bottom:1px solid var(--b1);vertical-align:middle}
 #v-ventas .tw tbody tr:last-child td{border-bottom:none}
-#v-ventas .tw tbody tr:hover td{background:rgba(139,124,248,.08)!important;transition:background .1s}
-#v-ventas .thb{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)!important}
+#v-ventas .tw tbody tr:hover td{background:rgba(108,92,228,.05)!important;transition:background .12s}
+#v-ventas .thb{padding:16px 22px;border-bottom:1px solid var(--b1)}
 #v-ventas .tt{font-size:14px;font-weight:700;letter-spacing:-.01em}
-#v-ventas .card{border-radius:16px!important;border-color:rgba(255,255,255,.1)!important;box-shadow:0 4px 24px rgba(0,0,0,.25)!important;background:rgba(255,255,255,.04)!important;margin-top:0}
-#v-ventas .vh{font-size:22px;font-weight:800;letter-spacing:-.04em;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px}
-#v-ventas .btn-new{background:linear-gradient(135deg,#8B7CF8,#6C5CE4)!important;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(139,124,248,.4)!important;border:none!important}
-#v-ventas .btn-sm{border-radius:8px;font-size:12px;font-weight:500;border-color:rgba(255,255,255,.12)!important;color:var(--t2)}
-#v-ventas .btn-sm:hover{background:rgba(139,124,248,.12)!important;border-color:rgba(139,124,248,.35)!important;color:var(--a)}
+/* Gráfico */
+#v-ventas .card{border-radius:16px!important;box-shadow:0 2px 16px rgba(0,0,0,.08)!important;margin-top:0}
+/* Header */
+#v-ventas .vh{font-size:22px;font-weight:800;letter-spacing:-.04em;padding-bottom:18px;border-bottom:1px solid var(--b1);margin-bottom:24px}
+#v-ventas .btn-new{background:linear-gradient(135deg,var(--a),var(--a3))!important;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(108,92,228,.4)!important;border:none!important}
+#v-ventas .btn-sm{border-radius:8px;border-color:var(--b2)!important}
+#v-ventas .btn-sm:hover{background:var(--adim)!important;border-color:var(--a)!important;color:var(--a)}
 </style>
 </head>
 <style id="pre-route-style">body{opacity:0}</style>
