@@ -1931,8 +1931,8 @@ async function handleKlapInit(req, res, session) {
   const rCli  = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago,booking_slug&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
   const cli   = Array.isArray(rCli) ? rCli[0] : null;
   const mp    = cli?.metodos_pago || {};
-  const apiKey   = mp.klap_api_key || process.env.KLAP_API_KEY;
-  const klapBase = (mp.klap_sandbox !== false && !process.env.KLAP_PROD) ? KLAP_SAND_URL : KLAP_PROD_URL;
+  const apiKey   = mp.klap_api_key;
+  const klapBase = mp.klap_sandbox === false ? KLAP_PROD_URL : KLAP_SAND_URL;
   if (!apiKey) return res.status(400).json({ error: 'No hay credenciales Klap configuradas' });
   const precio = cita.precio || cita.monto;
   if (!precio || Number(precio) < 50) return res.status(400).json({ error: 'Monto inválido (mínimo $50)' });
@@ -2002,9 +2002,9 @@ async function handleEnviarLinkPago(req, res, session) {
   const [klapResult, mpResult] = await Promise.allSettled([
     // Klap
     (async () => {
-      const apiKey  = mp.klap_api_key || process.env.KLAP_API_KEY;
+      const apiKey  = mp.klap_api_key;
       if (!apiKey) throw new Error('no_klap_key');
-      const klapBase = (mp.klap_sandbox !== false && !process.env.KLAP_PROD) ? KLAP_SAND_URL : KLAP_PROD_URL;
+      const klapBase = mp.klap_sandbox === false ? KLAP_PROD_URL : KLAP_SAND_URL;
       const kr = await fetch(`${klapBase}/payment-gateway/v1/orders`, { method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: cita_id, amount: { currency: 'CLP', total: Math.round(Number(precio)) }, description: `Pago de cita${cita.servicio ? ' — ' + cita.servicio : ''}`, methods: ['tarjetas'], user: { email: cita.email_paciente || undefined, first_name: (cita.nombre_paciente || '').split(' ')[0] || undefined, last_name: (cita.nombre_paciente || '').split(' ').slice(1).join(' ') || undefined, phone: (cita.tel_paciente || '').replace(/^\+/, '') || undefined }, customs: [{ key: 'tarjetas_expiration_minutes', value: '20' }, { key: 'tarjetas_payment_indicator', value: 'typed' }, { key: 'notify_payment_user', value: 'true' }], urls: { return_url: `${BASE_URL}/pago-exitoso?tipo=cita${envioSlug ? '&slug=' + encodeURIComponent(envioSlug) : ''}`, cancel_url: `${BASE_URL}/gestionar-cita?id=${encodeURIComponent(cita_id)}&token=${generateManageToken(cita_id)}` }, webhooks: { webhook_validation: `${BASE_URL}/api/flow?tipo=klap_validate`, webhook_confirm: `${BASE_URL}/api/flow?tipo=klap_confirm`, webhook_reject: `${BASE_URL}/api/flow?tipo=klap_reject` } }), signal: AbortSignal.timeout(15000) });
       const order = await kr.json();
       if (!kr.ok || !order?.redirect_url) throw new Error('klap_api_error');
@@ -2067,8 +2067,8 @@ async function handleKlapConfirm(req, res) {
   if (!cita) { console.error('klap_confirm: cita no encontrada', cita_id); return res.status(200).json({ status: 'ok' }); }
   const rCli  = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${encodeURIComponent(cita.cliente_id)}&select=nombre_negocio,email,metodos_pago&limit=1`, { headers: sh }).then(r => r.json()).catch(() => null);
   const cli   = Array.isArray(rCli) ? rCli[0] : null;
-  const apiKey = cli?.metodos_pago?.klap_api_key || process.env.KLAP_API_KEY;
-  const isSandbox = !process.env.KLAP_PROD;
+  const apiKey = cli?.metodos_pago?.klap_api_key;
+  const isSandbox = cli?.metodos_pago?.klap_sandbox !== false;
   const apikeyValida = validateKlapApikey(headerApikey, order, apiKey);
   console.log('klap_confirm: apikey_valida=' + apikeyValida + ' sandbox=' + isSandbox + ' apikey_stored_len=' + (apiKey?.length ?? 'null'));
   if (!apikeyValida) {
