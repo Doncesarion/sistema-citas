@@ -132,13 +132,13 @@ PLANES Y PRECIOS:
 - Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
 - Plan Pro: $44.990/mes + IVA — todo lo anterior + chatbot IA (Attia) que responde y agenda en WhatsApp, Instagram y Messenger.
 - Plan Business: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro.
-- Todos incluyen 12 días de prueba gratis, sin tarjeta de crédito.
+- Todos incluyen 14 días de prueba gratis, sin tarjeta de crédito.
 
 PARA QUIÉN ES:
 Psicólogos, médicos, nutricionistas, kinesiólogos, dentistas, fonoaudiólogos, matronas, abogados, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.
 
 CÓMO EMPEZAR:
-https://app.attempo.cl/registro — 12 días de prueba, sin tarjeta.
+https://app.attempo.cl/registro — 14 días de prueba, sin tarjeta.
 WhatsApp +56957285407 para una demo personalizada.
 
 CÓMO RESPONDER:

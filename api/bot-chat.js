@@ -503,7 +503,7 @@ PLANES Y PRECIOS:
 - Plan Inicio: $24.990/mes + IVA — agenda online + recordatorios WhatsApp + cobro Webpay. Para profesionales solos.
 - Plan Pro: $44.990/mes + IVA — todo lo anterior + chatbot IA (Attia) que responde consultas y agenda citas en WhatsApp, Instagram y Messenger de forma automática.
 - Plan Business: $119.990/mes + IVA — todo lo de Pro + múltiples profesionales bajo un mismo centro. Para clínicas y centros.
-- Todos incluyen 12 días de prueba gratis.
+- Todos incluyen 14 días de prueba gratis.
 
 PARA QUIÉN ES:
 Psicólogos, psiquiatras, médicos, nutricionistas, matronas, fisioterapeutas, dentistas, abogados, barberías, centros de estética, yoga, pilates y cualquier profesional que agenda citas.

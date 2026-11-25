@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iniciar sesión — Attempo</title>
+  <title>Iniciar sesión — attempo</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="/logo_attempo.png">
   <link rel="apple-touch-icon" href="/logo_attempo.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --accent:#4F46E5; --purple:#7C3AED;
+      --accent:#6C5CE4; --purple:#6C5CE4;
       --black:#0F172A; --gray-50:#F8FAFC;
       --gray-100:#F1F5F9; --gray-200:#E2E8F0;
       --gray-400:#94A3B8; --gray-500:#64748B;
@@ -22,7 +22,7 @@
     }
 
     body {
-      font-family:'Inter',-apple-system,sans-serif;
+      font-family:'Geist',-apple-system,sans-serif;
       background:linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%);
       min-height:100vh;
       display:flex; align-items:center; justify-content:center;
@@ -76,7 +76,7 @@
     .brand-name span { color:var(--black); }
     .brand-sub { font-size:13px; color:var(--gray-400); margin-top:4px; }
 
-    .login-title { font-size:20px; font-weight:700; color:#4F46E5; text-align:center; margin-bottom:4px; }
+    .login-title { font-size:20px; font-weight:700; color:#6C5CE4; text-align:center; margin-bottom:4px; }
     .login-sub   { font-size:13px; color:var(--gray-500); text-align:center; margin-bottom:28px; }
 
     .form-group { margin-bottom:16px; }
@@ -86,7 +86,7 @@
       width:100%; background:var(--gray-50);
       border:1.5px solid var(--gray-200);
       border-radius:var(--radius-sm); padding:12px 14px;
-      font-size:14px; font-family:'Inter',sans-serif;
+      font-size:14px; font-family:'Geist',sans-serif;
       color:var(--black); outline:none; transition:all 0.2s;
     }
     .form-input:focus { border-color:var(--accent); background:var(--white); box-shadow:0 0 0 3px rgba(79,70,229,0.1); }
@@ -113,7 +113,7 @@
       background:linear-gradient(135deg, var(--purple), var(--accent));
       color:white; border:none; border-radius:var(--radius-sm);
       font-size:15px; font-weight:600; cursor:pointer;
-      font-family:'Inter',sans-serif; transition:all 0.2s;
+      font-family:'Geist',sans-serif; transition:all 0.2s;
       box-shadow:0 4px 12px rgba(79,70,229,0.3);
       display:flex; align-items:center; justify-content:center; gap:8px;
       min-height:48px;
@@ -132,7 +132,7 @@
     .forgot-link {
       display:block; text-align:center; margin-top:16px;
       font-size:13px; color:var(--accent); cursor:pointer;
-      background:none; border:none; font-family:'Inter',sans-serif;
+      background:none; border:none; font-family:'Geist',sans-serif;
       font-weight:500; text-decoration:underline; text-underline-offset:2px;
       width:100%;
     }
@@ -160,7 +160,7 @@
     .modal-input {
       width:100%; background:var(--gray-50); border:1.5px solid var(--gray-200);
       border-radius:var(--radius-sm); padding:12px 14px;
-      font-size:14px; font-family:'Inter',sans-serif; color:var(--black);
+      font-size:14px; font-family:'Geist',sans-serif; color:var(--black);
       outline:none; margin-bottom:14px;
     }
     .modal-input:focus { border-color:var(--accent); }
@@ -169,13 +169,13 @@
       background:linear-gradient(135deg, var(--purple), var(--accent));
       color:white; border:none; border-radius:var(--radius-sm);
       font-size:14px; font-weight:600; cursor:pointer;
-      font-family:'Inter',sans-serif; margin-bottom:10px;
+      font-family:'Geist',sans-serif; margin-bottom:10px;
     }
     .modal-cancel {
       width:100%; padding:10px; background:none;
       border:1px solid var(--gray-200); border-radius:var(--radius-sm);
       font-size:13px; color:var(--gray-500); cursor:pointer;
-      font-family:'Inter',sans-serif;
+      font-family:'Geist',sans-serif;
     }
     .modal-cancel:hover { background:var(--gray-50); }
     .success-box { text-align:center; display:none; }
@@ -238,14 +238,17 @@
   <button class="forgot-link" type="button" id="btn-forgot">¿Olvidaste tu contraseña?</button>
 
   <div class="footer-text">
-    ¿Necesitas ayuda? <a href="mailto:soporte@attempo.cl?subject=Recuperaci%C3%B3n%20de%20contrase%C3%B1a&body=Hola%2C%20necesito%20ayuda%20para%20recuperar%20mi%20contrase%C3%B1a%20de%20Attempo.">soporte@attempo.cl</a>
+    ¿No tienes cuenta? <a href="/registro" style="font-weight:600">Prueba gratis →</a>
+  </div>
+  <div class="footer-text" style="margin-top:8px">
+    ¿Necesitas ayuda? <a href="mailto:contacto@attempo.cl?subject=Ayuda%20con%20mi%20cuenta%20attempo">contacto@attempo.cl</a>
   </div>
 </div>
 
 <!-- PASO MFA -->
 <div class="card" id="card-mfa" style="display:none">
   <div class="logo-area" style="margin-bottom:20px">
-    <div style="width:56px;height:56px;background:linear-gradient(135deg,#7C3AED,#4F46E5);border-radius:16px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#8B7CF8,#6C5CE4);border-radius:16px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center">
       <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
     </div>
     <div class="brand-name">Verificación</div>
@@ -412,7 +415,7 @@ function loginSubmit() {
       document.getElementById('btn-text').style.display = 'block';
       document.getElementById('spinner').style.display  = 'none';
       document.getElementById('btn-login').disabled = false;
-      mostrarError('Tu período de prueba de 12 días ha terminado. Escríbenos a hola@attempo.cl para continuar.');
+      window.location.href = '/trial-expirada';
       return;
     }
     if (data.ok) {

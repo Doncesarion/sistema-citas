@@ -142,9 +142,9 @@ export default async function handler(req, res) {
             <img src="${BASE_URL}/logo_attempo.png" width="48" style="border-radius:12px;margin-bottom:20px" alt="Attempo">
             <h2 style="margin:0 0 8px;font-size:20px;font-weight:700">Recuperación de contraseña</h2>
             <p style="margin:0 0 20px;color:#555;font-size:14px">Recibimos una solicitud para restablecer la contraseña de tu cuenta en Attempo.<br>Si no fuiste tú, puedes ignorar este mensaje.</p>
-            <a href="${resetLink}" style="display:inline-block;background:#4F46E5;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Restablecer contraseña</a>
+            <a href="${resetLink}" style="display:inline-block;background:#6C5CE4;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:20px">Restablecer contraseña</a>
             <p style="margin:0 0 8px;color:#888;font-size:12px">Este enlace es válido por <strong>1 hora</strong>.</p>
-            <p style="margin:0 0 20px;color:#888;font-size:12px">O copia: <span style="color:#4F46E5">${resetLink}</span></p>
+            <p style="margin:0 0 20px;color:#888;font-size:12px">O copia: <span style="color:#6C5CE4">${resetLink}</span></p>
             <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
             <p style="margin:0;font-size:12px;color:#999">Attempo · Todo a tu tiempo · <a href="https://attempo.cl" style="color:#999">attempo.cl</a></p>
           </div>`
@@ -283,7 +283,7 @@ export default async function handler(req, res) {
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const slug = `${slugBase || 'negocio'}-${Math.floor(1000 + Math.random() * 9000)}`;
     const today = new Date().toISOString().split('T')[0];
-    const expDate = new Date(); expDate.setDate(expDate.getDate() + 12);
+    const expDate = new Date(); expDate.setDate(expDate.getDate() + 14);
     const expStr = expDate.toISOString().split('T')[0];
 
     const rCli = await fetch(`${SUPA_URL}/rest/v1/clientes_sistema`, {
@@ -355,7 +355,7 @@ export default async function handler(req, res) {
   <h2 style="margin:0 0 12px;color:#2d2d2d;font-size:22px">¡Hola, ${primerNombre}! 👋</h2>
   <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6">
     Tu cuenta de attempo está lista.<br>
-    Tienes <strong style="color:#6C5CE4">12 días de prueba gratis</strong> para explorar todo lo que attempo puede hacer por tu consulta.
+    Tienes <strong style="color:#6C5CE4">14 días de prueba gratis</strong> para explorar todo lo que attempo puede hacer por tu consulta.
   </p>
   <a href="https://app.attempo.cl/admin" style="display:inline-block;padding:14px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
   <p style="margin:24px 0 0;color:#9ca3af;font-size:12px">¿Tienes dudas? Escríbenos por WhatsApp al +56957285407</p>

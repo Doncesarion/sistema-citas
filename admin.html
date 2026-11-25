@@ -2002,7 +2002,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
     <div style="background:var(--bg2);border-radius:10px;padding:16px;margin-bottom:20px">
       <div style="font-size:13px;color:var(--t2);line-height:1.6">Tu plan incluye mensajes WA mensuales para el bot IA. Si necesitas más, escríbenos y te cotizamos un pack adicional.</div>
     </div>
-    <a href="mailto:hola@attempo.cl?subject=Pack mensajes WhatsApp" style="display:block;text-align:center;padding:13px 0;background:var(--a);color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Escribir a hola@attempo.cl</a>
+    <a href="mailto:contacto@attempo.cl?subject=Pack mensajes WhatsApp" style="display:block;text-align:center;padding:13px 0;background:var(--a);color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Escribir a contacto@attempo.cl</a>
   </div>
 </div>
 
@@ -3103,6 +3103,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
     <button id="bsectab-canales" onclick="showBandejaTab('canales',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Canales</button>
     <button id="bsectab-recordatorios" onclick="showBandejaTab('recordatorios',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Recordatorios</button>
     <button id="bsectab-widget" onclick="showBandejaTab('widget',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Widget web</button>
+    <button id="bsectab-leads" onclick="showBandejaTab('leads',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer;position:relative">Pipeline <span id="leads-badge" style="display:none;position:absolute;top:4px;right:4px;background:#6C5CE4;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
   </div>
 
   <!-- Panel: Conversaciones (contenido actual de bandeja-wrap) -->
@@ -7353,8 +7354,8 @@ function _renderLeadsKanban(filtered) {
 
     // Empty column — clickable to add a lead in that stage
     var emptyHtml = '<div onclick="abrirAgregarLead(\'' + stage.id + '\')" '
-      + 'style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 12px;cursor:pointer;transition:opacity .15s;border-radius:9px" '
-      + 'onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55" style="opacity:.55">'
+      + 'style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 12px;cursor:pointer;transition:opacity .15s;border-radius:9px;opacity:.55" '
+      + 'onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">'
       + '<div style="width:34px;height:34px;border-radius:10px;background:' + stage.bg + ';border:1.5px dashed ' + stage.border + ';display:flex;align-items:center;justify-content:center;margin-bottom:8px">'
       + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + stage.text + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
       + '</div>'
@@ -11499,13 +11500,13 @@ function openPrivacyInfo() {
         <p><strong style="color:var(--t1)">Manejo de datos</strong><br>
         Los datos se guardan en servidores seguros con cifrado en reposo y en tránsito (SSL). Solo tú y tu equipo tienen acceso a la información de tu negocio.</p>
         <p><strong style="color:var(--t1)">Eliminación de datos</strong><br>
-        Puedes solicitar la eliminación de todos los datos de tu cuenta en cualquier momento escribiendo a <a href="mailto:soporte@attempo.cl" style="color:var(--a)">soporte@attempo.cl</a>.</p>
+        Puedes solicitar la eliminación de todos los datos de tu cuenta en cualquier momento escribiendo a <a href="mailto:contacto@attempo.cl" style="color:var(--a)">contacto@attempo.cl</a>.</p>
         <p><strong style="color:var(--t1)">Contacto</strong><br>
-        Para dudas, soporte técnico o reportar un problema: <a href="mailto:soporte@attempo.cl" style="color:var(--a)">soporte@attempo.cl</a></p>
+        Para dudas, soporte técnico o reportar un problema: <a href="mailto:contacto@attempo.cl" style="color:var(--a)">contacto@attempo.cl</a></p>
         <div style="margin-top:6px;padding:12px 14px;background:rgba(108,92,228,0.06);border:1px solid rgba(108,92,228,0.18);border-radius:var(--r)">
           <div style="font-size:12px;font-weight:700;color:var(--a);margin-bottom:5px">Nueva Ley de Protección de Datos — vigente desde el 1 de diciembre de 2026</div>
           <p style="margin:0;font-size:12px;color:var(--t2);line-height:1.6">La Ley 21.719 establece que todo envío de comunicaciones (recordatorios, promociones, notificaciones) requiere <strong>consentimiento explícito</strong> del titular. attempo solo envía recordatorios directamente relacionados con las citas agendadas por el propio paciente, cumpliendo así con esta norma.</p>
-          <p style="margin:8px 0 0;font-size:12px;color:var(--t2);line-height:1.6">Los titulares pueden ejercer sus derechos de acceso, rectificación, cancelación y oposición escribiendo a <a href="mailto:soporte@attempo.cl" style="color:var(--a)">soporte@attempo.cl</a>.</p>
+          <p style="margin:8px 0 0;font-size:12px;color:var(--t2);line-height:1.6">Los titulares pueden ejercer sus derechos de acceso, rectificación, cancelación y oposición escribiendo a <a href="mailto:contacto@attempo.cl" style="color:var(--a)">contacto@attempo.cl</a>.</p>
         </div>
       </div>
       <div class="mfoot"><button class="btn-a" onclick="document.getElementById('privacy-modal-ov').classList.remove('open')">Entendido</button></div>
@@ -11677,7 +11678,7 @@ function handleLogoUpload(input) {
 }
 
 /* ════ RESTRICCIONES POR PLAN ════ */
-const _BSEC_FULL  = ['conversaciones','chatbot','canales','recordatorios','widget'];
+const _BSEC_FULL  = ['conversaciones','chatbot','canales','recordatorios','widget','leads'];
 const _BSEC_BASIC = ['canales','recordatorios','widget'];
 const PLAN_PERMISOS = {
   inicio: {
@@ -11748,7 +11749,7 @@ function aplicarRestriccionesPlan() {
 
   const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-config'];
   const todosCfgTabs  = ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'];
-  const todosBsecTabs = ['conversaciones','chatbot','canales','recordatorios','widget'];
+  const todosBsecTabs = ['conversaciones','chatbot','canales','recordatorios','widget','leads'];
 
   todosMainTabs.forEach(id => {
     const el = document.getElementById(id);
@@ -13686,7 +13687,7 @@ function routeFromURL() {
     setModo('crm', true); sv('reportes', null, true);
   } else if (section === 'bandeja') {
     setModo('crm', true); sv('bandeja', null, true);
-    var banSubs = ['conversaciones','chatbot','canales','recordatorios','widget'];
+    var banSubs = ['conversaciones','chatbot','canales','recordatorios','widget','leads'];
     showBandejaTab(banSubs.includes(sub) ? sub : 'conversaciones', null, true);
   } else if (section === 'cotizaciones') {
     sv('cotizaciones', null, true);
@@ -18173,7 +18174,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
     </button>
   </div>
   <div id="help-attia-footer" style="padding:6px 13px 2px;font-size:10.5px;color:var(--t3);text-align:center;flex-shrink:0;border-top:1px solid var(--b1)">
-    Soporte: <a href="mailto:soporte@attempo.cl" style="color:var(--a);text-decoration:none">soporte@attempo.cl</a>
+    Soporte: <a href="mailto:contacto@attempo.cl" style="color:var(--a);text-decoration:none">contacto@attempo.cl</a>
     &nbsp;·&nbsp;<a href="#" onclick="openPrivacyInfo();return false" style="color:var(--a);text-decoration:none">Privacidad</a>
   </div>
   <div class="help-foot">
@@ -18578,7 +18579,7 @@ async function actualizarComision(especialistaId, pct, inputEl) {
         <div>
           <div style="font-size:13px;font-weight:500;color:var(--t1)">¿Necesitas ayuda personalizada?</div>
           <div style="font-size:12px;color:var(--t3);margin-top:2px">Escríbenos y te respondemos en menos de 24 horas hábiles.</div>
-          <a href="mailto:soporte@attempo.cl" style="font-size:12px;color:var(--a);font-weight:500;margin-top:4px;display:block">soporte@attempo.cl →</a>
+          <a href="mailto:contacto@attempo.cl" style="font-size:12px;color:var(--a);font-weight:500;margin-top:4px;display:block">contacto@attempo.cl →</a>
         </div>
       </div>
 

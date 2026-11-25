@@ -482,7 +482,7 @@ async function procesarTrialReminder(sh, shJson) {
   </p>
   <a href="https://wa.me/56957285407?text=Hola%2C%20quiero%20contratar%20un%20plan%20de%20attempo" style="display:inline-block;padding:14px 32px;background:#25D366;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600;margin-bottom:10px">Contratar por WhatsApp →</a>
   <br>
-  <a href="mailto:hola@attempo.cl" style="display:inline-block;padding:11px 28px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600">Escribir a hola@attempo.cl →</a>
+  <a href="mailto:contacto@attempo.cl" style="display:inline-block;padding:11px 28px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:600">Escribir a contacto@attempo.cl →</a>
   <p style="margin:20px 0 0;color:#9ca3af;font-size:12px">Si ya coordinaste tu plan, ignora este mensaje.</p>
 </td></tr>
 <tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe">

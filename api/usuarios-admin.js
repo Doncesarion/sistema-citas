@@ -355,7 +355,7 @@ export default async function handler(req, res) {
   </div>
   <div style="padding:32px">
     <h2 style="margin:0 0 8px;font-size:20px;color:#16143A;letter-spacing:-.03em">Tu cuenta está lista</h2>
-    <p style="margin:0 0 20px;font-size:14px;color:#5E5880;line-height:1.6">Hola <b>${negocio}</b>, tu cuenta fue creada con el <b>Plan ${planLabel[plan] || plan}</b>. Tienes <b>12 días de prueba gratis</b> para explorar la plataforma.</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#5E5880;line-height:1.6">Hola <b>${negocio}</b>, tu cuenta fue creada con el <b>Plan ${planLabel[plan] || plan}</b>. Tienes <b>14 días de prueba gratis</b> para explorar la plataforma.</p>
     <div style="background:#F8F7FF;border:1px solid rgba(108,92,228,0.15);border-radius:12px;padding:20px;margin-bottom:24px">
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#9C96B4;text-transform:uppercase;letter-spacing:.05em">Tus datos de acceso</p>
       <table style="width:100%;border-collapse:collapse;margin-top:10px">
