@@ -3445,7 +3445,13 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
           <div id="faqs-desc" style="display:none"></div>
           <div id="faqs-section-body">
             <div id="faqs-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
-            <div id="faqs-empty" style="font-size:12px;color:var(--t4);text-align:center;padding:16px 0">No hay preguntas configuradas. Haz clic en "+ Agregar" para empezar.</div>
+            <div id="faqs-empty" style="font-size:12px;color:var(--t3);text-align:center;padding:20px 0">
+              <div style="margin-bottom:10px">Sin preguntas configuradas.</div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+                <button onclick="cargarPlantillaFaqs()" style="padding:6px 14px;border-radius:var(--r);border:1px solid var(--a);background:rgba(108,92,228,0.07);color:var(--a);font-size:11.5px;font-weight:600;cursor:pointer">Cargar plantilla</button>
+                <span style="color:var(--t4);font-size:11px">o usa "+ Agregar" para crear la primera.</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -8721,6 +8727,20 @@ function addFaq() {
   document.getElementById('faqs-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
 }
 
+function cargarPlantillaFaqs() {
+  const { faqs } = _getFaqsCtx();
+  if (faqs.length > 0 && !confirm('¿Reemplazar las preguntas actuales con la plantilla de ejemplo?')) return;
+  _botFaqs = [
+    { pregunta: '¿Cuánto cuesta la consulta?',       respuesta: 'La consulta tiene un valor de $XX.XXX y dura XX minutos. Puedes agendar directamente desde nuestro link de reservas.' },
+    { pregunta: '¿Dónde están ubicados?',             respuesta: 'Estamos en [dirección]. También puedes agendar de forma online sin salir de casa.' },
+    { pregunta: '¿Aceptan FONASA?',                   respuesta: 'Sí, trabajamos con FONASA libre elección. Consulta por los valores según tu tramo al momento de agendar.' },
+    { pregunta: '¿Cómo cancelo o cambio mi cita?',    respuesta: 'Puedes cancelar o reprogramar con al menos 24 horas de anticipación desde el enlace que llegó en tu correo de confirmación.' },
+  ];
+  _faqOpenIndex = null;
+  renderFaqs();
+  toast('Plantilla cargada. Ajusta los valores a tu negocio antes de guardar.');
+}
+
 function removeFaq(i) {
   const { faqs } = _getFaqsCtx();
   faqs.splice(i, 1);
@@ -8759,6 +8779,7 @@ async function saveBotConfig() {
     });
     if (r.ok) {
       toast('✓ Configuración del bot guardada');
+      onbCheckStep('bot');
       _botCfgCache = { ..._botCfgCache, ...payload };
       calcularSaludBot(_botCfgCache, _ckEntries);
     }
@@ -13751,31 +13772,58 @@ async function initOnboarding() {
     const cid = await getClienteId();
     if (!cid) return;
 
-    const [rEsp, rCli] = await Promise.all([
+    const plan = planActual();
+    const esPuroChatbot  = ['chatbot_2k','chatbot_5k','chatbot_8k'].includes(plan);
+    const esPlanBot      = esPuroChatbot || ['chatbot_2k_agenda','chatbot_5k_agenda','chatbot_8k_agenda','clinica_ia','pro'].includes(plan);
+
+    const fetches = [
       fetch(`${_SURL}/rest/v1/especialistas?cliente_id=eq.${cid}&activo=eq.true&select=id&limit=1`, { headers: _SH }),
-      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios,horario_negocio,booking_slug,nombre_negocio&limit=1`, { headers: _SH }),
-    ]);
-    const esps = await rEsp.json().catch(() => []);
-    const clis = await rCli.json().catch(() => []);
-    const cli  = Array.isArray(clis) ? (clis[0] || {}) : {};
-
-    const tienePerfil   = !!(cli.nombre_negocio?.trim());
-    const tieneEsp      = Array.isArray(esps) && esps.length > 0;
-    const tieneServ     = Array.isArray(cli.servicios) && cli.servicios.length > 0;
-    const tieneHorario  = !!cli.horario_negocio && Object.keys(cli.horario_negocio).some(d => cli.horario_negocio[d]?.activo);
-    const tieneSlug     = !!cli.booking_slug;
-    const CANCEL_ST     = ['cancelada','canceled','cancelled'];
-    const tieneCita     = (window._citasAgenda || []).some(c => !CANCEL_ST.includes(c.estado));
-
-    _onbSteps = [
-      { id: 'cuenta',       label: 'Cuenta creada',              done: true,          action: null },
-      { id: 'perfil',       label: 'Personaliza tu cuenta',      done: tienePerfil,   action: () => _onbIr('general') },
-      { id: 'especialista', label: 'Agrega un profesional',      done: tieneEsp,      action: () => _onbIr('profesionales') },
-      { id: 'servicio',     label: 'Crea un servicio',           done: tieneServ,     action: () => _onbIr('servicios') },
-      { id: 'horario',      label: 'Configura tus horarios',     done: tieneHorario,  action: () => _onbIr('horarios') },
-      { id: 'link',         label: 'Comparte tu link',           done: tieneSlug,     action: () => _onbLink(cli.booking_slug) },
-      { id: 'primera_cita', label: 'Recibe tu primera reserva', done: tieneCita,     action: null },
+      fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=servicios,horario_negocio,booking_slug,nombre_negocio,canales_meta&limit=1`, { headers: _SH }),
     ];
+    if (esPlanBot) fetches.push(fetch('/api/slots?resource=bot_config', { headers: _citasH() }).catch(() => null));
+
+    const [rEsp, rCli, rBot] = await Promise.all(fetches);
+    const esps    = await rEsp.json().catch(() => []);
+    const clis    = await rCli.json().catch(() => []);
+    const botData = rBot ? await rBot.json().catch(() => null) : null;
+    const cli  = Array.isArray(clis) ? (clis[0] || {}) : {};
+    const meta = cli.canales_meta || {};
+
+    const tienePerfil  = !!(cli.nombre_negocio?.trim());
+    const tieneEsp     = Array.isArray(esps) && esps.length > 0;
+    const tieneServ    = Array.isArray(cli.servicios) && cli.servicios.length > 0;
+    const tieneHorario = !!cli.horario_negocio && Object.keys(cli.horario_negocio).some(d => cli.horario_negocio[d]?.activo);
+    const tieneSlug    = !!cli.booking_slug;
+    const CANCEL_ST    = ['cancelada','canceled','cancelled'];
+    const tieneCita    = (window._citasAgenda || []).some(c => !CANCEL_ST.includes(c.estado));
+    const tieneCanal   = !!(meta.wa_phone_number_id || meta.ig_account_id || meta.fb_page_id);
+    const tieneBot     = esPlanBot && !!(botData?.saludo?.trim() || botData?.conocimiento?.trim() || (Array.isArray(botData?.faqs) && botData.faqs.length > 0));
+
+    const _irCanales = () => { sv('bandeja', document.getElementById('ntab-bandeja')); setTimeout(() => showBandejaTab('canales', document.getElementById('bsectab-canales')), 150); };
+    const _irChatbot = () => { sv('bandeja', document.getElementById('ntab-bandeja')); setTimeout(() => showBandejaTab('chatbot', document.getElementById('bsectab-chatbot')), 150); };
+
+    if (esPuroChatbot) {
+      _onbSteps = [
+        { id: 'cuenta',  label: 'Cuenta creada',         done: true,        action: null },
+        { id: 'perfil',  label: 'Personaliza tu cuenta', done: tienePerfil, action: () => _onbIr('general') },
+        { id: 'canal',   label: 'Conecta un canal',      done: tieneCanal,  action: _irCanales },
+        { id: 'bot',     label: 'Activa tu bot',         done: tieneBot,    action: _irChatbot },
+      ];
+    } else {
+      _onbSteps = [
+        { id: 'cuenta',       label: 'Cuenta creada',              done: true,          action: null },
+        { id: 'perfil',       label: 'Personaliza tu cuenta',      done: tienePerfil,   action: () => _onbIr('general') },
+        { id: 'especialista', label: 'Agrega un profesional',      done: tieneEsp,      action: () => _onbIr('profesionales') },
+        { id: 'servicio',     label: 'Crea un servicio',           done: tieneServ,     action: () => _onbIr('servicios') },
+        { id: 'horario',      label: 'Configura tus horarios',     done: tieneHorario,  action: () => _onbIr('horarios') },
+        { id: 'link',         label: 'Comparte tu link',           done: tieneSlug,     action: () => _onbLink(cli.booking_slug) },
+        { id: 'primera_cita', label: 'Recibe tu primera reserva', done: tieneCita,     action: null },
+      ];
+      if (esPlanBot) {
+        _onbSteps.push({ id: 'canal', label: 'Conecta un canal', done: tieneCanal, action: _irCanales });
+        _onbSteps.push({ id: 'bot',   label: 'Activa tu bot',    done: tieneBot,   action: _irChatbot });
+      }
+    }
 
     if (_onbSteps.every(s => s.done)) { localStorage.setItem('attempo_onb_done', '1'); return; }
     _renderOnboarding();
@@ -13971,6 +14019,7 @@ async function saveCanal(canal) {
     });
     if (!r.ok) throw new Error();
     toast('✓ Canal guardado');
+    onbCheckStep('canal');
     cargarCanales();
   } catch(e) { toast('Error al guardar canal'); }
 }
@@ -16364,10 +16413,9 @@ function renderListaBandeja() {
 
   if (!convsFiltradas.length) {
     const _epPerms = PLAN_PERMISOS[planActual()] || PLAN_PERMISOS.inicio;
-    const _epDefault = _epPerms.soloWA
-      ? 'No hay conversaciones aún.<br>Los mensajes de WhatsApp aparecerán aquí.'
-      : 'No hay conversaciones aún.<br>Los mensajes de WhatsApp, Instagram y Messenger aparecerán aquí.';
-    container.innerHTML = '<div class="blist-empty">' +
+    const _epCta = `<button onclick="sv('bandeja',document.getElementById('ntab-bandeja'));setTimeout(()=>showBandejaTab('canales',document.getElementById('bsectab-canales')),150)" style="margin-top:12px;padding:7px 18px;background:var(--a);color:#fff;border:none;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;display:inline-block">Conectar canal →</button>`;
+    const _epDefault = `<div style="font-size:13px;font-weight:500;color:var(--t2);margin-bottom:4px">Aún no hay conversaciones</div><div style="font-size:12px;color:var(--t3)">${_epPerms.soloWA ? 'Los mensajes de WhatsApp aparecerán aquí.' : 'Los mensajes de WhatsApp, Instagram y Messenger aparecerán aquí.'}</div>${_epCta}`;
+    container.innerHTML = '<div class="blist-empty" style="padding:32px 16px;text-align:center">' +
       (q || _bFiltroCanal !== 'todos' ? 'Sin resultados' : _epDefault) +
       '</div>';
     return;
