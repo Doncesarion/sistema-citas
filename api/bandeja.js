@@ -746,6 +746,7 @@ export default async function handler(req, res) {
     const igRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`);
     const igData = await igRes.json();
     const igAccountId = igData.instagram_business_account?.id || null;
+    console.log('[fb-connect-page] pageId:', pageId, '| igAccountId:', igAccountId, '| cliente_id:', cliente_id);
     // Suscribir página para recibir mensajes
     await fetch(`https://graph.facebook.com/v20.0/${pageId}/subscribed_apps`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
