@@ -3345,7 +3345,10 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
         <!-- Instrucciones / estilo -->
         <div style="margin-bottom:20px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <label style="font-size:11px;color:var(--t3)">¿Cómo debe hablar?</label>
+            <div style="display:flex;align-items:center;gap:5px">
+              <label style="font-size:11px;color:var(--t3)">¿Cómo debe hablar?</label>
+              <span title="Instrucciones para el bot: qué puede y no puede decir, cómo manejar situaciones comunes, información importante que siempre debe mencionar. Cuanto más específico, mejor responde." style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--b2);color:var(--t3);font-size:9px;font-weight:700;cursor:help;flex-shrink:0">?</span>
+            </div>
             <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:rgba(108,92,228,0.08);color:var(--a);border:1px solid rgba(108,92,228,0.15)">IA lo aplica</span>
           </div>
           <textarea class="fi" id="bot-conocimiento" rows="5" placeholder="Ejemplo:&#10;— Siempre menciona el nombre del paciente cuando ya lo sabes&#10;— No des precios por teléfono, invita a venir a consulta&#10;— Si preguntan por urgencias, dales el número +56 9 1234 5678&#10;— Evita comparar con otras clínicas&#10;— Menciona siempre que los estacionamientos son gratuitos" style="resize:vertical;line-height:1.6;font-size:12.5px"></textarea>
@@ -3358,6 +3361,7 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
         <!-- Tiempo de respuesta (compacto) -->
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px">
           <span style="font-size:11px;color:var(--t3);white-space:nowrap">Tiempo de respuesta</span>
+          <span title="Un delay de 2–5 min hace que el bot parezca más humano en WhatsApp e Instagram. Responder al instante puede parecer spam. No aplica al widget web." style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--b2);color:var(--t3);font-size:9px;font-weight:700;cursor:help;flex-shrink:0">?</span>
           <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--t2);cursor:pointer">
             <input type="radio" name="delay-tipo" value="0" id="delay-inmediata" checked onchange="updateDelayUI()" style="accent-color:var(--a)">
             Inmediata
@@ -3381,12 +3385,18 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
 
         <!-- Traspaso a humano + Protocolo urgencia (movidos aquí desde abajo) -->
         <div style="margin-bottom:14px">
-          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Mensaje al traspasar a un humano</label>
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+            <label style="font-size:11px;color:var(--t3)">Mensaje al traspasar a un humano</label>
+            <span title="El bot envía este mensaje cuando escala la conversación a tu equipo. Incluye expectativa de tiempo de respuesta y un número de emergencia si aplica." style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--b2);color:var(--t3);font-size:9px;font-weight:700;cursor:help;flex-shrink:0">?</span>
+          </div>
           <div style="font-size:11px;color:var(--t4);margin-bottom:5px">Lo que el bot dice justo después de avisar al equipo. Puedes incluir indicaciones de urgencia.</div>
           <textarea class="fi" id="bot-mensaje-traspaso" rows="2" placeholder="Ej: Perfecto [nombre], ya le avisé al equipo. Alguien te va a escribir aquí mismo a la brevedad. Si es urgente, llama al 131 o acude a urgencias." style="resize:vertical"></textarea>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:3px">Protocolo de urgencia (bot pausado)</label>
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+            <label style="font-size:11px;color:var(--t3)">Protocolo de urgencia (bot pausado)</label>
+            <span title="Cuando el bot está pausado esperando al equipo humano, este mensaje reemplaza el texto genérico. Ideal para incluir números de emergencia (131, urgencias, número directo)." style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--b2);color:var(--t3);font-size:9px;font-weight:700;cursor:help;flex-shrink:0">?</span>
+          </div>
           <div style="font-size:11px;color:var(--t4);margin-bottom:5px">Cuando el bot está pausado esperando al equipo, este texto reemplaza el mensaje genérico. Ideal para incluir números de emergencia.</div>
           <textarea class="fi" id="bot-protocolo-urgencia" rows="3" placeholder="Ej: Nuestro equipo te va a responder a la brevedad. Si estás en una situación de emergencia, llama al 131 o acude al servicio de urgencias más cercano." style="resize:vertical"></textarea>
         </div>
@@ -17356,10 +17366,44 @@ async function renderReporteBandeja() {
       </div>
     </div>` : '';
 
+  // ── Actividad por día (últimos 14 días) ──────────────────────────────────────
+  const _actDays = [];
+  const _actNow  = new Date();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(_actNow); d.setDate(d.getDate() - i);
+    _actDays.push(d.toISOString().slice(0, 10));
+  }
+  const _perDay = {};
+  _actDays.forEach(d => _perDay[d] = 0);
+  convs.forEach(c => { const day = (c.created_at || '').slice(0, 10); if (_perDay[day] !== undefined) _perDay[day]++; });
+  const _maxDay = Math.max(...Object.values(_perDay), 1);
+  const _dayLabels = ['D','L','M','X','J','V','S'];
+  const actBars = _actDays.map(d => {
+    const count = _perDay[d];
+    const h     = Math.max(4, Math.round((count / _maxDay) * 52));
+    const dow   = new Date(d + 'T12:00:00').getDay();
+    const isHoy = d === _actNow.toISOString().slice(0, 10);
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
+      <div style="font-size:9px;font-weight:600;color:${count>0?'#6C5CE4':'var(--t4)'}">${count||''}</div>
+      <div style="width:100%;max-width:18px;height:${h}px;background:${isHoy?'#6C5CE4':count>0?'#c4b5fd':'#e2e8f0'};border-radius:3px 3px 0 0;transition:height .3s"></div>
+      <div style="font-size:9px;color:${isHoy?'#6C5CE4':'var(--t4)'};font-weight:${isHoy?'700':'400'}">${_dayLabels[dow]}</div>
+    </div>`;
+  }).join('');
+
+  const actChart = `
+    <div style="background:#f8fafc;border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em">Actividad — 14 días</div>
+        <div style="font-size:10px;color:var(--t4)">${_actDays[0].slice(5).replace('-','/')} – hoy</div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:72px">${actBars}</div>
+    </div>`;
+
   // ── Render ────────────────────────────────────────────────────────────────────
   el.innerHTML = `
     ${alertaHtml}
     ${kpiGrid}
+    ${actChart}
     <div style="background:#f8fafc;border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Por canal</div>
       ${canalBars}

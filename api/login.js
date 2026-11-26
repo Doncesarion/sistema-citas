@@ -341,25 +341,79 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'attempo <contacto@attempo.cl>',
           to: [emailNorm],
-          subject: `¡Bienvenido a attempo, ${primerNombre}!`,
+          subject: `¡Bienvenido a attempo, ${primerNombre}! — 3 pasos para empezar`,
           html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f5f3ff;font-family:Inter,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 20px">
 <tr><td align="center">
-<table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10)">
+<table width="540" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,228,0.10)">
+
+<!-- Header -->
 <tr><td style="background:#6C5CE4;padding:28px 32px;text-align:center">
   <img src="https://app.attempo.cl/logo_attempo.png" alt="attempo" height="36" style="display:block;margin:0 auto 8px">
   <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px">Todo a tu tiempo</p>
 </td></tr>
-<tr><td style="padding:32px;text-align:center">
-  <h2 style="margin:0 0 12px;color:#2d2d2d;font-size:22px">¡Hola, ${primerNombre}! 👋</h2>
-  <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6">
-    Tu cuenta de attempo está lista.<br>
-    Tienes <strong style="color:#6C5CE4">14 días de prueba gratis</strong> para explorar todo lo que attempo puede hacer por tu consulta.
+
+<!-- Saludo -->
+<tr><td style="padding:32px 32px 0;text-align:center">
+  <h2 style="margin:0 0 10px;color:#2d2d2d;font-size:22px">¡Hola, ${primerNombre}!</h2>
+  <p style="margin:0 0 8px;color:#6b7280;font-size:15px;line-height:1.6">
+    Tu cuenta está lista. Tienes <strong style="color:#6C5CE4">14 días de prueba gratis</strong>.
   </p>
-  <a href="https://app.attempo.cl/admin" style="display:inline-block;padding:14px 32px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
-  <p style="margin:24px 0 0;color:#9ca3af;font-size:12px">¿Tienes dudas? Escríbenos por WhatsApp al +56957285407</p>
+  <p style="margin:0 0 28px;color:#9ca3af;font-size:13px">Sigue estos 3 pasos para recibir tu primer mensaje por el bot:</p>
 </td></tr>
+
+<!-- Pasos -->
+<tr><td style="padding:0 24px 24px">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td style="padding:12px 16px;background:#f8f7ff;border-radius:10px;border-left:3px solid #6C5CE4;margin-bottom:10px">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="width:28px;vertical-align:top;padding-top:2px">
+          <div style="width:22px;height:22px;border-radius:50%;background:#6C5CE4;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:22px">1</div>
+        </td>
+        <td style="padding-left:10px">
+          <div style="font-size:13px;font-weight:600;color:#2d2d2d;margin-bottom:2px">Personaliza tu perfil</div>
+          <div style="font-size:12px;color:#6b7280">Agrega el nombre de tu negocio, logo y descripción.</div>
+          <a href="https://app.attempo.cl/configuracion" style="font-size:12px;color:#6C5CE4;text-decoration:none;font-weight:600">Ir a Configuración →</a>
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="height:8px"></td></tr>
+    <tr><td style="padding:12px 16px;background:#f8f7ff;border-radius:10px;border-left:3px solid #6C5CE4">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="width:28px;vertical-align:top;padding-top:2px">
+          <div style="width:22px;height:22px;border-radius:50%;background:#6C5CE4;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:22px">2</div>
+        </td>
+        <td style="padding-left:10px">
+          <div style="font-size:13px;font-weight:600;color:#2d2d2d;margin-bottom:2px">Conecta Instagram o WhatsApp</div>
+          <div style="font-size:12px;color:#6b7280">El bot responde automáticamente en estos canales.</div>
+          <a href="https://app.attempo.cl/bandeja/canales" style="font-size:12px;color:#6C5CE4;text-decoration:none;font-weight:600">Ir a Canales →</a>
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="height:8px"></td></tr>
+    <tr><td style="padding:12px 16px;background:#f8f7ff;border-radius:10px;border-left:3px solid #6C5CE4">
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td style="width:28px;vertical-align:top;padding-top:2px">
+          <div style="width:22px;height:22px;border-radius:50%;background:#6C5CE4;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:22px">3</div>
+        </td>
+        <td style="padding-left:10px">
+          <div style="font-size:13px;font-weight:600;color:#2d2d2d;margin-bottom:2px">Activa y prueba tu bot</div>
+          <div style="font-size:12px;color:#6b7280">Configura el saludo, FAQs y pruébalo desde el panel.</div>
+          <a href="https://app.attempo.cl/bandeja/chatbot" style="font-size:12px;color:#6C5CE4;text-decoration:none;font-weight:600">Ir a Chatbot →</a>
+        </td>
+      </tr></table>
+    </td></tr>
+  </table>
+</td></tr>
+
+<!-- CTA -->
+<tr><td style="padding:0 32px 32px;text-align:center">
+  <a href="https://app.attempo.cl/admin" style="display:inline-block;padding:14px 36px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600">Ir a mi dashboard →</a>
+  <p style="margin:20px 0 0;color:#9ca3af;font-size:12px">¿Necesitas ayuda? Escríbenos por WhatsApp al <a href="https://wa.me/56957285407" style="color:#6C5CE4;text-decoration:none">+56 9 5728 5407</a></p>
+</td></tr>
+
+<!-- Footer -->
 <tr><td style="background:#f9f8ff;padding:16px 32px;text-align:center;border-top:1px solid #ede9fe">
   <p style="margin:0;color:#9ca3af;font-size:12px">attempo — Todo a tu tiempo</p>
 </td></tr>
