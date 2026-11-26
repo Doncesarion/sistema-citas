@@ -540,83 +540,17 @@ export default async function handler(req, res) {
   // ── Responder 200 a Meta de inmediato para evitar timeout ────────────────
   res.status(200).end();
 
-  // ── Llamar al bot IA ──────────────────────────────────────────────────────
-  let respuesta = '', delayMinSeg = 0, delayMaxSeg = 0;
-  try {
-    const botRes = await fetch(`${BASE_URL}/api/bot-chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_API_SECRET || '' },
-      body: JSON.stringify({ cliente_id, canal, canal_user_id, canal_user_name, mensaje })
-    });
-    const botData = await botRes.json();
-    if (botData.pausa) {
-      console.log('meta-webhook: bot pausado para', canal_user_id);
-      if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
-      return;
-    }
-    respuesta    = botData.respuesta    || '';
-    delayMinSeg  = botData.delay_min_seg || 0;
-    delayMaxSeg  = botData.delay_max_seg || delayMinSeg;
-  } catch (e) {
-    console.error('meta-webhook: error llamando bot-chat:', e.message);
-    if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, '');
-    return;
-  }
-
-  // ── Guardar lead de attempo (usuario + respuesta del bot) ─────────────────
-  if (isAttempoChannel) _saveAttempoLead(canal_user_id, canal_user_name, canal, mensaje, respuesta);
-
-  // ── Guardar respuesta del bot ─────────────────────────────────────────────
-  if (respuesta && conversacion_id) {
-    const shJ = { ...sh, 'Content-Type': 'application/json' };
-    await fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
-      method: 'POST',
-      headers: { ...shJ, Prefer: 'return=minimal' },
-      body: JSON.stringify({ conversacion_id, cliente_id, rol: 'bot', contenido: respuesta, visto: true })
-    }).catch(e => console.error('meta-webhook: error guardando mensaje bot:', e.message));
-  }
-
-  console.log('[meta-webhook] pre-send | canal:', canal, '| respuesta:', respuesta ? respuesta.slice(0,60)+'...' : 'VACÍA', '| accessToken:', accessToken ? 'OK' : 'NULL');
-  if (!respuesta || !accessToken) return;
-
-  // ── Delay configurable antes de enviar ────────────────────────────────────
-  if (delayMinSeg > 0) {
-    const delay = Math.floor(Math.random() * (delayMaxSeg - delayMinSeg + 1) + delayMinSeg);
-    console.log(`meta-webhook: delay ${delay}s para cliente ${cliente_id}`);
-    await new Promise(r => setTimeout(r, delay * 1000));
-  }
-
-  // ── Enviar respuesta al canal ─────────────────────────────────────────────
-  try {
-    let sendRes;
-    if (canal === 'whatsapp') {
-      sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: respuesta } })
-      });
-    } else if (canal === 'instagram') {
-      // channelValue = ig_account_id recibido en el webhook entry
-      sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: respuesta } })
-      });
-    } else {
-      // Messenger — channelValue = fb_page_id recibido en el webhook entry
-      sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: respuesta } })
-      });
-    }
-    const sendBody = await sendRes.text();
-    console.log('meta-webhook: send status:', sendRes.status, '| body:', sendBody.slice(0,120));
-    if (sendRes.ok) {
-      incUso(cliente_id, 'mensajes_wa_bot');
-      if (!isAttempoChannel) incWaUsados(cliente_id);
-    }
-  } catch (e) {
-    console.error('meta-webhook: error enviando respuesta:', e.message);
-  }
+  // ── Llamar al bot IA (fire-and-forget: bot-chat enviará la respuesta directamente) ──
+  fetch(`${BASE_URL}/api/bot-chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_API_SECRET || '' },
+    body: JSON.stringify({
+      cliente_id, canal, canal_user_id, canal_user_name, mensaje,
+      send_reply: true,
+      access_token: accessToken,
+      channel_value: channelValue,
+      conversacion_id,
+      is_attempo_channel: isAttempoChannel
+    })
+  }).catch(e => console.error('meta-webhook: bot-chat fire error:', e.message));
 }

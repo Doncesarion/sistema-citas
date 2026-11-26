@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const { cliente_id, canal, canal_user_id, canal_user_name, mensaje } = incomingBody;
+  const { cliente_id, canal, canal_user_id, canal_user_name, mensaje, send_reply, access_token: metaAccessToken, channel_value: metaChannelValue, conversacion_id: metaConversacionId, is_attempo_channel: isAttempoChannel } = incomingBody;
   if (!cliente_id || !canal || !canal_user_id || !mensaje) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
@@ -60,6 +60,53 @@ export default async function handler(req, res) {
   const shJson = { ...sh, 'Content-Type': 'application/json' };
 
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key no configurada' });
+
+  async function sendMetaReply(respuesta, delayMinSeg = 0, delayMaxSeg = 0) {
+    if (!send_reply || !respuesta || !metaAccessToken || !metaChannelValue) return;
+    if (delayMinSeg > 0) {
+      const delay = Math.floor(Math.random() * (delayMaxSeg - delayMinSeg + 1) + delayMinSeg);
+      await new Promise(r => setTimeout(r, delay * 1000));
+    }
+    try {
+      const payload = canal === 'whatsapp'
+        ? { messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: respuesta } }
+        : { recipient: { id: canal_user_id }, message: { text: respuesta } };
+      const sendRes = await fetch(`https://graph.facebook.com/v20.0/${metaChannelValue}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${metaAccessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const sendText = await sendRes.text();
+      console.log('[bot-chat] meta-send:', sendRes.status, sendText.slice(0, 120));
+      if (sendRes.ok) {
+        const mes = new Date().toISOString().slice(0, 7);
+        fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_uso`, {
+          method: 'POST', headers: shJson,
+          body: JSON.stringify({ p_cliente_id: cliente_id, p_mes: mes, p_campo: 'mensajes_wa_bot' })
+        }).catch(() => {});
+        if (!isAttempoChannel && canal === 'whatsapp') {
+          fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_wa_usados`, {
+            method: 'POST', headers: shJson,
+            body: JSON.stringify({ p_cliente_id: cliente_id })
+          }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.error('[bot-chat] meta-send error:', e.message);
+    }
+    if (metaConversacionId && respuesta) {
+      fetch(`${SUPABASE_URL}/rest/v1/mensajes`, {
+        method: 'POST', headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({ conversacion_id: metaConversacionId, cliente_id, rol: 'bot', contenido: respuesta, visto: true })
+      }).catch(() => {});
+    }
+    if (isAttempoChannel) {
+      fetch(`${SUPABASE_URL}/rest/v1/web_leads`, {
+        method: 'POST', headers: { ...shJson, Prefer: 'return=minimal' },
+        body: JSON.stringify({ session_id: canal_user_id, mensajes: [{ role: 'user', content: mensaje, name: canal_user_name || canal_user_id }, { role: 'assistant', content: respuesta }], tipo: 'whatsapp_msg', pagina: canal })
+      }).catch(() => {});
+    }
+  }
 
   // ── 1. Cargar o crear sesión de chat ──────────────────────────────────────
   let sessionId = null;
@@ -645,6 +692,7 @@ HOY ES: ${hoyVentas}${leadContexto}`;
     }
 
     if (esPrimerMsg) notificarNuevoMensaje(canal, canal_user_name, mensaje);
+    await sendMetaReply(respuestaVentas || 'Un momento, intenta de nuevo.');
     return res.status(200).json({ respuesta: respuestaVentas || 'Un momento, intenta de nuevo.', cita_creada: null });
   }
   // ── FIN MODO VENTAS ───────────────────────────────────────────────────────
@@ -699,6 +747,7 @@ HOY ES: ${hoyVentas}${leadContexto}`;
         }).catch(() => {});
       }
 
+      await sendMetaReply(respEscalada);
       return res.status(200).json({ respuesta: respEscalada, delay_min_seg: 0, delay_max_seg: 0 });
     }
   }
@@ -1572,6 +1621,7 @@ PREGUNTAS SIN RESPUESTA EN TU INFORMACIÓN (Fonasa, estacionamiento, acceso, seg
     }).catch(e => console.error('bot-chat: error guardando sesión:', e.message));
   }
 
+  await sendMetaReply(respuestaFinal || 'Un momento, intenta de nuevo.', botConfig.delay_min_seg || 0, botConfig.delay_max_seg || 0);
   return res.status(200).json({
     respuesta:    respuestaFinal || 'Un momento, intenta de nuevo.',
     cita_creada:  citaCreada || null,
