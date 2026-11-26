@@ -5,8 +5,7 @@
   },
   "crons": [
     { "path": "/api/send-email", "schedule": "0 11 * * *" },
-    { "path": "/api/send-email", "schedule": "0 23 * * *" },
-    { "path": "/api/bot-chat?keepalive=1", "schedule": "*/5 * * * *" }
+    { "path": "/api/send-email", "schedule": "0 23 * * *" }
   ],
   "headers": [
     {
