@@ -167,7 +167,17 @@ export default async function handler(req, res) {
         })
       });
       const subData = await subRes.json();
-      console.log('[meta-webhook/subscribed_apps]', JSON.stringify(subData));
+      console.log('[meta-webhook/subscribed_apps page]', JSON.stringify(subData));
+      // Suscribir también la cuenta de Instagram para recibir DMs directamente
+      if (igAccountId) {
+        const igSubRes = await fetch(`https://graph.facebook.com/v20.0/${igAccountId}/subscribed_apps`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: pageToken, subscribed_fields: ['messages'] })
+        });
+        const igSubData = await igSubRes.json();
+        console.log('[meta-webhook/subscribed_apps ig]', igAccountId, JSON.stringify(igSubData));
+      }
       console.log('[meta-webhook/oauth] pages encontradas:', pages.map(p => p.id + ' ' + p.name));
       console.log('[meta-webhook/oauth] pageId guardado:', pageId, '| igAccountId:', igAccountId, '| cid:', cid);
 
@@ -228,6 +238,9 @@ export default async function handler(req, res) {
   } catch { return res.status(403).end(); }
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
+
+  // Log diagnóstico para entender qué llega desde Meta
+  console.log('[meta-webhook/incoming]', 'object:', body.object, '| entry_id:', body.entry?.[0]?.id, '| has_messaging:', !!body.entry?.[0]?.messaging?.[0]);
 
   // ── Parsear mensaje según canal ───────────────────────────────────────────
   let canal, canal_user_id, canal_user_name, mensaje, channelKey, channelValue;

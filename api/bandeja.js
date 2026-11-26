@@ -746,12 +746,22 @@ export default async function handler(req, res) {
     const igRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`);
     const igData = await igRes.json();
     const igAccountId = igData.instagram_business_account?.id || null;
-    console.log('[fb-connect-page] pageId:', pageId, '| igAccountId:', igAccountId, '| cliente_id:', cliente_id);
-    // Suscribir página para recibir mensajes
-    await fetch(`https://graph.facebook.com/v20.0/${pageId}/subscribed_apps`, {
+    console.log('[fb-connect-page] pageId:', pageId, '| igData:', JSON.stringify(igData).slice(0,200), '| igAccountId:', igAccountId, '| cliente_id:', cliente_id);
+    // Suscribir página para recibir mensajes de Messenger
+    const subPageRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/subscribed_apps`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ access_token: pageToken, subscribed_fields: ['messages', 'messaging_postbacks', 'messaging_optins'] })
-    }).catch(() => {});
+    }).catch(() => null);
+    if (subPageRes) console.log('[fb-connect-page] page sub status:', subPageRes.status);
+    // Suscribir también la cuenta de Instagram para recibir DMs
+    if (igAccountId) {
+      const subIgRes = await fetch(`https://graph.facebook.com/v20.0/${igAccountId}/subscribed_apps`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: pageToken, subscribed_fields: ['messages'] })
+      }).catch(() => null);
+      const subIgData = subIgRes ? await subIgRes.json().catch(() => null) : null;
+      console.log('[fb-connect-page] ig sub:', igAccountId, JSON.stringify(subIgData));
+    }
     // Guardar en Supabase
     const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`, { headers: sh });
     const [cli] = await r0.json();
