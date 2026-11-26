@@ -229,13 +229,16 @@ export default async function handler(req, res) {
 
   // Validar firma X-Hub-Signature-256 de Meta
   const metaAppSecret = process.env.META_APP_SECRET;
-  if (!metaAppSecret) return res.status(503).end(); // fail-secure: secret obligatorio
+  if (!metaAppSecret) { console.error('[meta-webhook] 503: META_APP_SECRET no definido'); return res.status(503).end(); }
   const sig = req.headers['x-hub-signature-256'];
-  if (!sig) return res.status(403).end();
+  if (!sig) { console.error('[meta-webhook] 403: sin header X-Hub-Signature-256'); return res.status(403).end(); }
   const expected = 'sha256=' + crypto.createHmac('sha256', metaAppSecret).update(rawBody).digest('hex');
   try {
-    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return res.status(403).end();
-  } catch { return res.status(403).end(); }
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+      console.error('[meta-webhook] 403: firma inválida | sig_len:', sig.length, '| exp_len:', expected.length, '| sig_prefix:', sig.slice(0,15), '| exp_prefix:', expected.slice(0,15));
+      return res.status(403).end();
+    }
+  } catch (e) { console.error('[meta-webhook] 403: timingSafeEqual error:', e.message); return res.status(403).end(); }
 
   const sh  = { apikey: process.env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` };
 
