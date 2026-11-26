@@ -148,6 +148,19 @@ export default async function handler(req, res) {
       const igRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`);
       const igData = await igRes.json();
       const igAccountId = igData.instagram_business_account?.id || null;
+
+      // Suscribir la página para recibir mensajes de Messenger e Instagram
+      const subRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/subscribed_apps`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: pageToken,
+          subscribed_fields: ['messages', 'messaging_postbacks', 'messaging_optins']
+        })
+      });
+      const subData = await subRes.json();
+      console.log('[meta-webhook/subscribed_apps]', JSON.stringify(subData));
+
       const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: SH });
       const [cli] = await r0.json();
       const merged = {
@@ -558,14 +571,15 @@ export default async function handler(req, res) {
         body: JSON.stringify({ messaging_product: 'whatsapp', to: canal_user_id, type: 'text', text: { body: respuesta } })
       });
     } else if (canal === 'instagram') {
-      sendRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
+      // channelValue = ig_account_id recibido en el webhook entry
+      sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: respuesta } })
       });
     } else {
-      // Messenger
-      sendRes = await fetch(`https://graph.facebook.com/v20.0/me/messages`, {
+      // Messenger — channelValue = fb_page_id recibido en el webhook entry
+      sendRes = await fetch(`https://graph.facebook.com/v20.0/${channelValue}/messages`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipient: { id: canal_user_id }, message: { text: respuesta } })
