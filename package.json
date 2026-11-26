@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
+    "@vercel/functions": "^2.0.0",
     "pdfkit": "^0.19.1"
   }
 }

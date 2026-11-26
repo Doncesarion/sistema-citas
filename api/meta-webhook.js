@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { waitUntil } from '@vercel/functions';
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const BASE_URL     = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
 
@@ -543,17 +544,19 @@ export default async function handler(req, res) {
   // ── Responder 200 a Meta de inmediato para evitar timeout ────────────────
   res.status(200).end();
 
-  // ── Llamar al bot IA (fire-and-forget: bot-chat enviará la respuesta directamente) ──
-  fetch(`${BASE_URL}/api/bot-chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_API_SECRET || '' },
-    body: JSON.stringify({
-      cliente_id, canal, canal_user_id, canal_user_name, mensaje,
-      send_reply: true,
-      access_token: accessToken,
-      channel_value: channelValue,
-      conversacion_id,
-      is_attempo_channel: isAttempoChannel
-    })
-  }).catch(e => console.error('meta-webhook: bot-chat fire error:', e.message));
+  // ── Llamar al bot IA (waitUntil mantiene la función viva hasta que el request llegue a bot-chat) ──
+  waitUntil(
+    fetch(`${BASE_URL}/api/bot-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_API_SECRET || '' },
+      body: JSON.stringify({
+        cliente_id, canal, canal_user_id, canal_user_name, mensaje,
+        send_reply: true,
+        access_token: accessToken,
+        channel_value: channelValue,
+        conversacion_id,
+        is_attempo_channel: isAttempoChannel
+      })
+    }).catch(e => console.error('meta-webhook: bot-chat fire error:', e.message))
+  );
 }
