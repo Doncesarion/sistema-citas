@@ -4,6 +4,8 @@
   "type": "module",
   "dependencies": {
     "@vercel/functions": "^2.0.0",
-    "pdfkit": "^0.19.1"
+    "node-forge": "^1.4.4",
+    "pdfkit": "^0.19.1",
+    "xmlbuilder2": "^4.0.3"
   }
 }

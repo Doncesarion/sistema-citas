@@ -5050,27 +5050,30 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
     <!-- Panel: Facturación -->
     <div id="cfg-facturacion" style="display:none">
       <div class="vh" style="margin-bottom:16px">
-        <span>Facturación</span>
+        <span>Facturación electrónica</span>
         <button class="btn-sm cfg-back-btn" onclick="showCfg('general',document.getElementById('ctab-general'))">← Volver</button>
       </div>
 
-      <!-- Tipo de emisor -->
+      <!-- Estado global -->
+      <div id="fact-estado-banner" style="display:none;padding:10px 14px;border-radius:var(--r);font-size:12px;margin-bottom:14px"></div>
+
+      <!-- Tipo de documento -->
       <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Tipo de emisor</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Define el tipo de boleta que emites a tus clientes.</div>
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Tipo de documento</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Define el DTE que emites. Aparece en cada boleta enviada al paciente.</div>
         <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
           <label style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--b1)">
             <input type="radio" name="fact-tipo" id="fact-honorarios" value="honorarios" style="accent-color:var(--a);width:15px;height:15px">
             <div>
-              <div style="font-size:13px;font-weight:500;color:var(--t1)">Persona natural — Boleta de servicios</div>
-              <div style="font-size:12px;color:var(--t3)">Sin IVA · Retención 10% · Médicos, kinesiólogos, profesionales independientes</div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Boleta Exenta Electrónica <span style="font-size:11px;color:var(--t3)">(tipo 41)</span></div>
+              <div style="font-size:12px;color:var(--t3)">Sin IVA · Clínicas SPA, médicos con empresa · Servicios de salud exentos</div>
             </div>
           </label>
           <label style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer">
             <input type="radio" name="fact-tipo" id="fact-venta" value="venta" style="accent-color:var(--a);width:15px;height:15px">
             <div>
-              <div style="font-size:13px;font-weight:500;color:var(--t1)">Empresa — Boleta electrónica de venta</div>
-              <div style="font-size:12px;color:var(--t3)">Incluye IVA 19% · Barberías, clínicas con personalidad jurídica, spas</div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">Boleta Electrónica <span style="font-size:11px;color:var(--t3)">(tipo 39, con IVA 19%)</span></div>
+              <div style="font-size:12px;color:var(--t3)">Incluye IVA · Barberías, spas, servicios no exentos</div>
             </div>
           </label>
         </div>
@@ -5079,44 +5082,66 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
       <!-- Datos del emisor -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Datos del emisor</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Aparecen en todas las boletas que emitas.</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Tal como aparecen en el SII. Deben coincidir exactamente con tu certificado.</div>
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">RUT del emisor</label>
-              <input id="fact-rut" type="text" placeholder="Ej: 18.741.085-9" class="fi" style="width:100%" oninput="formatRutInput(this)" maxlength="13"></div>
-            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Razón social / Nombre</label>
-              <input id="fact-razon" type="text" placeholder="Ej: Clínica Norte Ltda." class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">RUT</label>
+              <input id="fact-rut" type="text" placeholder="Ej: 76.768.038-4" class="fi" style="width:100%" oninput="formatRutInput(this)" maxlength="13"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Razón social</label>
+              <input id="fact-razon" type="text" placeholder="Ej: MEDFIT SPA" class="fi" style="width:100%"></div>
           </div>
           <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Giro comercial</label>
-            <input id="fact-giro" type="text" placeholder="Ej: Servicios médicos y de salud" class="fi" style="width:100%"></div>
-          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Dirección</label>
-            <input id="fact-dir" type="text" placeholder="Ej: Av. Providencia 1234, Santiago" class="fi" style="width:100%"></div>
-        </div>
-      </div>
-
-      <!-- DTemite — configurado por attempo, no visible para clientes -->
-      <div id="fact-dte-estado" style="display:none"></div>
-      <input id="fact-dte-sistema" type="hidden">
-      <input id="fact-dte-usuario" type="hidden">
-      <input id="fact-dte-clave" type="hidden">
-
-      <!-- Numeración -->
-      <div class="card" style="padding:20px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
+            <input id="fact-giro" type="text" placeholder="Ej: SERV INTEG.DE SALUD EN AREA MEDICA" class="fi" style="width:100%"></div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px">
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Dirección</label>
+              <input id="fact-dir" type="text" placeholder="Av. Providencia 1234" class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Comuna</label>
+              <input id="fact-comuna" type="text" placeholder="Maipú" class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Ciudad</label>
+              <input id="fact-region" type="text" placeholder="Santiago" class="fi" style="width:100%"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Fecha resolución SII</label>
+              <input id="fact-fecha-resol" type="date" class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">N° resolución SII</label>
+              <input id="fact-num-resol" type="number" min="0" placeholder="Ej: 80" class="fi" style="width:100%"></div>
+          </div>
           <div>
-            <div style="font-size:13px;font-weight:500;color:var(--t1)">Numeración de boletas</div>
-            <div style="font-size:12px;color:var(--t3);margin-top:2px">Próximo folio: <span id="fact-folio-display" style="font-family:var(--mono);color:var(--a);font-weight:600">—</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:11px;color:var(--t3)">Iniciar desde</label>
-            <input id="fact-folio-ini" type="number" min="1" value="1" class="fi" style="width:72px;text-align:center">
+            <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Ambiente</label>
+            <select id="fact-ambiente" class="fi" style="width:200px">
+              <option value="produccion">Producción (SII real)</option>
+              <option value="certificacion">Certificación (pruebas)</option>
+            </select>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--t3);margin-top:8px">Este folio aplica para las boletas generadas en attempo.</div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px">
+          <button class="btn-a" onclick="guardarDteConfig(this)">Guardar datos</button>
+        </div>
       </div>
 
-      <div style="display:flex;justify-content:flex-end;margin-top:4px">
-        <button class="btn-a" onclick="guardarFacturacion(this)">Guardar configuración</button>
+      <!-- Certificado digital .p12 -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px">Certificado digital</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Archivo .p12 obtenido del SII. Se guarda cifrado en attempo, nunca se muestra en texto plano.</div>
+        <div id="fact-cert-estado" style="font-size:12px;color:var(--t3);margin-bottom:12px">Sin certificado cargado.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input id="fact-cert-file" type="file" accept=".p12,.pfx" style="font-size:12px">
+          <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Contraseña del certificado</label>
+            <input id="fact-cert-pass" type="password" placeholder="Contraseña del .p12" class="fi" style="width:100%;max-width:280px"></div>
+          <button class="btn-sm btn-a" onclick="subirCertificadoDte(this)" style="align-self:flex-start">Subir certificado</button>
+        </div>
+      </div>
+
+      <!-- CAF (folios) -->
+      <div class="card" style="padding:20px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px">CAF — Código de Autorización de Folios</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Descarga el archivo CAF desde <strong>sii.cl → Servicios online → Factura Electrónica → Administración de CAF</strong>. Sube un archivo por cada tipo de documento.</div>
+        <div id="fact-cafs-lista" style="margin-bottom:12px;font-size:12px;color:var(--t3)">Cargando CAFs...</div>
+        <div style="border:1px dashed var(--b2);border-radius:var(--r);padding:12px 14px;background:var(--adim)">
+          <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:6px">Subir nuevo CAF (XML)</label>
+          <input id="fact-caf-file" type="file" accept=".xml,text/xml" style="font-size:12px;margin-bottom:8px">
+          <button class="btn-sm btn-a" onclick="subirCafDte(this)" style="display:block">Subir CAF</button>
+        </div>
       </div>
     </div>
 
@@ -14273,88 +14298,157 @@ function _factKey(k) {
 }
 
 async function cargarFacturacion() {
-  try { _factConfig = JSON.parse(localStorage.getItem(_factKey('attempo_facturacion')) || '{}'); } catch(e) { _factConfig = {}; }
-  // Supabase is the source of truth for aplica_iva
+  const g = id => document.getElementById(id);
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  const headers = { Authorization: `Bearer ${tok}` };
+
+  // Cargar config DTE
   try {
-    const cid = await getClienteId();
-    if (cid) {
-      const _r = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago&limit=1`, { headers: _SH });
-      const [_row] = await _r.json();
-      const _mp = _row?.metodos_pago || {};
-      if (_mp.aplica_iva !== undefined) {
-        _factConfig.tipo = _mp.aplica_iva ? 'venta' : 'honorarios';
+    const r = await fetch('/api/dte?action=config', { headers });
+    if (r.ok) {
+      const cfg = await r.json();
+      if (cfg) {
+        const esVenta = cfg.rut && !cfg.giro?.toLowerCase().includes('honorario') && false; // leer del tipo guardado
+        if (g('fact-rut'))         g('fact-rut').value         = cfg.rut           || '';
+        if (g('fact-razon'))       g('fact-razon').value       = cfg.razon_social  || '';
+        if (g('fact-giro'))        g('fact-giro').value        = cfg.giro          || '';
+        if (g('fact-dir'))         g('fact-dir').value         = cfg.direccion     || '';
+        if (g('fact-comuna'))      g('fact-comuna').value      = cfg.comuna        || '';
+        if (g('fact-region'))      g('fact-region').value      = cfg.region        || '';
+        if (g('fact-fecha-resol')) g('fact-fecha-resol').value = cfg.fecha_resolucion || '';
+        if (g('fact-num-resol'))   g('fact-num-resol').value   = cfg.numero_resolucion ?? '';
+        if (g('fact-ambiente'))    g('fact-ambiente').value    = cfg.ambiente      || 'produccion';
+        // Actualizar banner estado
+        const banner = g('fact-estado-banner');
+        if (banner) {
+          if (cfg.rut && cfg.fecha_resolucion) {
+            banner.style.display = 'block';
+            banner.style.background = '#f0fdf4'; banner.style.border = '1px solid #bbf7d0'; banner.style.color = '#166534';
+            banner.textContent = `✓ DTE directo SII configurado — ${cfg.razon_social} (${cfg.rut}) · Ambiente: ${cfg.ambiente}`;
+          } else {
+            banner.style.display = 'block';
+            banner.style.background = '#fffbeb'; banner.style.border = '1px solid #fde68a'; banner.style.color = '#92400e';
+            banner.textContent = 'Faltan datos: RUT, razón social o resolución SII.';
+          }
+        }
       }
-      if (_mp.dtemite_sistema !== undefined) _factConfig.dtemite_sistema = _mp.dtemite_sistema;
-      if (_mp.dtemite_usuario !== undefined) _factConfig.dtemite_usuario = _mp.dtemite_usuario;
-      if (_mp.dtemite_clave   !== undefined) _factConfig.dtemite_clave   = _mp.dtemite_clave;
-      localStorage.setItem(_factKey('attempo_facturacion'), JSON.stringify(_factConfig));
     }
   } catch(_) {}
-  const g  = id => document.getElementById(id);
-  const fc = _factConfig;
-  if (g('fact-honorarios')) g('fact-honorarios').checked = (fc.tipo || 'honorarios') === 'honorarios';
-  if (g('fact-venta'))      g('fact-venta').checked      = fc.tipo === 'venta';
-  if (g('fact-rut'))        g('fact-rut').value   = fc.rut   || '';
-  if (g('fact-razon'))      g('fact-razon').value  = fc.razon || '';
-  if (g('fact-giro'))       g('fact-giro').value   = fc.giro  || '';
-  if (g('fact-dir'))        g('fact-dir').value    = fc.dir   || '';
-  if (g('fact-dte-sistema')) g('fact-dte-sistema').value = fc.dtemite_sistema || '';
-  if (g('fact-dte-usuario')) g('fact-dte-usuario').value = fc.dtemite_usuario || '';
-  if (g('fact-dte-clave'))   g('fact-dte-clave').value   = fc.dtemite_clave   ? '••••••••' : '';
-  const folio = Number(localStorage.getItem(_factKey('attempo_folio')) || fc.folio_ini || 1);
-  if (g('fact-folio-display')) g('fact-folio-display').textContent = folio;
-  if (g('fact-folio-ini'))     g('fact-folio-ini').value = fc.folio_ini || 1;
-  const estadoEl = g('fact-dte-estado');
-  if (estadoEl) {
-    if (fc.dtemite_usuario) estadoEl.innerHTML = '<span style="color:#059669">✓ DTemite configurado — las boletas se emitirán como DTE válido ante el SII</span>';
-    else estadoEl.textContent = 'Sin configurar — las boletas se generarán como documentos internos';
-  }
+
+  // Cargar CAFs activos
+  try {
+    const r = await fetch('/api/dte?action=cafs', { headers });
+    if (r.ok) {
+      const cafs = await r.json();
+      const listaEl = g('fact-cafs-lista');
+      const TIPO_NOM = { 33:'Factura Electrónica', 34:'Factura No Afecta/Exenta', 39:'Boleta Electrónica (con IVA)', 41:'Boleta Exenta Electrónica' };
+      if (listaEl) {
+        if (!Array.isArray(cafs) || !cafs.length) {
+          listaEl.textContent = 'Sin CAFs cargados.';
+        } else {
+          listaEl.innerHTML = cafs.map(c => {
+            const pct = Math.round(((c.folio_siguiente - c.folio_desde) / (c.folio_hasta - c.folio_desde + 1)) * 100);
+            const restantes = c.folio_hasta - c.folio_siguiente + 1;
+            const color = restantes < 50 ? '#dc2626' : restantes < 200 ? '#d97706' : '#059669';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--adim);border-radius:var(--r);margin-bottom:6px;font-size:12px">
+              <div><strong>Tipo ${c.tipo_documento}</strong> — ${TIPO_NOM[c.tipo_documento] || 'DTE'}</div>
+              <div style="color:${color}">Folio ${c.folio_siguiente} / ${c.folio_hasta} (${restantes} restantes)</div>
+            </div>`;
+          }).join('');
+        }
+      }
+    }
+  } catch(_) {}
+
+  // Estado certificado
+  try {
+    const certEl = g('fact-cert-estado');
+    if (certEl) certEl.textContent = 'Certificado activo cargado (verificado al subir).';
+  } catch(_) {}
+
+  try { _factConfig = JSON.parse(localStorage.getItem(_factKey('attempo_facturacion')) || '{}'); } catch(e) { _factConfig = {}; }
+  if (g('fact-honorarios')) g('fact-honorarios').checked = (_factConfig.tipo || 'honorarios') === 'honorarios';
+  if (g('fact-venta'))      g('fact-venta').checked      = _factConfig.tipo === 'venta';
 }
 
-async function guardarFacturacion(btn) {
+async function guardarFacturacion(btn) { await guardarDteConfig(btn); }
+
+async function guardarDteConfig(btn) {
   const g = id => document.getElementById(id);
-  const _dteSistema = g('fact-dte-sistema')?.value.trim() || '';
-  const _dteUsuario = g('fact-dte-usuario')?.value.trim() || '';
-  const _dteClave   = g('fact-dte-clave')?.value || '';
-  // Don't overwrite saved password if the placeholder is shown
-  const _dteClaveGuardar = (_dteClave && _dteClave !== '••••••••') ? _dteClave : (_factConfig.dtemite_clave || '');
-  _factConfig = {
-    tipo:            g('fact-honorarios')?.checked ? 'honorarios' : 'venta',
-    rut:             g('fact-rut')?.value.trim()   || '',
-    razon:           g('fact-razon')?.value.trim()  || '',
-    giro:            g('fact-giro')?.value.trim()   || '',
-    dir:             g('fact-dir')?.value.trim()    || '',
-    folio_ini:       parseInt(g('fact-folio-ini')?.value || '1'),
-    dtemite_sistema: _dteSistema,
-    dtemite_usuario: _dteUsuario,
-    dtemite_clave:   _dteClaveGuardar
-  };
-  localStorage.setItem(_factKey('attempo_facturacion'), JSON.stringify(_factConfig));
-  const folioActual = Number(localStorage.getItem(_factKey('attempo_folio')) || 0);
-  if (folioActual < _factConfig.folio_ini) localStorage.setItem(_factKey('attempo_folio'), _factConfig.folio_ini);
-  // Persist to Supabase: aplica_iva + DTemite credentials
+  const orig = btn?.textContent;
+  if (btn) { btn.textContent = 'Guardando...'; btn.disabled = true; }
   try {
-    const cid = await getClienteId();
-    if (cid) {
-      const _re = await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}&select=metodos_pago&limit=1`, { headers: _SH });
-      const [_row] = await _re.json();
-      const _mp = {
-        ...(_row?.metodos_pago || {}),
-        aplica_iva:       _factConfig.tipo === 'venta',
-        dtemite_sistema:  _dteSistema,
-        dtemite_usuario:  _dteUsuario,
-        dtemite_clave:    _dteClaveGuardar
-      };
-      await fetch(`${_SURL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
-        method: 'PATCH',
-        headers: { ..._SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-        body: JSON.stringify({ metodos_pago: _mp })
-      });
+    const r = await fetch('/api/dte?action=config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('attempo_session_token') || ''}` },
+      body: JSON.stringify({
+        rut:               g('fact-rut')?.value.trim()        || '',
+        razon_social:      g('fact-razon')?.value.trim()      || '',
+        giro:              g('fact-giro')?.value.trim()        || '',
+        direccion:         g('fact-dir')?.value.trim()         || '',
+        comuna:            g('fact-comuna')?.value.trim()      || '',
+        region:            g('fact-region')?.value.trim()      || '',
+        fecha_resolucion:  g('fact-fecha-resol')?.value        || null,
+        numero_resolucion: g('fact-num-resol')?.value !== '' ? parseInt(g('fact-num-resol').value) : null,
+        ambiente:          g('fact-ambiente')?.value           || 'produccion',
+      })
+    });
+    if (r.ok) {
+      toast('✓ Datos de facturación guardados');
+      _factConfig.tipo = g('fact-honorarios')?.checked ? 'honorarios' : 'venta';
+      localStorage.setItem(_factKey('attempo_facturacion'), JSON.stringify(_factConfig));
+    } else {
+      const d = await r.json().catch(() => ({}));
+      toastErr(d.error || 'Error guardando');
     }
-  } catch(_) {}
-  if (btn) { btn.textContent = '✓ Guardado'; setTimeout(() => { btn.textContent = 'Guardar configuración'; }, 1500); }
-  else toast('✓ Configuración de facturación guardada');
-  cargarFacturacion();
+  } catch(e) { toastErr('Error de conexión'); }
+  finally { if (btn) { btn.textContent = orig; btn.disabled = false; } }
+}
+
+async function subirCertificadoDte(btn) {
+  const fileInput = document.getElementById('fact-cert-file');
+  const passInput = document.getElementById('fact-cert-pass');
+  if (!fileInput?.files[0]) return toastErr('Selecciona un archivo .p12');
+  if (!passInput?.value) return toastErr('Ingresa la contraseña del certificado');
+  const orig = btn.textContent; btn.textContent = 'Subiendo...'; btn.disabled = true;
+  try {
+    const ab = await fileInput.files[0].arrayBuffer();
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+    const r = await fetch('/api/dte?action=upload_cert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('attempo_session_token') || ''}` },
+      body: JSON.stringify({ p12_b64: b64, password: passInput.value })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) {
+      toast(`✓ Certificado cargado — RUT firmante: ${d.rut_firmante || '—'}`);
+      passInput.value = '';
+      fileInput.value = '';
+      cargarFacturacion();
+    } else { toastErr(d.error || 'Error subiendo certificado'); }
+  } catch(e) { toastErr('Error: ' + e.message); }
+  finally { btn.textContent = orig; btn.disabled = false; }
+}
+
+async function subirCafDte(btn) {
+  const fileInput = document.getElementById('fact-caf-file');
+  if (!fileInput?.files[0]) return toastErr('Selecciona un archivo XML de CAF');
+  const orig = btn.textContent; btn.textContent = 'Subiendo...'; btn.disabled = true;
+  try {
+    const xml_caf = await fileInput.files[0].text();
+    const r = await fetch('/api/dte?action=upload_caf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('attempo_session_token') || ''}` },
+      body: JSON.stringify({ xml_caf })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) {
+      toast(`✓ CAF tipo ${d.tipo} cargado — folios ${d.desde} al ${d.hasta}`);
+      fileInput.value = '';
+      cargarFacturacion();
+    } else { toastErr(d.error || 'Error subiendo CAF'); }
+  } catch(e) { toastErr('Error: ' + e.message); }
+  finally { btn.textContent = orig; btn.disabled = false; }
 }
 
 function _nextFolio() {
@@ -14903,46 +14997,39 @@ async function enviarBoletaEmail() {
     if (it.desc || it.monto) items.push({ desc: it.desc || '—', qty: 1, precio: Number(it.monto || 0) });
   });
 
-  const hasDte = !!(cfg.dtemite_usuario);
-  const type   = hasDte ? 'boleta-dte' : 'boleta';
+  // Determinar tipo DTE según configuración
+  const tipoDte = (_factConfig.tipo === 'venta') ? 39 : 41;
 
   try {
-    const r = await fetch('/api/send-email', {
+    const r = await fetch('/api/dte?action=emitir', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-session-token': localStorage.getItem('attempo_session_token') || '',
-        'x-override-cliente-id': (JSON.parse(localStorage.getItem('attempo_user')||'{}').superadmin_viewing) || ''
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('attempo_session_token') || ''}` },
       body: JSON.stringify({
-        type,
-        to:             email,
-        cliente_nombre: rnombre,
-        cliente_rut:    rrut,
-        negocio:        cfg.razon || 'tu negocio',
-        negocio_rut:    cfg.rut   || '',
-        negocio_giro:   cfg.giro  || '',
-        negocio_dir:    cfg.dir   || '',
-        folio,
-        total,
-        tipo:  cfg.tipo || 'honorarios',
-        fecha: _currentBoletaCita?.fecha || new Date().toISOString().slice(0,10),
-        items
+        cita_id:          _currentBoletaCita?.id || null,
+        tipo_documento:   tipoDte,
+        receptor_rut:     rrut.replace(/\./g,''),
+        receptor_nombre:  rnombre,
+        medio_pago:       '2', // Pago Electrónico
+        items: items.map(it => ({ descripcion: it.desc, cantidad: 1, precio_unitario: it.precio, exento: tipoDte === 41 }))
       })
     });
+    const d = await r.json().catch(() => ({}));
     if (r.ok) {
-      const d = await r.json().catch(() => ({}));
-      const label = hasDte ? 'DTE emitido y enviado a ' : 'Boleta enviada a ';
-      toast('✓ ' + label + email);
+      toast(`✓ DTE emitido — folio ${d.folio} · track SII ${d.track_id}`);
+      // Enviar email con link al documento al paciente
+      if (email) {
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-session-token': localStorage.getItem('attempo_session_token') || '' },
+          body: JSON.stringify({ type: 'boleta-notif', to: email, folio: d.folio, tipo_dte: tipoDte, total, negocio: _factConfig.razon || '' })
+        }).catch(() => {});
+      }
       closeBoleta();
     } else {
-      localStorage.setItem(_factKey('attempo_folio'), folio);
-      const errData = await r.json().catch(() => ({}));
-      toast(errData.error || 'Error al enviar');
+      toastErr(d.error || 'Error al emitir DTE');
     }
   } catch(e) {
-    localStorage.setItem(_factKey('attempo_folio'), folio);
-    toast('Error de conexión');
+    toastErr('Error de conexión: ' + e.message);
   } finally {
     btn.textContent = orig;
     btn.disabled = false;
