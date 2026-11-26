@@ -27,6 +27,9 @@ function notificarNuevoMensaje(canal, nombre, primerMensaje, destinatario = 'ces
 }
 
 export default async function handler(req, res) {
+  if (req.method === 'GET' && req.query.keepalive === '1') {
+    return res.status(200).json({ ok: true, ts: Date.now() });
+  }
   if (req.method !== 'POST') return res.status(405).end();
 
   // Canales Meta (webhook) deben provenir del servidor con clave interna
