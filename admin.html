@@ -3103,7 +3103,6 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
     <button id="bsectab-canales" onclick="showBandejaTab('canales',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Canales</button>
     <button id="bsectab-recordatorios" onclick="showBandejaTab('recordatorios',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Recordatorios</button>
     <button id="bsectab-widget" onclick="showBandejaTab('widget',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer">Widget web</button>
-    <button id="bsectab-leads" onclick="showBandejaTab('leads',this)" style="padding:10px 16px;font-size:13px;font-weight:500;background:none;border:none;color:var(--t3);cursor:pointer;position:relative">Pipeline <span id="leads-badge" style="display:none;position:absolute;top:4px;right:4px;background:#6C5CE4;color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;line-height:15px;text-align:center;padding:0 3px"></span></button>
   </div>
 
   <!-- Panel: Conversaciones (contenido actual de bandeja-wrap) -->
@@ -7118,7 +7117,7 @@ function showCfg(panel, btn, skipPush) {
 }
 
 function showBandejaTab(name, btn, skipPush) {
-  var tabs = ['conversaciones', 'chatbot', 'canales', 'recordatorios', 'widget', 'leads'];
+  var tabs = ['conversaciones', 'chatbot', 'canales', 'recordatorios', 'widget'];
   tabs.forEach(function(t) {
     var panel = document.getElementById('bsec-' + t);
     if (panel) panel.style.display = t === name ? (t === 'conversaciones' ? 'flex' : 'block') : 'none';
@@ -11678,7 +11677,7 @@ function handleLogoUpload(input) {
 }
 
 /* ════ RESTRICCIONES POR PLAN ════ */
-const _BSEC_FULL  = ['conversaciones','chatbot','canales','recordatorios','widget','leads'];
+const _BSEC_FULL  = ['conversaciones','chatbot','canales','recordatorios','widget'];
 const _BSEC_BASIC = ['canales','recordatorios','widget'];
 const PLAN_PERMISOS = {
   inicio: {
@@ -11749,7 +11748,7 @@ function aplicarRestriccionesPlan() {
 
   const todosMainTabs = ['ntab-agenda','ntab-clientes','ntab-ventas','ntab-bandeja','ntab-reportes','ntab-config'];
   const todosCfgTabs  = ['ctab-general','ctab-profesionales','ctab-horarios','ctab-servicios','ctab-pagos','ctab-facturacion'];
-  const todosBsecTabs = ['conversaciones','chatbot','canales','recordatorios','widget','leads'];
+  const todosBsecTabs = ['conversaciones','chatbot','canales','recordatorios','widget'];
 
   todosMainTabs.forEach(id => {
     const el = document.getElementById(id);
@@ -13687,7 +13686,7 @@ function routeFromURL() {
     setModo('crm', true); sv('reportes', null, true);
   } else if (section === 'bandeja') {
     setModo('crm', true); sv('bandeja', null, true);
-    var banSubs = ['conversaciones','chatbot','canales','recordatorios','widget','leads'];
+    var banSubs = ['conversaciones','chatbot','canales','recordatorios','widget'];
     showBandejaTab(banSubs.includes(sub) ? sub : 'conversaciones', null, true);
   } else if (section === 'cotizaciones') {
     sv('cotizaciones', null, true);
