@@ -5,7 +5,7 @@
  */
 
 import crypto from 'crypto';
-import { loadP12, parseCaf, buildDteXml, signDte, wrapEnvioDte, sendToSii } from './lib/dte.js';
+import { loadP12, parseCaf, buildDteXml, signDte, wrapEnvioDte, sendToSii } from '../lib/dte.js';
 
 const SUPABASE_URL = 'https://xztqawulvrtjvtfixofy.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
