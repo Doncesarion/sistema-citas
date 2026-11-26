@@ -566,7 +566,7 @@ async function procesarEvaluaciones(sh, shJson) {
     const fechaHasta = hasta.slice(0, 10);
 
     const rCitas = await fetch(
-      `${SUPABASE_URL}/rest/v1/citas?estado=neq.canceled&email_paciente=not.is.null&eval_enviado=not.is.true` +
+      `${SUPABASE_URL}/rest/v1/citas?estado=eq.completada&email_paciente=not.is.null&eval_enviado=not.is.true` +
       `&fecha=gte.${fechaDesde}&fecha=lte.${fechaHasta}` +
       `&select=id,nombre_paciente,email_paciente,fecha,hora,cliente_id,especialista_id,especialistas(nombre)` +
       `&limit=500`,
@@ -575,16 +575,16 @@ async function procesarEvaluaciones(sh, shJson) {
     const citas = await rCitas.json();
     if (!Array.isArray(citas)) return { enviados, errores: ['Error al obtener citas'] };
 
-    // Cargar nombres de negocios en batch
+    // Cargar nombres y emails de negocios en batch
     const clienteIds = [...new Set(citas.map(c => c.cliente_id).filter(Boolean))];
     const negocioMap = {};
     if (clienteIds.length) {
       const rClis = await fetch(
-        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=in.(${clienteIds.join(',')})&select=id,nombre_negocio`,
+        `${SUPABASE_URL}/rest/v1/clientes_sistema?id=in.(${clienteIds.join(',')})&select=id,nombre_negocio,email`,
         { headers: sh }
       );
       const clis = await rClis.json().catch(() => []);
-      if (Array.isArray(clis)) clis.forEach(c => { negocioMap[c.id] = c.nombre_negocio || 'tu negocio'; });
+      if (Array.isArray(clis)) clis.forEach(c => { negocioMap[c.id] = { nombre: c.nombre_negocio || 'tu negocio', email: c.email || null }; });
     }
 
     // Hora actual en Santiago (como número comparable)
@@ -604,9 +604,11 @@ async function procesarEvaluaciones(sh, shJson) {
       // Omitir si la cita es de hoy y terminó hace menos de 1 hora
       if (citaFecha === ahoraFechaStgo && ahoraMin - citaMin < 60) continue;
 
-      const negocio   = negocioMap[cita.cliente_id] || 'tu negocio';
-      const profesional = cita.especialistas?.nombre || 'el profesional';
-      const token     = generateEvalToken();
+      const negocioData  = negocioMap[cita.cliente_id] || {};
+      const negocio      = negocioData.nombre || 'tu negocio';
+      const negocioEmail = negocioData.email || null;
+      const profesional  = cita.especialistas?.nombre || 'el profesional';
+      const token        = generateEvalToken();
 
       // Marcar cita ANTES de enviar para evitar duplicados en cron paralelos
       const rMark = await fetch(`${SUPABASE_URL}/rest/v1/citas?id=eq.${cita.id}&eval_enviado=not.is.true`, {
@@ -650,6 +652,7 @@ async function procesarEvaluaciones(sh, shJson) {
         body: JSON.stringify({
           from: `${negocio} vía Attempo <contacto@attempo.cl>`,
           to: [cita.email_paciente],
+          reply_to: negocioEmail || undefined,
           subject: `¿Cómo fue tu consulta con ${profesional}? Deja tu evaluación`,
           headers: { 'List-Unsubscribe': '<mailto:contacto@attempo.cl?subject=unsubscribe>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
           html: emailEvaluacionHtml({ nombre: cita.nombre_paciente || 'Estimado/a', profesional, negocio, evalUrl })
