@@ -1677,6 +1677,15 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
   </div>
 </div>
 
+<div id="pend-completar-banner" style="display:none;background:#fffbeb;border-bottom:1px solid #fde68a">
+  <div style="max-width:1400px;margin:0 auto;padding:7px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><circle cx="8" cy="8" r="7.5" stroke="#d97706" stroke-width="1"/><path d="M8 4.5v4M8 10.5v1" stroke="#d97706" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span id="pend-completar-txt" style="font-size:12.5px;color:#92400e;flex:1"></span>
+    <button onclick="setCalView('lista',document.getElementById('sv-lista'));sv('agenda',document.getElementById('sv-agenda'));document.getElementById('pend-completar-banner').style.display='none'" style="font-size:12px;font-weight:600;color:#92400e;background:rgba(217,119,6,0.12);border:1px solid rgba(217,119,6,0.35);border-radius:6px;padding:4px 13px;cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit">Ver citas →</button>
+    <button onclick="document.getElementById('pend-completar-banner').style.display='none'" style="background:none;border:none;color:#b45309;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;font-family:inherit" title="Cerrar">×</button>
+  </div>
+</div>
+
 <!-- ═══ LAYOUT ═══ -->
 <!-- Overlay para cerrar sidebar en móvil -->
 <div id="mob-sb-overlay" onclick="toggleMobSidebar()" style="display:none;position:fixed;inset:0;z-index:185;background:rgba(22,20,58,0.3)"></div>
@@ -13359,6 +13368,23 @@ async function cargarCitasSupabase() {
         mesEvents[key].push({ cls: cls_, lbl, nombre: c.nombre_paciente.trim(), id: c.id, espId, real: true, dur: c.duracion || 0 });
       }
     });
+
+    // 3c. Detectar citas pasadas sin estado terminal y mostrar banner
+    {
+      const _TERMINAL = ['completada','cancelada','canceled','cancelled','no-show','inasistencia','no_show','done'];
+      const _hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date());
+      const _sinCompletar = citas.filter(c => c.fecha < _hoyStr && !_TERMINAL.includes(c.estado));
+      const _bannerPend = document.getElementById('pend-completar-banner');
+      const _bannerTxt  = document.getElementById('pend-completar-txt');
+      if (_bannerPend && _bannerTxt) {
+        if (_sinCompletar.length > 0) {
+          _bannerTxt.textContent = `Tienes ${_sinCompletar.length} cita${_sinCompletar.length > 1 ? 's' : ''} de días anteriores sin marcar como realizadas. Márcalas para activar el email de evaluación.`;
+          _bannerPend.style.display = 'block';
+        } else {
+          _bannerPend.style.display = 'none';
+        }
+      }
+    }
 
     // 4. Re-renderizar vista actual
     if (currentCalView === 'semana')     { renderWeekHeader(); renderWeekBody(); renderMcal(); }
