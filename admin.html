@@ -18124,7 +18124,7 @@ async function previsualizarLiquidacion() {
     var u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
     var headers = { 'x-session-token': token };
     if (u._impersonando && u.cliente_id) headers['x-override-cliente-id'] = u.cliente_id;
-    var r = await fetch('/api/liquidaciones?action=calcular&periodo=' + periodo, { headers });
+    var r = await fetch('/api/slots?action=liq_calcular&periodo=' + periodo, { headers });
     var data = await r.json();
 
     if (!data.ok || !data.resultado) {
@@ -18184,10 +18184,10 @@ async function generarLiquidacion() {
   if (u._impersonando && u.cliente_id) headers['x-override-cliente-id'] = u.cliente_id;
 
   try {
-    var r = await fetch('/api/liquidaciones', {
+    var r = await fetch('/api/slots', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ action: 'generar', periodo, force: true })
+      body: JSON.stringify({ action: 'liq_generar', periodo, force: true })
     });
     var data = await r.json();
     if (data.ok) {
@@ -18208,7 +18208,7 @@ async function cargarHistorialLiquidaciones() {
   document.getElementById('liq-loading').style.display = '';
 
   try {
-    var r = await fetch('/api/liquidaciones?action=historial', { headers });
+    var r = await fetch('/api/slots?action=liq_historial', { headers });
     var data = await r.json();
     var lista = data.liquidaciones || [];
     _liqNegocio = data.nombre_negocio || '';
@@ -18345,10 +18345,10 @@ async function confirmarPago() {
   if (u._impersonando && u.cliente_id) headers['x-override-cliente-id'] = u.cliente_id;
 
   try {
-    var r = await fetch('/api/liquidaciones', {
+    var r = await fetch('/api/slots', {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ action: 'pagar', id, fecha_pago, referencia_pago: referencia, notas })
+      body: JSON.stringify({ action: 'liq_pagar', id, fecha_pago, referencia_pago: referencia, notas })
     });
     var data = await r.json();
     if (data.ok) {
@@ -18369,10 +18369,10 @@ async function actualizarComision(especialistaId, pct, inputEl) {
   if (u._impersonando && u.cliente_id) headers['x-override-cliente-id'] = u.cliente_id;
 
   try {
-    var r = await fetch('/api/liquidaciones', {
+    var r = await fetch('/api/slots', {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ action: 'actualizar-comision', especialista_id: especialistaId, comision_pct: pct })
+      body: JSON.stringify({ action: 'liq_actualizar-comision', especialista_id: especialistaId, comision_pct: pct })
     });
     var data = await r.json();
     if (data.ok) {

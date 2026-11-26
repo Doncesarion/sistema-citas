@@ -96,6 +96,15 @@ async function logAudit(KEY, action, actorRole, actorClienteId, targetClienteId,
   }
 }
 
+function getLiqPeriodRange(periodo) {
+  if (!/^\d{4}-\d{2}$/.test(periodo)) return null;
+  const [y, m] = periodo.split('-').map(Number);
+  const inicio = `${y}-${String(m).padStart(2,'0')}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const fin = `${y}-${String(m).padStart(2,'0')}-${lastDay}`;
+  return { inicio, fin };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'DELETE' && req.method !== 'POST' && req.method !== 'PATCH') return res.status(405).end();
 
@@ -1176,6 +1185,147 @@ export async function handleEvaluar(req, res) {
     });
     if (!rPatch.ok) return res.status(500).json({ error: 'Error al guardar evaluación' });
     return res.status(200).json({ ok: true });
+  }
+
+  // ── LIQUIDACIONES (movido desde /api/liquidaciones para mantenerse en límite de funciones) ──
+  const liqSession = verifySessionToken(req.headers['x-session-token']);
+  if (liqSession && (
+    req.query.action === 'liq_calcular' ||
+    req.query.action === 'liq_historial' ||
+    req.body?.action === 'liq_generar' ||
+    req.body?.action === 'liq_pagar' ||
+    req.body?.action === 'liq_actualizar-comision'
+  )) {
+    const KEY2 = process.env.SUPABASE_SERVICE_KEY;
+    const sh2  = { apikey: KEY2, Authorization: `Bearer ${KEY2}`, 'Content-Type': 'application/json' };
+    let liq_cid = liqSession.cliente_id;
+    const liqOverride = req.headers['x-override-cliente-id'];
+    if (liqSession.rol === 'superadmin' && liqOverride && /^[0-9a-f-]{36}$/i.test(liqOverride)) liq_cid = liqOverride;
+
+    if (req.method === 'GET' && req.query.action === 'liq_calcular') {
+      const range = getLiqPeriodRange(req.query.periodo);
+      if (!range) return res.status(400).json({ error: 'Período inválido. Usa formato YYYY-MM' });
+      try {
+        const rEsp = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${liq_cid}&select=id,nombre,comision_pct&order=nombre.asc`, { headers: sh2 });
+        let especialistas;
+        if (!rEsp.ok) {
+          const rFb = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${liq_cid}&select=id,nombre&order=nombre.asc`, { headers: sh2 });
+          const raw = await rFb.json();
+          if (!Array.isArray(raw)) return res.status(500).json({ error: 'Error al cargar profesionales' });
+          especialistas = raw.map(e => ({ ...e, comision_pct: 70 }));
+        } else {
+          especialistas = await rEsp.json();
+          if (!Array.isArray(especialistas)) return res.status(500).json({ error: 'Error al cargar profesionales' });
+        }
+        const rCitas = await fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${liq_cid}&fecha=gte.${range.inicio}&fecha=lte.${range.fin}&estado=neq.canceled&select=especialista_id,precio,servicio`, { headers: sh2 });
+        const citas = await rCitas.json();
+        if (!Array.isArray(citas)) return res.status(500).json({ error: 'Error al cargar citas' });
+        const porEsp = {};
+        for (const c of citas) {
+          if (!c.especialista_id) continue;
+          if (!porEsp[c.especialista_id]) porEsp[c.especialista_id] = { total_citas: 0, monto_total: 0 };
+          porEsp[c.especialista_id].total_citas++;
+          porEsp[c.especialista_id].monto_total += Number(c.precio || 0);
+        }
+        const resultado = especialistas.map(esp => {
+          const datos = porEsp[esp.id] || { total_citas: 0, monto_total: 0 };
+          const comision_pct = esp.comision_pct ?? 70;
+          const monto_profesional = Math.round(datos.monto_total * comision_pct / 100);
+          return { especialista_id: esp.id, nombre: esp.nombre, comision_pct, total_citas: datos.total_citas, monto_total: datos.monto_total, monto_profesional, monto_clinica: datos.monto_total - monto_profesional };
+        });
+        const totales = resultado.reduce((acc, r) => ({ total_citas: acc.total_citas + r.total_citas, monto_total: acc.monto_total + r.monto_total, monto_profesional: acc.monto_profesional + r.monto_profesional, monto_clinica: acc.monto_clinica + r.monto_clinica }), { total_citas: 0, monto_total: 0, monto_profesional: 0, monto_clinica: 0 });
+        return res.json({ ok: true, periodo: req.query.periodo, range, resultado, totales });
+      } catch (e) { return res.status(500).json({ error: 'Error interno' }); }
+    }
+
+    if (req.method === 'GET' && req.query.action === 'liq_historial') {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${liq_cid}&order=periodo_fin.desc,created_at.desc&limit=100&select=*`, { headers: sh2 });
+        const rows = await r.json();
+        if (!Array.isArray(rows)) return res.status(500).json({ error: 'Error al cargar historial' });
+        const espIds = [...new Set(rows.map(r => r.especialista_id).filter(Boolean))];
+        const espNames = {};
+        if (espIds.length > 0) {
+          const rEsp = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=in.(${espIds.join(',')})&select=id,nombre`, { headers: sh2 });
+          const esps = await rEsp.json();
+          if (Array.isArray(esps)) esps.forEach(e => { espNames[e.id] = e.nombre; });
+        }
+        const liquidaciones = rows.map(r => ({ ...r, nombre_profesional: espNames[r.especialista_id] || '—' }));
+        const rCli = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${liq_cid}&select=nombre_negocio&limit=1`, { headers: sh2 });
+        const cli = await rCli.json();
+        const nombre_negocio = Array.isArray(cli) && cli[0] ? cli[0].nombre_negocio || '' : '';
+        return res.json({ ok: true, liquidaciones, nombre_negocio });
+      } catch (e) { return res.status(500).json({ error: 'Error interno' }); }
+    }
+
+    if (req.method === 'POST' && req.body?.action === 'liq_generar') {
+      const { periodo, force } = req.body;
+      const range = getLiqPeriodRange(periodo);
+      if (!range) return res.status(400).json({ error: 'Período inválido' });
+      try {
+        const rExist = await fetch(`${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${liq_cid}&periodo_inicio=eq.${range.inicio}&select=id,estado`, { headers: sh2 });
+        const exist = await rExist.json();
+        if (Array.isArray(exist) && exist.length > 0) {
+          if (!force) return res.status(409).json({ error: 'Ya existe una liquidación generada para este período.' });
+          if (exist.some(e => e.estado === 'pagada')) return res.status(409).json({ error: 'Este período tiene liquidaciones ya pagadas.', tienePagadas: true });
+          await fetch(`${SUPABASE_URL}/rest/v1/liquidaciones?cliente_id=eq.${liq_cid}&periodo_inicio=eq.${range.inicio}`, { method: 'DELETE', headers: sh2 });
+        }
+        const rEsp = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${liq_cid}&select=id,nombre,comision_pct`, { headers: sh2 });
+        let especialistas;
+        if (!rEsp.ok) {
+          const rFb = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?cliente_id=eq.${liq_cid}&select=id,nombre`, { headers: sh2 });
+          const raw = await rFb.json();
+          if (!Array.isArray(raw)) return res.status(500).json({ error: 'Error al cargar profesionales' });
+          especialistas = raw.map(e => ({ ...e, comision_pct: 70 }));
+        } else { especialistas = await rEsp.json(); }
+        const rCitas = await fetch(`${SUPABASE_URL}/rest/v1/citas?cliente_id=eq.${liq_cid}&fecha=gte.${range.inicio}&fecha=lte.${range.fin}&estado=neq.canceled&select=especialista_id,precio`, { headers: sh2 });
+        const citas = await rCitas.json();
+        const porEsp = {};
+        for (const c of citas) {
+          if (!c.especialista_id) continue;
+          if (!porEsp[c.especialista_id]) porEsp[c.especialista_id] = { total_citas: 0, monto_total: 0 };
+          porEsp[c.especialista_id].total_citas++;
+          porEsp[c.especialista_id].monto_total += Number(c.precio || 0);
+        }
+        const registros = especialistas.filter(esp => porEsp[esp.id]?.total_citas > 0).map(esp => {
+          const datos = porEsp[esp.id];
+          const comision_pct = esp.comision_pct ?? 70;
+          const monto_profesional = Math.round(datos.monto_total * comision_pct / 100);
+          return { cliente_id: liq_cid, especialista_id: esp.id, periodo_inicio: range.inicio, periodo_fin: range.fin, total_citas: datos.total_citas, monto_total: datos.monto_total, comision_pct, monto_profesional, monto_clinica: datos.monto_total - monto_profesional, estado: 'pendiente' };
+        });
+        if (registros.length === 0) {
+          if (!Array.isArray(citas) || citas.length === 0) return res.status(400).json({ error: 'No hay citas registradas en este período.' });
+          return res.status(400).json({ error: 'No se encontraron profesionales activos con citas en este período.' });
+        }
+        const rIns = await fetch(`${SUPABASE_URL}/rest/v1/liquidaciones`, { method: 'POST', headers: { ...sh2, Prefer: 'return=representation' }, body: JSON.stringify(registros) });
+        if (!rIns.ok) { const err = await rIns.json().catch(() => ({})); return res.status(500).json({ error: err?.message || 'Error al guardar' }); }
+        const inserted = await rIns.json();
+        return res.json({ ok: true, generadas: inserted.length, periodo });
+      } catch (e) { return res.status(500).json({ error: 'Error interno' }); }
+    }
+
+    if (req.method === 'PATCH' && req.body?.action === 'liq_pagar') {
+      const { id, fecha_pago, referencia_pago, notas } = req.body;
+      if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'ID inválido' });
+      if (!fecha_pago) return res.status(400).json({ error: 'Fecha de pago requerida' });
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/liquidaciones?id=eq.${id}&cliente_id=eq.${liq_cid}`, { method: 'PATCH', headers: { ...sh2, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'pagada', fecha_pago, referencia_pago: referencia_pago || null, notas: notas || null }) });
+        if (!r.ok) return res.status(500).json({ error: 'Error al actualizar' });
+        return res.json({ ok: true });
+      } catch (e) { return res.status(500).json({ error: 'Error interno' }); }
+    }
+
+    if (req.method === 'PATCH' && req.body?.action === 'liq_actualizar-comision') {
+      const { especialista_id, comision_pct } = req.body;
+      if (!especialista_id || !/^[0-9a-f-]{36}$/i.test(especialista_id)) return res.status(400).json({ error: 'ID inválido' });
+      const pct = parseInt(comision_pct);
+      if (isNaN(pct) || pct < 0 || pct > 100) return res.status(400).json({ error: 'Porcentaje inválido (0-100)' });
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/especialistas?id=eq.${especialista_id}&cliente_id=eq.${liq_cid}`, { method: 'PATCH', headers: { ...sh2, Prefer: 'return=minimal' }, body: JSON.stringify({ comision_pct: pct }) });
+        if (!r.ok) return res.status(500).json({ error: 'Error al actualizar' });
+        return res.json({ ok: true });
+      } catch (e) { return res.status(500).json({ error: 'Error interno' }); }
+    }
   }
 
   return res.status(405).end();
