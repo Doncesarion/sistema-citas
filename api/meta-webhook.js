@@ -160,6 +160,8 @@ export default async function handler(req, res) {
       });
       const subData = await subRes.json();
       console.log('[meta-webhook/subscribed_apps]', JSON.stringify(subData));
+      console.log('[meta-webhook/oauth] pages encontradas:', pages.map(p => p.id + ' ' + p.name));
+      console.log('[meta-webhook/oauth] pageId guardado:', pageId, '| igAccountId:', igAccountId, '| cid:', cid);
 
       const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}&select=canales_meta&limit=1`, { headers: SH });
       const [cli] = await r0.json();
@@ -169,11 +171,12 @@ export default async function handler(req, res) {
         fb_token:   pageToken,
         ...(igAccountId ? { ig_account_id: igAccountId, ig_token: pageToken } : {})
       };
-      await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
+      const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cid}`, {
         method: 'PATCH',
         headers: { ...SH, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         body: JSON.stringify({ canales_meta: merged })
       });
+      console.log('[meta-webhook/oauth] PATCH status:', patchRes.status, '| merged:', JSON.stringify(merged).slice(0, 200));
       return res.redirect('/admin?meta_ok=1');
     } catch(e) {
       console.error('[meta-webhook/oauth]', e.message);
