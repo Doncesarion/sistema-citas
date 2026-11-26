@@ -9,19 +9,34 @@ function generateManageToken(cita_id) {
   return expire + '.' + hmac;
 }
 
+const _BASE_NOTIF = (process.env.BASE_URL || 'https://app.attempo.cl').trim().replace(/\/$/, '');
+
 function notificarNuevoMensaje(canal, nombre, primerMensaje, destinatario = 'cesarsalinasmunoz@gmail.com') {
   const key = process.env.RESEND_API_KEY;
   if (!key) return;
   const canalLabel = canal === 'whatsapp' ? 'WhatsApp' : canal === 'instagram' ? 'Instagram' : canal === 'messenger' ? 'Messenger' : canal;
+  const canalColor = canal === 'whatsapp' ? '#25D366' : canal === 'instagram' ? '#E1306C' : '#0084FF';
   const de = nombre && nombre !== canal ? nombre : 'Visitante';
+  const hora = new Date().toLocaleTimeString('es-CL', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit' });
   fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from: 'Attempo <contacto@attempo.cl>',
       to: [destinatario],
-      subject: `Nuevo mensaje — ${canalLabel}`,
-      html: `<p style="font-family:sans-serif"><strong>Canal:</strong> ${canalLabel}<br><strong>De:</strong> ${de}<br><strong>Mensaje:</strong> "${String(primerMensaje).slice(0, 400)}"</p>`
+      subject: `💬 Nuevo mensaje de ${de} — ${canalLabel}`,
+      html: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;color:#2d2d2d">
+<div style="background:${canalColor};border-radius:10px 10px 0 0;padding:16px 20px">
+  <div style="color:#fff;font-size:15px;font-weight:700">💬 Nuevo mensaje entrante</div>
+  <div style="color:rgba(255,255,255,0.85);font-size:12px;margin-top:2px">${canalLabel} · ${hora}</div>
+</div>
+<div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;padding:18px 20px">
+  <div style="font-size:13px;color:#555;margin-bottom:4px">De: <strong>${de}</strong></div>
+  <div style="background:#f9f8ff;border-left:3px solid #6C5CE4;border-radius:4px;padding:10px 14px;font-size:14px;color:#2d2d2d;line-height:1.5;margin:10px 0">"${String(primerMensaje).slice(0, 300)}"</div>
+  <a href="${_BASE_NOTIF}/admin.html#bandeja" style="display:inline-block;margin-top:12px;padding:10px 24px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700">Ver conversación →</a>
+</div>
+<p style="font-size:11px;color:#aaa;text-align:center;margin-top:10px">attempo · <a href="${_BASE_NOTIF}/admin.html#bandeja" style="color:#aaa">Ir al panel</a></p>
+</div>`
     })
   }).catch(() => {});
 }
@@ -1447,6 +1462,40 @@ PREGUNTAS SIN RESPUESTA EN TU INFORMACIÓN (Fonasa, estacionamiento, acceso, seg
           precio:              precio              || null
         })
       }).catch(e => console.error('bot-chat: crear-cita GC error:', e.message));
+    }
+
+    // Notificar al profesional que el bot agendó una cita
+    if (emailNegocio && process.env.RESEND_API_KEY) {
+      const canalLabel = canal === 'whatsapp' ? 'WhatsApp' : canal === 'instagram' ? 'Instagram' : canal === 'messenger' ? 'Messenger' : canal;
+      const precioFmt = precio ? ` · $${Number(precio).toLocaleString('es-CL')}` : '';
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Attempo <contacto@attempo.cl>',
+          to: [emailNegocio],
+          subject: `📅 Nueva cita agendada por Attia — ${nombre_paciente}`,
+          html: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;color:#2d2d2d">
+<div style="background:#6C5CE4;border-radius:10px 10px 0 0;padding:16px 20px">
+  <div style="color:#fff;font-size:15px;font-weight:700">📅 Nueva cita agendada</div>
+  <div style="color:rgba(255,255,255,0.85);font-size:12px;margin-top:2px">Tu asistente Attia agendó por ${canalLabel}</div>
+</div>
+<div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;padding:18px 20px">
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <tr><td style="padding:5px 0;color:#888;width:90px">Paciente</td><td><strong>${nombre_paciente}</strong></td></tr>
+    ${tel_paciente ? `<tr><td style="padding:5px 0;color:#888">Teléfono</td><td><a href="tel:${tel_paciente}" style="color:#6C5CE4">${tel_paciente}</a></td></tr>` : ''}
+    ${email_paciente ? `<tr><td style="padding:5px 0;color:#888">Email</td><td>${email_paciente}</td></tr>` : ''}
+    <tr><td style="padding:5px 0;color:#888">Servicio</td><td>${servicio || 'Consulta'}${precioFmt}</td></tr>
+    <tr><td style="padding:5px 0;color:#888">Fecha</td><td><strong>${fechaFmt}</strong></td></tr>
+    <tr><td style="padding:5px 0;color:#888">Hora</td><td><strong>${hora}</strong></td></tr>
+    ${nombre_especialista ? `<tr><td style="padding:5px 0;color:#888">Profesional</td><td>${nombre_especialista}</td></tr>` : ''}
+  </table>
+  <a href="${_BASE_NOTIF}/admin.html" style="display:inline-block;margin-top:16px;padding:10px 24px;background:#6C5CE4;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700">Ver en el panel →</a>
+</div>
+<p style="font-size:11px;color:#aaa;text-align:center;margin-top:10px">attempo</p>
+</div>`
+        })
+      }).catch(() => {});
     }
 
     return {
