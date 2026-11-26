@@ -61,6 +61,15 @@ export default async function handler(req, res) {
 
   if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'API key no configurada' });
 
+  // Typing indicator — Instagram / Messenger (fire and forget)
+  if (send_reply && metaAccessToken && metaChannelValue && (canal === 'instagram' || canal === 'messenger')) {
+    fetch(`https://graph.facebook.com/v20.0/${metaChannelValue}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${metaAccessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipient: { id: canal_user_id }, sender_action: 'typing_on' })
+    }).catch(() => {});
+  }
+
   async function sendMetaReply(respuesta, delayMinSeg = 0, delayMaxSeg = 0) {
     if (!send_reply || !respuesta || !metaAccessToken || !metaChannelValue) return;
     if (delayMinSeg > 0) {
@@ -632,7 +641,7 @@ HOY ES: ${hoyVentas}${leadContexto}`;
           },
           body: JSON.stringify({
             model:      'claude-haiku-4-5-20251001',
-            max_tokens: 300,
+            max_tokens: 400,
             system:     [{ type: 'text', text: ventasSystemPrompt, cache_control: { type: 'ephemeral' } }],
             tools:      ventasTools,
             messages:   msgs
@@ -1503,7 +1512,7 @@ PREGUNTAS SIN RESPUESTA EN TU INFORMACIÓN (Fonasa, estacionamiento, acceso, seg
         },
         body: JSON.stringify({
           model:      'claude-haiku-4-5-20251001',
-          max_tokens: 400,
+          max_tokens: 600,
           system:     [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
           tools,
           messages:   msgs

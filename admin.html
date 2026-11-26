@@ -17447,7 +17447,7 @@ async function cargarStatsIA() {
       if (nums) nums.textContent = numsText;
       if (fill) { fill.style.width = pctIA + '%'; fill.className = fillClass; }
       const iaRow = document.getElementById('uso-ia-row');
-      if (iaRow) iaRow.style.display = pctIA >= 70 ? '' : 'none';
+      if (iaRow) iaRow.style.display = '';
       document.querySelectorAll('.inline-ia-counter').forEach(el => {
         el.style.display = 'block';
         const n = el.querySelector('.inline-ia-nums');
