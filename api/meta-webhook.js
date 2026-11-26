@@ -142,6 +142,14 @@ export default async function handler(req, res) {
       const pagesData = await pagesRes.json();
       const pages = pagesData.data || [];
       if (!pages.length) return res.redirect('/admin?meta_error=2');
+      // Si hay más de una página, mostrar selector
+      if (pages.length > 1) {
+        const encoded = encodeURIComponent(Buffer.from(JSON.stringify({
+          pages: pages.map(p => ({ id: p.id, name: p.name })),
+          userToken, cid
+        })).toString('base64'));
+        return res.redirect(`/admin?fb_select=1&d=${encoded}`);
+      }
       const page = pages[0];
       const pageId = page.id;
       const pageToken = page.access_token;

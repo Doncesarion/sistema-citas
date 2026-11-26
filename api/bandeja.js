@@ -732,6 +732,42 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── POST ?action=fb-connect-page — guardar página FB elegida por el usuario ──
+  if (req.method === 'POST' && req.query.action === 'fb-connect-page') {
+    const { pageId, userToken } = req.body || {};
+    if (!pageId || !userToken) return res.status(400).json({ error: 'Datos incompletos' });
+    // Obtener page access token para la página seleccionada
+    const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${userToken}`);
+    const pagesData = await pagesRes.json();
+    const page = (pagesData.data || []).find(p => p.id === pageId);
+    if (!page) return res.status(400).json({ error: 'Página no encontrada' });
+    const pageToken = page.access_token;
+    // Obtener cuenta de Instagram vinculada
+    const igRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`);
+    const igData = await igRes.json();
+    const igAccountId = igData.instagram_business_account?.id || null;
+    // Suscribir página para recibir mensajes
+    await fetch(`https://graph.facebook.com/v20.0/${pageId}/subscribed_apps`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: pageToken, subscribed_fields: ['messages', 'messaging_postbacks', 'messaging_optins'] })
+    }).catch(() => {});
+    // Guardar en Supabase
+    const r0 = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}&select=canales_meta&limit=1`, { headers: sh });
+    const [cli] = await r0.json();
+    const merged = {
+      ...(cli?.canales_meta || {}),
+      fb_page_id: pageId,
+      fb_token:   pageToken,
+      ...(igAccountId ? { ig_account_id: igAccountId, ig_token: pageToken } : {})
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?id=eq.${cliente_id}`, {
+      method: 'PATCH',
+      headers: { ...shJ, Prefer: 'return=minimal' },
+      body: JSON.stringify({ canales_meta: merged })
+    });
+    return res.status(200).json({ ok: true, pageName: page.name, igAccountId });
+  }
+
   // ── GET ?action=webhook-info — URL y verify token para configurar Meta ───────
   if (req.method === 'GET' && req.query.action === 'webhook-info') {
     return res.status(200).json({

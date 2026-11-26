@@ -11907,6 +11907,18 @@ document.addEventListener('DOMContentLoaded', function() {
         _mostrarSeleccionWA(d.phones, d.userToken, d.cid);
       }, 600);
     } catch(e) { history.replaceState({}, '', window.location.pathname); }
+  } else if (urlParams.get('fb_select') === '1') {
+    // Múltiples páginas FB — mostrar modal de selección
+    try {
+      const d = JSON.parse(atob(decodeURIComponent(urlParams.get('d')||'')));
+      history.replaceState({}, '', window.location.pathname);
+      setTimeout(() => {
+        sv('config', null, true);
+        showCfg('general', null, true);
+        openCfgModal('canales');
+        _mostrarSeleccionFB(d.pages, d.userToken, d.cid);
+      }, 600);
+    } catch(e) { history.replaceState({}, '', window.location.pathname); }
   }
 });
 
@@ -14073,6 +14085,46 @@ async function _conectarWAPhone(phone, token, cid, overlay) {
     const d = await r.json();
     if (d.ok) { toast('✓ WhatsApp conectado: ' + (phone.verified_name || phone.display_phone_number)); cargarCanales(); }
     else toast('Error al conectar: ' + (d.error || ''));
+  } catch(e) { toast('Error de red'); }
+}
+
+function _mostrarSeleccionFB(pages, userToken, cid) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `<div style="background:var(--bg2);border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-size:15px;font-weight:700;color:var(--t1);margin-bottom:6px">Elige tu página de Facebook</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Encontramos más de una página en tu cuenta. Selecciona cuál conectar con attempo para Messenger e Instagram.</div>
+    <div style="display:grid;gap:8px" id="fb-page-options"></div>
+    <button onclick="this.closest('[style*=fixed]').remove()" style="margin-top:16px;width:100%;padding:10px;border:1px solid var(--b2);background:transparent;border-radius:9px;color:var(--t3);font-size:13px;cursor:pointer">Cancelar</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  const grid = overlay.querySelector('#fb-page-options');
+  pages.forEach(pg => {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'padding:12px 14px;border:1.5px solid var(--b2);background:var(--bg);border-radius:10px;text-align:left;cursor:pointer;width:100%;transition:border-color .15s';
+    btn.innerHTML = `<div style="font-size:13px;font-weight:600;color:var(--t1)">${pg.name}</div><div style="font-size:11px;color:var(--t3);margin-top:2px">ID ${pg.id}</div>`;
+    btn.onmouseover = () => { btn.style.borderColor = '#1877F2'; };
+    btn.onmouseout  = () => { btn.style.borderColor = 'var(--b2)'; };
+    btn.onclick = () => _conectarFBPage(pg, userToken, overlay);
+    grid.appendChild(btn);
+  });
+}
+
+async function _conectarFBPage(page, userToken, overlay) {
+  if (overlay) overlay.remove();
+  const tok = localStorage.getItem('attempo_session_token') || '';
+  try {
+    const r = await fetch('/api/bandeja?action=fb-connect-page', {
+      method: 'POST',
+      headers: { 'x-session-token': tok, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId: page.id, userToken })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      const extra = d.igAccountId ? ' + Instagram' : '';
+      toast('✓ Messenger' + extra + ' conectado: ' + page.name);
+      cargarCanales();
+    } else toast('Error al conectar: ' + (d.error || ''));
   } catch(e) { toast('Error de red'); }
 }
 
