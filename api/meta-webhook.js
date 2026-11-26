@@ -362,7 +362,7 @@ export default async function handler(req, res) {
   if (!channelValue) return res.status(200).end();
 
   // ── Buscar cliente por channel ID en Supabase ─────────────────────────────
-  let cliente_id = null, accessToken = null;
+  let cliente_id = null, accessToken = null, canal_user_photo = null;
   try {
     const supaUrl = `${SUPABASE_URL}/rest/v1/clientes_sistema?canales_meta->>${channelKey}=eq.${encodeURIComponent(channelValue)}&select=id,canales_meta&limit=1`;
     const r = await fetch(supaUrl, { headers: sh });
@@ -389,8 +389,8 @@ export default async function handler(req, res) {
                 : canal === 'messenger' ? meta.fb_token
                 :                        meta.ig_token;
 
+    console.log('[meta-webhook] cliente encontrado:', cliente_id, '| canal:', canal, '| accessToken:', accessToken ? 'OK' : 'NULL');
     // Obtener nombre real y foto de perfil para Instagram y Messenger
-    let canal_user_photo = null;
     if (canal === 'messenger' && accessToken) {
       try {
         // Intento 1: perfil directo del PSID
@@ -563,6 +563,7 @@ export default async function handler(req, res) {
     }).catch(e => console.error('meta-webhook: error guardando mensaje bot:', e.message));
   }
 
+  console.log('[meta-webhook] pre-send | canal:', canal, '| respuesta:', respuesta ? respuesta.slice(0,60)+'...' : 'VACÍA', '| accessToken:', accessToken ? 'OK' : 'NULL');
   if (!respuesta || !accessToken) return;
 
   // ── Delay configurable antes de enviar ────────────────────────────────────
