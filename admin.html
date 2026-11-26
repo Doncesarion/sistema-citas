@@ -3597,14 +3597,36 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
           <!-- Body -->
           <div style="padding:0 18px 18px;display:grid;gap:14px">
 
-            <!-- Prerequisito: necesita WABA con número verificado -->
-            <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:12px 14px">
-              <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px">Antes de conectar, necesitas:</div>
-              <ul style="margin:0;padding-left:16px;display:grid;gap:4px">
-                <li style="font-size:12px;color:var(--t2);line-height:1.5">Una <strong>cuenta de Meta Business Suite</strong> — <a href="https://business.facebook.com" target="_blank" style="color:var(--a);text-decoration:none">business.facebook.com →</a></li>
-                <li style="font-size:12px;color:var(--t2);line-height:1.5">Un <strong>número de WhatsApp Business verificado</strong> en esa cuenta (<a href="https://business.facebook.com/wa/manage/phone-numbers/" target="_blank" style="color:var(--a);text-decoration:none">verificar número →</a>)</li>
-              </ul>
-            </div>
+            <!-- Guía paso a paso WhatsApp -->
+            <details open style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;overflow:hidden">
+              <summary style="padding:10px 14px;font-size:12px;font-weight:700;color:#0369a1;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;user-select:none">
+                <span>Guía de conexión — 3 pasos</span>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#0369a1" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </summary>
+              <div style="padding:4px 14px 14px;display:grid;gap:10px">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#0369a1;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">1</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--t1)">Crea una cuenta en Meta Business Suite</div>
+                    <div style="font-size:11px;color:var(--t3);line-height:1.5;margin-top:2px">Si no tienes, es gratis. Necesaria para gestionar tu número WhatsApp. <a href="https://business.facebook.com" target="_blank" style="color:var(--a);text-decoration:none;font-weight:600">Ir a Meta Business →</a></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#0369a1;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">2</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--t1)">Agrega y verifica tu número WhatsApp Business</div>
+                    <div style="font-size:11px;color:var(--t3);line-height:1.5;margin-top:2px">En Meta Business Suite → Configuración → Cuentas de WhatsApp → Agregar número → verificar con SMS. <a href="https://business.facebook.com/wa/manage/phone-numbers/" target="_blank" style="color:var(--a);text-decoration:none;font-weight:600">Ir a números →</a></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#25D366;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">3</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--t1)">Haz clic en "Conectar WhatsApp" abajo</div>
+                    <div style="font-size:11px;color:var(--t3);line-height:1.5;margin-top:2px">Te redirige a Facebook. attempo detecta tu número automáticamente — no necesitas copiar tokens ni configurar webhooks.</div>
+                  </div>
+                </div>
+              </div>
+            </details>
 
             <!-- Botón OAuth principal -->
             <button id="btn-wa-oauth" onclick="conectarWhatsApp()" style="width:100%;padding:13px 20px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s" onmouseover="this.style.background='#1ebe59'" onmouseout="this.style.background='#25D366'">
@@ -3703,14 +3725,43 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
 
           <!-- Body -->
           <div style="padding:18px;display:grid;gap:14px">
-            <!-- Prerequisitos -->
-            <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:12px 14px">
-              <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px">Antes de conectar, necesitas:</div>
-              <ul style="margin:0;padding-left:16px;display:grid;gap:6px">
-                <li style="font-size:12px;color:var(--t2);line-height:1.5">Una <strong>Página de Facebook</strong> activa — <a href="https://www.facebook.com/pages/create" target="_blank" style="color:var(--a);text-decoration:none">crear página →</a></li>
-                <li style="font-size:12px;color:var(--t2);line-height:1.5">Para Instagram: cuenta configurada como <strong>Business o Creator</strong> y vinculada a tu Página — <a href="https://www.facebook.com/help/instagram/570895513091465" target="_blank" style="color:var(--a);text-decoration:none">cómo vincular →</a></li>
-              </ul>
-            </div>
+            <!-- Guía paso a paso Messenger + Instagram -->
+            <details open style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;overflow:hidden">
+              <summary style="padding:10px 14px;font-size:12px;font-weight:700;color:#0369a1;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;user-select:none">
+                <span>Guía de conexión — 4 pasos</span>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#0369a1" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </summary>
+              <div style="padding:4px 14px 14px;display:grid;gap:10px">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#0369a1;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">1</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--t1)">Crea una Página de Facebook para tu negocio</div>
+                    <div style="font-size:11px;color:var(--t3);line-height:1.5;margin-top:2px">Debe ser una Página, no un perfil personal. <a href="https://www.facebook.com/pages/create" target="_blank" style="color:var(--a);text-decoration:none;font-weight:600">Crear Página →</a></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#0369a1;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">2</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--t1)">Configura tu Instagram como cuenta Business o Creator</div>
+                    <div style="font-size:11px;color:var(--t3);line-height:1.5;margin-top:2px">En Instagram → Configuración → Cuenta → Cambiar a cuenta profesional. <a href="https://help.instagram.com/502981923235522" target="_blank" style="color:var(--a);text-decoration:none;font-weight:600">Ver instrucciones →</a></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#0369a1;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">3</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--t1)">Vincula tu Instagram a la Página de Facebook</div>
+                    <div style="font-size:11px;color:var(--t3);line-height:1.5;margin-top:2px">En Instagram → Configuración → Cuenta → Página de Facebook vinculada. <strong>Este paso es obligatorio</strong> para que funcione el bot. <a href="https://www.facebook.com/help/instagram/570895513091465" target="_blank" style="color:var(--a);text-decoration:none;font-weight:600">Cómo vincular →</a></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#1877F2;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">4</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--t1)">Haz clic en "Conectar con Meta" abajo</div>
+                    <div style="font-size:11px;color:var(--t3);line-height:1.5;margin-top:2px">Te redirige a Facebook para autorizar attempo. Los tokens se guardan automáticamente para Messenger e Instagram.</div>
+                  </div>
+                </div>
+              </div>
+            </details>
 
             <!-- OAuth button -->
             <button id="btn-meta-oauth" onclick="conectarConMeta()" style="width:100%;padding:13px 20px;background:#1877F2;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s" onmouseover="this.style.background='#166FE5'" onmouseout="this.style.background='#1877F2'">
@@ -13766,7 +13817,7 @@ let _onbSteps = [];
 
 async function initOnboarding() {
   try {
-    if (localStorage.getItem('attempo_onb_done')) return;
+    if (localStorage.getItem('attempo_onb_v2')) return;
     const u = JSON.parse(localStorage.getItem('attempo_user') || '{}');
     if (u.rol === 'staff') return;
     const cid = await getClienteId();
@@ -13825,7 +13876,7 @@ async function initOnboarding() {
       }
     }
 
-    if (_onbSteps.every(s => s.done)) { localStorage.setItem('attempo_onb_done', '1'); return; }
+    if (_onbSteps.every(s => s.done)) { localStorage.setItem('attempo_onb_v2', '1'); return; }
     _renderOnboarding();
   } catch(e) {}
 }
@@ -13879,7 +13930,7 @@ function _onbStepClick(i) {
 function dismissOnboarding() {
   const banner = document.getElementById('onb-banner');
   if (banner) { banner.style.opacity = '0'; setTimeout(() => { banner.style.display = 'none'; }, 300); }
-  localStorage.setItem('attempo_onb_done', '1');
+  localStorage.setItem('attempo_onb_v2', '1');
 }
 
 function onbCheckStep(stepId) {
