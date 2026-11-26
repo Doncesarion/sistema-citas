@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         const mes = new Date().toISOString().slice(0, 7);
         fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_uso`, {
           method: 'POST', headers: shJson,
-          body: JSON.stringify({ p_cliente_id: cliente_id, p_mes: mes, p_campo: 'mensajes_wa_bot' })
+          body: JSON.stringify({ p_cliente_id: cliente_id, p_mes: mes, p_campo: 'mensajes_ia' })
         }).catch(() => {});
         if (!isAttempoChannel && canal === 'whatsapp') {
           fetch(`${SUPABASE_URL}/rest/v1/rpc/inc_wa_usados`, {
