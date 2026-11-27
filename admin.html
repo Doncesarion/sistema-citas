@@ -5122,12 +5122,12 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
       <!-- Certificado digital .p12 -->
       <div class="card" style="padding:20px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px">Certificado digital</div>
-        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Archivo .p12 obtenido del SII. Se guarda cifrado en attempo, nunca se muestra en texto plano.</div>
+        <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Archivo .p12 o .pfx obtenido del SII. Se guarda cifrado en attempo, nunca se muestra en texto plano.</div>
         <div id="fact-cert-estado" style="font-size:12px;color:var(--t3);margin-bottom:12px">Sin certificado cargado.</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <input id="fact-cert-file" type="file" accept=".p12,.pfx" style="font-size:12px">
           <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Contraseña del certificado</label>
-            <input id="fact-cert-pass" type="password" placeholder="Contraseña del .p12" class="fi" style="width:100%;max-width:280px"></div>
+            <input id="fact-cert-pass" type="password" placeholder="Contraseña del .p12 / .pfx" class="fi" style="width:100%;max-width:280px"></div>
           <button class="btn-sm btn-a" onclick="subirCertificadoDte(this)" style="align-self:flex-start">Subir certificado</button>
         </div>
       </div>
@@ -14408,7 +14408,7 @@ async function guardarDteConfig(btn) {
 async function subirCertificadoDte(btn) {
   const fileInput = document.getElementById('fact-cert-file');
   const passInput = document.getElementById('fact-cert-pass');
-  if (!fileInput?.files[0]) return toastErr('Selecciona un archivo .p12');
+  if (!fileInput?.files[0]) return toastErr('Selecciona un archivo .p12 o .pfx');
   if (!passInput?.value) return toastErr('Ingresa la contraseña del certificado');
   const orig = btn.textContent; btn.textContent = 'Subiendo...'; btn.disabled = true;
   try {
