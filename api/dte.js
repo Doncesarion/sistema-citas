@@ -206,6 +206,15 @@ export default async function handler(req, res) {
       return res.status(200).json(await r.json().catch(() => []));
     }
 
+    // ── GET cert — estado del certificado activo ──────────────────────────────
+    if (req.method === 'GET' && action === 'cert') {
+      const cid = await getClienteId(req);
+      if (!cid) return res.status(401).json({ error: 'No autorizado' });
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/dte_certificados?cliente_id=eq.${cid}&activo=eq.true&select=rut_firmante,created_at&order=created_at.desc&limit=1`, { headers: sh });
+      const [cert] = await r.json().catch(() => []);
+      return res.status(200).json(cert || null);
+    }
+
     // ── POST emitir — emite DTE para una cita ────────────────────────────────
     if (req.method === 'POST' && action === 'emitir') {
       const cid = await getClienteId(req);

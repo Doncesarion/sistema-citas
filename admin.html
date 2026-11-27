@@ -14343,7 +14343,20 @@ async function cargarFacturacion() {
   // Estado certificado
   try {
     const certEl = g('fact-cert-estado');
-    if (certEl) certEl.textContent = 'Certificado activo cargado (verificado al subir).';
+    if (certEl) {
+      const r = await fetch('/api/dte?action=cert', { headers });
+      if (r.ok) {
+        const cert = await r.json();
+        if (cert && cert.rut_firmante) {
+          const fecha = cert.created_at ? new Date(cert.created_at).toLocaleDateString('es-CL') : '—';
+          certEl.textContent = `✓ Certificado activo — RUT ${cert.rut_firmante} (subido ${fecha})`;
+          certEl.style.color = '#059669';
+        } else {
+          certEl.textContent = 'Sin certificado cargado.';
+          certEl.style.color = '';
+        }
+      }
+    }
   } catch(_) {}
 
   try { _factConfig = JSON.parse(localStorage.getItem(_factKey('attempo_facturacion')) || '{}'); } catch(e) { _factConfig = {}; }
