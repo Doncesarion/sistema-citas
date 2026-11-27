@@ -5100,11 +5100,13 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
             <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Ciudad</label>
               <input id="fact-region" type="text" placeholder="Santiago" class="fi" style="width:100%"></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
             <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Fecha resolución SII</label>
               <input id="fact-fecha-resol" type="date" class="fi" style="width:100%"></div>
             <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">N° resolución SII</label>
               <input id="fact-num-resol" type="number" min="0" placeholder="Ej: 80" class="fi" style="width:100%"></div>
+            <div><label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Código Actividad (CIIU)</label>
+              <input id="fact-acteco" type="number" min="1" placeholder="Ej: 6209" class="fi" style="width:100%"></div>
           </div>
           <div>
             <label style="font-size:11px;color:var(--t3);display:block;margin-bottom:4px">Ambiente</label>
@@ -14305,6 +14307,7 @@ async function cargarFacturacion() {
         if (g('fact-region'))      g('fact-region').value      = cfg.region        || '';
         if (g('fact-fecha-resol')) g('fact-fecha-resol').value = cfg.fecha_resolucion || '';
         if (g('fact-num-resol'))   g('fact-num-resol').value   = cfg.numero_resolucion ?? '';
+        if (g('fact-acteco'))      g('fact-acteco').value      = cfg.acteco        || '';
         if (g('fact-ambiente'))    g('fact-ambiente').value    = cfg.ambiente      || 'produccion';
         // Actualizar banner estado
         const banner = g('fact-estado-banner');
@@ -14399,6 +14402,7 @@ async function guardarDteConfig(btn) {
         region:            g('fact-region')?.value.trim()      || '',
         fecha_resolucion:  g('fact-fecha-resol')?.value        || null,
         numero_resolucion: g('fact-num-resol')?.value !== '' ? parseInt(g('fact-num-resol').value) : null,
+        acteco:            g('fact-acteco')?.value             || null,
         ambiente:          g('fact-ambiente')?.value           || 'produccion',
       })
     });

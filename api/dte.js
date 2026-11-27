@@ -113,10 +113,12 @@ export default async function handler(req, res) {
       const cid = await getClienteId(req);
       if (!cid) return res.status(401).json({ error: 'No autorizado' });
 
-      const { rut, razon_social, giro, direccion, comuna, region, fecha_resolucion, numero_resolucion, ambiente, email } = req.body || {};
+      const { rut, razon_social, giro, direccion, comuna, region, fecha_resolucion, numero_resolucion, ambiente, email, acteco } = req.body || {};
       if (!rut || !razon_social) return res.status(400).json({ error: 'RUT y razón social requeridos' });
 
       const payload = { cliente_id: cid, rut, razon_social, giro: giro || '', direccion: direccion || '', comuna: comuna || '', region: region || '', fecha_resolucion: fecha_resolucion || null, numero_resolucion: numero_resolucion ?? null, ambiente: ambiente || 'certificacion', email: email || '', updated_at: new Date().toISOString() };
+      // acteco requiere migración SQL (supabase/dte_acteco_column.sql) antes de guardarse
+      if (acteco) payload.acteco = parseInt(acteco);
 
       const r = await fetch(`${SUPABASE_URL}/rest/v1/dte_config?on_conflict=cliente_id`, {
         method: 'POST',
@@ -292,6 +294,9 @@ export default async function handler(req, res) {
         comuna:            cfg.comuna || 'Santiago',
         region:            cfg.region || 'Santiago',
         email:             cfg.email || '',
+        // acteco: código de actividad económica (CIIU) — requerido en DTE_v10.xsd para tipo 33
+        // cfg.acteco se agrega con la migración SQL; mientras no exista, se usa el default
+        acteco:            cfg.acteco || '6209',
         fecha_resolucion:  cfg.fecha_resolucion,
         numero_resolucion: cfg.numero_resolucion,
         ambiente:          cfg.ambiente || 'produccion',
