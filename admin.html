@@ -14347,9 +14347,10 @@ async function cargarFacturacion() {
       const r = await fetch('/api/dte?action=cert', { headers });
       if (r.ok) {
         const cert = await r.json();
-        if (cert && cert.rut_firmante) {
+        if (cert) {
           const fecha = cert.created_at ? new Date(cert.created_at).toLocaleDateString('es-CL') : '—';
-          certEl.textContent = `✓ Certificado activo — RUT ${cert.rut_firmante} (subido ${fecha})`;
+          const rutTxt = cert.rut_firmante ? ` — RUT ${cert.rut_firmante}` : '';
+          certEl.textContent = `✓ Certificado activo${rutTxt} (subido ${fecha})`;
           certEl.style.color = '#059669';
         } else {
           certEl.textContent = 'Sin certificado cargado.';
