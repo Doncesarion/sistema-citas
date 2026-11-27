@@ -175,6 +175,10 @@ export default async function handler(req, res) {
         headers: { ...shJson, Prefer: 'return=representation' },
         body: JSON.stringify({ cliente_id: cid, storage_path: path, password_enc: encryptPassword(password), rut_firmante: rutFirmante, activo: true })
       });
+      if (!certR.ok) {
+        const certErr = await certR.json().catch(() => ({}));
+        return res.status(500).json({ error: 'Error guardando en BD: ' + (certErr.message || certErr.hint || certErr.code || certR.status) });
+      }
       const cert = await certR.json();
       return res.status(201).json({ ok: true, rut_firmante: rutFirmante, id: Array.isArray(cert) ? cert[0]?.id : cert?.id });
     }

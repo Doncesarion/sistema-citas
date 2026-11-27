@@ -14355,9 +14355,16 @@ async function cargarFacturacion() {
           certEl.textContent = 'Sin certificado cargado.';
           certEl.style.color = '';
         }
+      } else {
+        const err = await r.json().catch(() => ({}));
+        certEl.textContent = 'Error: ' + (err.error || r.status);
+        certEl.style.color = '#dc2626';
       }
     }
-  } catch(_) {}
+  } catch(e) {
+    const certEl = g('fact-cert-estado');
+    if (certEl) { certEl.textContent = 'Error de conexión'; certEl.style.color = '#dc2626'; }
+  }
 
   try { _factConfig = JSON.parse(localStorage.getItem(_factKey('attempo_facturacion')) || '{}'); } catch(e) { _factConfig = {}; }
   if (g('fact-honorarios')) g('fact-honorarios').checked = (_factConfig.tipo || 'honorarios') === 'honorarios';
