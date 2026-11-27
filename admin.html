@@ -5145,6 +5145,14 @@ tr:hover td{background:rgba(108,92,228,.05);transition:background .1s}
       </div>
     </div>
 
+    <!-- Prueba de emisión -->
+    <div class="card" style="padding:20px;margin-top:12px">
+      <div style="font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px">Probar emisión DTE</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Emite un documento de prueba al SII con datos ficticios para verificar que todo funciona.</div>
+      <div id="fact-prueba-resultado" style="font-size:12px;margin-bottom:10px;display:none"></div>
+      <button class="btn-sm btn-a" onclick="probarEmisionDte(this)">Emitir prueba al SII</button>
+    </div>
+
   </div>
 </div>
 
@@ -14428,6 +14436,38 @@ async function subirCertificadoDte(btn) {
       cargarFacturacion();
     } else { toastErr(d.error || 'Error subiendo certificado'); }
   } catch(e) { toastErr('Error: ' + e.message); }
+  finally { btn.textContent = orig; btn.disabled = false; }
+}
+
+async function probarEmisionDte(btn) {
+  const orig = btn.textContent; btn.textContent = 'Emitiendo...'; btn.disabled = true;
+  const res = document.getElementById('fact-prueba-resultado');
+  if (res) { res.style.display = 'none'; res.textContent = ''; }
+  try {
+    const r = await fetch('/api/dte?action=emitir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('attempo_session_token') || ''}` },
+      body: JSON.stringify({
+        tipo_documento: 33,
+        receptor_rut: '66666666-6',
+        receptor_nombre: 'Consumidor Final',
+        items: [{ descripcion: 'Servicio de prueba DTE', cantidad: 1, precio_unitario: 1000, exento: false }]
+      })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (res) {
+      res.style.display = 'block';
+      if (r.ok) {
+        res.style.color = '#059669';
+        res.textContent = `✓ Factura emitida — Folio ${d.folio} · Track SII: ${d.track_id}`;
+      } else {
+        res.style.color = '#dc2626';
+        res.textContent = '✗ Error: ' + (d.error || r.status);
+      }
+    }
+  } catch(e) {
+    if (res) { res.style.display = 'block'; res.style.color = '#dc2626'; res.textContent = 'Error: ' + e.message; }
+  }
   finally { btn.textContent = orig; btn.disabled = false; }
 }
 
