@@ -145,6 +145,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Certificado inválido o contraseña incorrecta: ' + e.message });
       }
 
+      // Asegurar que el bucket existe (lo crea si no hay)
+      await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+        method: 'POST', headers: shJson,
+        body: JSON.stringify({ id: 'dte-certs', name: 'dte-certs', public: false })
+      }).catch(() => {});
+
       // Subir a Storage
       const path = `dte-certs/${cid}_${Date.now()}.p12`;
       const buf  = Buffer.from(p12_b64, 'base64');
@@ -153,7 +159,10 @@ export default async function handler(req, res) {
         headers: { ...sh, 'Content-Type': 'application/octet-stream', 'x-upsert': 'true' },
         body: buf
       });
-      if (!upR.ok) return res.status(500).json({ error: 'Error subiendo certificado al storage' });
+      if (!upR.ok) {
+        const upErr = await upR.json().catch(() => ({}));
+        return res.status(500).json({ error: 'Error subiendo certificado: ' + (upErr.message || upErr.error || upR.status) });
+      }
 
       // Desactivar certs anteriores
       await fetch(`${SUPABASE_URL}/rest/v1/dte_certificados?cliente_id=eq.${cid}`, {
