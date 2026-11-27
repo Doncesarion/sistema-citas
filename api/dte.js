@@ -15,19 +15,38 @@ const INTERNAL_KEY = process.env.INTERNAL_API_SECRET;
 const sh     = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 const shJson = { ...sh, 'Content-Type': 'application/json' };
 
-// ── Auth helper ───────────────────────────────────────────────────────────────
-async function getClienteId(req) {
-  const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
+// ── Auth helper (mismo mecanismo HMAC que el resto de las APIs) ───────────────
+function verifySessionToken(token) {
   if (!token) return null;
-  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` }
-  });
-  if (!r.ok) return null;
-  const u = await r.json();
-  if (!u?.id) return null;
-  const rc = await fetch(`${SUPABASE_URL}/rest/v1/clientes_sistema?auth_user_id=eq.${u.id}&select=id&limit=1`, { headers: sh });
-  const [c] = await rc.json().catch(() => []);
-  return c?.id || null;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return null;
+  const payload = token.slice(0, dot);
+  const sig     = token.slice(dot + 1);
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  try {
+    const sb = Buffer.from(sig, 'hex');
+    const eb = Buffer.from(expected, 'hex');
+    if (sb.length !== eb.length || !crypto.timingSafeEqual(sb, eb)) return null;
+  } catch { return null; }
+  const parts = payload.split(':');
+  if (parts.length < 3) return null;
+  const [cliente_id, rol, expires] = parts;
+  if (Date.now() > parseInt(expires)) return null;
+  return { cliente_id, rol };
+}
+
+function getClienteId(req) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '').trim()
+              || req.headers['x-session-token'];
+  const session = verifySessionToken(token);
+  if (!session) return null;
+  const override = req.headers['x-override-cliente-id'];
+  if (session.rol === 'superadmin' && override && /^[0-9a-f-]{36}$/i.test(override)) {
+    return override;
+  }
+  return session.cliente_id;
 }
 
 // ── Cifrar/descifrar contraseña del .p12 ─────────────────────────────────────
