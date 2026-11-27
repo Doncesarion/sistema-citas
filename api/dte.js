@@ -306,7 +306,7 @@ export default async function handler(req, res) {
         montoTotal: totales.total,
       });
       const envioDte = wrapEnvioDte(dteFirmado, empresa, { privateKeyPem, certPem, rutFirmante: cert.rut_firmante });
-      const { trackId } = await sendToSii(envioDte, empresa, cert.rut_firmante, privateKeyPem);
+      const { trackId } = await sendToSii(envioDte, empresa, cert.rut_firmante, privateKeyPem, certPem);
 
       // Avanzar folio
       await fetch(`${SUPABASE_URL}/rest/v1/dte_cafs?id=eq.${caf.id}&cliente_id=eq.${cid}`, {
